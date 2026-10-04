@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "updated_at": "2026-10-03",
+  "operating_goal": {
+    "near_term": "$100/day verified new revenue",
+    "long_term": "$1,000/day verified revenue",
+    "constraints": [
+      "No cold email",
+      "No required sales calls or meetings",
+      "Prefer self-serve or async close",
+      "Use free or already-connected acquisition infrastructure first",
+      "Do not claim revenue until verified"
+    ]
+  },
+  "ideas": [
+    {
+      "id": "quote-follow-up-automation",
+      "name": "Quote Follow-Up Automation",
+      "status": "idea_vault",
+      "target_customer": "Home-service and local-service businesses that send estimates or quotes",
+      "problem": "Estimates go cold because follow-up is inconsistent or delayed",
+      "offer": "Automated follow-up after quotes until the prospect books, declines, or opts out",
+      "starting_price_test": "$149-$299 setup plus optional monthly management",
+      "primary_channel": "LinkedIn, social intent, local/public business discovery",
+      "close_mode": "async_self_serve",
+      "validation_hypothesis": "One recovered job can justify the fee, making ROI easy to understand",
+      "metrics": ["positive_reply_rate", "checkout_rate", "cash_collected_per_qualified_lead", "retained_mrr"],
+      "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
+    },
+    {
+      "id": "google-business-profile-recovery",
+      "name": "Google Business Profile Recovery / Optimization",
+      "status": "idea_vault",
+      "target_customer": "Local businesses with weak or incomplete Google Business Profiles",
+      "problem": "Poor local visibility, weak trust signals, incomplete profile setup, and missed local search demand",
+      "offer": "Profile cleanup, categories/services/photos/Q&A optimization, review-request workflow, and optional monitoring",
+      "starting_price_test": "$99-$299 one-time plus optional monthly monitoring",
+      "primary_channel": "Local business discovery, social, LinkedIn, inbound",
+      "close_mode": "async_self_serve",
+      "validation_hypothesis": "Before/after gaps are easy to demonstrate and the deliverable is tangible",
+      "metrics": ["audit_to_purchase_rate", "checkout_rate", "cash_collected_per_qualified_lead", "upsell_rate"],
+      "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
+    },
+    {
+      "id": "website-conversion-rescue",
+      "name": "Website Conversion Rescue",
+      "status": "idea_vault",
+      "target_customer": "Small businesses with existing websites that get traffic but convert poorly",
+      "problem": "Weak CTA, poor mobile contact flow, bad forms, weak trust proof, slow response, or missing service-area conversion elements",
+      "offer": "Audit and fix the highest-impact conversion blockers on the existing site",
+      "starting_price_test": "$149-$399 one-time",
+      "primary_channel": "Firecrawl/public website audits, LinkedIn, social, local discovery",
+      "close_mode": "async_self_serve",
+      "validation_hypothesis": "Specific visible defects make personalization and ROI explanation straightforward",
+      "metrics": ["audit_to_purchase_rate", "checkout_rate", "cash_collected_per_qualified_lead", "fulfillment_hours"],
+      "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
+    },
+    {
+      "id": "old-lead-reactivation",
+      "name": "Old Lead Reactivation",
+      "status": "idea_vault",
+      "target_customer": "Businesses with dormant leads in CRM, forms, spreadsheets, or prior inquiries",
+      "problem": "Paid acquisition generated leads that were never converted or followed up effectively",
+      "offer": "Reactivate previously opted-in/dormant leads through compliant asynchronous channels and route renewed interest to the purchase path",
+      "starting_price_test": "$199-$499 setup plus performance/management option",
+      "primary_channel": "Existing customer-owned lead databases; no cold email",
+      "close_mode": "async",
+      "validation_hypothesis": "The business already paid to acquire the leads, so recovered revenue has intuitive value",
+      "compliance_note": "Only contact records with a lawful/consented channel basis; preserve opt-out safeguards",
+      "metrics": ["reactivation_rate", "purchase_rate", "recovered_revenue", "opt_out_rate"],
+      "promotion_gate": "Promote only after verified compliance path, paid demand, and fulfillment QA"
+    },
+    {
+      "id": "no-show-reduction",
+      "name": "No-Show Reduction / Appointment Recovery",
+      "status": "idea_vault",
+      "target_customer": "Appointment-based local businesses such as dentists, med spas, salons, clinics, and home services",
+      "problem": "Missed appointments and weak rescheduling create direct lost revenue",
+      "offer": "Automated confirmations, reminders, reschedule flows, and appointment-recovery workflow",
+      "starting_price_test": "$149-$299 setup plus monthly management",
+      "primary_channel": "LinkedIn, social, local business discovery",
+      "close_mode": "async_self_serve",
+      "validation_hypothesis": "No-show cost is measurable and easy for owners to understand",
+      "metrics": ["positive_reply_rate", "purchase_rate", "no_show_reduction", "recovered_revenue"],
+      "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
+    },
+    {
+      "id": "review-recovery-reputation-monitoring",
+      "name": "Review Recovery + Reputation Monitoring",
+      "status": "idea_vault",
+      "target_customer": "Local businesses dependent on Google reviews and public reputation",
+      "problem": "Unhappy customers are discovered too late and satisfied customers are not consistently asked for reviews",
+      "offer": "Customer feedback routing, compliant review requests, monitoring, alerts, and response workflow",
+      "starting_price_test": "$99-$249 setup plus $39-$99/month",
+      "primary_channel": "Local discovery, social, LinkedIn, inbound",
+      "close_mode": "async_self_serve",
+      "validation_hypothesis": "Reputation is visible publicly and easy to audit before outreach",
+      "compliance_note": "No review gating or deceptive review practices",
+      "metrics": ["audit_to_purchase_rate", "review_request_completion", "new_review_rate", "retained_mrr"],
+      "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
+    },
+    {
+      "id": "lead-speed-to-response",
+      "name": "Lead Speed-to-Response System",
+      "status": "idea_vault",
+      "target_customer": "Businesses receiving inbound leads from forms, social, ads, or website inquiries",
+      "problem": "New leads wait too long for a first response and buy elsewhere",
+      "offer": "Immediate lead acknowledgment, qualification, routing, and self-serve next step",
+      "starting_price_test": "$149-$399 setup plus monthly management",
+      "primary_channel": "LinkedIn, social, local business discovery, inbound",
+      "close_mode": "async_self_serve",
+      "validation_hypothesis": "Response speed is a concrete operational problem with direct revenue impact",
+      "metrics": ["lead_response_time", "qualified_response_rate", "purchase_rate", "revenue_per_lead"],
+      "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
+    },
+    {
+      "id": "local-competitor-gap-audit",
+      "name": "Local Competitor Gap Audit",
+      "status": "idea_vault",
+      "target_customer": "Local businesses competing heavily on Google, reviews, website conversion, and response speed",
+      "problem": "Owners do not know exactly why nearby competitors capture more demand",
+      "offer": "Paid audit comparing the business against its top local competitors across reviews, GBP, website conversion, positioning, and response paths",
+      "starting_price_test": "$99-$249 one-time",
+      "primary_channel": "Local/public discovery, social, LinkedIn",
+      "close_mode": "async_self_serve",
+      "validation_hypothesis": "Low-friction diagnostic product can generate immediate cash and upsell implementation services",
+      "metrics": ["audit_purchase_rate", "cash_collected_per_qualified_lead", "implementation_upsell_rate"],
+      "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
+    }
+  ]
+}
