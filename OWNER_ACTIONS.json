@@ -1,0 +1,51 @@
+{
+  "version": "10.0.0",
+  "principle": "Everything provider-independent is wired. These items require owner credentials, account approval, contracts, or real-world provider configuration.",
+  "required_connections": [
+    {
+      "id": "payment_provider",
+      "why": "verified payment/refund/chargeback events",
+      "status": "OWNER_ACTION_REQUIRED"
+    },
+    {
+      "id": "website_source_host",
+      "why": "publish and edit CYZOR storefront/landing pages",
+      "status": "OWNER_ACTION_REQUIRED"
+    },
+    {
+      "id": "chrome_web_store",
+      "why": "edit/publish/measure 20 Chrome extensions",
+      "status": "OWNER_ACTION_REQUIRED"
+    },
+    {
+      "id": "social_publishers",
+      "why": "Instagram/TikTok/YouTube/LinkedIn publishing and analytics",
+      "status": "OWNER_ACTION_REQUIRED"
+    },
+    {
+      "id": "marketplace_accounts",
+      "why": "Etsy/Whop/eBay/Amazon listing, orders, returns and reconciliation",
+      "status": "AS_NEEDED"
+    },
+    {
+      "id": "supplier_fulfillment",
+      "why": "real supplier quotes, freight, warranty, returns and delivery proof",
+      "status": "AS_NEEDED"
+    },
+    {
+      "id": "digital_delivery",
+      "why": "entitlements/access for digital products",
+      "status": "AS_NEEDED"
+    },
+    {
+      "id": "ad_accounts",
+      "why": "paid acquisition execution",
+      "status": "OPTIONAL"
+    },
+    {
+      "id": "tax_legal_insurance",
+      "why": "product-specific compliance, certifications and liability",
+      "status": "AS_NEEDED"
+    }
+  ]
+}
