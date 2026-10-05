@@ -420,5 +420,87 @@
       ],
       "promotion_gate": "Promote only after delivered-cost, safety/compliance, supplier, and margin checks pass"
     }
+  ],
+  "systems": [
+    {
+      "id": "product-reverse-engineering-engine",
+      "name": "Product Reverse-Engineering Engine",
+      "status": "active_framework",
+      "source_reel": "https://www.instagram.com/reel/Dd5K0w7So9S/",
+      "purpose": "Find proven successful products, identify why they sell, systematically remove their weaknesses, and create a differentiated improved version or offer.",
+      "scope": [
+        "POD",
+        "e-commerce",
+        "digital products",
+        "physical products",
+        "Chrome extensions",
+        "SaaS",
+        "local-service offers"
+      ],
+      "workflow": [
+        "Find proven winners using bestseller, sustained sales, reviews, search demand, and social traction",
+        "Decompose why they win: buyer, job-to-be-done, price, positioning, features, design, proof, channel, fulfillment, margins",
+        "Mine negatives from low-star reviews, Reddit/forums, returns, support complaints, shipping issues, quality problems, missing features, UX friction, pricing confusion, and warranty complaints",
+        "Rank weaknesses by frequency, severity, fixability, and buyer impact",
+        "Create an improvement map that preserves winning elements while removing the most important negatives",
+        "Source or build a differentiated version without copying protected design, branding, code, or creative",
+        "Model landed cost, gross margin, shipping, returns, warranty, CAC, and target retail price",
+        "Validate demand cheaply before scaling inventory or build cost",
+        "Launch with original branding, improved positioning, stronger proof, and original creative",
+        "Track real customer feedback and iterate"
+      ],
+      "negative_side_elimination": {
+        "rule": "No candidate graduates until the top buyer complaints have an explicit mitigation or reason they cannot be fixed.",
+        "output": [
+          "complaint frequency",
+          "buyer impact",
+          "root cause",
+          "proposed fix",
+          "cost to fix",
+          "residual risk"
+        ]
+      },
+      "originality_rule": "Reverse-engineer market mechanics and customer needs, not protected expression, trademarks, proprietary code, exact designs, or copyrighted creative.",
+      "promotion_gate": "Promote only after demand, differentiation, compliance, supplier/build feasibility, and unit economics pass."
+    },
+    {
+      "id": "premium-packaging-pricing-engine",
+      "name": "Premium Packaging & Pricing Perception Engine",
+      "status": "queued_skill",
+      "source_reel": "https://www.instagram.com/reel/DeF3W68vDBi/",
+      "purpose": "Increase willingness to pay by improving presentation, positioning, context, proof, and audience fit before changing the underlying product.",
+      "core_principle": "The same product can command different prices when the visual and contextual packaging changes perceived value.",
+      "transferable_rules": [
+        "Upgrade environment, photography, staging, props, model/host presentation, and brand context to match the target price tier",
+        "Use context as a price anchor; premium presentation should make the higher price feel expected rather than surprising",
+        "Preserve the underlying offer when possible and test presentation changes before product changes",
+        "Use specific before/after proof and hard numbers instead of vague quality claims",
+        "Use a mini-story arc: character or buyer problem → simple change → measurable result",
+        "Broaden total addressable market through more aspirational and universally legible presentation",
+        "Use lead magnets or keyword-triggered DMs only when relevant and compliant with platform rules",
+        "Avoid fake scarcity, fake testimonials, fake before/after data, or deceptive luxury cues"
+      ],
+      "ecommerce_applications": [
+        "premium product photography",
+        "aspirational backgrounds",
+        "higher-end packaging",
+        "better product naming",
+        "bundling",
+        "premium landing-page design",
+        "authority cues",
+        "social proof",
+        "price anchoring",
+        "tiered offers"
+      ],
+      "validation_metrics": [
+        "conversion_rate",
+        "average_order_value",
+        "gross_margin",
+        "refund_rate",
+        "price_test_lift",
+        "qualified_traffic_conversion"
+      ],
+      "promotion_gate": "Keep only presentation changes that measurably improve conversion or margin without misleading buyers."
+    }
   ]
 }
