@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-03",
+  "updated_at": "2026-10-04",
   "operating_goal": {
     "near_term": "$100/day verified new revenue",
     "long_term": "$1,000/day verified revenue",
@@ -24,7 +24,12 @@
       "primary_channel": "LinkedIn, social intent, local/public business discovery",
       "close_mode": "async_self_serve",
       "validation_hypothesis": "One recovered job can justify the fee, making ROI easy to understand",
-      "metrics": ["positive_reply_rate", "checkout_rate", "cash_collected_per_qualified_lead", "retained_mrr"],
+      "metrics": [
+        "positive_reply_rate",
+        "checkout_rate",
+        "cash_collected_per_qualified_lead",
+        "retained_mrr"
+      ],
       "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
     },
     {
@@ -38,7 +43,12 @@
       "primary_channel": "Local business discovery, social, LinkedIn, inbound",
       "close_mode": "async_self_serve",
       "validation_hypothesis": "Before/after gaps are easy to demonstrate and the deliverable is tangible",
-      "metrics": ["audit_to_purchase_rate", "checkout_rate", "cash_collected_per_qualified_lead", "upsell_rate"],
+      "metrics": [
+        "audit_to_purchase_rate",
+        "checkout_rate",
+        "cash_collected_per_qualified_lead",
+        "upsell_rate"
+      ],
       "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
     },
     {
@@ -52,7 +62,12 @@
       "primary_channel": "Firecrawl/public website audits, LinkedIn, social, local discovery",
       "close_mode": "async_self_serve",
       "validation_hypothesis": "Specific visible defects make personalization and ROI explanation straightforward",
-      "metrics": ["audit_to_purchase_rate", "checkout_rate", "cash_collected_per_qualified_lead", "fulfillment_hours"],
+      "metrics": [
+        "audit_to_purchase_rate",
+        "checkout_rate",
+        "cash_collected_per_qualified_lead",
+        "fulfillment_hours"
+      ],
       "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
     },
     {
@@ -67,7 +82,12 @@
       "close_mode": "async",
       "validation_hypothesis": "The business already paid to acquire the leads, so recovered revenue has intuitive value",
       "compliance_note": "Only contact records with a lawful/consented channel basis; preserve opt-out safeguards",
-      "metrics": ["reactivation_rate", "purchase_rate", "recovered_revenue", "opt_out_rate"],
+      "metrics": [
+        "reactivation_rate",
+        "purchase_rate",
+        "recovered_revenue",
+        "opt_out_rate"
+      ],
       "promotion_gate": "Promote only after verified compliance path, paid demand, and fulfillment QA"
     },
     {
@@ -81,7 +101,12 @@
       "primary_channel": "LinkedIn, social, local business discovery",
       "close_mode": "async_self_serve",
       "validation_hypothesis": "No-show cost is measurable and easy for owners to understand",
-      "metrics": ["positive_reply_rate", "purchase_rate", "no_show_reduction", "recovered_revenue"],
+      "metrics": [
+        "positive_reply_rate",
+        "purchase_rate",
+        "no_show_reduction",
+        "recovered_revenue"
+      ],
       "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
     },
     {
@@ -96,7 +121,12 @@
       "close_mode": "async_self_serve",
       "validation_hypothesis": "Reputation is visible publicly and easy to audit before outreach",
       "compliance_note": "No review gating or deceptive review practices",
-      "metrics": ["audit_to_purchase_rate", "review_request_completion", "new_review_rate", "retained_mrr"],
+      "metrics": [
+        "audit_to_purchase_rate",
+        "review_request_completion",
+        "new_review_rate",
+        "retained_mrr"
+      ],
       "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
     },
     {
@@ -110,7 +140,12 @@
       "primary_channel": "LinkedIn, social, local business discovery, inbound",
       "close_mode": "async_self_serve",
       "validation_hypothesis": "Response speed is a concrete operational problem with direct revenue impact",
-      "metrics": ["lead_response_time", "qualified_response_rate", "purchase_rate", "revenue_per_lead"],
+      "metrics": [
+        "lead_response_time",
+        "qualified_response_rate",
+        "purchase_rate",
+        "revenue_per_lead"
+      ],
       "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
     },
     {
@@ -124,8 +159,150 @@
       "primary_channel": "Local/public discovery, social, LinkedIn",
       "close_mode": "async_self_serve",
       "validation_hypothesis": "Low-friction diagnostic product can generate immediate cash and upsell implementation services",
-      "metrics": ["audit_purchase_rate", "cash_collected_per_qualified_lead", "implementation_upsell_rate"],
+      "metrics": [
+        "audit_purchase_rate",
+        "cash_collected_per_qualified_lead",
+        "implementation_upsell_rate"
+      ],
       "promotion_gate": "Promote only after verified paid demand and fulfillment QA"
+    },
+    {
+      "id": "higgsfield-ai-affiliate-content-engine",
+      "name": "AI Creative SaaS Affiliate Content Engine",
+      "status": "idea_vault",
+      "source_reel": "https://www.instagram.com/reel/DdkeidYt98d/",
+      "source_creator": "@larpinleon",
+      "target_customer": "Creators, marketers, solopreneurs, and small businesses needing AI-generated image/video content",
+      "problem": "Content production is expensive, slow, and difficult to scale",
+      "offer": "Promote or package AI creative-generation workflows and bundles through affiliate/referral content",
+      "revenue_model": "Affiliate commissions / referral revenue; possible recurring SaaS rev-share",
+      "acquisition_method": "Instagram Reels, short-form demos, serialized content, link-in-bio funnel",
+      "fulfillment_model": "Digital and largely automated",
+      "pricing_observed": "Subscription SaaS with promotional discounting; exact reel pricing not shown",
+      "caveats": [
+        "Sponsored partner content",
+        "Exact affiliate economics not verified",
+        "Instagram playback unavailable; model derived from metadata and linked pages"
+      ],
+      "commerce_validation": {
+        "status": "queued",
+        "criteria": [
+          "demand",
+          "commission economics",
+          "conversion rate",
+          "competition",
+          "traffic cost",
+          "platform risk",
+          "content production cost",
+          "async closeability"
+        ]
+      },
+      "promotion_gate": "Promote only after verified affiliate terms, demand evidence, and unit economics"
+    },
+    {
+      "id": "ai-founder-free-resource-funnel",
+      "name": "AI Founder Free Resource / Repo Funnel",
+      "status": "idea_vault",
+      "source_reel": "https://www.instagram.com/reel/DeDrqZYT2cw/",
+      "source_creator": "@mudasirdevv",
+      "target_customer": "AI B2B founders, indie hackers, and developers",
+      "problem": "Founders want vetted AI startup stacks, templates, and implementation shortcuts",
+      "offer": "High-value free repository/resource unlocked by engagement, feeding a monetizable founder audience",
+      "revenue_model": "Audience monetization through affiliates, sponsors, premium templates, paid community, consulting, or future digital products",
+      "acquisition_method": "Short-form educational Reels with comment-keyword CTA and shareable founder advice",
+      "fulfillment_model": "Digital resource repository; automatable delivery",
+      "pricing_observed": "Free lead magnet; downstream monetization not shown",
+      "caveats": [
+        "No direct revenue model explicitly shown",
+        "Repository ownership/value may vary",
+        "Comment-gating can feel manipulative if overused"
+      ],
+      "commerce_validation": {
+        "status": "queued",
+        "criteria": [
+          "audience growth rate",
+          "lead capture rate",
+          "affiliate/sponsor potential",
+          "digital product upsell rate",
+          "content production efficiency",
+          "platform policy risk"
+        ]
+      },
+      "promotion_gate": "Promote only after a specific monetization path and measurable conversion funnel are validated"
+    },
+    {
+      "id": "ai-native-ecommerce-builder",
+      "name": "AI-Native E-Commerce Store Builder",
+      "status": "idea_vault",
+      "source_reel": "https://www.instagram.com/reel/DeAwfZTNkYT/",
+      "source_creator": "@kylebuildssites",
+      "target_customer": "E-commerce founders and merchants wanting AI-managed storefront operations",
+      "problem": "Store creation, testing, creative, merchandising, and marketing require too many disconnected tools and manual work",
+      "offer": "AI-native commerce platform that builds and optimizes stores, content, campaigns, and experiments",
+      "revenue_model": "Recurring SaaS subscription with usage/credit tiers",
+      "acquisition_method": "Creator/influencer Reels, comparison content, demos, founder communities",
+      "fulfillment_model": "Software / agentic AI",
+      "pricing_observed": "Approx. $49, $105, $299 monthly tiers; enterprise from ~$2,499, subject to verification",
+      "caveats": [
+        "Highly competitive against established commerce platforms",
+        "Credible product proof and integrations required",
+        "Claims of conversion lift need independent verification",
+        "AI credit limits may reduce perceived value"
+      ],
+      "commerce_validation": {
+        "status": "queued",
+        "mode": "chatgpt_commerce_validation",
+        "criteria": [
+          "TAM",
+          "buyer pain",
+          "competitive moat",
+          "pricing power",
+          "gross margin",
+          "CAC",
+          "retention",
+          "integration burden",
+          "technical build cost",
+          "self-serve conversion"
+        ]
+      },
+      "promotion_gate": "Promote only after commerce validation shows a differentiated wedge and viable build/partner strategy"
+    },
+    {
+      "id": "viral-content-driven-pod-brand",
+      "name": "Viral-Content-Driven POD / Streetwear Brand",
+      "status": "idea_vault",
+      "source_reel": "https://www.instagram.com/reel/DeDfWp_zslJ/",
+      "source_creator": "@robertmckeaveney",
+      "target_customer": "Gen-Z / young-millennial streetwear buyers",
+      "problem": "New apparel brands struggle to acquire customers profitably without paid ads",
+      "offer": "Distinctive apparel sold through a direct-to-consumer store, using high-velocity viral short-form content as the primary traffic engine",
+      "revenue_model": "Product margin on DTC apparel sales; optional creator/education monetization",
+      "acquisition_method": "Instagram Reels/TikTok, transition-heavy viral formats, creator-led brand storytelling, comment-to-resource funnels",
+      "fulfillment_model": "Prefer print-on-demand for low-risk validation; move to inventory only after repeatable demand",
+      "pricing_observed": "No confirmed product pricing from reel; related content suggested low-to-mid ticket apparel",
+      "caveats": [
+        "Viral reach does not guarantee sales",
+        "Trend dependence",
+        "Brand differentiation is critical",
+        "Copyright/commercial-use risks when remixing formats",
+        "POD margins can be thin"
+      ],
+      "commerce_validation": {
+        "status": "queued",
+        "mode": "chatgpt_commerce_validation",
+        "criteria": [
+          "design differentiation",
+          "gross margin",
+          "POD supplier economics",
+          "organic content hit rate",
+          "conversion rate",
+          "return rate",
+          "repeat purchase",
+          "CAC",
+          "copyright risk"
+        ]
+      },
+      "promotion_gate": "Promote only after a distinct product concept, supplier economics, and organic conversion test pass"
     }
   ]
 }
