@@ -1,0 +1,27 @@
+{
+  "version": "10.0.0",
+  "schemaVersion": 10,
+  "verifiedAt": "2026-10-05",
+  "artifact": "/CYZOR Money Factory/cyzor-money-factory-v10.0.0.zip",
+  "sha256": "216cbb02197dca403e84d20faba3ba101c707dcaa016df97bf04ad195af84734",
+  "tests": {
+    "passed": 115,
+    "failed": 0
+  },
+  "coverage": {
+    "linePercent": 99.19,
+    "branchPercent": 75.64,
+    "functionPercent": 92.2
+  },
+  "additions": [
+    "opportunity ranking",
+    "complaint and negative mining",
+    "landed-cost economics",
+    "premium pricing test generator",
+    "durable order and fulfillment state machine",
+    "support triage and escalation",
+    "scale optimize kill controller",
+    "per-business external connection checklist"
+  ],
+  "externalActions": "gated"
+}
