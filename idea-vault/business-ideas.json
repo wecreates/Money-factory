@@ -375,6 +375,50 @@
         ]
       },
       "promotion_gate": "Promote only after a specific product concept and measurable demand are validated"
+    },
+    {
+      "id": "electric-drift-trike-resale",
+      "name": "Electric Drift Trike Resale",
+      "status": "idea_vault",
+      "source_reel": "https://www.instagram.com/reel/Dd_WbU6IiQS/",
+      "source_creator": "@edrifttrikes_usa",
+      "target_customer": "Teen/adult recreational riders, gift buyers, and social-media-driven impulse buyers",
+      "problem": "Buyers want a fun, visually compelling ride-on product without sourcing directly from overseas marketplaces",
+      "offer": "Source low-cost electric drift trikes from AliExpress/overseas suppliers and resell through a branded social-first storefront",
+      "target_retail_price": "Up to ~$1,000 where market supports it",
+      "observed_source_prices": {
+        "reel_price": "$350 advertised, with comments disputing ~$400 website pricing",
+        "aliexpress_examples": "~$167-$186 for some adult/kids electric drift trike listings before landed-cost verification"
+      },
+      "revenue_model": "Physical-product markup / retail arbitrage",
+      "acquisition_method": "Instagram Reels, TikTok, product demos, stunt/drift footage, UGC-style short-form ads",
+      "fulfillment_model": "Prefer supplier-direct fulfillment or domestic consolidation only after safety and shipping verification",
+      "commerce_validation": {
+        "status": "queued",
+        "mode": "chatgpt_commerce_validation",
+        "criteria": [
+          "true landed cost",
+          "freight and oversize shipping",
+          "battery shipping restrictions",
+          "supplier reliability",
+          "product safety and certifications",
+          "liability exposure",
+          "return/refund economics",
+          "market retail comps",
+          "gross margin at $699/$799/$999",
+          "delivery time",
+          "warranty feasibility",
+          "chargeback risk"
+        ]
+      },
+      "caveats": [
+        "Do not assume listed AliExpress price includes freight",
+        "Lithium battery shipping and product compliance can materially change landed cost",
+        "High-liability recreational product; safety documentation matters",
+        "Need to verify adult fit/specifications and exact supplier model before listing",
+        "Avoid misleading price or performance claims"
+      ],
+      "promotion_gate": "Promote only after delivered-cost, safety/compliance, supplier, and margin checks pass"
     }
   ]
 }
