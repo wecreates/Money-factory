@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "updated_at": "2026-10-05",
+  "producer": "CYZOR Money Factory",
+  "consumer": "Content Control",
+  "contract": {
+    "input": [
+      "business id",
+      "business name",
+      "content readiness mode",
+      "verified claims",
+      "forbidden claims",
+      "offer facts",
+      "audience",
+      "channel",
+      "style profile",
+      "CTA permission",
+      "publication permission"
+    ],
+    "output": [
+      "content brief",
+      "script",
+      "shot list",
+      "asset plan",
+      "voice plan",
+      "editing grammar",
+      "QA report",
+      "claim audit",
+      "render package"
+    ],
+    "fail_closed_rules": [
+      "Content Control may never exceed the business max_mode",
+      "LAUNCH CTA is blocked unless launch_content_allowed=true",
+      "Unverified facts are converted to questions/hypotheses or omitted",
+      "Physical product shipping/safety/warranty claims require verified provider data",
+      "Verified revenue/profit claims require Money Factory verified events",
+      "Publication remains false unless explicitly enabled"
+    ],
+    "style_resolution": [
+      "Use product_demo_short_form for direct demonstrations",
+      "Use ecommerce_trending_style for trend products",
+      "Use entertainment_first_product_promo for high-ticket/local/service-heavy products",
+      "Use viral_format_replication for proven structure adaptation",
+      "Apply originality guardrails to every reference-driven format"
+    ]
+  }
+}
