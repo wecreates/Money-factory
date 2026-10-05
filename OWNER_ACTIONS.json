@@ -1,5 +1,5 @@
 {
-  "version": "10.0.0",
+  "version": "12.0.0",
   "principle": "Everything provider-independent is wired. These items require owner credentials, account approval, contracts, or real-world provider configuration.",
   "required_connections": [
     {
@@ -14,7 +14,7 @@
     },
     {
       "id": "chrome_web_store",
-      "why": "edit/publish/measure 20 Chrome extensions",
+      "why": "edit/publish/measure Chrome extensions",
       "status": "OWNER_ACTION_REQUIRED"
     },
     {
@@ -24,17 +24,17 @@
     },
     {
       "id": "marketplace_accounts",
-      "why": "Etsy/Whop/eBay/Amazon listing, orders, returns and reconciliation",
+      "why": "Etsy/Whop/eBay/Amazon listings, orders, returns and reconciliation",
       "status": "AS_NEEDED"
     },
     {
       "id": "supplier_fulfillment",
-      "why": "real supplier quotes, freight, warranty, returns and delivery proof",
+      "why": "real quotes, freight, warranty, returns and delivery proof",
       "status": "AS_NEEDED"
     },
     {
       "id": "digital_delivery",
-      "why": "entitlements/access for digital products",
+      "why": "digital entitlements/access",
       "status": "AS_NEEDED"
     },
     {
@@ -47,5 +47,40 @@
       "why": "product-specific compliance, certifications and liability",
       "status": "AS_NEEDED"
     }
-  ]
+  ],
+  "department_dependencies": {
+    "research": [
+      "live marketplace/search/social sources"
+    ],
+    "reverse_engineering": [
+      "live reviews/forums/supplier quotes"
+    ],
+    "finance": [
+      "real payment/cost/tax data"
+    ],
+    "acquisition": [
+      "social/marketplace/ad analytics"
+    ],
+    "content": [
+      "publishing accounts"
+    ],
+    "lifecycle": [
+      "CRM/order/subscription events"
+    ],
+    "fulfillment": [
+      "supplier/carrier/digital delivery"
+    ],
+    "support": [
+      "customer support channels"
+    ],
+    "security": [
+      "credentials/permissions/legal review"
+    ],
+    "operations": [
+      "provider uptime"
+    ],
+    "portfolio": [
+      "verified revenue/cost outcomes"
+    ]
+  }
 }
