@@ -339,6 +339,42 @@
         ]
       },
       "promotion_gate": "Promote only after product existence, supplier quality, legal/IP safety, and organic demand are verified"
+    },
+    {
+      "id": "whop-24-hour-digital-product-business",
+      "name": "24-Hour Digital Product Business on Whop",
+      "status": "idea_vault",
+      "source_reel": "https://www.instagram.com/reel/Dd-Xo4jtXCC/",
+      "source_creator": "@mikaelswealth",
+      "target_customer": "Aspiring entrepreneurs, creators, side-hustlers, and niche community builders",
+      "problem": "People want a low-overhead online business with instant fulfillment and no physical inventory",
+      "offer": "Launch a digital product, membership, community, course, software access, or resource bundle through Whop",
+      "revenue_model": "Digital product sales and recurring subscriptions; platform fees handled by marketplace",
+      "acquisition_method": "Instagram Reels and short-form challenge content such as build-a-business-in-24-hours",
+      "fulfillment_model": "Digital-only delivery through Whop",
+      "pricing_observed": "No verified offer price shown in the Reel",
+      "caveats": [
+        "Exact product in the Reel was not visible because playback failed",
+        "Coordinated Whop comments may indicate paid promotion",
+        "Digital product market is crowded",
+        "24-hour framing can create unrealistic expectations"
+      ],
+      "commerce_validation": {
+        "status": "queued",
+        "mode": "chatgpt_commerce_validation",
+        "criteria": [
+          "niche demand",
+          "product differentiation",
+          "pricing",
+          "platform fees",
+          "gross margin",
+          "conversion rate",
+          "refund rate",
+          "recurring revenue potential",
+          "organic acquisition potential"
+        ]
+      },
+      "promotion_gate": "Promote only after a specific product concept and measurable demand are validated"
     }
   ]
 }
