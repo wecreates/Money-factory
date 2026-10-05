@@ -1,0 +1,33 @@
+{
+  "version": "12.0.0",
+  "schemaVersion": 12,
+  "verifiedAt": "2026-10-05",
+  "artifact": "/CYZOR Money Factory/cyzor-money-factory-v12.0.0.zip",
+  "sha256": "e6ceaa7aa7bf8f059cae10bab0980b5135c9310b94158fd3d31839228e3f2a9b",
+  "tests": {
+    "passed": 132,
+    "failed": 0
+  },
+  "coverage": {
+    "linePercent": 99.39,
+    "branchPercent": 73.22,
+    "functionPercent": 92.87
+  },
+  "additions": [
+    "department operating layer",
+    "source freshness/evidence quality",
+    "trend scoring",
+    "competitor gaps",
+    "reverse-engineering improvement specs",
+    "supplier scoring",
+    "unit economics/runway/budget guards",
+    "channel scoring/funnel diagnosis",
+    "retention health",
+    "fulfillment health",
+    "support health",
+    "security risk register",
+    "portfolio decisions",
+    "department audit API/persistence"
+  ],
+  "externalActions": "gated"
+}
