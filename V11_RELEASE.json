@@ -1,0 +1,27 @@
+{
+  "version": "11.0.0",
+  "schemaVersion": 11,
+  "verifiedAt": "2026-10-05",
+  "artifact": "/CYZOR Money Factory/cyzor-money-factory-v11.0.0.zip",
+  "sha256": "d6aad68e2bc61e64ae8b50491609c7d05525cf25b7d32f782c908c602ca42bda",
+  "tests": {
+    "passed": 121,
+    "failed": 0
+  },
+  "coverage": {
+    "linePercent": 99.27,
+    "branchPercent": 75.88,
+    "functionPercent": 92.38
+  },
+  "additions": [
+    "content readiness matrix",
+    "RESEARCH PRELAUNCH LAUNCH gates",
+    "phase-specific claim and CTA restrictions",
+    "product-demo-short-form skill",
+    "content readiness API",
+    "content skills API",
+    "content request readiness enforcement",
+    "Content Control readiness contract"
+  ],
+  "externalActions": "gated"
+}
