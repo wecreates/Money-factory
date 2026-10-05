@@ -1,0 +1,148 @@
+{
+  "version": "12.0.0",
+  "departments": [
+    {
+      "id": "research",
+      "mission": "Prove current demand and claims with fresh independent evidence",
+      "capabilities": [
+        "source freshness",
+        "evidence quality/conflicts",
+        "trend scoring",
+        "competitor gaps"
+      ],
+      "external": [
+        "live marketplace/search/social sources"
+      ]
+    },
+    {
+      "id": "reverse_engineering",
+      "mission": "Find proven winners, preserve what works, remove negatives, create a differentiated better path",
+      "capabilities": [
+        "complaint mining",
+        "improvement specs",
+        "supplier scoring",
+        "IP guardrails"
+      ],
+      "external": [
+        "live reviews/forums/supplier quotes"
+      ]
+    },
+    {
+      "id": "finance",
+      "mission": "Protect contribution margin, cash, and downside",
+      "capabilities": [
+        "unit economics",
+        "break-even",
+        "cash runway",
+        "budget guard"
+      ],
+      "external": [
+        "real payment/cost/tax data"
+      ]
+    },
+    {
+      "id": "acquisition",
+      "mission": "Acquire qualified demand without cold email and diagnose the bottleneck closest to money",
+      "capabilities": [
+        "channel scoring",
+        "funnel diagnosis",
+        "controlled experiments",
+        "attribution"
+      ],
+      "external": [
+        "social/marketplace/ad analytics"
+      ]
+    },
+    {
+      "id": "content",
+      "mission": "Produce phase-compliant creative without unsupported claims",
+      "capabilities": [
+        "RESEARCH/PRELAUNCH/LAUNCH rules",
+        "product-demo skill",
+        "claim/CTA restrictions"
+      ],
+      "external": [
+        "publishing accounts"
+      ]
+    },
+    {
+      "id": "lifecycle",
+      "mission": "Move customers through activation, retention, renewal, expansion and winback",
+      "capabilities": [
+        "retention health",
+        "churn/renewal/repeat metrics"
+      ],
+      "external": [
+        "CRM/order/subscription events"
+      ]
+    },
+    {
+      "id": "fulfillment",
+      "mission": "Deliver paid value reliably and prove completion",
+      "capabilities": [
+        "order state machine",
+        "SLA health",
+        "overdue/lost/refund detection"
+      ],
+      "external": [
+        "supplier/carrier/digital delivery"
+      ]
+    },
+    {
+      "id": "support",
+      "mission": "Auto-resolve routine issues and escalate money/safety/legal risk",
+      "capabilities": [
+        "support health",
+        "critical backlog",
+        "auto-resolvable queue"
+      ],
+      "external": [
+        "customer support channels"
+      ]
+    },
+    {
+      "id": "security",
+      "mission": "Keep consequential actions approved, scoped, traceable and fail-closed",
+      "capabilities": [
+        "risk register",
+        "critical/high prioritization",
+        "approval gates"
+      ],
+      "external": [
+        "credentials/permissions/legal review"
+      ]
+    },
+    {
+      "id": "operations",
+      "mission": "Keep workers/providers healthy and reconcile ambiguity",
+      "capabilities": [
+        "department health board",
+        "persistent audit snapshots",
+        "worker/provider monitoring"
+      ],
+      "external": [
+        "provider uptime"
+      ]
+    },
+    {
+      "id": "portfolio",
+      "mission": "Allocate effort/capital to verified winners and kill failed lanes",
+      "capabilities": [
+        "verified-profit ranking",
+        "SCALE/TEST/OPTIMIZE/HOLD/KILL"
+      ],
+      "external": [
+        "verified revenue/cost outcomes"
+      ]
+    }
+  ],
+  "common_contract": [
+    "objective score",
+    "status",
+    "blockers",
+    "next actions",
+    "metrics",
+    "external dependencies"
+  ],
+  "principle": "Fail closed; external capabilities are never fabricated."
+}
