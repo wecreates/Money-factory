@@ -1,0 +1,31 @@
+{
+  "version": "9.0.0",
+  "schemaVersion": 9,
+  "verifiedAt": "2026-10-05",
+  "artifact": "/CYZOR Money Factory/cyzor-money-factory-v9.0.0.zip",
+  "sha256": "d2644f82a66ab4b4d46b018c82a3acd8a2a68283c0519f2cdf9f1e84e87a6edc",
+  "tests": {
+    "passed": 105,
+    "failed": 0
+  },
+  "coverage": {
+    "linePercent": 99.11,
+    "branchPercent": 76.08,
+    "functionPercent": 92.05
+  },
+  "ideaVault": {
+    "bootstrap": "automatic_idempotent",
+    "ideas": 15
+  },
+  "pipeline": [
+    "research",
+    "improvement",
+    "economics",
+    "offer",
+    "acquisition",
+    "readiness",
+    "feedback"
+  ],
+  "externalActions": "gated",
+  "note": "Verified runtime artifact is stored in the user's CYZOR Money Factory Library folder. GitHub repo currently documents the release and retains the canonical Idea Vault."
+}
