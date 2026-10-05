@@ -1,38 +1,31 @@
 # CYZOR Money Factory
 
-Autonomous business operating system for discovering, validating, improving, building, marketing, monetizing, fulfilling, and optimizing business lanes around verified net profit.
+Autonomous, local-first business operating system focused on verified net profit.
 
-## Current verified build
+## Current verified build: V12.0.0
 
-**V11.0.0** is the latest verified runtime artifact.
+V12 completes the provider-independent operating layer across every department.
 
-- Schema: 11
-- Tests: 121/121 passing
-- Line coverage: 99.27%
-- Branch coverage: 75.88%
-- Function coverage: 92.38%
-- Primary objective: verified net profit
-- Cold-email-dependent business models: excluded
-- External actions: provider-health, policy, evidence, economics, payment, fulfillment, and explicit release gated
+- Schema: 12
+- Tests: 132/132 passing
+- Line coverage: 99.39%
+- Branch coverage: 73.22%
+- Function coverage: 92.87%
+- Cold-email-dependent models: excluded
+- Consequential external actions: approval/provider gated
 
-The runtime automatically imports the Idea Vault idempotently and wires each business through:
+### Unified business path
 
-`research → improvement → economics → offer → acquisition → readiness → feedback`
+`idea → research → reverse engineering → economics → offer/pricing → acquisition → content → readiness → payment → fulfillment → support → verified profit → scale/optimize/kill`
 
-V11 adds a Content Production Readiness Engine. Every business is automatically classified as **RESEARCH**, **PRELAUNCH**, or **LAUNCH**, and Content Control can only generate content appropriate to that phase.
+### V12 department control layer
 
-- RESEARCH: trend validation, education, comparison, sourcing/build-in-public, teaser and concept-demo content.
-- PRELAUNCH: adds waitlist, coming-soon, product demos, behind-the-scenes, verified feature demos, lead magnets and founder stories.
-- LAUNCH: adds buy-now ads, launch announcements, offer breakdowns, verified testimonials/results, retargeting and upsell/cross-sell.
+Every operating department now exposes a score, status, blockers, next actions, metrics, and owner/provider dependencies. Specialist engines cover source freshness, evidence quality, trend strength, competitor gaps, supplier quality, improvement specs, unit economics, runway, spend guards, channel selection, funnel diagnosis, retention, fulfillment SLA, support health, security risk, and portfolio decisions.
 
-Launch content is blocked unless validation passed, verified gross margin is at least 20%, research is verified, legal review passed, and fulfillment is feasible.
+`GET /api/departments` returns the live department board. `POST /api/departments/refresh` persists the current audit snapshot.
 
-V11 also installs the reusable `product-demo-short-form` skill with native 9:16 structure, 1.5–4 second visual beats, show-don't-tell product demonstration, verified-proof requirements, originality guardrails, product-legibility QA, and phase-compliant CTAs.
+See `DEPARTMENT_MATRIX.json` for the department contract and `OWNER_ACTIONS.json` for remaining account/provider work.
 
-The pipeline fails closed: it reports missing evidence, economics, provider readiness, legal/fulfillment gates, or verified profit instead of fabricating completion.
+## Non-negotiable accounting
 
-## Deployment policy
-
-Business builds remain gated until validation and release requirements pass. Production revenue is recognized only from verified provider events. Simulated/test money never counts as production revenue. No external capability is treated as live unless the configured provider reports healthy.
-
-See `OWNER_ACTIONS.json` for the remaining account/provider work that requires owner credentials or approval.
+Only verified provider events count as production revenue/cost. Views, clicks, replies, forecasts, simulations, and test money never count as verified profit.
