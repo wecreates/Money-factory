@@ -1,0 +1,400 @@
+{
+  "version": 1,
+  "updated_at": "2026-10-05",
+  "modes": {
+    "RESEARCH": {
+      "purpose": "Validate demand, pains, competitors, product mechanics, and audience response.",
+      "allowed": [
+        "educational content",
+        "trend analysis",
+        "problem content",
+        "build-in-public research",
+        "comparison content with sourced claims"
+      ],
+      "forbidden": [
+        "buy-now claims",
+        "shipping promises",
+        "unverified performance claims",
+        "fake testimonials"
+      ]
+    },
+    "PRELAUNCH": {
+      "purpose": "Build demand and test positioning before the full offer is released.",
+      "allowed": [
+        "teasers",
+        "waitlist content",
+        "product demos with verified functionality",
+        "explainer content",
+        "founder/build-in-public",
+        "lead magnets",
+        "offer testing",
+        "pricing perception tests"
+      ],
+      "forbidden": [
+        "claiming availability when not available",
+        "unverified delivery dates",
+        "unverified guarantees",
+        "fabricated social proof"
+      ]
+    },
+    "LAUNCH": {
+      "purpose": "Direct-response content for an offer that passed validation and provider gates.",
+      "allowed": [
+        "buy-now CTA",
+        "verified pricing",
+        "verified fulfillment claims",
+        "verified demos",
+        "verified proof",
+        "retargeting creatives",
+        "customer onboarding content"
+      ],
+      "forbidden": [
+        "claims beyond verified evidence",
+        "unsupported scarcity",
+        "misleading luxury/status signals"
+      ]
+    }
+  },
+  "global_claim_gates": {
+    "product_facts": "must be verified before factual product-specific claims",
+    "price": "must be current and verified before direct-response creative",
+    "shipping": "must be verified per supplier/provider before promise",
+    "safety": "must be supported by actual documentation/certifications",
+    "warranty_returns": "must match real provider terms",
+    "revenue_results": "must come from verified revenue events",
+    "social_proof": "must be authentic and attributable",
+    "publication": "remains false unless the business has explicit release approval and required providers are healthy"
+  },
+  "businesses": [
+    {
+      "id": "quote-follow-up-automation",
+      "name": "Quote Follow-Up Automation",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "google-business-profile-recovery",
+      "name": "Google Business Profile Recovery / Optimization",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "website-conversion-rescue",
+      "name": "Website Conversion Rescue",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "old-lead-reactivation",
+      "name": "Old Lead Reactivation",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "no-show-reduction",
+      "name": "No-Show Reduction / Appointment Recovery",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "review-recovery-reputation-monitoring",
+      "name": "Review Recovery + Reputation Monitoring",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "lead-speed-to-response",
+      "name": "Lead Speed-to-Response System",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "local-competitor-gap-audit",
+      "name": "Local Competitor Gap Audit",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "higgsfield-ai-affiliate-content-engine",
+      "name": "AI Creative SaaS Affiliate Content Engine",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "ai-founder-free-resource-funnel",
+      "name": "AI Founder Free Resource / Repo Funnel",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "ai-native-ecommerce-builder",
+      "name": "AI-Native E-Commerce Store Builder",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "viral-content-driven-pod-brand",
+      "name": "Viral-Content-Driven POD / Streetwear Brand",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Physical-product sourcing/landed-cost/fulfillment/compliance must pass before launch CTA."
+      ]
+    },
+    {
+      "id": "trend-based-ski-mask-dropshipping",
+      "name": "Trend-Based Ski Mask Dropshipping",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Physical-product sourcing/landed-cost/fulfillment/compliance must pass before launch CTA."
+      ]
+    },
+    {
+      "id": "whop-24-hour-digital-product-business",
+      "name": "24-Hour Digital Product Business on Whop",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Offer can be marketed/tested, but live direct-response requires provider + validation gates."
+      ]
+    },
+    {
+      "id": "electric-drift-trike-resale",
+      "name": "Electric Drift Trike Resale",
+      "content_production_ready": true,
+      "max_mode": "PRELAUNCH",
+      "allowed_now": [
+        "RESEARCH",
+        "PRELAUNCH"
+      ],
+      "launch_content_allowed": false,
+      "launch_unlock_requires": [
+        "validated evidence",
+        "verified economics",
+        "legal/compliance pass when applicable",
+        "fulfillment feasibility",
+        "required provider health",
+        "explicit release approval"
+      ],
+      "reasons": [
+        "Physical-product sourcing/landed-cost/fulfillment/compliance must pass before launch CTA."
+      ]
+    }
+  ]
+}
