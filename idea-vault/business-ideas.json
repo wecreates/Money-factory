@@ -303,6 +303,42 @@
         ]
       },
       "promotion_gate": "Promote only after a distinct product concept, supplier economics, and organic conversion test pass"
+    },
+    {
+      "id": "trend-based-ski-mask-dropshipping",
+      "name": "Trend-Based Ski Mask Dropshipping",
+      "status": "idea_vault",
+      "source_reel": "https://www.instagram.com/reel/Ddxhq3RvBwY/",
+      "source_creator": "@brodyhts",
+      "target_customer": "Impulse-driven streetwear and music-culture buyers",
+      "problem": "Consumers want convenient access to trending products without sourcing from wholesale marketplaces",
+      "offer": "Trend-timed ski masks or similar fashion accessories sold through a social-first storefront at a markup",
+      "revenue_model": "Retail arbitrage / dropshipping product margin",
+      "acquisition_method": "Instagram Reels and short-form trend content tied to current music/culture moments",
+      "fulfillment_model": "Third-party supplier or dropshipping fulfillment; no inventory during validation",
+      "pricing_observed": "No verified pricing shown",
+      "caveats": [
+        "Product existence and supplier reliability must be verified",
+        "Highly trend-dependent and potentially short-lived",
+        "Low barrier to entry can cause saturation and margin compression",
+        "Avoid trademark/copyright infringement tied to artist or brand imagery"
+      ],
+      "commerce_validation": {
+        "status": "queued",
+        "mode": "chatgpt_commerce_validation",
+        "criteria": [
+          "trend velocity",
+          "supplier verification",
+          "gross margin",
+          "shipping time",
+          "product quality",
+          "competition",
+          "IP risk",
+          "organic conversion rate",
+          "refund rate"
+        ]
+      },
+      "promotion_gate": "Promote only after product existence, supplier quality, legal/IP safety, and organic demand are verified"
     }
   ]
 }
