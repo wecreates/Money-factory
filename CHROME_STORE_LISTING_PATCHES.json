@@ -77,7 +77,7 @@
       "listing_state": "improved_live",
       "title": "Resume Check — Length, Buzzwords & Bullets",
       "summary": "Offline resume checker: flags word count, overused buzzwords, missing dates and too-few bullets. No AI, nothing uploaded.",
-      "candidate_version": "1.0.5",
+      "candidate_version": "1.0.6",
       "description": "Check your resume for common writing and structure problems before you send it. Resume Check gives you an instant, rule-based review inside the Chrome popup.\n\nWHAT IT CHECKS\n• Resume length and word count.\n• Overused buzzwords.\n• Use of bullet points.\n• Missing dates in your work history.\n\nHOW TO USE IT\nPaste your resume text into the popup, read the flagged issues, and revise your original document. Run another check after your edits.\n\nThis is a consistent checklist, not an AI writer or an ATS score. It does not rewrite your resume, predict a recruiter's decision or guarantee an interview.\n\nPRIVACY\nNothing is uploaded. Your resume text stays in the popup on your device.\n\nBuilt by CYZOR Creations. Explore our browser tools at https://cyzorcreations.com",
       "needs_description_update": false,
       "needs_package_title_summary_update": false
