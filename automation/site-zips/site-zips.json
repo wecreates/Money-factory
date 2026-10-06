@@ -1,0 +1,81 @@
+{
+  "updated_at": "2026-10-06",
+  "extensions": [
+    {
+      "name": "AuthBridge",
+      "url": "https://cyzorcreations.com/extensions/authbridge.zip"
+    },
+    {
+      "name": "ChangeRadar",
+      "url": "https://cyzorcreations.com/extensions/changeradar-website-monitor.zip"
+    },
+    {
+      "name": "ComplyWatch",
+      "url": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor.zip"
+    },
+    {
+      "name": "CredFlow",
+      "url": "https://cyzorcreations.com/extensions/credflow.zip"
+    },
+    {
+      "name": "FreightFill",
+      "url": "https://cyzorcreations.com/extensions/freightfill.zip"
+    },
+    {
+      "name": "GrantRadar",
+      "url": "https://cyzorcreations.com/extensions/grantradar-federal-grant-alerts.zip"
+    },
+    {
+      "name": "HireSignal",
+      "url": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker.zip"
+    },
+    {
+      "name": "MarginPeek",
+      "url": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer.zip"
+    },
+    {
+      "name": "MockFill",
+      "url": "https://cyzorcreations.com/extensions/mockfill-test-data-filler.zip"
+    },
+    {
+      "name": "OutReachMate",
+      "url": "https://cyzorcreations.com/extensions/outreachmate-followup-email.zip"
+    },
+    {
+      "name": "PixelGrab",
+      "url": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor.zip"
+    },
+    {
+      "name": "PriceWatch",
+      "url": "https://cyzorcreations.com/extensions/pricewatch-price-tracker.zip"
+    },
+    {
+      "name": "ProFill",
+      "url": "https://cyzorcreations.com/extensions/profill-smart-autofill.zip"
+    },
+    {
+      "name": "RenewGuard",
+      "url": "https://cyzorcreations.com/extensions/renewguard-contract-renewals.zip"
+    },
+    {
+      "name": "Resume Check",
+      "url": "https://cyzorcreations.com/extensions/roast-my-resume---ai-critique.zip"
+    },
+    {
+      "name": "SEOPeek",
+      "url": "https://cyzorcreations.com/extensions/seopeek-seo-auditor.zip"
+    },
+    {
+      "name": "StackPeek",
+      "url": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner.zip"
+    },
+    {
+      "name": "StepDoc",
+      "url": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker.zip"
+    },
+    {
+      "name": "TextGlow",
+      "url": "https://cyzorcreations.com/extensions/textglow-social-formatter.zip"
+    }
+  ]
+}
