@@ -1,0 +1,83 @@
+{
+  "id": "chrome-store-pages-19",
+  "type": "multi-inspect",
+  "pages": [
+    {
+      "id": "authbridge",
+      "url": "https://chromewebstore.google.com/detail/cfedmgnkhjmennmfmkabbbeicogoaank"
+    },
+    {
+      "id": "changeradar",
+      "url": "https://chromewebstore.google.com/detail/docbacaikcakikpeihcaeknbjcmlnofb"
+    },
+    {
+      "id": "complywatch",
+      "url": "https://chromewebstore.google.com/detail/dappcdpplgalclbpfimiaiadmficfhmh"
+    },
+    {
+      "id": "credflow",
+      "url": "https://chromewebstore.google.com/detail/ppadjmdonennmblfnnaeiaaoedohpbdh"
+    },
+    {
+      "id": "freightfill",
+      "url": "https://chromewebstore.google.com/detail/fmjignomealjcdnnfgddnbocimhiplfe"
+    },
+    {
+      "id": "grantradar",
+      "url": "https://chromewebstore.google.com/detail/plcdhncofbjjlfkbcollkbpjafbkepae"
+    },
+    {
+      "id": "hiresignal",
+      "url": "https://chromewebstore.google.com/detail/miefiekhbaobighephachinepkikckbi"
+    },
+    {
+      "id": "marginpeek",
+      "url": "https://chromewebstore.google.com/detail/oloknhahbhnmjnmbhgphhmmmkfedoeon"
+    },
+    {
+      "id": "mockfill",
+      "url": "https://chromewebstore.google.com/detail/affbjgfdedlegahglblgnpdpclfmpjhd"
+    },
+    {
+      "id": "outreachmate",
+      "url": "https://chromewebstore.google.com/detail/ipbnnjeklpljfgcgadhbjeibhpojjaop"
+    },
+    {
+      "id": "pixelgrab",
+      "url": "https://chromewebstore.google.com/detail/ihgkoahedfafnnjnbgjkkbkeecbhllbi"
+    },
+    {
+      "id": "pricewatch",
+      "url": "https://chromewebstore.google.com/detail/cpbegpannnlbikbcdjgnipcidaafijdb"
+    },
+    {
+      "id": "profill",
+      "url": "https://chromewebstore.google.com/detail/chmcldmegcfnfamegjjkgpkieapgiegp"
+    },
+    {
+      "id": "renewguard",
+      "url": "https://chromewebstore.google.com/detail/onnecnbdielhalhiknbkhibdlpbljdnk"
+    },
+    {
+      "id": "resumecheck",
+      "url": "https://chromewebstore.google.com/detail/ddifbdopbjfnmnnbccdndacepnpkpkhf"
+    },
+    {
+      "id": "seopeek",
+      "url": "https://chromewebstore.google.com/detail/nhkgbjkjfdmlleajbgamgeodebmdhmdf"
+    },
+    {
+      "id": "stackpeek",
+      "url": "https://chromewebstore.google.com/detail/lejmlaeekbopjdomdbdjcnlgjoaaljdd"
+    },
+    {
+      "id": "stepdoc",
+      "url": "https://chromewebstore.google.com/detail/cbhgmofpckolnnflbpdbidbdnkakbhpf"
+    },
+    {
+      "id": "textglow",
+      "url": "https://chromewebstore.google.com/detail/hcognajiafaodjdcmmpgckpebbaopihm"
+    }
+  ],
+  "screenshot": true
+}
