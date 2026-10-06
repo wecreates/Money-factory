@@ -1,0 +1,31 @@
+{
+  "checked_at": "2026-10-06T17:21:06.219Z",
+  "endpoint": "https://api.grants.gov/v1/api/search2",
+  "status": 200,
+  "ok": true,
+  "has_oppHits": true,
+  "hit_count": 5,
+  "sample": [
+    {
+      "id": "334326",
+      "number": "21-595",
+      "title": "Tribal Colleges and Universities Program (TCUP)",
+      "closeDate": "10/14/2026",
+      "oppStatus": "posted"
+    },
+    {
+      "id": "350230",
+      "number": "PD-24-1340",
+      "title": "Research in the Formation of Engineers",
+      "closeDate": null,
+      "oppStatus": "posted"
+    },
+    {
+      "id": "344124",
+      "number": "23-510",
+      "title": "Improving Undergraduate STEM Education: Directorate for STEM Education (IUSE: EDU)",
+      "closeDate": "01/20/2027",
+      "oppStatus": "posted"
+    }
+  ]
+}
