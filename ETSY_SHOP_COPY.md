@@ -1,73 +1,65 @@
-# CYZOR Etsy Shop Copy — Production Draft
+# CYZOR Etsy Shop Copy — Digital-Only Production
 
 Updated: 2026-10-06
 
 ## Shop title
-Practical Printables + Cute Kawaii Gifts
+Digital Planners, Spreadsheets & Printable Bundles
 
 ## Shop announcement
-Welcome to Cyzor Creations — practical printable planners, trackers and business forms, plus cute kawaii stickers and gifts.
+Welcome to Cyzor Creations — 100% digital downloads.
 
-Digital products are instant downloads. Physical products are clearly marked and shipped to you.
+Shop practical planners, spreadsheets, printable systems, wall-art bundles, digital stickers and business templates. Nothing is shipped and no POD is used.
 
-Start with one of our most useful collections:
-• Budget & money printables
-• Small-business forms
-• Wedding & event planners
-• Pet & puppy organizers
-• Kawaii food stickers
+Every listing is designed for instant Etsy delivery after payment confirmation. Use the shop sections to find the exact system you need.
 
-Need help with a file or order? Message me through Etsy and I’ll help you get sorted.
+Need help opening a file? Message CyzorCreations through Etsy.
 
 ## About headline
-Useful systems. Cute characters. No clutter.
+Useful digital systems. Instant access. No shipping.
 
 ## About
-Cyzor Creations makes two kinds of products: practical digital tools that help organize real life, and playful kawaii designs that make everyday things more fun.
+Cyzor Creations builds practical digital downloads for real-life organization, planning and small-business workflows.
 
-The printable side of the shop is built around focused systems — budgeting, business paperwork, wedding planning, pet care, home organization, school, work and everyday routines. Most are instant-download PDFs designed to be easy to print and reuse.
+The shop is now fully digital: planners, spreadsheets, trackers, printable bundles, digital stickers, clipart and downloadable wall art. Nothing is manufactured or shipped.
 
-The kawaii side started with simple food and character designs made for stickers and small gifts. The coffee-bean sticker became the shop’s first sale, so that collection is growing into matching characters and bundles.
+Each product is designed around a specific job-to-be-done rather than generic filler pages. That means deeper bundles, clearer dashboards, more useful trackers and files that are easy to understand from the first listing image.
 
-I want every listing to be clear about exactly what you receive, whether it is digital or physical, and how to use it. If something is unclear or a file gives you trouble, message me through Etsy.
+The product line is continually tested against real Etsy demand patterns, but every CYZOR file, layout and piece of copy is original. We reverse-engineer what buyers value — not other sellers' protected artwork or files.
 
-Thanks for supporting Cyzor Creations.
+If you have trouble with a download, message me through Etsy with the listing name and I’ll help.
 
 ## Digital buyer message
-Thanks for your order! Your Etsy download is available after payment is confirmed.
+Thanks for your order! This shop is 100% digital.
 
-Before printing, check the listing for included sizes and file types. For fillable PDFs, save a fresh copy before editing so you always keep the original.
+Your Etsy files become available after payment is confirmed. Nothing will be mailed.
 
-If a file does not open correctly or you need help finding the download, message Cyzor Creations through Etsy and include the listing name.
-
-## Physical buyer message
-Thanks for your order! Your physical item is being prepared according to the processing time shown on the listing.
-
-Please double-check your shipping address in Etsy. If you notice an issue, message me as soon as possible.
+Open the listing again if you need to confirm included file types or usage instructions. If you have trouble accessing a file, message CyzorCreations through Etsy with the listing name.
 
 ## Section order
-1. Kawaii Stickers
-2. Bundles
-3. Business Forms
-4. Budget & Money
+1. Digital Planners
+2. Spreadsheets
+3. Budget & Money
+4. Business Templates
 5. Wedding & Events
-6. Pet & Puppy
-7. Home & Family
-8. School & Work
-9. Health Trackers
-10. Planners & Journals
-11. Kawaii Apparel
+6. Home & Family
+7. Pet & Puppy
+8. Health Trackers
+9. School & Career
+10. Digital Stickers
+11. Printable Wall Art
+12. Bundles
 
 ## Banner direction
-Do not advertise every product category.
-
 Primary line:
-**Practical Printables + Cute Kawaii Gifts**
+**DIGITAL PLANNERS • SPREADSHEETS • PRINTABLE BUNDLES**
 
 Secondary line:
-**Instant downloads • useful bundles • original character stickers**
+**100% instant digital downloads • no shipping • no POD**
 
-Visual split:
-- left: clean 3-page printable mockup
-- right: coffee-bean sticker + 2 matching kawaii food characters
-- middle: CYZOR Creations wordmark
+Visual proof:
+- laptop/tablet showing spreadsheet dashboard;
+- 3-page planner spread;
+- digital sticker/clipart sheet;
+- one bundle preview.
+
+Do not show physical product mockups as if an item ships.
