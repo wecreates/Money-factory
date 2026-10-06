@@ -1,0 +1,546 @@
+{
+  "updated_at": "2026-10-06",
+  "count": 59,
+  "action_counts": {
+    "KEEP_PROVEN": 1,
+    "KEEP_AND_BUNDLE": 5,
+    "RETIRE_OR_REWORK": 6,
+    "TEST_AFTER_STICKER_REBUILD": 3,
+    "KEEP_REBUILD": 26,
+    "KEEP_REBUILD_CAUTION": 11,
+    "KEEP_REBUILD_OR_BUNDLE": 7
+  },
+  "listings": [
+    {
+      "listing_id": "4544742509",
+      "title": "Kawaii Coffee Bean Sticker, Retro Character Vinyl Decal, Laptop Tumbler Planner Graphic",
+      "price": "$5.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544742509/kawaii-coffee-bean-sticker-retro",
+      "group": "kawaii_stickers",
+      "action": "KEEP_PROVEN"
+    },
+    {
+      "listing_id": "4544757996",
+      "title": "Kawaii Taco Sticker, Smiling Food Vinyl Decal, Laptop Water Bottle Accent",
+      "price": "$5.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544757996/kawaii-taco-sticker-smiling-food-vinyl",
+      "group": "kawaii_stickers",
+      "action": "KEEP_AND_BUNDLE"
+    },
+    {
+      "listing_id": "4544740945",
+      "title": "Kawaii Donut Sticker, Pink Sprinkle Vinyl Decal, Laptop Planner Accessory",
+      "price": "$5.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544740945/kawaii-donut-sticker-pink-sprinkle-vinyl",
+      "group": "kawaii_stickers",
+      "action": "KEEP_AND_BUNDLE"
+    },
+    {
+      "listing_id": "4544740213",
+      "title": "Kawaii Mushroom Sticker, Cottagecore Vinyl Decal, Journal Laptop Art",
+      "price": "$5.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544740213/kawaii-mushroom-sticker-cottagecore",
+      "group": "kawaii_stickers",
+      "action": "KEEP_AND_BUNDLE"
+    },
+    {
+      "listing_id": "4544755726",
+      "title": "Kawaii Pineapple Sticker, Tropical Fruit Vinyl Decal, Laptop Water Bottle Decor",
+      "price": "$5.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544755726/kawaii-pineapple-sticker-tropical-fruit",
+      "group": "kawaii_stickers",
+      "action": "KEEP_AND_BUNDLE"
+    },
+    {
+      "listing_id": "4544754882",
+      "title": "Kawaii Strawberry Sticker, Smiling Fruit Vinyl Decal, Water Bottle Laptop Planner Decor",
+      "price": "$5.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544754882/kawaii-strawberry-sticker-smiling-fruit",
+      "group": "kawaii_stickers",
+      "action": "KEEP_AND_BUNDLE"
+    },
+    {
+      "listing_id": "4544737585",
+      "title": "Golden Hour Mountain Lake Poster, Alpine Sunset Landscape Wall Art, Cabin Decor",
+      "price": "$22.50",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544737585/golden-hour-mountain-lake-poster-alpine",
+      "group": "wall_art",
+      "action": "RETIRE_OR_REWORK"
+    },
+    {
+      "listing_id": "4544752714",
+      "title": "Be Gentle With Yourself Print, Blush Pink Affirmation Poster, Mental Health Art",
+      "price": "$24.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544752714/be-gentle-with-yourself-print-blush-pink",
+      "group": "wall_art",
+      "action": "RETIRE_OR_REWORK"
+    },
+    {
+      "listing_id": "4544735375",
+      "title": "One Day at a Time Wall Art, Sobriety Gift, Addiction Recovery Poster, Minimalist Encouragement Print",
+      "price": "$24.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544735375/one-day-at-a-time-wall-art-sobriety-gift",
+      "group": "wall_art",
+      "action": "RETIRE_OR_REWORK"
+    },
+    {
+      "listing_id": "4544734347",
+      "title": "Progress Not Perfection Print, Motivational Wall Art, Pale Blue Minimalist Poster",
+      "price": "$24.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544734347/progress-not-perfection-print",
+      "group": "wall_art",
+      "action": "RETIRE_OR_REWORK"
+    },
+    {
+      "listing_id": "4544733281",
+      "title": "Rest Is Productive Poster, Sage Green Self Care Wall Art, Minimalist Wellness Print",
+      "price": "$24.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544733281/rest-is-productive-poster-sage-green",
+      "group": "wall_art",
+      "action": "RETIRE_OR_REWORK"
+    },
+    {
+      "listing_id": "4544748582",
+      "title": "You Are Doing Better Than You Think Poster, Encouragement Wall Art, Terracotta Boho Wellness Print, Therapy Office Decor",
+      "price": "$24.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544748582/you-are-doing-better-than-you-think",
+      "group": "wall_art",
+      "action": "RETIRE_OR_REWORK"
+    },
+    {
+      "listing_id": "4544728103",
+      "title": "Cute Kawaii Cat Character — Graphic Tee",
+      "price": "$22.50",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544728103/cute-kawaii-cat-character-graphic-tee",
+      "group": "kawaii_apparel",
+      "action": "TEST_AFTER_STICKER_REBUILD"
+    },
+    {
+      "listing_id": "4544727579",
+      "title": "Cute Kawaii Bear Character — Graphic Tee",
+      "price": "$22.50",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544727579/cute-kawaii-bear-character-graphic-tee",
+      "group": "kawaii_apparel",
+      "action": "TEST_AFTER_STICKER_REBUILD"
+    },
+    {
+      "listing_id": "4544739462",
+      "title": "Cute Kawaii Strawberry Hoodie, Kawaii Aesthetic Pullover Sweatshirt, Cottagecore Fruit Hoodie, Gift for Her",
+      "price": "$54.99",
+      "digital": false,
+      "url": "https://www.etsy.com/listing/4544739462/cute-kawaii-strawberry-hoodie-kawaii",
+      "group": "kawaii_apparel",
+      "action": "TEST_AFTER_STICKER_REBUILD"
+    },
+    {
+      "listing_id": "4536720888",
+      "title": "Wedding Guest List Planner Printable, RSVP Tracker & Seating Chart, Wedding Seating Planner PDF, Guest List Template, Thank You Tracker",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536720888/wedding-guest-list-planner-printable",
+      "group": "wedding_events",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4536715948",
+      "title": "Cash Envelope Budget Planner Printable, Sinking Funds Tracker, Zero Based Budget PDF, Cash Stuffing Kit, Monthly Bill Payment Log",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536715948/cash-envelope-budget-planner-printable",
+      "group": "money_budget",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4536507236",
+      "title": "Nurse Report Sheet Printable, Nursing Brain Sheet, Med Pass and SBAR Handoff, RN Shift Report Template, Nursing Student Brain Sheet",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536507236/nurse-report-sheet-printable-nursing",
+      "group": "school_work_business",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4536484193",
+      "title": "New Puppy Planner Printable, Puppy Training Log & Potty Chart, Dog Vaccine Record PDF, New Dog Owner Checklist, Puppy Schedule Book",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536484193/new-puppy-planner-printable-puppy",
+      "group": "pet_puppy",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4536481069",
+      "title": "Fertility & Ovulation Tracker Printable, TTC Journal, BBT Chart, Cycle Tracker PDF, Trying to Conceive Planner, Fertile Window Log",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536481069/fertility-ovulation-tracker-printable",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4536000195",
+      "title": "ADHD Daily Planner Printable, Low Overwhelm Focus Journal PDF, Brain Dump and Time Blocking, Neurodivergent Planner for Adults",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536000195/adhd-daily-planner-printable-low",
+      "group": "general_planning",
+      "action": "KEEP_REBUILD_OR_BUNDLE"
+    },
+    {
+      "listing_id": "4536000657",
+      "title": "Daily Planner Printable, Undated Daily Weekly & Monthly Planner PDF, To Do List and Schedule, Productivity Planner Insert",
+      "price": "$6.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536000657/daily-planner-printable-undated-daily",
+      "group": "general_planning",
+      "action": "KEEP_REBUILD_OR_BUNDLE"
+    },
+    {
+      "listing_id": "4536014162",
+      "title": "Homeschool Planner Printable, Homeschool Lesson Plan & Attendance Tracker PDF, Curriculum Planner, Student Progress Record",
+      "price": "$8.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536014162/homeschool-planner-printable-homeschool",
+      "group": "school_work_business",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4536014694",
+      "title": "Home Management Binder Printable, Cleaning Schedule & Chore Chart PDF, Household Planner, Home Info and Maintenance Log",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536014694/home-management-binder-printable",
+      "group": "home_family",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4536015280",
+      "title": "Cleaning Schedule Printable, Weekly Cleaning Checklist & House Cleaning Planner PDF, Room by Room Deep Clean Chore List",
+      "price": "$5.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536015280/cleaning-schedule-printable-weekly",
+      "group": "home_family",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4536015754",
+      "title": "Password Keeper Printable, Password Log & Login Organizer PDF, Password Book, Internet Address and Username Tracker Pages",
+      "price": "$5.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536015754/password-keeper-printable-password-log",
+      "group": "general_planning",
+      "action": "KEEP_REBUILD_OR_BUNDLE"
+    },
+    {
+      "listing_id": "4535988225",
+      "title": "Medical Binder Printable, Health Record & Medication Tracker PDF, Medical History Organizer, Appointment and Symptom Log",
+      "price": "$8.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535988225/medical-binder-printable-health-record",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4536001748",
+      "title": "Kids Chore Chart Printable, Reward Chart & Responsibility Tracker PDF, Daily Routine Chart, Family Chore Chart for Kids",
+      "price": "$5.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536001748/kids-chore-chart-printable-reward-chart",
+      "group": "home_family",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4536002302",
+      "title": "Content Planner Printable, Social Media Planner & Content Calendar PDF, Post Planner, Creator Analytics and Hook Tracker",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536002302/content-planner-printable-social-media",
+      "group": "school_work_business",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4536002832",
+      "title": "Savings Challenge Printable, Money Savings Tracker & Goal Planner PDF, Savings Challenge Grid, Sinking Funds Money Saver",
+      "price": "$6.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4536002832/savings-challenge-printable-money",
+      "group": "money_budget",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535990367",
+      "title": "Goal Planner Printable, Vision Board & Goal Setting Workbook PDF, 90 Day Planner, New Year Goals and Monthly Review Journal",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535990367/goal-planner-printable-vision-board-goal",
+      "group": "general_planning",
+      "action": "KEEP_REBUILD_OR_BUNDLE"
+    },
+    {
+      "listing_id": "4535958877",
+      "title": "Christmas Planner Printable, Holiday Planner & Gift Tracker PDF, Christmas Countdown, Card List and Holiday Budget Organizer",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535958877/christmas-planner-printable-holiday",
+      "group": "money_budget",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535972636",
+      "title": "Weight Loss Tracker Printable, Weight Loss Journal & Wellness Planner PDF, Food and Measurement Log, Fitness Progress Tracker",
+      "price": "$6.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535972636/weight-loss-tracker-printable-weight",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4535973214",
+      "title": "Party Planner Printable, Event & Birthday Planner PDF, Guest List and RSVP Tracker, Party Menu and To Do List Organizer",
+      "price": "$6.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535973214/party-planner-printable-event-birthday",
+      "group": "wedding_events",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535973778",
+      "title": "Job Search Tracker Printable, Job Application & Interview Planner PDF, Career Planner, Networking Log and Offer Comparison",
+      "price": "$6.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535973778/job-search-tracker-printable-job",
+      "group": "school_work_business",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535948172",
+      "title": "Recipe Book Printable, Blank Recipe Card & Cookbook Template PDF, Family Recipe Journal, Recipe Binder Organizer Pages",
+      "price": "$6.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535948172/recipe-book-printable-blank-recipe-card",
+      "group": "home_family",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535948690",
+      "title": "Habit Tracker Printable, Monthly Habit Tracker & Daily Routine PDF, Habit Builder Planner, Goal and Streak Tracker Journal",
+      "price": "$5.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535948690/habit-tracker-printable-monthly-habit",
+      "group": "general_planning",
+      "action": "KEEP_REBUILD_OR_BUNDLE"
+    },
+    {
+      "listing_id": "4535935789",
+      "title": "Moving Planner Printable, Moving Checklist & New Home Organizer PDF, Change of Address, Packing List and Moving Binder",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535935789/moving-planner-printable-moving",
+      "group": "home_family",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535949760",
+      "title": "Garden Planner Printable, Vegetable Garden Journal & Planting Calendar PDF, Plant Care Log, Harvest Tracker Organizer",
+      "price": "$6.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535949760/garden-planner-printable-vegetable",
+      "group": "home_family",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535928541",
+      "title": "Gratitude Journal Printable, Daily Gratitude & Reflection PDF, 30 Day Gratitude Challenge, Thankfulness Journal Prompts",
+      "price": "$6.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535928541/gratitude-journal-printable-daily",
+      "group": "general_planning",
+      "action": "KEEP_REBUILD_OR_BUNDLE"
+    },
+    {
+      "listing_id": "4535942568",
+      "title": "Student Planner Printable, Academic Planner & Assignment Tracker PDF, Class Schedule, Study Planner and Grade Tracker",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535942568/student-planner-printable-academic",
+      "group": "school_work_business",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535943190",
+      "title": "Pregnancy Planner Printable, Pregnancy Journal & Appointment Tracker PDF, Hospital Bag Checklist, Baby Prep Birth Plan",
+      "price": "$8.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535943190/pregnancy-planner-printable-pregnancy",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4535922233",
+      "title": "Self Care Journal Printable, Wellness Planner & Daily Check In PDF, Mental Health Journal, Self Care Reflection Prompts",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535922233/self-care-journal-printable-wellness",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4535933232",
+      "title": "Wedding Planner Printable, Wedding Checklist & Budget Tracker PDF, Guest List and RSVP, Day of Timeline Organizer Book",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535933232/wedding-planner-printable-wedding",
+      "group": "wedding_events",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535903189",
+      "title": "Reading Journal Printable, Book Tracker & Reading Log PDF, Book Review Pages, Reading Challenge and TBR List Planner",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535903189/reading-journal-printable-book-tracker",
+      "group": "general_planning",
+      "action": "KEEP_REBUILD_OR_BUNDLE"
+    },
+    {
+      "listing_id": "4535917440",
+      "title": "Travel Planner Printable, Vacation Itinerary & Packing List PDF, Trip Planner, Travel Budget and Bookings Organizer",
+      "price": "$8.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535917440/travel-planner-printable-vacation",
+      "group": "money_budget",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535904737",
+      "title": "Teacher Planner Printable, Grade Book & Lesson Plan PDF, Attendance Tracker, Parent Contact Log, Classroom Organizer",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535904737/teacher-planner-printable-grade-book",
+      "group": "school_work_business",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535910246",
+      "title": "Workout Log Printable, Fitness Planner & Exercise Tracker PDF, Weekly Gym Log, Progress and Measurement Tracker",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535910246/workout-log-printable-fitness-planner",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4535911896",
+      "title": "Small Business Bookkeeping Printable, Income & Expense Tracker PDF, Etsy Seller Tax Planner, Profit and Mileage Log",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535911896/small-business-bookkeeping-printable",
+      "group": "school_work_business",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535902118",
+      "title": "Pet Health Record Printable, Dog Vaccination Record & Vet Log, Cat Medical History Tracker, Pet Care Organizer PDF",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535902118/pet-health-record-printable-dog",
+      "group": "pet_puppy",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535889283",
+      "title": "Baby Daily Log Printable, Newborn Feeding & Sleep Tracker, Diaper Log and Baby Schedule PDF, Nanny Daily Report Sheet",
+      "price": "$8.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535889283/baby-daily-log-printable-newborn-feeding",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4535903884",
+      "title": "Debt Payoff Tracker Printable, Debt Snowball & Budget Planner PDF, Monthly Bill Tracker, Savings Goal Finance Planner",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535903884/debt-payoff-tracker-printable-debt",
+      "group": "money_budget",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535893866",
+      "title": "Pet Sitting Contract Printable, Dog Sitter Client Intake Form, Pet Care Service Agreement, Pet Sitting Forms Bundle PDF",
+      "price": "$12.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535893866/pet-sitting-contract-printable-dog",
+      "group": "pet_puppy",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535490002",
+      "title": "Migraine Tracker Printable, Headache Log & Trigger Journal, Migraine Diary PDF, Symptom and Medication Tracker",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535490002/migraine-tracker-printable-headache-log",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4535491388",
+      "title": "Blood Pressure Log Printable, Blood Pressure Tracker PDF, Daily BP Chart, Heart Health Journal, Hypertension Log Book",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535491388/blood-pressure-log-printable-blood",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4535505246",
+      "title": "Cleaning Business Starter Kit Printable, Cleaning Service Contract & Client Intake Form, House Cleaning Checklist PDF Bundle",
+      "price": "$12.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535505246/cleaning-business-starter-kit-printable",
+      "group": "school_work_business",
+      "action": "KEEP_REBUILD"
+    },
+    {
+      "listing_id": "4535507111",
+      "title": "Perimenopause Tracker Printable, Menopause Symptom Journal, Hot Flash & Cycle Log PDF, Hormone Health Doctor Prep Planner",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535507111/perimenopause-tracker-printable",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4535877190",
+      "title": "Anxiety and Mood Tracker Printable, Mental Health Journal PDF, Daily Mood Log & Coping Skills Planner, Anxiety Relief Worksheet",
+      "price": "$9.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535877190/anxiety-and-mood-tracker-printable",
+      "group": "health_wellness",
+      "action": "KEEP_REBUILD_CAUTION"
+    },
+    {
+      "listing_id": "4535864725",
+      "title": "Meal Planner Printable, Weekly Meal Plan & Grocery List PDF, Menu Planner, Family Dinner Planner, Grocery Shopping List",
+      "price": "$7.99",
+      "digital": true,
+      "url": "https://www.etsy.com/listing/4535864725/meal-planner-printable-weekly-meal-plan",
+      "group": "home_family",
+      "action": "KEEP_REBUILD"
+    }
+  ]
+}
