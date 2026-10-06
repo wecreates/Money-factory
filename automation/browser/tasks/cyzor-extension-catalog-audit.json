@@ -1,0 +1,16 @@
+{
+  "id": "cyzor-extension-catalog-audit",
+  "type": "inspect",
+  "url": "https://cyzorcreations.com/store?type=extensions",
+  "actions": [
+    {
+      "type": "extract",
+      "selector": "body"
+    },
+    {
+      "type": "screenshot",
+      "name": "extension-catalog.png"
+    }
+  ],
+  "screenshot": true
+}
