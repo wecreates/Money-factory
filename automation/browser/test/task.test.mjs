@@ -26,3 +26,12 @@ test('accepts bounded public actions', () => {
   ]);
   assert.equal(a.length, 3);
 });
+
+test('accepts link extraction action', () => {
+  const a = compileActions([{type:'links', selector:'a'}]);
+  assert.equal(a[0].type, 'links');
+});
+
+test('rejects oversized link selector', () => {
+  assert.throws(() => compileActions([{type:'links', selector:'a'.repeat(201)}]));
+});
