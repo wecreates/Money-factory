@@ -19,8 +19,8 @@
     {
       "name": "Resume Check",
       "public_version": "1.0.3",
-      "candidate_version": "1.0.4",
-      "package": "ResumeCheck-1.0.4.zip",
+      "candidate_version": "1.0.5",
+      "package": "ResumeCheck-1.0.5.zip",
       "website_fix": "Rename Resume Roast references to Resume Check"
     },
     {
@@ -33,8 +33,8 @@
     {
       "name": "MockFill",
       "public_version": "1.0.2",
-      "candidate_version": "1.0.3",
-      "package": "MockFill-1.0.3.zip",
+      "candidate_version": "1.0.4",
+      "package": "MockFill-1.0.4.zip",
       "website_fix": null
     },
     {
@@ -47,15 +47,15 @@
     {
       "name": "PixelGrab",
       "public_version": "1.0.2",
-      "candidate_version": "1.0.3",
-      "package": "PixelGrab-1.0.3.zip",
+      "candidate_version": "1.0.4",
+      "package": "PixelGrab-1.0.4.zip",
       "website_fix": null
     },
     {
       "name": "ProFill",
       "public_version": "1.0.2",
-      "candidate_version": "1.0.3",
-      "package": "ProFill-1.0.3.zip",
+      "candidate_version": "1.0.4",
+      "package": "ProFill-1.0.4.zip",
       "website_fix": null
     },
     {
@@ -68,8 +68,8 @@
     {
       "name": "StackPeek",
       "public_version": "1.0.2",
-      "candidate_version": "1.0.3",
-      "package": "StackPeek-1.0.3.zip",
+      "candidate_version": "1.0.4",
+      "package": "StackPeek-1.0.4.zip",
       "website_fix": null
     },
     {
@@ -82,8 +82,8 @@
     {
       "name": "TextGlow",
       "public_version": "1.0.2",
-      "candidate_version": "1.0.3",
-      "package": "TextGlow-1.0.3.zip",
+      "candidate_version": "1.0.4",
+      "package": "TextGlow-1.0.4.zip",
       "website_fix": null
     }
   ]
