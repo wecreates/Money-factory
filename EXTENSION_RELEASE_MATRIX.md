@@ -15,7 +15,7 @@ Legend:
 | Extension | Public | Rebuilt | Release state | Primary blockers / next action |
 |---|---:|---:|---|---|
 | FreightFill | 1.1.0 | 1.1.1 | PAYMENT_QA_REQUIRED + WEBSITE_FIX_REQUIRED | Verify trial→license→activation→cancel/export. Website free limit/features disagree with package. Manifest capability set is unchanged. |
-| Resume Check | 1.0.3 | 1.0.5 | READY_AFTER_INSTALLED_QA + WEBSITE_FIX_REQUIRED | Installed smoke test + real screenshots. Website still uses Resume Roast naming. |
+| Resume Check | 1.0.3 | 1.0.6 | READY_AFTER_INSTALLED_QA + WEBSITE_FIX_REQUIRED | Installed smoke test + real screenshots. Website still uses Resume Roast naming. |
 | AuthBridge | 1.1.1 | 1.1.2 | PAYMENT_QA_REQUIRED + WEBSITE_FIX_REQUIRED | Verify paid activation/export. Website free/no-upsell copy conflicts with package. Manifest capability set is unchanged. |
 | RenewGuard | 1.1.1 | 1.1.2 | PAYMENT_QA_REQUIRED + WEBSITE_FIX_REQUIRED | Verify paid activation/export. Website still says free/no upsell and contains pre-live boilerplate. Manifest capability set is unchanged. |
 | GrantRadar | 1.1.0 | 1.1.1 | PAYMENT_QA_REQUIRED + WEBSITE_FIX_REQUIRED | Verify Grants.gov path plus Pro activation/export. Website generic no-upsell copy conflicts with Pro. Manifest capability set is unchanged. |
