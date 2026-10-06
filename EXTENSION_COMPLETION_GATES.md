@@ -8,7 +8,7 @@ Updated: 2026-10-06
 - 19/19 candidate manifests are Manifest V3 and pass static package validation.
 - 19/19 JavaScript syntax/resource audits pass.
 - Portfolio onboarding fixture suite previously passed 209 isolated DOM checks.
-- Final-v2 release manifest is reconciled against the actual ZIP bytes, including version and SHA-256.
+- Final-v3 release manifest is reconciled against the actual ZIP bytes, including version and SHA-256.\n- Candidate-package stale-copy scan passes 19/19; no cold-email, Resume Roast, no-upsell/free-forever, or pre-live listing boilerplate remains inside the candidate ZIPs.\n- Resume Check 1.0.6 removes stale Roast branding and drops unnecessary cyzorcreations.com host access.
 - Public Chrome Web Store pages for all 19 target extensions were crawled.
 - All 19 Chrome Web Store item IDs are mapped.
 - All 19 CYZOR extension landing pages were crawled.
@@ -103,7 +103,7 @@ Once Gates 1–5 are satisfied per extension:
 | PriceWatch | 1.0.4 |
 | ProFill | 1.0.4 |
 | RenewGuard | 1.1.2 |
-| Resume Check | 1.0.5 |
+| Resume Check | 1.0.6 |
 | SEOPeek | 1.0.2 |
 | StackPeek | 1.0.4 |
 | StepDoc | 1.0.2 |
