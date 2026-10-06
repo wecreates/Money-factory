@@ -1,0 +1,91 @@
+name: CYZOR Browser Task
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_path:
+        description: 'Task JSON path under automation/browser/tasks/'
+        required: true
+        default: 'automation/browser/tasks/example.com-smoke.json'
+  push:
+    paths:
+      - 'automation/browser/tasks/*.json'
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Select task
+        id: select
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TASK="${{ github.event.inputs.task_path }}"
+          else
+            TASK=$(git diff-tree --no-commit-id --name-only -r HEAD -- 'automation/browser/tasks/*.json' | tail -1)
+          fi
+          if [[ -z "$TASK" || ! -f "$TASK" ]]; then
+            echo "No valid browser task found" >&2
+            exit 2
+          fi
+          echo "task=$TASK" >> "$GITHUB_OUTPUT"
+          echo "Selected $TASK"
+
+      - name: Install runtime
+        working-directory: automation/browser
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Validate unit tests
+        working-directory: automation/browser
+        run: npm test
+
+      - name: Run browser task
+        id: run
+        continue-on-error: true
+        working-directory: automation/browser
+        run: node src/run-task.mjs "${{ github.workspace }}/${{ steps.select.outputs.task }}"
+
+      - name: Persist textual result
+        if: always()
+        shell: bash
+        run: |
+          TASK_FILE="${{ steps.select.outputs.task }}"
+          TASK_ID=$(node -e "console.log(require('./'$TASK_FILE).id)")
+          RESULT="automation/browser/results/$TASK_ID/result.json"
+          if [[ -f "$RESULT" ]]; then
+            git config user.name "cyzor-browser-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add "$RESULT"
+            git diff --cached --quiet || git commit -m "browser result: $TASK_ID"
+            git push
+          fi
+
+      - name: Upload screenshots and result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-task-output
+          path: automation/browser/results/**
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Fail if browser task failed
+        if: steps.run.outcome == 'failure'
+        run: exit 1
