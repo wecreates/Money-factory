@@ -1,0 +1,120 @@
+{
+  "publisher_id_env": "CWS_PUBLISHER_ID",
+  "packages_root": "release-packages",
+  "extensions": [
+    {
+      "name": "AuthBridge",
+      "id": "cfedmgnkhjmennmfmkabbbeicogoaank",
+      "package_file": "AuthBridge-1.1.2.zip",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "ChangeRadar",
+      "id": "docbacaikcakikpeihcaeknbjcmlnofb",
+      "package_file": "ChangeRadar-1.1.1.zip",
+      "candidate_version": "1.1.1"
+    },
+    {
+      "name": "ComplyWatch",
+      "id": "dappcdpplgalclbpfimiaiadmficfhmh",
+      "package_file": "ComplyWatch-1.1.2.zip",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "CredFlow",
+      "id": "ppadjmdonennmblfnnaeiaaoedohpbdh",
+      "package_file": "CredFlow-1.1.2.zip",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "FreightFill",
+      "id": "fmjignomealjcdnnfgddnbocimhiplfe",
+      "package_file": "FreightFill-1.1.1.zip",
+      "candidate_version": "1.1.1"
+    },
+    {
+      "name": "GrantRadar",
+      "id": "plcdhncofbjjlfkbcollkbpjafbkepae",
+      "package_file": "GrantRadar-1.1.1.zip",
+      "candidate_version": "1.1.1"
+    },
+    {
+      "name": "HireSignal",
+      "id": "miefiekhbaobighephachinepkikckbi",
+      "package_file": "HireSignal-1.1.2.zip",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "MarginPeek",
+      "id": "oloknhahbhnmjnmbhgphhmmmkfedoeon",
+      "package_file": "MarginPeek-1.0.2.zip",
+      "candidate_version": "1.0.2"
+    },
+    {
+      "name": "MockFill",
+      "id": "affbjgfdedlegahglblgnpdpclfmpjhd",
+      "package_file": "MockFill-1.0.3.zip",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "OutReachMate",
+      "id": "ipbnnjeklpljfgcgadhbjeibhpojjaop",
+      "package_file": "OutReachMate-1.0.2.zip",
+      "candidate_version": "1.0.2"
+    },
+    {
+      "name": "PixelGrab",
+      "id": "ihgkoahedfafnnjnbgjkkbkeecbhllbi",
+      "package_file": "PixelGrab-1.0.3.zip",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "PriceWatch",
+      "id": "cpbegpannnlbikbcdjgnipcidaafijdb",
+      "package_file": "PriceWatch-1.0.3.zip",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "ProFill",
+      "id": "chmcldmegcfnfamegjjkgpkieapgiegp",
+      "package_file": "ProFill-1.0.3.zip",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "RenewGuard",
+      "id": "onnecnbdielhalhiknbkhibdlpbljdnk",
+      "package_file": "RenewGuard-1.1.2.zip",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "Resume Check",
+      "id": "ddifbdopbjfnmnnbccdndacepnpkpkhf",
+      "package_file": "ResumeCheck-1.0.4.zip",
+      "candidate_version": "1.0.4"
+    },
+    {
+      "name": "SEOPeek",
+      "id": "nhkgbjkjfdmlleajbgamgeodebmdhmdf",
+      "package_file": "SEOPeek-1.0.2.zip",
+      "candidate_version": "1.0.2"
+    },
+    {
+      "name": "StackPeek",
+      "id": "lejmlaeekbopjdomdbdjcnlgjoaaljdd",
+      "package_file": "StackPeek-1.0.3.zip",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "StepDoc",
+      "id": "cbhgmofpckolnnflbpdbidbdnkakbhpf",
+      "package_file": "StepDoc-1.0.2.zip",
+      "candidate_version": "1.0.2"
+    },
+    {
+      "name": "TextGlow",
+      "id": "hcognajiafaodjdcmmpgckpebbaopihm",
+      "package_file": "TextGlow-1.0.3.zip",
+      "candidate_version": "1.0.3"
+    }
+  ]
+}
