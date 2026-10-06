@@ -1,0 +1,22 @@
+{
+  "shop_id": 43299966,
+  "shop_name": "CyzorCreations",
+  "desired_shop": {
+    "title": "Practical Printables + Cute Kawaii Gifts",
+    "announcement": "Welcome to Cyzor Creations — practical printable planners, trackers and business forms, plus cute kawaii stickers and gifts. Digital items are instant downloads; physical items are clearly marked and shipped. Browse by section to find exactly what you need, and message me anytime if you need help with a file or order."
+  },
+  "sections": [
+    "Kawaii Stickers",
+    "Kawaii Apparel",
+    "Budget & Money",
+    "Wedding & Events",
+    "Pet & Puppy",
+    "Home & Family",
+    "Health Trackers",
+    "School & Work",
+    "Planners & Journals",
+    "Business Forms",
+    "Bundles"
+  ],
+  "flagship_patch_file": "../../ETSY_FLAGSHIP_PATCHES.json"
+}
