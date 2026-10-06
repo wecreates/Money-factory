@@ -77,7 +77,7 @@
       "listing_state": "improved_live",
       "title": "Resume Check — Length, Buzzwords & Bullets",
       "summary": "Offline resume checker: flags word count, overused buzzwords, missing dates and too-few bullets. No AI, nothing uploaded.",
-      "candidate_version": "1.0.4",
+      "candidate_version": "1.0.5",
       "description": "Check your resume for common writing and structure problems before you send it. Resume Check gives you an instant, rule-based review inside the Chrome popup.\n\nWHAT IT CHECKS\n• Resume length and word count.\n• Overused buzzwords.\n• Use of bullet points.\n• Missing dates in your work history.\n\nHOW TO USE IT\nPaste your resume text into the popup, read the flagged issues, and revise your original document. Run another check after your edits.\n\nThis is a consistent checklist, not an AI writer or an ATS score. It does not rewrite your resume, predict a recruiter's decision or guarantee an interview.\n\nPRIVACY\nNothing is uploaded. Your resume text stays in the popup on your device.\n\nBuilt by CYZOR Creations. Explore our browser tools at https://cyzorcreations.com",
       "needs_description_update": false,
       "needs_package_title_summary_update": false
@@ -97,7 +97,7 @@
       "listing_state": "stale_listing",
       "title": "TextGlow — Bold & Italic for Social",
       "summary": "Bold, italic, script and monospace text for X, LinkedIn and Instagram posts, using unicode that survives plain-text boxes.",
-      "candidate_version": "1.0.3",
+      "candidate_version": "1.0.4",
       "description": "Add bold, italic, script or monospace emphasis to social posts. TextGlow converts ordinary text into Unicode styles you can copy from the Chrome toolbar.\n\nTHREE STEPS\n1. Type your text.\n2. Choose a style.\n3. Copy the result into your post or profile.\n\nUseful for short headings and emphasis in LinkedIn, X and Instagram text boxes that accept these characters. Appearance depends on the platform and font.\n\nThese are Unicode characters, not rich-text formatting. Some screen readers read them differently, so keep essential information in ordinary text and use styled characters sparingly.\n\nBuilt by CYZOR Creations. Explore our browser tools at https://cyzorcreations.com",
       "needs_description_update": true,
       "needs_package_title_summary_update": false
@@ -117,7 +117,7 @@
       "listing_state": "stale_listing",
       "title": "StackPeek — Website Tech Stack Scanner",
       "summary": "See what any website is built with: CMS, frameworks, analytics, ad pixels, payments and chat. Runs fully on your device.",
-      "candidate_version": "1.0.3",
+      "candidate_version": "1.0.4",
       "description": "Find out what a website is built with, directly from your Chrome toolbar. StackPeek checks the current page for recognizable technology signals.\n\nDETECT\n• Content management systems.\n• JavaScript frameworks.\n• Analytics tools and advertising pixels.\n• Payment tools and chat widgets.\n\nUseful for developers investigating a site, agencies researching prospects, and businesses comparing publicly visible technology choices.\n\nOpen the site you want to inspect, then run StackPeek. Detection depends on signals visible on that page; technologies hidden behind a server may not be identifiable.\n\nPRIVACY\nDetection runs on your device. StackPeek makes no network requests and does not transmit the websites you inspect.\n\nBuilt by CYZOR Creations. Explore our developer tools at https://cyzorcreations.com",
       "needs_description_update": true,
       "needs_package_title_summary_update": false
@@ -137,7 +137,7 @@
       "listing_state": "stale_listing",
       "title": "ProFill — Smart Profile Autofill",
       "summary": "Save your details once, then fill any signup, application or CRM form in one click. Matches fields by label, name and type.",
-      "candidate_version": "1.0.3",
+      "candidate_version": "1.0.4",
       "description": "Stop typing the same contact and company details into every form. ProFill saves a reusable profile and fills matching fields from your Chrome toolbar.\n\nUSE IT FOR\nSignup forms, applications, CRM entry and recurring vendor forms.\n\nHOW IT WORKS\n1. Save the details you regularly enter.\n2. Open a form and click ProFill.\n3. Review the populated fields and correct any mismatches before submitting.\n\nProFill matches fields by label, name and input type. It also sends input and change events so compatible modern forms register the values. Results depend on each site's form design.\n\nPRIVACY\nYour profile stays in local browser storage. No account is required and your profile is not synced to CYZOR.\n\nBuilt by CYZOR Creations. Explore our browser tools at https://cyzorcreations.com",
       "needs_description_update": true,
       "needs_package_title_summary_update": false
@@ -147,7 +147,7 @@
       "listing_state": "stale_listing",
       "title": "PriceWatch — Competitor Price Tracker",
       "summary": "Track the price on any product page. Checks run on our servers, and the toolbar badge shows you new price changes.",
-      "candidate_version": "1.0.3",
+      "candidate_version": "1.0.4",
       "description": "Follow product-page price changes without repeatedly reopening each page. PriceWatch keeps a watch list and shows updates on your Chrome toolbar.\n\nUSE IT FOR\n• Reviewing competitor prices.\n• Following supplier price changes.\n• Watching products you are considering buying.\n\nGET STARTED\nOpen a product page, click PriceWatch, and save it. Server-side checks continue while Chrome is closed. Return to Chrome to review the toolbar badge and check the current price at the source.\n\nThis is periodic monitoring, not a guaranteed real-time price feed.\n\nDATA & PRIVACY\nThe service receives the address and title of each product page you choose to watch, plus a random device-generated ID. No account is required.\n\nBuilt by CYZOR Creations. Explore our browser tools at https://cyzorcreations.com",
       "needs_description_update": true,
       "needs_package_title_summary_update": false
@@ -157,7 +157,7 @@
       "listing_state": "stale_listing",
       "title": "PixelGrab — Copy CSS and Extract SVG",
       "summary": "Click any element on a page to copy its CSS or grab its inline SVG. No account, no paywall, nothing leaves your browser.",
-      "candidate_version": "1.0.3",
+      "candidate_version": "1.0.4",
       "description": "Copy an element's CSS or extract an inline SVG without digging through DevTools. PixelGrab puts the result on your clipboard from the page you are viewing.\n\nHOW TO USE IT\n1. Activate PixelGrab on the page.\n2. Point at the element you want to inspect and click.\n3. Paste the copied styles, or the SVG source for an inline SVG element, into your editor.\n\nUseful for inspecting your own designs, debugging styles and learning how interface elements are built. SVG extraction applies to inline SVG markup.\n\nFREE TO USE\nNo account, paywall or upgrade prompt.\n\nPRIVACY\nPixelGrab makes no network requests. Inspection happens in your browser.\n\nBuilt by CYZOR Creations. Explore our developer tools at https://cyzorcreations.com",
       "needs_description_update": true,
       "needs_package_title_summary_update": false
@@ -177,7 +177,7 @@
       "listing_state": "stale_listing",
       "title": "MockFill — Test Data Form Filler",
       "summary": "Fill any form with realistic fake test data in one click - names, emails, phones, addresses, test cards. For devs and QA.",
-      "candidate_version": "1.0.3",
+      "candidate_version": "1.0.4",
       "description": "Fill development and QA forms with sample data in one click. MockFill reduces repetitive typing while you test signup forms and other web workflows.\n\nGENERATE SAMPLE\n• Names and email addresses.\n• Phone numbers and street addresses.\n• Test card values.\n\nThe extension matches form fields and dispatches input and change events so compatible React, Vue and other web forms register the values.\n\nUse it on test environments and review the populated fields before submitting. Generated details are fabricated; test card values are for payment sandbox testing, not real purchases.\n\nData generation runs locally in your browser. The extension does not upload the generated dataset to CYZOR; submitting a filled form sends it to that form's website.\n\nBuilt by CYZOR Creations. Explore our developer tools at https://cyzorcreations.com",
       "needs_description_update": true,
       "needs_package_title_summary_update": false
