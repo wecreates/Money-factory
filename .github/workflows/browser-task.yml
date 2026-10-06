@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           TASK_FILE="${{ steps.select.outputs.task }}"
-          TASK_ID=$(node -e "console.log(require('./'$TASK_FILE).id)")
+          TASK_ID=$(node -e "const fs=require('fs'); const p=process.argv[1]; console.log(JSON.parse(fs.readFileSync(p,'utf8')).id)" "$TASK_FILE")
           RESULT="automation/browser/results/$TASK_ID/result.json"
           if [[ -f "$RESULT" ]]; then
             git config user.name "cyzor-browser-bot"
