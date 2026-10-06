@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "updated_at": "2026-10-06",
+  "batch": "A",
+  "purpose": "Lowest-risk CYZOR Chrome extension package releases after installed-browser QA.",
+  "requirements": [
+    "Install rebuilt ZIP in real Chromium profile",
+    "First-run onboarding works",
+    "Returning-user state works",
+    "No console/service-worker errors",
+    "No unexpected permission prompt",
+    "Capture 3-5 real UI screenshots",
+    "Confirm website/store/package naming agrees",
+    "Upload package",
+    "Inspect Chrome Web Store permission/privacy diff",
+    "Submit with auto-publish only if no blockers"
+  ],
+  "items": [
+    {
+      "name": "Resume Check",
+      "public_version": "1.0.3",
+      "candidate_version": "1.0.4",
+      "package": "ResumeCheck-1.0.4.zip",
+      "website_fix": "Rename Resume Roast references to Resume Check"
+    },
+    {
+      "name": "MarginPeek",
+      "public_version": "1.0.1",
+      "candidate_version": "1.0.2",
+      "package": "MarginPeek-1.0.2.zip",
+      "website_fix": null
+    },
+    {
+      "name": "MockFill",
+      "public_version": "1.0.2",
+      "candidate_version": "1.0.3",
+      "package": "MockFill-1.0.3.zip",
+      "website_fix": null
+    },
+    {
+      "name": "OutReachMate",
+      "public_version": "1.0.1",
+      "candidate_version": "1.0.2",
+      "package": "OutReachMate-1.0.2.zip",
+      "website_fix": "Rename to Follow-Up Tracker; remove cold-email positioning"
+    },
+    {
+      "name": "PixelGrab",
+      "public_version": "1.0.2",
+      "candidate_version": "1.0.3",
+      "package": "PixelGrab-1.0.3.zip",
+      "website_fix": null
+    },
+    {
+      "name": "ProFill",
+      "public_version": "1.0.2",
+      "candidate_version": "1.0.3",
+      "package": "ProFill-1.0.3.zip",
+      "website_fix": null
+    },
+    {
+      "name": "SEOPeek",
+      "public_version": "1.0.1",
+      "candidate_version": "1.0.2",
+      "package": "SEOPeek-1.0.2.zip",
+      "website_fix": null
+    },
+    {
+      "name": "StackPeek",
+      "public_version": "1.0.2",
+      "candidate_version": "1.0.3",
+      "package": "StackPeek-1.0.3.zip",
+      "website_fix": null
+    },
+    {
+      "name": "StepDoc",
+      "public_version": "1.0.1",
+      "candidate_version": "1.0.2",
+      "package": "StepDoc-1.0.2.zip",
+      "website_fix": null
+    },
+    {
+      "name": "TextGlow",
+      "public_version": "1.0.2",
+      "candidate_version": "1.0.3",
+      "package": "TextGlow-1.0.3.zip",
+      "website_fix": null
+    }
+  ]
+}
