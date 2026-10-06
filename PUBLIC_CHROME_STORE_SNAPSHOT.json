@@ -1,0 +1,140 @@
+{
+  "updated_at": "2026-10-06",
+  "source": "public Chrome Web Store rendered pages",
+  "note": "Public store page is treated as the user-visible ground truth when it disagrees with dashboard overview.",
+  "extensions": [
+    {
+      "name": "AuthBridge",
+      "public_version": "1.1.1",
+      "updated": "2026-10-05",
+      "listing_state": "improved_live",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "ChangeRadar",
+      "public_version": "1.1.0",
+      "updated": "2026-10-05",
+      "listing_state": "improved_live",
+      "candidate_version": "1.1.1"
+    },
+    {
+      "name": "ComplyWatch",
+      "public_version": "1.0.3",
+      "updated": "2026-09-04",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "CredFlow",
+      "public_version": "1.1.1",
+      "updated": "2026-10-05",
+      "listing_state": "improved_live",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "FreightFill",
+      "public_version": "1.1.0",
+      "updated": "2026-10-05",
+      "listing_state": "improved_live",
+      "candidate_version": "1.1.1"
+    },
+    {
+      "name": "GrantRadar",
+      "public_version": "1.1.0",
+      "updated": "2026-10-05",
+      "listing_state": "improved_live",
+      "candidate_version": "1.1.1"
+    },
+    {
+      "name": "HireSignal",
+      "public_version": "1.0.1",
+      "updated": "2026-08-05",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "MarginPeek",
+      "public_version": "1.0.0",
+      "updated": "2026-08-05",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.0.2"
+    },
+    {
+      "name": "MockFill",
+      "public_version": "1.0.1",
+      "updated": "2026-08-06",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "OutReachMate",
+      "public_version": "1.0.1",
+      "updated": "2026-10-06",
+      "listing_state": "partial_fix_title_summary_stale",
+      "candidate_version": "1.0.2"
+    },
+    {
+      "name": "PixelGrab",
+      "public_version": "1.0.1",
+      "updated": "2026-08-06",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "PriceWatch",
+      "public_version": "1.0.1",
+      "updated": "2026-08-06",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "ProFill",
+      "public_version": "1.0.1",
+      "updated": "2026-08-06",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "RenewGuard",
+      "public_version": "1.1.1",
+      "updated": "2026-10-05",
+      "listing_state": "improved_live",
+      "candidate_version": "1.1.2"
+    },
+    {
+      "name": "Resume Check",
+      "public_version": "1.0.3",
+      "updated": "2026-10-05",
+      "listing_state": "improved_live",
+      "candidate_version": "1.0.4"
+    },
+    {
+      "name": "SEOPeek",
+      "public_version": "1.0.0",
+      "updated": "2026-08-05",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.0.2"
+    },
+    {
+      "name": "StackPeek",
+      "public_version": "1.0.1",
+      "updated": "2026-08-06",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.0.3"
+    },
+    {
+      "name": "StepDoc",
+      "public_version": "1.0.0",
+      "updated": "2026-08-05",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.0.2"
+    },
+    {
+      "name": "TextGlow",
+      "public_version": "1.0.1",
+      "updated": "2026-08-05",
+      "listing_state": "stale_listing",
+      "candidate_version": "1.0.3"
+    }
+  ]
+}
