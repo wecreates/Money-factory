@@ -1,0 +1,16 @@
+{
+  "id": "cyzor-extension-catalog-links",
+  "type": "inspect",
+  "url": "https://cyzorcreations.com/store?type=extensions",
+  "actions": [
+    {
+      "type": "links",
+      "selector": "a"
+    },
+    {
+      "type": "screenshot",
+      "name": "catalog-links.png"
+    }
+  ],
+  "screenshot": true
+}
