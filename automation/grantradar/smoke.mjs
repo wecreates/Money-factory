@@ -1,5 +1,5 @@
 const endpoint='https://api.grants.gov/v1/api/search2';
-const payload={keyword:'education',oppStatuses:'posted',rows:5};
+const payload={keyword:'small business',oppStatuses:['posted','forecasted'],rows:5};
 const res=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
 const text=await res.text();
 let body; try{body=JSON.parse(text)}catch{body={raw:text}};
