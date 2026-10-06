@@ -35,6 +35,10 @@ try {
  const finalList=await req(`${API}/watch?clientId=${encodeURIComponent(cid)}`);
  report.finalList=finalList;
  if(!finalList.ok || (finalList.data?.watches||[]).length!==0) throw new Error('cleanup did not return empty watch list');
+ 
+ const grant=await req('https://api.grants.gov/v1/api/search2',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({keyword:'small business',oppStatuses:['posted','forecasted'],rows:5})});
+ report.grantsGov=grant;
+ if(!grant.ok || !Array.isArray(grant.data?.data?.oppHits)) throw new Error('Grants.gov search2 contract failed');
  report.success=true;
 } catch(e){
  report.error=String(e?.stack||e);
