@@ -18,5 +18,6 @@
     "Business Forms",
     "Bundles"
   ],
-  "flagship_patch_file": "../../ETSY_FLAGSHIP_PATCHES.json"
+  "flagship_patch_file": "../../ETSY_FLAGSHIP_PATCHES.json",
+  "full_rebuild_file": "../../ETSY_DIGITAL_ONLY_REBUILD.json"
 }
