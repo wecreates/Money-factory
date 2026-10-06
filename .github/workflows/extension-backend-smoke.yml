@@ -1,0 +1,27 @@
+name: CYZOR Extension Backend Smoke
+
+on:
+  push:
+    paths:
+      - 'automation/extension-backend/**'
+      - '.github/workflows/extension-backend-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit tests
+        working-directory: automation/extension-backend
+        run: npm test
+      - name: Production backend smoke
+        working-directory: automation/extension-backend
+        run: npm run smoke
