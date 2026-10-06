@@ -30,6 +30,12 @@ try {
     } else if (action.type === 'extract') {
       const text = (await page.locator(action.selector).first().innerText({ timeout: 15000 })).slice(0, 12000);
       result.actions.push({ type:'extract', selector: action.selector, text });
+    } else if (action.type === 'links') {
+      const links = await page.locator(action.selector).evaluateAll(nodes => nodes.slice(0, 500).map(n => ({
+        text: (n.textContent || '').trim().slice(0, 300),
+        href: n instanceof HTMLAnchorElement ? n.href : null
+      })));
+      result.actions.push({ type:'links', selector: action.selector, links });
     } else if (action.type === 'screenshot') {
       const name = action.name || `step-${result.actions.length + 1}.png`;
       await page.screenshot({ path: path.join(outDir, name), fullPage: true });
