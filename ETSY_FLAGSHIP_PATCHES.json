@@ -1,0 +1,303 @@
+{
+  "updated_at": "2026-10-06",
+  "source_rules": {
+    "etsy_title_guidance": "Clear, buyer-friendly, item first, most important traits upfront, avoid repetition; target under ~15 words when practical.",
+    "tags": "Use all 13 relevant tags; diversify buyer/use-case/product intent rather than repeating title fragments.",
+    "attribute_fix": "Remove incorrect 'Party decor for gatherings and celebrations' classification/attribute from unrelated planners and forms."
+  },
+  "flagship": [
+    {
+      "id": "4544742509",
+      "product": "Coffee Bean Sticker",
+      "status": "PROVEN_SALE",
+      "recommended_price_test": [
+        "3.99",
+        "4.49",
+        "4.99"
+      ],
+      "title": "Kawaii Coffee Bean Vinyl Sticker, Cute Coffee Lover Decal",
+      "tags": [
+        "coffee bean sticker",
+        "coffee lover gift",
+        "kawaii coffee",
+        "cute food sticker",
+        "vinyl laptop decal",
+        "tumbler sticker",
+        "planner sticker",
+        "coffee decal",
+        "retro kawaii",
+        "cute sticker",
+        "barista gift",
+        "coffee gift",
+        "food character"
+      ],
+      "thumbnail": "Large coffee-bean character on clean contrasting background; character fills 70–80% of frame; small '4 sizes' badge only if accurate.",
+      "cross_sell": [
+        "Kawaii Food Sticker 3-Pack",
+        "Kawaii Food Sticker 6-Pack"
+      ],
+      "description_open": "Cute, cheerful and easy to gift. This kawaii coffee-bean vinyl sticker adds a playful coffee-lover accent to laptops, tumblers, notebooks and planners."
+    },
+    {
+      "id": "4535911896",
+      "product": "Small Business Bookkeeping Printable",
+      "recommended_price_test": [
+        "5.99",
+        "7.49",
+        "8.99"
+      ],
+      "title": "Small Business Bookkeeping Printable, Income Expense and Mileage Tracker",
+      "tags": [
+        "bookkeeping planner",
+        "expense tracker",
+        "income tracker",
+        "mileage log",
+        "small business pdf",
+        "etsy seller planner",
+        "tax prep planner",
+        "profit tracker",
+        "invoice tracker",
+        "business printable",
+        "side hustle planner",
+        "finance tracker",
+        "fillable pdf"
+      ],
+      "thumbnail": "Show 4–5 actual pages in a clean spread; headline 'BOOKKEEPING KIT'; badge '5 PAGES • FILLABLE'.",
+      "bundle": "Small Business Admin Bundle",
+      "attribute_fix": "Remove party decor; use business/planner/financial organizer attributes where Etsy allows.",
+      "description_open": "Keep income, expenses, mileage, invoices and monthly profit in one simple printable bookkeeping system."
+    },
+    {
+      "id": "4535505246",
+      "product": "Cleaning Business Starter Kit",
+      "recommended_price_test": [
+        "9.99",
+        "12.99",
+        "14.99"
+      ],
+      "title": "Cleaning Business Forms Bundle, Client Intake, Contract and Checklist",
+      "tags": [
+        "cleaning business",
+        "cleaning contract",
+        "client intake form",
+        "cleaning checklist",
+        "house cleaner forms",
+        "service agreement",
+        "cleaning forms",
+        "business starter kit",
+        "cleaning template",
+        "client forms",
+        "cleaning planner",
+        "fillable pdf",
+        "small business kit"
+      ],
+      "thumbnail": "Professional paperwork spread; headline 'CLEANING BUSINESS KIT'; show Contract + Intake + Checklist.",
+      "bundle": "Local Service Business Forms Bundle",
+      "attribute_fix": "Remove party decor; use business/form/template attributes.",
+      "description_open": "Start client work with organized paperwork: service agreement, intake form, room-by-room checklist and payment log."
+    },
+    {
+      "id": "4535893866",
+      "product": "Pet Sitting Forms Bundle",
+      "recommended_price_test": [
+        "8.99",
+        "11.99",
+        "13.99"
+      ],
+      "title": "Pet Sitting Forms Bundle, Service Agreement, Client Intake and Visit Log",
+      "tags": [
+        "pet sitting forms",
+        "pet sitter contract",
+        "dog sitter forms",
+        "client intake form",
+        "pet care agreement",
+        "pet sitting kit",
+        "pet business forms",
+        "visit log",
+        "pet sitter template",
+        "dog walking forms",
+        "fillable pdf",
+        "small business pdf",
+        "pet care forms"
+      ],
+      "thumbnail": "Show agreement + pet intake + visit log; headline 'PET SITTING FORMS'.",
+      "bundle": "Pet Business Starter Bundle",
+      "attribute_fix": "Remove party decor; use business/form/pet-service relevant attributes.",
+      "description_open": "Professionalize your pet-sitting workflow with a reusable service agreement, pet intake form and daily visit log."
+    },
+    {
+      "id": "4535933232",
+      "product": "Wedding Planner Printable",
+      "recommended_price_test": [
+        "6.99",
+        "8.99",
+        "9.99"
+      ],
+      "title": "Wedding Planner Printable, Budget, Checklist, Guest List and Timeline",
+      "tags": [
+        "wedding planner",
+        "wedding checklist",
+        "wedding budget",
+        "guest list planner",
+        "wedding timeline",
+        "wedding binder",
+        "bridal planner",
+        "rsvp tracker",
+        "wedding printable",
+        "wedding organizer",
+        "fillable pdf",
+        "wedding planning",
+        "bride planner"
+      ],
+      "thumbnail": "Elegant spread of checklist, budget, guest list, timeline; headline 'WEDDING PLANNER'.",
+      "bundle": "Complete Wedding Planning Bundle",
+      "attribute_fix": "Use wedding/planner attributes; remove generic party decor if not the most precise category.",
+      "description_open": "Plan the budget, guests, vendors and wedding-day timeline in one calm printable system."
+    },
+    {
+      "id": "4536715948",
+      "product": "Cash Envelope Budget Planner",
+      "recommended_price_test": [
+        "4.99",
+        "6.99",
+        "7.99"
+      ],
+      "title": "Cash Envelope Budget Planner, Sinking Funds and Bill Tracker Printable",
+      "tags": [
+        "cash envelope",
+        "budget planner",
+        "cash stuffing",
+        "sinking funds",
+        "bill tracker",
+        "budget printable",
+        "zero based budget",
+        "money planner",
+        "savings tracker",
+        "finance printable",
+        "debt free planner",
+        "fillable pdf",
+        "monthly budget"
+      ],
+      "thumbnail": "Show monthly budget + envelope + sinking funds pages; headline 'CASH ENVELOPE BUDGET'.",
+      "bundle": "Budget Debt Savings Bundle",
+      "attribute_fix": "Remove party decor; use finance/planner attributes.",
+      "description_open": "Give every dollar a job with a reusable cash-envelope, sinking-funds and bill-tracking printable system."
+    },
+    {
+      "id": "4535903884",
+      "product": "Debt Payoff Tracker",
+      "recommended_price_test": [
+        "4.99",
+        "6.99",
+        "7.99"
+      ],
+      "title": "Debt Payoff Tracker Printable, Debt Snowball, Budget and Bill Planner",
+      "tags": [
+        "debt payoff",
+        "debt snowball",
+        "debt tracker",
+        "budget planner",
+        "bill tracker",
+        "finance printable",
+        "debt free journey",
+        "money planner",
+        "savings goals",
+        "monthly budget",
+        "debt planner",
+        "fillable pdf",
+        "budget printable"
+      ],
+      "thumbnail": "Debt snowball page dominant; secondary budget/bill pages; headline 'DEBT PAYOFF KIT'.",
+      "bundle": "Budget Debt Savings Bundle",
+      "attribute_fix": "Remove party decor; use finance/planner attributes.",
+      "description_open": "Track balances, monthly bills, savings goals and your debt snowball in one reusable printable."
+    },
+    {
+      "id": "4536002832",
+      "product": "Savings Challenge Printable",
+      "recommended_price_test": [
+        "3.99",
+        "4.99",
+        "5.99"
+      ],
+      "title": "Savings Challenge Printable, Money Goal, No Spend and Deposit Tracker",
+      "tags": [
+        "savings challenge",
+        "money challenge",
+        "savings tracker",
+        "no spend challenge",
+        "money goal",
+        "sinking funds",
+        "budget printable",
+        "savings printable",
+        "money tracker",
+        "finance planner",
+        "saving money",
+        "fillable pdf",
+        "budget challenge"
+      ],
+      "thumbnail": "Visual savings grid and progress bars; headline 'SAVINGS CHALLENGE'.",
+      "bundle": "Budget Debt Savings Bundle",
+      "attribute_fix": "Remove party decor; use finance/planner attributes.",
+      "description_open": "Turn saving into a visible challenge with progress grids, deposit tracking and no-spend goals."
+    },
+    {
+      "id": "4536484193",
+      "product": "New Puppy Planner",
+      "recommended_price_test": [
+        "6.99",
+        "8.99",
+        "9.99"
+      ],
+      "title": "New Puppy Planner Printable, Potty Training, Vet Records and Schedule",
+      "tags": [
+        "new puppy planner",
+        "puppy training log",
+        "potty training",
+        "puppy schedule",
+        "dog vaccine record",
+        "new dog owner",
+        "puppy checklist",
+        "pet planner",
+        "dog training log",
+        "puppy binder",
+        "pet health record",
+        "fillable pdf",
+        "puppy gift"
+      ],
+      "thumbnail": "Puppy profile + potty log + vaccine page; headline 'NEW PUPPY PLANNER'.",
+      "bundle": "New Puppy + Pet Health Bundle",
+      "attribute_fix": "Remove party decor; use pet/planner attributes.",
+      "description_open": "Organize the first months with your puppy using potty logs, training progress, daily routines and vet records."
+    },
+    {
+      "id": "4536000195",
+      "product": "ADHD Daily Planner",
+      "recommended_price_test": [
+        "5.99",
+        "7.49",
+        "8.99"
+      ],
+      "title": "ADHD Daily Planner Printable, Brain Dump, Time Blocking and Focus Pages",
+      "tags": [
+        "adhd planner",
+        "adhd printable",
+        "brain dump",
+        "focus planner",
+        "time blocking",
+        "neurodivergent",
+        "daily planner",
+        "executive function",
+        "low overwhelm",
+        "productivity pdf",
+        "adult adhd",
+        "fillable pdf",
+        "focus journal"
+      ],
+      "thumbnail": "Daily focus page dominant; show brain dump + weekly page; headline 'LOW-OVERWHELM ADHD PLANNER'.",
+      "bundle": "ADHD Focus Planner Bundle",
+      "attribute_fix": "Remove party decor; use planner/productivity attributes.",
+      "description_open": "A low-overwhelm printable built around three priorities, brain-dumping and flexible time-blocking."
+    }
+  ]
+}
