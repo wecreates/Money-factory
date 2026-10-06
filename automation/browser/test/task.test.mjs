@@ -35,3 +35,24 @@ test('accepts link extraction action', () => {
 test('rejects oversized link selector', () => {
   assert.throws(() => compileActions([{type:'links', selector:'a'.repeat(201)}]));
 });
+
+test('accepts multi-inspect pages', () => {
+  const t = validateTask({
+    id:'batch',
+    type:'multi-inspect',
+    pages:[
+      {id:'a',url:'https://example.com/a'},
+      {id:'b',url:'https://example.com/b'}
+    ]
+  });
+  assert.equal(t.pages.length, 2);
+  assert.equal(t.pages[0].id, 'a');
+});
+
+test('rejects too many multi-inspect pages', () => {
+  assert.throws(() => validateTask({
+    id:'batch',
+    type:'multi-inspect',
+    pages:Array.from({length:51},(_,i)=>({id:'p'+i,url:'https://example.com/'+i}))
+  }));
+});
