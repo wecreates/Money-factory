@@ -1,4 +1,4 @@
-const ALLOWED_TYPES = new Set(['inspect','qa']);
+const ALLOWED_TYPES = new Set(['inspect','qa','multi-inspect']);
 const ALLOWED_ACTIONS = new Set(['click','fill','wait','extract','links','screenshot']);
 const SENSITIVE_LABEL = /(password|passcode|otp|one[- ]?time|verification code|security code|2fa|mfa|recovery code|cookie|session|token|secret)/i;
 
@@ -33,6 +33,15 @@ export function validateTask(raw) {
   if (!/^[a-z0-9][a-z0-9._-]{0,80}$/i.test(id)) throw new Error('invalid task id');
   const type = raw.type || 'inspect';
   if (!ALLOWED_TYPES.has(type)) throw new Error('unsupported task type');
+  if (type === 'multi-inspect') {
+    if (!Array.isArray(raw.pages) || raw.pages.length < 1 || raw.pages.length > 50) throw new Error('multi-inspect requires 1-50 pages');
+    const pages = raw.pages.map((p, i) => {
+      const pid = String(p?.id || '').trim();
+      if (!/^[a-z0-9][a-z0-9._-]{0,80}$/i.test(pid)) throw new Error(`invalid page id at ${i}`);
+      return { id: pid, url: sanitizeUrl(p.url) };
+    });
+    return { id, type, pages, screenshot: raw.screenshot !== false };
+  }
   const url = sanitizeUrl(raw.url);
   const actions = compileActions(raw.actions || []);
   return { id, type, url, actions, screenshot: raw.screenshot !== false };
