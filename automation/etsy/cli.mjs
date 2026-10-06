@@ -1,8 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import config from './config.json' with {type:'json'};
-import {refreshAccessToken,apiKey,getListing,updateListing,updateShop,createSection} from './api.mjs';
-import {patchFromRebuild} from './patches.mjs';
+import {refreshAccessToken,apiKey,getListing,updateListing,updateShop,createSection,uploadListingFile,listListingFiles} from './api.mjs';
+import {patchFromRebuild,SUPPLEMENTAL_FILES} from './patches.mjs';
 
 const [action='diff',target='all']=process.argv.slice(2);
 const shopId=Number(process.env.ETSY_SHOP_ID||config.shop_id);
@@ -44,6 +44,44 @@ if(action==='shop'){
     }
   }
   console.log(JSON.stringify({action,target,count:out.length,items:out},null,2));
+} else if(action==='files'){
+  const root=process.env.ETSY_PRODUCT_ROOT;
+  if(!root) throw new Error('Missing ETSY_PRODUCT_ROOT');
+  const out=[];
+  const walk=async dir=>{
+    const entries=await fs.readdir(dir,{withFileTypes:true});
+    const found=[];
+    for(const e of entries){
+      const p=path.join(dir,e.name);
+      if(e.isDirectory()) found.push(...await walk(p)); else found.push(p);
+    }
+    return found;
+  };
+  const allFiles=await walk(root);
+  for(const p of chosen()){
+    const prefix=String(p.listing_id);
+    const productPdf=allFiles.find(f=>path.basename(f)==='product.pdf' && f.includes(prefix));
+    if(!productPdf) throw new Error(`Missing product.pdf for listing ${prefix}`);
+    const uploads=[productPdf];
+    const supplement=SUPPLEMENTAL_FILES[prefix];
+    if(supplement){
+      const match=allFiles.find(f=>path.basename(f)===supplement);
+      if(match) uploads.push(match);
+    }
+    const uploaded=[];
+    let rank=1;
+    for(const file of uploads){
+      const bytes=new Uint8Array(await fs.readFile(file));
+      uploaded.push(await uploadListingFile({
+        shopId,listingId:prefix,filename:path.basename(file),bytes,rank,
+        token,apiKeyValue
+      }));
+      rank++;
+    }
+    const verify=await listListingFiles({shopId,listingId:prefix,token,apiKeyValue});
+    out.push({listing_id:prefix,uploaded:uploaded.map(x=>x.filename||x.listing_file_id),verify});
+  }
+  console.log(JSON.stringify({action,target,count:out.length,items:out},null,2));
 } else {
-  throw new Error('Usage: node cli.mjs <diff|apply|shop|sections> <all|listing id|product>');
+  throw new Error('Usage: node cli.mjs <diff|apply|files|shop|sections> <all|listing id|product>');
 }
