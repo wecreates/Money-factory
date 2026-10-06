@@ -1,0 +1,120 @@
+{
+  "updated_at": "2026-10-06",
+  "count": 19,
+  "extensions": [
+    {
+      "name": "AuthBridge",
+      "extension_id": "cfedmgnkhjmennmfmkabbbeicogoaank",
+      "website_url": "https://cyzorcreations.com/extensions/authbridge",
+      "store_url": "https://chromewebstore.google.com/detail/cfedmgnkhjmennmfmkabbbeicogoaank"
+    },
+    {
+      "name": "ChangeRadar",
+      "extension_id": "docbacaikcakikpeihcaeknbjcmlnofb",
+      "website_url": "https://cyzorcreations.com/extensions/changeradar-website-monitor",
+      "store_url": "https://chromewebstore.google.com/detail/docbacaikcakikpeihcaeknbjcmlnofb"
+    },
+    {
+      "name": "ComplyWatch",
+      "extension_id": "dappcdpplgalclbpfimiaiadmficfhmh",
+      "website_url": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor",
+      "store_url": "https://chromewebstore.google.com/detail/dappcdpplgalclbpfimiaiadmficfhmh"
+    },
+    {
+      "name": "CredFlow",
+      "extension_id": "ppadjmdonennmblfnnaeiaaoedohpbdh",
+      "website_url": "https://cyzorcreations.com/extensions/credflow",
+      "store_url": "https://chromewebstore.google.com/detail/ppadjmdonennmblfnnaeiaaoedohpbdh"
+    },
+    {
+      "name": "FreightFill",
+      "extension_id": "fmjignomealjcdnnfgddnbocimhiplfe",
+      "website_url": "https://cyzorcreations.com/extensions/freightfill",
+      "store_url": "https://chromewebstore.google.com/detail/fmjignomealjcdnnfgddnbocimhiplfe"
+    },
+    {
+      "name": "GrantRadar",
+      "extension_id": "plcdhncofbjjlfkbcollkbpjafbkepae",
+      "website_url": "https://cyzorcreations.com/extensions/grantradar-federal-grant-alerts",
+      "store_url": "https://chromewebstore.google.com/detail/plcdhncofbjjlfkbcollkbpjafbkepae"
+    },
+    {
+      "name": "HireSignal",
+      "extension_id": "miefiekhbaobighephachinepkikckbi",
+      "website_url": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker",
+      "store_url": "https://chromewebstore.google.com/detail/miefiekhbaobighephachinepkikckbi"
+    },
+    {
+      "name": "MarginPeek",
+      "extension_id": "oloknhahbhnmjnmbhgphhmmmkfedoeon",
+      "website_url": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer",
+      "store_url": "https://chromewebstore.google.com/detail/oloknhahbhnmjnmbhgphhmmmkfedoeon"
+    },
+    {
+      "name": "MockFill",
+      "extension_id": "affbjgfdedlegahglblgnpdpclfmpjhd",
+      "website_url": "https://cyzorcreations.com/extensions/mockfill-test-data-filler",
+      "store_url": "https://chromewebstore.google.com/detail/affbjgfdedlegahglblgnpdpclfmpjhd"
+    },
+    {
+      "name": "OutReachMate",
+      "extension_id": "ipbnnjeklpljfgcgadhbjeibhpojjaop",
+      "website_url": "https://cyzorcreations.com/extensions/outreachmate-followup-email",
+      "store_url": "https://chromewebstore.google.com/detail/ipbnnjeklpljfgcgadhbjeibhpojjaop"
+    },
+    {
+      "name": "PixelGrab",
+      "extension_id": "ihgkoahedfafnnjnbgjkkbkeecbhllbi",
+      "website_url": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor",
+      "store_url": "https://chromewebstore.google.com/detail/ihgkoahedfafnnjnbgjkkbkeecbhllbi"
+    },
+    {
+      "name": "PriceWatch",
+      "extension_id": "cpbegpannnlbikbcdjgnipcidaafijdb",
+      "website_url": "https://cyzorcreations.com/extensions/pricewatch-price-tracker",
+      "store_url": "https://chromewebstore.google.com/detail/cpbegpannnlbikbcdjgnipcidaafijdb"
+    },
+    {
+      "name": "ProFill",
+      "extension_id": "chmcldmegcfnfamegjjkgpkieapgiegp",
+      "website_url": "https://cyzorcreations.com/extensions/profill-smart-autofill",
+      "store_url": "https://chromewebstore.google.com/detail/chmcldmegcfnfamegjjkgpkieapgiegp"
+    },
+    {
+      "name": "RenewGuard",
+      "extension_id": "onnecnbdielhalhiknbkhibdlpbljdnk",
+      "website_url": "https://cyzorcreations.com/extensions/renewguard-contract-renewals",
+      "store_url": "https://chromewebstore.google.com/detail/onnecnbdielhalhiknbkhibdlpbljdnk"
+    },
+    {
+      "name": "Resume Check",
+      "extension_id": "ddifbdopbjfnmnnbccdndacepnpkpkhf",
+      "website_url": "https://cyzorcreations.com/extensions/roast-my-resume---ai-critique",
+      "store_url": "https://chromewebstore.google.com/detail/ddifbdopbjfnmnnbccdndacepnpkpkhf"
+    },
+    {
+      "name": "SEOPeek",
+      "extension_id": "nhkgbjkjfdmlleajbgamgeodebmdhmdf",
+      "website_url": "https://cyzorcreations.com/extensions/seopeek-seo-auditor",
+      "store_url": "https://chromewebstore.google.com/detail/nhkgbjkjfdmlleajbgamgeodebmdhmdf"
+    },
+    {
+      "name": "StackPeek",
+      "extension_id": "lejmlaeekbopjdomdbdjcnlgjoaaljdd",
+      "website_url": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner",
+      "store_url": "https://chromewebstore.google.com/detail/lejmlaeekbopjdomdbdjcnlgjoaaljdd"
+    },
+    {
+      "name": "StepDoc",
+      "extension_id": "cbhgmofpckolnnflbpdbidbdnkakbhpf",
+      "website_url": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker",
+      "store_url": "https://chromewebstore.google.com/detail/cbhgmofpckolnnflbpdbidbdnkakbhpf"
+    },
+    {
+      "name": "TextGlow",
+      "extension_id": "hcognajiafaodjdcmmpgckpebbaopihm",
+      "website_url": "https://cyzorcreations.com/extensions/textglow-social-formatter",
+      "store_url": "https://chromewebstore.google.com/detail/hcognajiafaodjdcmmpgckpebbaopihm"
+    }
+  ]
+}
