@@ -1,0 +1,300 @@
+{
+  "id": "cyzor-extension-catalog-links",
+  "type": "inspect",
+  "url": "https://cyzorcreations.com/store?type=extensions",
+  "startedAt": "2026-10-06T16:23:06.335Z",
+  "actions": [
+    {
+      "type": "links",
+      "selector": "a",
+      "links": [
+        {
+          "text": "grab one",
+          "href": "https://cyzorcreations.com/ebooks"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Shop",
+          "href": "https://cyzorcreations.com/store"
+        },
+        {
+          "text": "Tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Services",
+          "href": "https://cyzorcreations.com/services"
+        },
+        {
+          "text": "Guides",
+          "href": "https://cyzorcreations.com/guides"
+        },
+        {
+          "text": "Watchtower",
+          "href": "https://cyzorcreations.com/watchtower"
+        },
+        {
+          "text": "Browse all",
+          "href": "https://cyzorcreations.com/store"
+        },
+        {
+          "text": "Home",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "healthcareAuthBridge — Prior-Auth TrackerTrack prior-auth visit burn-down + re-auth deadlines, and pre-fill payer portals.",
+          "href": "https://cyzorcreations.com/extensions/authbridge"
+        },
+        {
+          "text": "productivityChangeRadar — Website Change MonitorGet alerted when any web page changes (content, price, hiring). Checks run on our servers 24/7.",
+          "href": "https://cyzorcreations.com/extensions/changeradar-website-monitor"
+        },
+        {
+          "text": "B2B / ComplianceComplyWatch — Policy Change MonitorMonitor regulation, policy, and vendor-ToS pages for changes, tagged by compliance area. Server-side checks…",
+          "href": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor"
+        },
+        {
+          "text": "healthcareCredFlow — Credentialing Co-PilotTrack CAQH 120-day re-attestation + credentialing deadlines, store provider profiles, and pre-fill payer…",
+          "href": "https://cyzorcreations.com/extensions/credflow"
+        },
+        {
+          "text": "logisticsFreightFill — Broker Portal Auto-FillEnter a load once and pre-fill it into every carrier and shipper portal.",
+          "href": "https://cyzorcreations.com/extensions/freightfill"
+        },
+        {
+          "text": "Nonprofit / ResearchGrantRadar — Federal Grant & Funding AlertsTrack new federal grant opportunities by keyword from Grants.gov. Save searches and get alerted on fresh…",
+          "href": "https://cyzorcreations.com/extensions/grantradar-federal-grant-alerts"
+        },
+        {
+          "text": "salesHireSignal — Competitor Hiring TrackerTrack a company careers page and get alerted when hiring activity changes — a leading growth signal.",
+          "href": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker"
+        },
+        {
+          "text": "ecommerceMarginPeek — Profit & Review AnalyzerCalculate profit, margin, ROI, breakeven and target price on any product page with marketplace fee presets…",
+          "href": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer"
+        },
+        {
+          "text": "developer-toolsMockFill — Test Data Form FillerFill any form with realistic test data in one click.",
+          "href": "https://cyzorcreations.com/extensions/mockfill-test-data-filler"
+        },
+        {
+          "text": "salesOutReachMate — Follow-Ups & Cold EmailTrack every prospect and never miss a follow-up, and draft personalized cold emails from a prospect page.",
+          "href": "https://cyzorcreations.com/extensions/outreachmate-followup-email"
+        },
+        {
+          "text": "developer-toolsPixelGrab — SVG & CSS ExtractorClick any element on a live page to instantly copy its inline SVG or key CSS. No DevTools digging.",
+          "href": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor"
+        },
+        {
+          "text": "ecommercePriceWatch — Competitor Price TrackerTrack prices on any product page and get alerted when they change. 24/7 server-side checks.",
+          "href": "https://cyzorcreations.com/extensions/pricewatch-price-tracker"
+        },
+        {
+          "text": "productivityProFill — Smart Profile AutofillSave your details once and fill any signup, application or CRM form in one click via smart label matching.",
+          "href": "https://cyzorcreations.com/extensions/profill-smart-autofill"
+        },
+        {
+          "text": "productivityQuiet Tabs — Auto Background MuterAutomatically mutes every background tab so only the tab you are viewing can make sound.",
+          "href": "https://cyzorcreations.com/extensions/quiet-tabs-auto-muter"
+        },
+        {
+          "text": "B2B / OperationsRenewGuard — Contract Renewal AlertsTrack contract renewal + notice deadlines.",
+          "href": "https://cyzorcreations.com/extensions/renewguard-contract-renewals"
+        },
+        {
+          "text": "jobseekersResume Roast — Instant Resume CheckInstant rule-based resume critique.",
+          "href": "https://cyzorcreations.com/extensions/roast-my-resume---ai-critique"
+        },
+        {
+          "text": "seoSEOPeek — On-Page SEO AuditorInstant on-page SEO audit with a score, per-issue fixes, copy-report and AI meta rewrite.",
+          "href": "https://cyzorcreations.com/extensions/seopeek-seo-auditor"
+        },
+        {
+          "text": "salesStackPeek — Website Tech Stack ScannerDetect the technologies a website is built with.",
+          "href": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner"
+        },
+        {
+          "text": "Productivity / DocsStepDoc — SOP & Screenshot Guide MakerRecord any web workflow into a clean step-by-step guide with auto screenshots. Export polished SOPs in one…",
+          "href": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker"
+        },
+        {
+          "text": "productivityTextGlow — Bold and Italic for SocialUnicode bold and italic text for social platforms.",
+          "href": "https://cyzorcreations.com/extensions/textglow-social-formatter"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Instagram",
+          "href": "https://www.instagram.com/cyzorcreations"
+        },
+        {
+          "text": "Threads",
+          "href": "https://www.threads.net/@cyzorcreations"
+        },
+        {
+          "text": "YouTube",
+          "href": "https://www.youtube.com/@cyzorcreations"
+        },
+        {
+          "text": "All products",
+          "href": "https://cyzorcreations.com/store"
+        },
+        {
+          "text": "Etsy shop (stickers & prints)",
+          "href": "https://www.etsy.com/shop/CyzorCreations"
+        },
+        {
+          "text": "Extensions",
+          "href": "https://cyzorcreations.com/store?type=extensions"
+        },
+        {
+          "text": "Web apps",
+          "href": "https://cyzorcreations.com/store?type=apps"
+        },
+        {
+          "text": "Mobile apps",
+          "href": "https://cyzorcreations.com/store?type=mobile"
+        },
+        {
+          "text": "AI receptionist",
+          "href": "https://cyzorcreations.com/rx/receptionist"
+        },
+        {
+          "text": "Missed-call calculator",
+          "href": "https://cyzorcreations.com/rx/calculator"
+        },
+        {
+          "text": "Free DMARC & SPF checker",
+          "href": "https://cyzorcreations.com/rx/email-check"
+        },
+        {
+          "text": "Digital products",
+          "href": "https://cyzorcreations.com/store?type=digital"
+        },
+        {
+          "text": "E-books",
+          "href": "https://cyzorcreations.com/store?type=ebooks"
+        },
+        {
+          "text": "Free e-books",
+          "href": "https://cyzorcreations.com/ebooks"
+        },
+        {
+          "text": "Watchtower",
+          "href": "https://cyzorcreations.com/watchtower"
+        },
+        {
+          "text": "Done-for-you services",
+          "href": "https://cyzorcreations.com/services"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Blog",
+          "href": "https://cyzorcreations.com/blog"
+        },
+        {
+          "text": "Free toolkit",
+          "href": "https://cyzorcreations.com/free"
+        },
+        {
+          "text": "Starter pack",
+          "href": "https://cyzorcreations.com/starter"
+        },
+        {
+          "text": "Custom prompt packs",
+          "href": "https://cyzorcreations.com/custom"
+        },
+        {
+          "text": "Blueprint (build an app)",
+          "href": "https://cyzorcreations.com/blueprint"
+        },
+        {
+          "text": "T-shirt design maker",
+          "href": "https://cyzorcreations.com/tshirt"
+        },
+        {
+          "text": "AuthBridge — authorized-visit tracking",
+          "href": "https://cyzorcreations.com/authbridge"
+        },
+        {
+          "text": "ComplyWatch — regulation change alerts",
+          "href": "https://cyzorcreations.com/complywatch"
+        },
+        {
+          "text": "CredFlow — CAQH re-attestation reminders",
+          "href": "https://cyzorcreations.com/credflow"
+        },
+        {
+          "text": "FreightFill — enter a load once, fill every portal",
+          "href": "https://cyzorcreations.com/freightfill"
+        },
+        {
+          "text": "Grant Radar — matched nonprofit funding, weekly",
+          "href": "https://cyzorcreations.com/grant-radar"
+        },
+        {
+          "text": "GrantRadar — Grants.gov keyword alerts",
+          "href": "https://cyzorcreations.com/grantradar"
+        },
+        {
+          "text": "RenewGuard — contract renewal & notice tracker",
+          "href": "https://cyzorcreations.com/renewguard"
+        },
+        {
+          "text": "StepDoc — turn any workflow into a guide",
+          "href": "https://cyzorcreations.com/stepdoc"
+        },
+        {
+          "text": "Google Review Response Generator",
+          "href": "https://cyzorcreations.com/rx/review-responder"
+        },
+        {
+          "text": "Membership",
+          "href": "https://cyzorcreations.com/membership"
+        },
+        {
+          "text": "Refund policy",
+          "href": "https://cyzorcreations.com/refund"
+        },
+        {
+          "text": "Privacy policy",
+          "href": "https://cyzorcreations.com/privacy"
+        },
+        {
+          "text": "Terms of service",
+          "href": "https://cyzorcreations.com/terms"
+        },
+        {
+          "text": "Sitemap",
+          "href": "https://cyzorcreations.com/sitemap.xml"
+        },
+        {
+          "text": "Make us a preferred source on Google",
+          "href": "https://www.google.com/preferences/source?q=cyzorcreations.com"
+        },
+        {
+          "text": "Contact",
+          "href": "mailto:cyzorcreations@gmail.com"
+        }
+      ]
+    },
+    {
+      "type": "screenshot",
+      "name": "catalog-links.png"
+    }
+  ],
+  "success": true,
+  "finalUrl": "https://cyzorcreations.com/store?type=extensions",
+  "title": "Browser extensions — CYZOR Creations",
+  "bodyText": "Full-length e-books, free to read —\ngrab one\nCYZOR Creations\nShop\nTools\nServices\nGuides\nWatchtower\nBrowse all\nHome / Browser extensions\nBrowser extensions\n\n20 products\n\nSearch\nHEALTHCARE\nAuthBridge — Prior-Auth Tracker\n\nTrack prior-auth visit burn-down + re-auth deadlines, and pre-fill payer portals.\n\nPRODUCTIVITY\nChangeRadar — Website Change Monitor\n\nGet alerted when any web page changes (content, price, hiring). Checks run on our servers 24/7.\n\nB2B / COMPLIANCE\nComplyWatch — Policy Change Monitor\n\nMonitor regulation, policy, and vendor-ToS pages for changes, tagged by compliance area. Server-side checks…\n\nHEALTHCARE\nCredFlow — Credentialing Co-Pilot\n\nTrack CAQH 120-day re-attestation + credentialing deadlines, store provider profiles, and pre-fill payer…\n\nLOGISTICS\nFreightFill — Broker Portal Auto-Fill\n\nEnter a load once and pre-fill it into every carrier and shipper portal.\n\nNONPROFIT / RESEARCH\nGrantRadar — Federal Grant & Funding Alerts\n\nTrack new federal grant opportunities by keyword from Grants.gov. Save searches and get alerted on fresh…\n\nSALES\nHireSignal — Competitor Hiring Tracker\n\nTrack a company careers page and get alerted when hiring activity changes — a leading growth signal.\n\nECOMMERCE\nMarginPeek — Profit & Review Analyzer\n\nCalculate profit, margin, ROI, breakeven and target price on any product page with marketplace fee presets…\n\nDEVELOPER-TOOLS\nMockFill — Test Data Form Filler\n\nFill any form with realistic test data in one click.\n\nSALES\nOutReachMate — Follow-Ups & Cold Email\n\nTrack every prospect and never miss a follow-up, and draft personalized cold emails from a prospect page.\n\nDEVELOPER-TOOLS\nPixelGrab — SVG & CSS Extractor\n\nClick any element on a live page to instantly copy its inline SVG or key CSS. No DevTools digging.\n\nECOMMERCE\nPriceWatch — Competitor Price Tracker\n\nTrack prices on any product page and get alerted when they change. 24/7 server-side checks.\n\nPRODUCTIVITY\nProFill — Smart Profile Autofill\n\nSave your details once and fill any signup, application or CRM form in one click via smart label matching.\n\nPRODUCTIVITY\nQuiet Tabs — Auto Background Muter\n\nAutomatically mutes every background tab so only the tab you are viewing can make sound.\n\nB2B / OPERATIONS\nRenewGuard — Contract Renewal Alerts\n\nTrack contract renewal + notice deadlines.\n\nJOBSEEKERS\nResume Roast — Instant Resume Check\n\nInstant rule-based resume critique.\n\nSEO\nSEOPeek — On-Page SEO Auditor\n\nInstant on-page SEO audit with a score, per-issue fixes, copy-report and AI meta rewrite.\n\nSALES\nStackPeek — Website Tech Stack Scanner\n\nDetect the technologies a website is built with.\n\nPRODUCTIVITY / DOCS\nStepDoc — SOP & Screenshot Guide Maker\n\nRecord any web workflow into a clean step-by-step guide with auto screenshots. Export polished SOPs in one…\n\nPRODUCTIVITY\nTextGlow — Bold and Italic for Social\n\nUnicode bold and italic text for social platforms.\n\nGet a free e-book\n\nDrop your email and we'll send you a free full-length e-book. No spam, unsubscribe anytime.\n\nEmail me the e-book\n\nDelivered instantly to your inbox. No card required.\n\nFrequently asked questions\nAre the web apps and extensions really free?\nHow do I get a free e-book?\nHow does checkout work?\nDo you add new products often?\nCYZOR Creations\n\nPrivacy-first browser tools. PDF, image, QR & more — the work runs on your device, files never upload.\n\nInstagram\nThreads\nYouTube\nSHOP\nAll products\nEtsy shop (stickers & prints)\nExtensions\nWeb apps\nMobile apps\nPRODUCTS\nAI receptionist\nMissed-call calculator\nFree DMARC & SPF checker\nDigital products\nE-books\nFree e-books\nWatchtower\nDone-for-you services\nFree tools\nBlog\nFree toolkit\nStarter pack\nCustom prompt packs\nBlueprint (build an app)\nT-shirt design maker\nVERTICAL SOLUTIONS\nAuthBridge — authorized-visit tracking\nComplyWatch — regulation change alerts\nCredFlow — CAQH re-attestation reminders\nFreightFill — enter a load once, fill every portal\nGrant Radar — matched nonprofit funding, weekly\nGrantRadar — Grants.gov keyword alerts\nRenewGuard — contract renewal & notice tracker\nStepDoc — turn any workflow into a guide\nGoogle Review Response Generator\nCOMPANY\nMembership\nRefund policy\nPrivacy policy\nTerms of service\nSitemap\nMake us a preferred source on Google\nContact\n© 2026 CYZOR Creations. All rights reserved.",
+  "screenshot": "final.png",
+  "finishedAt": "2026-10-06T16:23:07.069Z"
+}
