@@ -1,0 +1,8 @@
+{
+  "name": "cyzor-site-zip-audit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "audit": "node audit.mjs"
+  }
+}
