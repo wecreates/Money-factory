@@ -1,0 +1,38 @@
+{
+  "id": "workflow-pro-checkout-audit",
+  "type": "inspect",
+  "url": "https://cyzorcreations.com/pay/vertical-pro",
+  "startedAt": "2026-10-06T16:46:12.226Z",
+  "actions": [
+    {
+      "type": "extract",
+      "selector": "body",
+      "text": "CYZOR\n← Back to store\nCYZOR WORKFLOW PRO · ONE KEY, SEVEN EXTENSIONS\nCYZOR Workflow Pro\n\nThe free extensions track the work. Pro is for the part you have to hand to somebody else — the export, the calendar file, the audit trail, and an alert that reaches you instead of a badge you have to notice.\n\n$0 due today\nYour first month is free — then $29/mo\n$0 today: we verify your card, we do not charge it. Your first $29.00 charge is one month from today · cancel before then and you are never charged.\nEmail for your setup link and receipt\nNo account needed — we email it straight here.\nStart my free month — $0 today\nLive in minutes\nCancel anytime\n$0 charged today\nDrops the free-tier item cap in every CYZOR workflow extension — track as many contracts, authorizations, providers or loads as you actually have\nExport your register, your deadline list and your activity log to CSV, and open it in Excel or hand it to an auditor\nDownload your deadlines as an .ics calendar file and import them into Outlook or Google Calendar\nDesktop alerts the moment a monitored page changes, instead of a toolbar badge you have to spot\nOne key across RenewGuard, GrantRadar, AuthBridge, CredFlow, FreightFill, ComplyWatch and HireSignal — and it unlocks the web tools at cyzorcreations.com/tools as well\nFull details — what is included, and what it costs\nCard details are entered on Helcim’s secure form and never touch our servers.\nVISA\nMC\nDISC\nAMEX\n\nQuestions before you start? Email chris@cyzorcreations.com — a real person, not a support queue."
+    },
+    {
+      "type": "links",
+      "selector": "a",
+      "links": [
+        {
+          "text": "CYZOR",
+          "href": "https://cyzorcreations.com/store"
+        },
+        {
+          "text": "← Back to store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ]
+    },
+    {
+      "type": "screenshot",
+      "name": "workflow-pro-checkout.png"
+    }
+  ],
+  "pages": [],
+  "success": true,
+  "finalUrl": "https://cyzorcreations.com/pay/vertical-pro",
+  "title": "Checkout — CYZOR Workflow Pro — CYZOR Creations",
+  "bodyText": "CYZOR\n← Back to store\nCYZOR WORKFLOW PRO · ONE KEY, SEVEN EXTENSIONS\nCYZOR Workflow Pro\n\nThe free extensions track the work. Pro is for the part you have to hand to somebody else — the export, the calendar file, the audit trail, and an alert that reaches you instead of a badge you have to notice.\n\n$0 due today\nYour first month is free — then $29/mo\n$0 today: we verify your card, we do not charge it. Your first $29.00 charge is one month from today · cancel before then and you are never charged.\nEmail for your setup link and receipt\nNo account needed — we email it straight here.\nStart my free month — $0 today\nLive in minutes\nCancel anytime\n$0 charged today\nDrops the free-tier item cap in every CYZOR workflow extension — track as many contracts, authorizations, providers or loads as you actually have\nExport your register, your deadline list and your activity log to CSV, and open it in Excel or hand it to an auditor\nDownload your deadlines as an .ics calendar file and import them into Outlook or Google Calendar\nDesktop alerts the moment a monitored page changes, instead of a toolbar badge you have to spot\nOne key across RenewGuard, GrantRadar, AuthBridge, CredFlow, FreightFill, ComplyWatch and HireSignal — and it unlocks the web tools at cyzorcreations.com/tools as well\nFull details — what is included, and what it costs\nCard details are entered on Helcim’s secure form and never touch our servers.\nVISA\nMC\nDISC\nAMEX\n\nQuestions before you start? Email chris@cyzorcreations.com — a real person, not a support queue.",
+  "screenshot": "final.png",
+  "finishedAt": "2026-10-06T16:46:12.959Z"
+}
