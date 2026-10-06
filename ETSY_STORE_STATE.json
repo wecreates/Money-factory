@@ -1,0 +1,70 @@
+{
+  "updated_at": "2026-10-06",
+  "shop": "CyzorCreations",
+  "public_state": {
+    "active_listings": 59,
+    "sales": 1,
+    "reviews": 0,
+    "admirers": 1,
+    "latest_activity": "2026-08-06"
+  },
+  "proven_sale": {
+    "listing_id": "4544742509",
+    "product": "Coffee Bean Sticker",
+    "lane": "kawaii"
+  },
+  "lanes": {
+    "kawaii": {
+      "keep": [
+        "Coffee Bean Sticker",
+        "Taco Sticker",
+        "Donut Sticker",
+        "Mushroom Sticker",
+        "Pineapple Sticker",
+        "Strawberry Sticker"
+      ],
+      "test": [
+        "Kawaii Cat Tee",
+        "Kawaii Bear Tee",
+        "Kawaii Strawberry Hoodie"
+      ],
+      "new_products": [
+        "Kawaii Food Sticker 3-Pack",
+        "Kawaii Food Sticker 6-Pack",
+        "Kawaii Food Mega Bundle"
+      ]
+    },
+    "printables": {
+      "priority_families": [
+        "small_business",
+        "money_budget",
+        "wedding_events",
+        "pet_puppy",
+        "home_family",
+        "school_work",
+        "health_tracking"
+      ],
+      "bundle_strategy": true
+    }
+  },
+  "retire_or_rework": [
+    "Golden Hour Mountain Lake Poster",
+    "Be Gentle With Yourself Print",
+    "One Day at a Time Wall Art",
+    "Progress Not Perfection Print",
+    "Rest Is Productive Poster",
+    "You Are Doing Better Than You Think Poster"
+  ],
+  "flagship_queue": [
+    "Coffee Bean Sticker",
+    "Kawaii Food Sticker Bundle",
+    "Small Business Bookkeeping Printable",
+    "Cleaning Business Starter Kit",
+    "Pet Sitting Forms Bundle",
+    "Wedding Planner Bundle",
+    "Budget Debt Savings Bundle",
+    "New Puppy + Pet Health Bundle",
+    "Teacher Homeschool Student Bundle",
+    "ADHD Focus Planner Bundle"
+  ]
+}
