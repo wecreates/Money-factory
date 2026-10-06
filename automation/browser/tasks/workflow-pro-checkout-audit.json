@@ -1,0 +1,20 @@
+{
+  "id": "workflow-pro-checkout-audit",
+  "type": "inspect",
+  "url": "https://cyzorcreations.com/pay/vertical-pro",
+  "actions": [
+    {
+      "type": "extract",
+      "selector": "body"
+    },
+    {
+      "type": "links",
+      "selector": "a"
+    },
+    {
+      "type": "screenshot",
+      "name": "workflow-pro-checkout.png"
+    }
+  ],
+  "screenshot": true
+}
