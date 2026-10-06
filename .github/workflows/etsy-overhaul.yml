@@ -1,0 +1,49 @@
+name: CYZOR Etsy Overhaul
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Etsy action'
+        required: true
+        type: choice
+        options: [diff, apply, shop, sections]
+        default: diff
+      target:
+        description: 'all, exact product name, or listing ID'
+        required: true
+        default: all
+
+permissions:
+  contents: read
+
+jobs:
+  etsy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+      ETSY_SHARED_SECRET: ${{ secrets.ETSY_SHARED_SECRET }}
+      ETSY_CLIENT_ID: ${{ secrets.ETSY_CLIENT_ID }}
+      ETSY_REFRESH_TOKEN: ${{ secrets.ETSY_REFRESH_TOKEN }}
+      ETSY_SHOP_ID: '43299966'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit tests
+        working-directory: automation/etsy
+        run: npm test
+      - name: Check Etsy secrets
+        shell: bash
+        run: |
+          for key in ETSY_API_KEY ETSY_SHARED_SECRET ETSY_CLIENT_ID ETSY_REFRESH_TOKEN; do
+            if [[ -z "${!key}" ]]; then
+              echo "::error::Missing GitHub Actions secret: $key"
+              exit 2
+            fi
+          done
+      - name: Run Etsy overhaul action
+        working-directory: automation/etsy
+        run: node cli.mjs "${{ inputs.action }}" "${{ inputs.target }}"
