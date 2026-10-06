@@ -105,3 +105,15 @@ export function patchFromRebuild(item){
     price:CATEGORY_PRICE[item.category]||6.99
   };
 }
+
+
+export const SUPPLEMENTAL_FILES={
+  '4535911896':'Small-Business-Bookkeeping-Dashboard.xlsx',
+  '4536715948':'Ultimate-Budget-Debt-Savings-Dashboard.xlsx',
+  '4535903884':'Ultimate-Budget-Debt-Savings-Dashboard.xlsx',
+  '4536002832':'Ultimate-Budget-Debt-Savings-Dashboard.xlsx',
+  '4535933232':'Wedding-Planner-Spreadsheet-Bundle.xlsx',
+  '4536720888':'Wedding-Planner-Spreadsheet-Bundle.xlsx',
+  '4535973778':'Job-Search-Application-Dashboard.xlsx',
+  '4536002302':'90-Day-Content-Planner-Dashboard.xlsx'
+};
