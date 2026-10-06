@@ -1,5 +1,5 @@
 const ALLOWED_TYPES = new Set(['inspect','qa']);
-const ALLOWED_ACTIONS = new Set(['click','fill','wait','extract','screenshot']);
+const ALLOWED_ACTIONS = new Set(['click','fill','wait','extract','links','screenshot']);
 const SENSITIVE_LABEL = /(password|passcode|otp|one[- ]?time|verification code|security code|2fa|mfa|recovery code|cookie|session|token|secret)/i;
 
 export function sanitizeUrl(input) {
@@ -22,7 +22,7 @@ export function compileActions(actions = []) {
     if (a.type === 'wait') {
       if (!Number.isInteger(a.ms) || a.ms < 0 || a.ms > 15000) throw new Error('wait out of range');
     }
-    if (a.type === 'extract' && (!a.selector || a.selector.length > 200)) throw new Error('invalid selector');
+    if ((a.type === 'extract' || a.type === 'links') && (!a.selector || a.selector.length > 200)) throw new Error('invalid selector');
     return structuredClone(a);
   });
 }
