@@ -1,0 +1,12 @@
+{
+  "id": "example.com-smoke-3",
+  "type": "inspect",
+  "url": "https://example.com",
+  "actions": [
+    {
+      "type": "extract",
+      "selector": "body"
+    }
+  ],
+  "screenshot": true
+}
