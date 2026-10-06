@@ -1,0 +1,83 @@
+{
+  "id": "cyzor-extension-pages-19",
+  "type": "multi-inspect",
+  "pages": [
+    {
+      "id": "authbridge",
+      "url": "https://cyzorcreations.com/extensions/authbridge"
+    },
+    {
+      "id": "changeradar",
+      "url": "https://cyzorcreations.com/extensions/changeradar-website-monitor"
+    },
+    {
+      "id": "complywatch",
+      "url": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor"
+    },
+    {
+      "id": "credflow",
+      "url": "https://cyzorcreations.com/extensions/credflow"
+    },
+    {
+      "id": "freightfill",
+      "url": "https://cyzorcreations.com/extensions/freightfill"
+    },
+    {
+      "id": "grantradar",
+      "url": "https://cyzorcreations.com/extensions/grantradar-federal-grant-alerts"
+    },
+    {
+      "id": "hiresignal",
+      "url": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker"
+    },
+    {
+      "id": "marginpeek",
+      "url": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer"
+    },
+    {
+      "id": "mockfill",
+      "url": "https://cyzorcreations.com/extensions/mockfill-test-data-filler"
+    },
+    {
+      "id": "outreachmate",
+      "url": "https://cyzorcreations.com/extensions/outreachmate-followup-email"
+    },
+    {
+      "id": "pixelgrab",
+      "url": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor"
+    },
+    {
+      "id": "pricewatch",
+      "url": "https://cyzorcreations.com/extensions/pricewatch-price-tracker"
+    },
+    {
+      "id": "profill",
+      "url": "https://cyzorcreations.com/extensions/profill-smart-autofill"
+    },
+    {
+      "id": "renewguard",
+      "url": "https://cyzorcreations.com/extensions/renewguard-contract-renewals"
+    },
+    {
+      "id": "resumecheck",
+      "url": "https://cyzorcreations.com/extensions/roast-my-resume---ai-critique"
+    },
+    {
+      "id": "seopeek",
+      "url": "https://cyzorcreations.com/extensions/seopeek-seo-auditor"
+    },
+    {
+      "id": "stackpeek",
+      "url": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner"
+    },
+    {
+      "id": "stepdoc",
+      "url": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker"
+    },
+    {
+      "id": "textglow",
+      "url": "https://cyzorcreations.com/extensions/textglow-social-formatter"
+    }
+  ],
+  "screenshot": true
+}
