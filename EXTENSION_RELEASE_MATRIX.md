@@ -15,7 +15,7 @@ Legend:
 | Extension | Public | Rebuilt | Release state | Primary blockers / next action |
 |---|---:|---:|---|---|
 | FreightFill | 1.1.0 | 1.1.1 | PAYMENT_QA_REQUIRED + WEBSITE_FIX_REQUIRED | Verify trial→license→activation→cancel/export. Website free limit/features disagree with package. Manifest capability set is unchanged. |
-| Resume Check | 1.0.3 | 1.0.4 | READY_AFTER_INSTALLED_QA + WEBSITE_FIX_REQUIRED | Installed smoke test + real screenshots. Website still uses Resume Roast naming. |
+| Resume Check | 1.0.3 | 1.0.5 | READY_AFTER_INSTALLED_QA + WEBSITE_FIX_REQUIRED | Installed smoke test + real screenshots. Website still uses Resume Roast naming. |
 | AuthBridge | 1.1.1 | 1.1.2 | PAYMENT_QA_REQUIRED + WEBSITE_FIX_REQUIRED | Verify paid activation/export. Website free/no-upsell copy conflicts with package. Manifest capability set is unchanged. |
 | RenewGuard | 1.1.1 | 1.1.2 | PAYMENT_QA_REQUIRED + WEBSITE_FIX_REQUIRED | Verify paid activation/export. Website still says free/no upsell and contains pre-live boilerplate. Manifest capability set is unchanged. |
 | GrantRadar | 1.1.0 | 1.1.1 | PAYMENT_QA_REQUIRED + WEBSITE_FIX_REQUIRED | Verify Grants.gov path plus Pro activation/export. Website generic no-upsell copy conflicts with Pro. Manifest capability set is unchanged. |
@@ -23,15 +23,15 @@ Legend:
 | CredFlow | 1.1.1 | 1.1.2 | PAYMENT_QA_REQUIRED + WEBSITE_FIX_REQUIRED | Website says free/no upsell while package/store expose $29 Pro. Verify activation/export. Manifest capability set is unchanged. |
 | ComplyWatch | 1.0.3 | 1.1.2 | BACKEND_QA_REQUIRED + PERMISSION_QA_REQUIRED + WEBSITE_FIX_REQUIRED + LISTING_COPY_REQUIRED | Public Store is still 1.0.3; candidate crosses an intermediate 1.1.1 build. Verify server polling, notifications, permission/privacy diff, and apply improved description. |
 | MarginPeek | 1.0.0 | 1.0.2 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify calculations/product research flow + optional BYOK summary; capture screenshots; apply improved description. |
-| MockFill | 1.0.1 | 1.0.3 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify native and React/Vue form fill behavior; screenshots; apply improved description. |
+| MockFill | 1.0.1 | 1.0.4 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify native and React/Vue form fill behavior; screenshots; apply improved description. |
 | OutReachMate | 1.0.1 | 1.0.2 | READY_AFTER_INSTALLED_QA + PACKAGE_RENAME_REQUIRED | Long description was partially corrected, but title/summary remain cold-email themed. Candidate 1.0.2 changes package name to Follow-Up Tracker. |
-| PixelGrab | 1.0.1 | 1.0.3 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify CSS/SVG extraction across common page types; screenshots; apply improved description. |
-| PriceWatch | 1.0.1 | 1.0.3 | BACKEND_QA_REQUIRED + WEBSITE_FIX_REQUIRED + LISTING_COPY_REQUIRED | Verify extraction, monitoring cadence/failures and server data flow; apply improved description. |
-| ProFill | 1.0.1 | 1.0.3 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify label matching, persistence and returning user; screenshots; apply improved description. |
+| PixelGrab | 1.0.1 | 1.0.4 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify CSS/SVG extraction across common page types; screenshots; apply improved description. |
+| PriceWatch | 1.0.1 | 1.0.4 | BACKEND_QA_REQUIRED + WEBSITE_FIX_REQUIRED + LISTING_COPY_REQUIRED | Verify extraction, monitoring cadence/failures and server data flow; apply improved description. |
+| ProFill | 1.0.1 | 1.0.4 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify label matching, persistence and returning user; screenshots; apply improved description. |
 | SEOPeek | 1.0.0 | 1.0.2 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify local audit + optional BYOK rewrite; screenshots; apply improved description. |
-| StackPeek | 1.0.1 | 1.0.3 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify detection accuracy/false positives; screenshots; apply improved description. |
+| StackPeek | 1.0.1 | 1.0.4 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify detection accuracy/false positives; screenshots; apply improved description. |
 | StepDoc | 1.0.0 | 1.0.2 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify click/screenshot capture and Markdown export; screenshots; apply improved description. |
-| TextGlow | 1.0.1 | 1.0.3 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify Unicode formatting/accessibility behavior; screenshots; apply improved description. |
+| TextGlow | 1.0.1 | 1.0.4 | READY_AFTER_INSTALLED_QA + LISTING_COPY_REQUIRED | Verify Unicode formatting/accessibility behavior; screenshots; apply improved description. |
 | HireSignal | 1.0.1 | 1.1.2 | BACKEND_QA_REQUIRED + PERMISSION_QA_REQUIRED + WEBSITE_FIX_REQUIRED + LISTING_COPY_REQUIRED | Public Store is still 1.0.1. Candidate adds the newer monitoring/onboarding path; verify server polling, optional notifications, permission/privacy diff, and apply improved description. |
 
 ## Public listing state
@@ -74,7 +74,7 @@ Gate: live backend/API monitoring success, failure-state handling, accurate priv
 11. Submit with auto-publish only when all blockers above are cleared.
 12. Verify public version after approval.
 
-Static package QA already completed for all 19 rebuilt packages: MV3 manifests parse, JavaScript syntax passes, referenced manifest resources exist, no remote-script injection/eval/new Function/insecure HTTP host permissions were found, and the onboarding suite previously passed 209 isolated DOM checks.
+Final-v2 package metadata has been reconciled against the actual ZIP bytes. Static package QA completed for all 19 rebuilt packages: MV3 manifests parse, JavaScript syntax passes, referenced manifest resources exist, no remote-script injection/eval/new Function/insecure HTTP host permissions were found, and the onboarding suite previously passed 209 isolated DOM checks.
 
 See also:
 - `CHROME_STORE_LISTING_PATCHES.json`
