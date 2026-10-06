@@ -14,7 +14,7 @@ const apiKeyValue=apiKey();
 function chosen(){
   const all=patches.flagship||[];
   if(target==='all') return all;
-  return all.filter(x=>String(x.id)===target || x.product.toLowerCase()===target.toLowerCase());
+  return all.filter(x=>String(x.listing_id)===target || x.product.toLowerCase()===target.toLowerCase());
 }
 
 if(action==='shop'){
@@ -27,7 +27,7 @@ if(action==='shop'){
 } else if(['diff','apply'].includes(action)){
   const out=[];
   for(const p of chosen()){
-    const current=await getListing({listingId:p.id,token,apiKeyValue});
+    const current=await getListing({listingId:p.listing_id,token,apiKeyValue});
     const desired={
       type:'download',
       title:p.title,
@@ -37,10 +37,10 @@ if(action==='shop'){
     };
     const before={type:current.type,title:current.title,description:current.description,tags:current.tags,price:current.price};
     if(action==='diff'){
-      out.push({id:p.id,product:p.product,before,desired});
+      out.push({id:p.listing_id,product:p.product,before,desired});
     } else {
-      const result=await updateListing({shopId,listingId:p.id,patch:desired,token,apiKeyValue});
-      out.push({id:p.id,product:p.product,result});
+      const result=await updateListing({shopId,listingId:p.listing_id,patch:desired,token,apiKeyValue});
+      out.push({id:p.listing_id,product:p.product,result});
     }
   }
   console.log(JSON.stringify({action,target,count:out.length,items:out},null,2));
