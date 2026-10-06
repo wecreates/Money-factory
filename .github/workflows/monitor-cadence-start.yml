@@ -1,0 +1,33 @@
+name: CYZOR Monitor Cadence Start
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'automation/monitor-cadence/start.mjs'
+      - '.github/workflows/monitor-cadence-start.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Create isolated cadence watch
+        working-directory: automation/monitor-cadence
+        run: node start.mjs
+      - name: Persist cadence test state
+        shell: bash
+        run: |
+          cp automation/monitor-cadence/cadence-test.json MONITOR_CADENCE_TEST.json
+          git config user.name "cyzor-browser-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add MONITOR_CADENCE_TEST.json
+          git diff --cached --quiet || git commit -m "start monitor cadence test"
+          git push
