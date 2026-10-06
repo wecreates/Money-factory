@@ -1,0 +1,195 @@
+{
+  "generated_at": "2026-10-06T17:20:12.446Z",
+  "extensions": [
+    {
+      "name": "AuthBridge",
+      "url": "https://cyzorcreations.com/extensions/authbridge.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 13053,
+      "version": "1.0.0",
+      "display_name": "AuthBridge — Prior-Auth Tracker",
+      "manifest_version": 3
+    },
+    {
+      "name": "ChangeRadar",
+      "url": "https://cyzorcreations.com/extensions/changeradar-website-monitor.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 10897,
+      "version": "1.0.0",
+      "display_name": "ChangeRadar — Website Change Monitor",
+      "manifest_version": 3
+    },
+    {
+      "name": "ComplyWatch",
+      "url": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 12440,
+      "version": "1.0.0",
+      "display_name": "ComplyWatch — Policy Change Monitor",
+      "manifest_version": 3
+    },
+    {
+      "name": "CredFlow",
+      "url": "https://cyzorcreations.com/extensions/credflow.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 12328,
+      "version": "1.0.0",
+      "display_name": "CredFlow — Credentialing Co-Pilot",
+      "manifest_version": 3
+    },
+    {
+      "name": "FreightFill",
+      "url": "https://cyzorcreations.com/extensions/freightfill.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 10715,
+      "version": "1.0.0",
+      "display_name": "FreightFill — Broker Portal Auto-Fill",
+      "manifest_version": 3
+    },
+    {
+      "name": "GrantRadar",
+      "url": "https://cyzorcreations.com/extensions/grantradar-federal-grant-alerts.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 11602,
+      "version": "1.0.0",
+      "display_name": "GrantRadar — Federal Grant & Funding Alerts",
+      "manifest_version": 3
+    },
+    {
+      "name": "HireSignal",
+      "url": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 9862,
+      "version": "1.0.0",
+      "display_name": "HireSignal — Competitor Hiring Tracker",
+      "manifest_version": 3
+    },
+    {
+      "name": "MarginPeek",
+      "url": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 11134,
+      "version": "1.0.0",
+      "display_name": "MarginPeek — Profit & Review Analyzer",
+      "manifest_version": 3
+    },
+    {
+      "name": "MockFill",
+      "url": "https://cyzorcreations.com/extensions/mockfill-test-data-filler.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 9437,
+      "version": "1.0.0",
+      "display_name": "MockFill — Test Data Form Filler",
+      "manifest_version": 3
+    },
+    {
+      "name": "OutReachMate",
+      "url": "https://cyzorcreations.com/extensions/outreachmate-followup-email.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 12361,
+      "version": "1.0.0",
+      "display_name": "OutReachMate — Follow-Ups & Cold Email",
+      "manifest_version": 3
+    },
+    {
+      "name": "PixelGrab",
+      "url": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 9997,
+      "version": "1.0.0",
+      "display_name": "PixelGrab — Copy CSS and Extract SVG",
+      "manifest_version": 3
+    },
+    {
+      "name": "PriceWatch",
+      "url": "https://cyzorcreations.com/extensions/pricewatch-price-tracker.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 10453,
+      "version": "1.0.0",
+      "display_name": "PriceWatch — Competitor Price Tracker",
+      "manifest_version": 3
+    },
+    {
+      "name": "ProFill",
+      "url": "https://cyzorcreations.com/extensions/profill-smart-autofill.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 10919,
+      "version": "1.0.0",
+      "display_name": "ProFill — Smart Profile Autofill",
+      "manifest_version": 3
+    },
+    {
+      "name": "RenewGuard",
+      "url": "https://cyzorcreations.com/extensions/renewguard-contract-renewals.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 11391,
+      "version": "1.0.0",
+      "display_name": "RenewGuard — Contract Renewal Alerts",
+      "manifest_version": 3
+    },
+    {
+      "name": "Resume Check",
+      "url": "https://cyzorcreations.com/extensions/roast-my-resume---ai-critique.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 8847,
+      "version": "1.0.0",
+      "display_name": "Resume Roast",
+      "manifest_version": 3
+    },
+    {
+      "name": "SEOPeek",
+      "url": "https://cyzorcreations.com/extensions/seopeek-seo-auditor.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 13255,
+      "version": "1.0.0",
+      "display_name": "SEOPeek — On-Page SEO Auditor",
+      "manifest_version": 3
+    },
+    {
+      "name": "StackPeek",
+      "url": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 10618,
+      "version": "1.0.0",
+      "display_name": "StackPeek — Website Tech Stack Scanner",
+      "manifest_version": 3
+    },
+    {
+      "name": "StepDoc",
+      "url": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 11612,
+      "version": "1.0.0",
+      "display_name": "StepDoc — SOP & Screenshot Guide Maker",
+      "manifest_version": 3
+    },
+    {
+      "name": "TextGlow",
+      "url": "https://cyzorcreations.com/extensions/textglow-social-formatter.zip",
+      "ok": true,
+      "http_status": 200,
+      "size_bytes": 8572,
+      "version": "1.0.0",
+      "display_name": "TextGlow — Bold & Italic for Social",
+      "manifest_version": 3
+    }
+  ]
+}
