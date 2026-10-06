@@ -13,9 +13,35 @@ await fs.mkdir(outDir, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 const startedAt = new Date().toISOString();
-const result = { id: task.id, type: task.type, url: task.url, startedAt, actions: [], success: false };
+const result = { id: task.id, type: task.type, url: task.url || null, startedAt, actions: [], pages: [], success: false };
 
 try {
+  if (task.type === 'multi-inspect') {
+    for (const target of task.pages) {
+      const entry = { id: target.id, requestedUrl: target.url, success: false };
+      try {
+        await page.goto(target.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        entry.finalUrl = page.url();
+        entry.title = await page.title();
+        entry.bodyText = (await page.locator('body').innerText()).slice(0, 24000);
+        entry.links = await page.locator('a').evaluateAll(nodes => nodes.slice(0, 500).map(n => ({
+          text: (n.textContent || '').trim().slice(0, 300),
+          href: n instanceof HTMLAnchorElement ? n.href : null
+        })));
+        if (task.screenshot) {
+          const name = target.id + '.png';
+          await page.screenshot({ path: path.join(outDir, name), fullPage: true });
+          entry.screenshot = name;
+        }
+        entry.success = true;
+      } catch (error) {
+        entry.error = String(error?.stack || error);
+        try { await page.screenshot({ path: path.join(outDir, target.id + '-error.png'), fullPage: true }); } catch {}
+      }
+      result.pages.push(entry);
+    }
+    result.success = result.pages.every(p => p.success);
+  } else {
   await page.goto(task.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
   for (const action of task.actions) {
     if (action.type === 'click') {
@@ -50,6 +76,7 @@ try {
     result.screenshot = 'final.png';
   }
   result.success = true;
+  }
 } catch (error) {
   result.error = String(error?.stack || error);
   try { await page.screenshot({ path: path.join(outDir, 'error.png'), fullPage: true }); } catch {}
