@@ -1,0 +1,33 @@
+name: CYZOR GrantRadar API Smoke
+
+on:
+  push:
+    paths:
+      - 'automation/grantradar/**'
+      - '.github/workflows/grantradar-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Grants.gov contract smoke
+        working-directory: automation/grantradar
+        run: node smoke.mjs | tee result.json
+      - name: Persist result
+        shell: bash
+        run: |
+          cp automation/grantradar/result.json GRANTRADAR_API_QA.json
+          git config user.name "cyzor-browser-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add GRANTRADAR_API_QA.json
+          git diff --cached --quiet || git commit -m "GrantRadar API smoke result"
+          git push
