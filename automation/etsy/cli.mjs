@@ -27,9 +27,11 @@ if(action==='shop'){
   for(const p of chosen()){
     const current=await getListing({listingId:p.id,token,apiKeyValue});
     const desired={
+      type:'download',
       title:p.title,
-      description:[p.description_open,'','WHAT YOU GET','See listing images for the complete page set and current file details.','','DIGITAL DELIVERY','Digital items download after payment. Physical items are shipped only where the listing is marked physical.','','SUPPORT','Questions about the file or order? Message CyzorCreations through Etsy.'].join('\n'),
-      tags:p.tags
+      description:[p.description_open,'','DIGITAL DOWNLOAD','No physical item is shipped. Your files are available through Etsy after payment is confirmed.','','WHAT YOU GET',...(p.what_you_get||['Original CYZOR digital files described in this listing.']), '', 'HOW TO USE',...(p.how_to_use||['Download through Etsy, open digitally or print where appropriate, and reuse according to the listing license.']), '', 'IMPORTANT',...(p.important||['Colors may vary by screen or printer.','Organizational templates are not professional legal, medical, tax, or financial advice.']), '', 'SUPPORT','If you have a file-access problem, message CyzorCreations through Etsy.'].join('\n'),
+      tags:p.tags,
+      ...(p.price ? {price:String(p.price)} : {})
     };
     const before={title:current.title,description:current.description,tags:current.tags,price:current.price};
     if(action==='diff'){
