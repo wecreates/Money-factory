@@ -1,0 +1,33 @@
+name: CYZOR Site ZIP Audit
+
+on:
+  push:
+    paths:
+      - 'automation/site-zips/**'
+      - '.github/workflows/site-zip-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit website ZIPs
+        working-directory: automation/site-zips
+        run: npm run audit
+      - name: Persist result
+        shell: bash
+        run: |
+          cp automation/site-zips/site-zip-audit.json SITE_ZIP_AUDIT.json
+          git config user.name "cyzor-browser-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add SITE_ZIP_AUDIT.json
+          git diff --cached --quiet || git commit -m "site zip audit result"
+          git push
