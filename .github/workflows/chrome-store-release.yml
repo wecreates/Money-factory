@@ -1,0 +1,70 @@
+name: CYZOR Chrome Web Store Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Chrome Web Store action'
+        required: true
+        type: choice
+        options:
+          - status
+          - upload
+          - publish
+          - cancel
+        default: status
+      target:
+        description: 'all, exact extension name, or extension ID'
+        required: true
+        default: all
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+      CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+      CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+      CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+      CWS_PACKAGES_ROOT: ${{ github.workspace }}/release-src/extension-releases
+    steps:
+      - name: Checkout release client
+        uses: actions/checkout@v4
+        with:
+          path: repo
+
+      - name: Checkout staged extension packages
+        if: ${{ inputs.action == 'upload' }}
+        uses: actions/checkout@v4
+        with:
+          ref: extension-release-packages
+          path: release-src
+          sparse-checkout: |
+            extension-releases
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate client
+        working-directory: repo/automation/chrome-store
+        run: npm test
+
+      - name: Check required secrets
+        shell: bash
+        run: |
+          for key in CWS_CLIENT_ID CWS_CLIENT_SECRET CWS_REFRESH_TOKEN CWS_PUBLISHER_ID; do
+            if [[ -z "${!key}" ]]; then
+              echo "::error::Missing GitHub Actions secret: $key"
+              exit 2
+            fi
+          done
+
+      - name: Run Chrome Web Store action
+        working-directory: repo/automation/chrome-store
+        run: node cli.mjs "${{ inputs.action }}" "${{ inputs.target }}"
