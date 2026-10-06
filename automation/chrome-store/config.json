@@ -53,8 +53,8 @@
     {
       "name": "MockFill",
       "id": "affbjgfdedlegahglblgnpdpclfmpjhd",
-      "package_file": "MockFill-1.0.3.zip",
-      "candidate_version": "1.0.3"
+      "package_file": "MockFill-1.0.4.zip",
+      "candidate_version": "1.0.4"
     },
     {
       "name": "OutReachMate",
@@ -65,20 +65,20 @@
     {
       "name": "PixelGrab",
       "id": "ihgkoahedfafnnjnbgjkkbkeecbhllbi",
-      "package_file": "PixelGrab-1.0.3.zip",
-      "candidate_version": "1.0.3"
+      "package_file": "PixelGrab-1.0.4.zip",
+      "candidate_version": "1.0.4"
     },
     {
       "name": "PriceWatch",
       "id": "cpbegpannnlbikbcdjgnipcidaafijdb",
-      "package_file": "PriceWatch-1.0.3.zip",
-      "candidate_version": "1.0.3"
+      "package_file": "PriceWatch-1.0.4.zip",
+      "candidate_version": "1.0.4"
     },
     {
       "name": "ProFill",
       "id": "chmcldmegcfnfamegjjkgpkieapgiegp",
-      "package_file": "ProFill-1.0.3.zip",
-      "candidate_version": "1.0.3"
+      "package_file": "ProFill-1.0.4.zip",
+      "candidate_version": "1.0.4"
     },
     {
       "name": "RenewGuard",
@@ -89,8 +89,8 @@
     {
       "name": "Resume Check",
       "id": "ddifbdopbjfnmnnbccdndacepnpkpkhf",
-      "package_file": "ResumeCheck-1.0.4.zip",
-      "candidate_version": "1.0.4"
+      "package_file": "ResumeCheck-1.0.5.zip",
+      "candidate_version": "1.0.5"
     },
     {
       "name": "SEOPeek",
@@ -101,8 +101,8 @@
     {
       "name": "StackPeek",
       "id": "lejmlaeekbopjdomdbdjcnlgjoaaljdd",
-      "package_file": "StackPeek-1.0.3.zip",
-      "candidate_version": "1.0.3"
+      "package_file": "StackPeek-1.0.4.zip",
+      "candidate_version": "1.0.4"
     },
     {
       "name": "StepDoc",
@@ -113,8 +113,8 @@
     {
       "name": "TextGlow",
       "id": "hcognajiafaodjdcmmpgckpebbaopihm",
-      "package_file": "TextGlow-1.0.3.zip",
-      "candidate_version": "1.0.3"
+      "package_file": "TextGlow-1.0.4.zip",
+      "candidate_version": "1.0.4"
     }
   ]
 }
