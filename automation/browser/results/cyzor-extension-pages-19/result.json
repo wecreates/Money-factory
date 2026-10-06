@@ -1,0 +1,988 @@
+{
+  "id": "cyzor-extension-pages-19",
+  "type": "multi-inspect",
+  "url": null,
+  "startedAt": "2026-10-06T16:26:43.485Z",
+  "actions": [],
+  "pages": [
+    {
+      "id": "authbridge",
+      "requestedUrl": "https://cyzorcreations.com/extensions/authbridge",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/authbridge",
+      "title": "AuthBridge — Prior-Auth Tracker — Chrome Extension",
+      "bodyText": "A\nAuthBridge — Prior-Auth Tracker\nCHROME EXTENSION · V1 · 13 KB\n\nTrack prior-auth visit burn-down + re-auth deadlines, and pre-fill payer portals.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (13 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nCredFlow\nCAQH re-attestation + credentialing deadline reminders\nComplyWatch\nAlerts when a regulation page changes its wording\nFreightFill\nEnter a load once, auto-fill every broker portal\nRenewGuard\nContract renewal + notice-window tracker\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nAuthBridge — Prior-Auth Tracker runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/authbridge-%e2%80%94-prior-auth-t/cfedmgnkhjmennmfmkabbbeicogoaank"
+        },
+        {
+          "text": "Download (13 KB)",
+          "href": "https://cyzorcreations.com/extensions/authbridge.zip"
+        },
+        {
+          "text": "CredFlowCAQH re-attestation + credentialing deadline reminders",
+          "href": "https://cyzorcreations.com/extensions/credflow"
+        },
+        {
+          "text": "ComplyWatchAlerts when a regulation page changes its wording",
+          "href": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor"
+        },
+        {
+          "text": "FreightFillEnter a load once, auto-fill every broker portal",
+          "href": "https://cyzorcreations.com/extensions/freightfill"
+        },
+        {
+          "text": "RenewGuardContract renewal + notice-window tracker",
+          "href": "https://cyzorcreations.com/extensions/renewguard-contract-renewals"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "authbridge.png"
+    },
+    {
+      "id": "changeradar",
+      "requestedUrl": "https://cyzorcreations.com/extensions/changeradar-website-monitor",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/changeradar-website-monitor",
+      "title": "ChangeRadar — Website Change Monitor — Chrome Extension",
+      "bodyText": "C\nChangeRadar — Website Change Monitor\nCHROME EXTENSION · V1 · 11 KB\n\nGet alerted when any web page changes (content, price, hiring). Checks run on our servers 24/7.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (11 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nResume Roast\nInstant AI critique of any resume you view\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nChangeRadar — Website Change Monitor runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/changeradar-%e2%80%94-website-cha/docbacaikcakikpeihcaeknbjcmlnofb"
+        },
+        {
+          "text": "Download (11 KB)",
+          "href": "https://cyzorcreations.com/extensions/changeradar-website-monitor.zip"
+        },
+        {
+          "text": "Resume RoastInstant AI critique of any resume you view",
+          "href": "https://cyzorcreations.com/extensions/roast-my-resume---ai-critique"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "changeradar.png"
+    },
+    {
+      "id": "complywatch",
+      "requestedUrl": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor",
+      "title": "ComplyWatch — Policy Change Monitor — Chrome Extension",
+      "bodyText": "C\nComplyWatch — Policy Change Monitor\nCHROME EXTENSION · V1 · 12 KB\n\nMonitor regulation, policy, and vendor-ToS pages for changes, tagged by compliance area. Server-side checks run 24/7.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (12 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nAuthBridge\nPrior-auth visit + re-auth deadline tracker for PT/BH/DME\nCredFlow\nCAQH re-attestation + credentialing deadline reminders\nFreightFill\nEnter a load once, auto-fill every broker portal\nRenewGuard\nContract renewal + notice-window tracker\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nComplyWatch — Policy Change Monitor runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/complywatch-%e2%80%94-policy-chan/dappcdpplgalclbpfimiaiadmficfhmh"
+        },
+        {
+          "text": "Download (12 KB)",
+          "href": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor.zip"
+        },
+        {
+          "text": "AuthBridgePrior-auth visit + re-auth deadline tracker for PT/BH/DME",
+          "href": "https://cyzorcreations.com/extensions/authbridge"
+        },
+        {
+          "text": "CredFlowCAQH re-attestation + credentialing deadline reminders",
+          "href": "https://cyzorcreations.com/extensions/credflow"
+        },
+        {
+          "text": "FreightFillEnter a load once, auto-fill every broker portal",
+          "href": "https://cyzorcreations.com/extensions/freightfill"
+        },
+        {
+          "text": "RenewGuardContract renewal + notice-window tracker",
+          "href": "https://cyzorcreations.com/extensions/renewguard-contract-renewals"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "complywatch.png"
+    },
+    {
+      "id": "credflow",
+      "requestedUrl": "https://cyzorcreations.com/extensions/credflow",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/credflow",
+      "title": "CredFlow — Credentialing Co-Pilot — Chrome Extension",
+      "bodyText": "C\nCredFlow — Credentialing Co-Pilot\nCHROME EXTENSION · V1 · 12 KB\n\nTrack CAQH 120-day re-attestation + credentialing deadlines, store provider profiles, and pre-fill payer portals.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (12 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nAuthBridge\nPrior-auth visit + re-auth deadline tracker for PT/BH/DME\nComplyWatch\nAlerts when a regulation page changes its wording\nFreightFill\nEnter a load once, auto-fill every broker portal\nRenewGuard\nContract renewal + notice-window tracker\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nCredFlow — Credentialing Co-Pilot runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/credflow-%e2%80%94-credentialing/ppadjmdonennmblfnnaeiaaoedohpbdh"
+        },
+        {
+          "text": "Download (12 KB)",
+          "href": "https://cyzorcreations.com/extensions/credflow.zip"
+        },
+        {
+          "text": "AuthBridgePrior-auth visit + re-auth deadline tracker for PT/BH/DME",
+          "href": "https://cyzorcreations.com/extensions/authbridge"
+        },
+        {
+          "text": "ComplyWatchAlerts when a regulation page changes its wording",
+          "href": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor"
+        },
+        {
+          "text": "FreightFillEnter a load once, auto-fill every broker portal",
+          "href": "https://cyzorcreations.com/extensions/freightfill"
+        },
+        {
+          "text": "RenewGuardContract renewal + notice-window tracker",
+          "href": "https://cyzorcreations.com/extensions/renewguard-contract-renewals"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "credflow.png"
+    },
+    {
+      "id": "freightfill",
+      "requestedUrl": "https://cyzorcreations.com/extensions/freightfill",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/freightfill",
+      "title": "FreightFill — Broker Portal Auto-Fill — Chrome Extension",
+      "bodyText": "F\nFreightFill — Broker Portal Auto-Fill\nCHROME EXTENSION · V1 · 10 KB\n\nEnter a load once and pre-fill it into every carrier and shipper portal.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (10 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nAuthBridge\nPrior-auth visit + re-auth deadline tracker for PT/BH/DME\nCredFlow\nCAQH re-attestation + credentialing deadline reminders\nComplyWatch\nAlerts when a regulation page changes its wording\nRenewGuard\nContract renewal + notice-window tracker\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nFreightFill — Broker Portal Auto-Fill runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/freightfill-%e2%80%94-broker-port/fmjignomealjcdnnfgddnbocimhiplfe"
+        },
+        {
+          "text": "Download (10 KB)",
+          "href": "https://cyzorcreations.com/extensions/freightfill.zip"
+        },
+        {
+          "text": "AuthBridgePrior-auth visit + re-auth deadline tracker for PT/BH/DME",
+          "href": "https://cyzorcreations.com/extensions/authbridge"
+        },
+        {
+          "text": "CredFlowCAQH re-attestation + credentialing deadline reminders",
+          "href": "https://cyzorcreations.com/extensions/credflow"
+        },
+        {
+          "text": "ComplyWatchAlerts when a regulation page changes its wording",
+          "href": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor"
+        },
+        {
+          "text": "RenewGuardContract renewal + notice-window tracker",
+          "href": "https://cyzorcreations.com/extensions/renewguard-contract-renewals"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "freightfill.png"
+    },
+    {
+      "id": "grantradar",
+      "requestedUrl": "https://cyzorcreations.com/extensions/grantradar-federal-grant-alerts",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/grantradar-federal-grant-alerts",
+      "title": "GrantRadar — Federal Grant & Funding Alerts — Chrome Extension",
+      "bodyText": "G\nGrantRadar — Federal Grant & Funding Alerts\nCHROME EXTENSION · V1 · 11 KB\n\nTrack new federal grant opportunities by keyword from Grants.gov. Save searches and get alerted on fresh funding.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (11 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nAuthBridge\nPrior-auth visit + re-auth deadline tracker for PT/BH/DME\nCredFlow\nCAQH re-attestation + credentialing deadline reminders\nComplyWatch\nAlerts when a regulation page changes its wording\nFreightFill\nEnter a load once, auto-fill every broker portal\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nGrantRadar — Federal Grant & Funding Alerts runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/grantradar-%e2%80%94-federal-gran/plcdhncofbjjlfkbcollkbpjafbkepae"
+        },
+        {
+          "text": "Download (11 KB)",
+          "href": "https://cyzorcreations.com/extensions/grantradar-federal-grant-alerts.zip"
+        },
+        {
+          "text": "AuthBridgePrior-auth visit + re-auth deadline tracker for PT/BH/DME",
+          "href": "https://cyzorcreations.com/extensions/authbridge"
+        },
+        {
+          "text": "CredFlowCAQH re-attestation + credentialing deadline reminders",
+          "href": "https://cyzorcreations.com/extensions/credflow"
+        },
+        {
+          "text": "ComplyWatchAlerts when a regulation page changes its wording",
+          "href": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor"
+        },
+        {
+          "text": "FreightFillEnter a load once, auto-fill every broker portal",
+          "href": "https://cyzorcreations.com/extensions/freightfill"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "grantradar.png"
+    },
+    {
+      "id": "hiresignal",
+      "requestedUrl": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker",
+      "title": "HireSignal — Competitor Hiring Tracker — Chrome Extension",
+      "bodyText": "H\nHireSignal — Competitor Hiring Tracker\nCHROME EXTENSION · V1 · 10 KB\n\nTrack a company careers page and get alerted when hiring activity changes — a leading growth signal.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (10 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nOutReachMate\nFollow-up + cold email cadence assistant\nMarginPeek\nEstimate margin + review signal on product pages\nPriceWatch\nWatch a page and alert when the price changes\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nHireSignal — Competitor Hiring Tracker runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/hiresignal-%e2%80%94-competitor-h/miefiekhbaobighephachinepkikckbi"
+        },
+        {
+          "text": "Download (10 KB)",
+          "href": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker.zip"
+        },
+        {
+          "text": "OutReachMateFollow-up + cold email cadence assistant",
+          "href": "https://cyzorcreations.com/extensions/outreachmate-followup-email"
+        },
+        {
+          "text": "MarginPeekEstimate margin + review signal on product pages",
+          "href": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer"
+        },
+        {
+          "text": "PriceWatchWatch a page and alert when the price changes",
+          "href": "https://cyzorcreations.com/extensions/pricewatch-price-tracker"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "hiresignal.png"
+    },
+    {
+      "id": "marginpeek",
+      "requestedUrl": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer",
+      "title": "MarginPeek — Profit & Review Analyzer — Chrome Extension",
+      "bodyText": "M\nMarginPeek — Profit & Review Analyzer\nCHROME EXTENSION · V1 · 11 KB\n\nCalculate profit, margin, ROI, breakeven and target price on any product page with marketplace fee presets, and summarize negative reviews.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (11 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nOutReachMate\nFollow-up + cold email cadence assistant\nHireSignal\nTrack when competitors post new roles\nPriceWatch\nWatch a page and alert when the price changes\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nMarginPeek — Profit & Review Analyzer runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/marginpeek-%e2%80%94-profit-revie/oloknhahbhnmjnmbhgphhmmmkfedoeon"
+        },
+        {
+          "text": "Download (11 KB)",
+          "href": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer.zip"
+        },
+        {
+          "text": "OutReachMateFollow-up + cold email cadence assistant",
+          "href": "https://cyzorcreations.com/extensions/outreachmate-followup-email"
+        },
+        {
+          "text": "HireSignalTrack when competitors post new roles",
+          "href": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker"
+        },
+        {
+          "text": "PriceWatchWatch a page and alert when the price changes",
+          "href": "https://cyzorcreations.com/extensions/pricewatch-price-tracker"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "marginpeek.png"
+    },
+    {
+      "id": "mockfill",
+      "requestedUrl": "https://cyzorcreations.com/extensions/mockfill-test-data-filler",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/mockfill-test-data-filler",
+      "title": "MockFill — Test Data Form Filler — Chrome Extension",
+      "bodyText": "M\nMockFill — Test Data Form Filler\nCHROME EXTENSION · V1 · 9 KB\n\nFill any form with realistic test data in one click.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (9 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nPixelGrab\nExtract any element as clean SVG + CSS\nStackPeek\nWhat tech stack is this site running\nSEOPeek\nOn-page SEO audit for the current tab\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nMockFill — Test Data Form Filler runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/mockfill-%e2%80%94-test-data-form/affbjgfdedlegahglblgnpdpclfmpjhd"
+        },
+        {
+          "text": "Download (9 KB)",
+          "href": "https://cyzorcreations.com/extensions/mockfill-test-data-filler.zip"
+        },
+        {
+          "text": "PixelGrabExtract any element as clean SVG + CSS",
+          "href": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor"
+        },
+        {
+          "text": "StackPeekWhat tech stack is this site running",
+          "href": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner"
+        },
+        {
+          "text": "SEOPeekOn-page SEO audit for the current tab",
+          "href": "https://cyzorcreations.com/extensions/seopeek-seo-auditor"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "mockfill.png"
+    },
+    {
+      "id": "outreachmate",
+      "requestedUrl": "https://cyzorcreations.com/extensions/outreachmate-followup-email",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/outreachmate-followup-email",
+      "title": "OutReachMate — Follow-Ups & Cold Email — Chrome Extension",
+      "bodyText": "O\nOutReachMate — Follow-Ups & Cold Email\nCHROME EXTENSION · V1 · 12 KB\n\nTrack every prospect and never miss a follow-up, and draft personalized cold emails from a prospect page.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (12 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nHireSignal\nTrack when competitors post new roles\nMarginPeek\nEstimate margin + review signal on product pages\nPriceWatch\nWatch a page and alert when the price changes\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nOutReachMate — Follow-Ups & Cold Email runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/outreachmate-%e2%80%94-follow-ups/ipbnnjeklpljfgcgadhbjeibhpojjaop"
+        },
+        {
+          "text": "Download (12 KB)",
+          "href": "https://cyzorcreations.com/extensions/outreachmate-followup-email.zip"
+        },
+        {
+          "text": "HireSignalTrack when competitors post new roles",
+          "href": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker"
+        },
+        {
+          "text": "MarginPeekEstimate margin + review signal on product pages",
+          "href": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer"
+        },
+        {
+          "text": "PriceWatchWatch a page and alert when the price changes",
+          "href": "https://cyzorcreations.com/extensions/pricewatch-price-tracker"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "outreachmate.png"
+    },
+    {
+      "id": "pixelgrab",
+      "requestedUrl": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor",
+      "title": "PixelGrab — SVG & CSS Extractor — Chrome Extension",
+      "bodyText": "P\nPixelGrab — SVG & CSS Extractor\nCHROME EXTENSION · V1 · 10 KB\n\nClick any element on a live page to instantly copy its inline SVG or key CSS. No DevTools digging.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (10 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nStackPeek\nWhat tech stack is this site running\nSEOPeek\nOn-page SEO audit for the current tab\nMockFill\nFill any form with realistic test data instantly\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nPixelGrab — SVG & CSS Extractor runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/pixelgrab-%e2%80%94-copy-css-and/ihgkoahedfafnnjnbgjkkbkeecbhllbi"
+        },
+        {
+          "text": "Download (10 KB)",
+          "href": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor.zip"
+        },
+        {
+          "text": "StackPeekWhat tech stack is this site running",
+          "href": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner"
+        },
+        {
+          "text": "SEOPeekOn-page SEO audit for the current tab",
+          "href": "https://cyzorcreations.com/extensions/seopeek-seo-auditor"
+        },
+        {
+          "text": "MockFillFill any form with realistic test data instantly",
+          "href": "https://cyzorcreations.com/extensions/mockfill-test-data-filler"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "pixelgrab.png"
+    },
+    {
+      "id": "pricewatch",
+      "requestedUrl": "https://cyzorcreations.com/extensions/pricewatch-price-tracker",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/pricewatch-price-tracker",
+      "title": "PriceWatch — Competitor Price Tracker — Chrome Extension",
+      "bodyText": "P\nPriceWatch — Competitor Price Tracker\nCHROME EXTENSION · V1 · 10 KB\n\nTrack prices on any product page and get alerted when they change. 24/7 server-side checks.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (10 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nOutReachMate\nFollow-up + cold email cadence assistant\nHireSignal\nTrack when competitors post new roles\nMarginPeek\nEstimate margin + review signal on product pages\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nPriceWatch — Competitor Price Tracker runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/pricewatch-%e2%80%94-competitor-p/cpbegpannnlbikbcdjgnipcidaafijdb"
+        },
+        {
+          "text": "Download (10 KB)",
+          "href": "https://cyzorcreations.com/extensions/pricewatch-price-tracker.zip"
+        },
+        {
+          "text": "OutReachMateFollow-up + cold email cadence assistant",
+          "href": "https://cyzorcreations.com/extensions/outreachmate-followup-email"
+        },
+        {
+          "text": "HireSignalTrack when competitors post new roles",
+          "href": "https://cyzorcreations.com/extensions/hiresignal-hiring-tracker"
+        },
+        {
+          "text": "MarginPeekEstimate margin + review signal on product pages",
+          "href": "https://cyzorcreations.com/extensions/marginpeek-profit-analyzer"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "pricewatch.png"
+    },
+    {
+      "id": "profill",
+      "requestedUrl": "https://cyzorcreations.com/extensions/profill-smart-autofill",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/profill-smart-autofill",
+      "title": "ProFill — Smart Profile Autofill — Chrome Extension",
+      "bodyText": "P\nProFill — Smart Profile Autofill\nCHROME EXTENSION · V1 · 11 KB\n\nSave your details once and fill any signup, application or CRM form in one click via smart label matching.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (11 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nTextGlow\nBold, italic, and Unicode styling for social posts\nStepDoc\nTurn any workflow into a screenshot-based guide\nQuiet Tabs\nAuto-mute background tabs the moment they play\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nProFill — Smart Profile Autofill runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/profill-%e2%80%94-smart-profile-a/chmcldmegcfnfamegjjkgpkieapgiegp"
+        },
+        {
+          "text": "Download (11 KB)",
+          "href": "https://cyzorcreations.com/extensions/profill-smart-autofill.zip"
+        },
+        {
+          "text": "TextGlowBold, italic, and Unicode styling for social posts",
+          "href": "https://cyzorcreations.com/extensions/textglow-social-formatter"
+        },
+        {
+          "text": "StepDocTurn any workflow into a screenshot-based guide",
+          "href": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker"
+        },
+        {
+          "text": "Quiet TabsAuto-mute background tabs the moment they play",
+          "href": "https://cyzorcreations.com/extensions/quiet-tabs-auto-muter"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "profill.png"
+    },
+    {
+      "id": "renewguard",
+      "requestedUrl": "https://cyzorcreations.com/extensions/renewguard-contract-renewals",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/renewguard-contract-renewals",
+      "title": "RenewGuard — Contract Renewal Alerts — Chrome Extension",
+      "bodyText": "R\nRenewGuard — Contract Renewal Alerts\nCHROME EXTENSION · V1 · 11 KB\n\nTrack contract renewal + notice deadlines.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (11 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nAuthBridge\nPrior-auth visit + re-auth deadline tracker for PT/BH/DME\nCredFlow\nCAQH re-attestation + credentialing deadline reminders\nComplyWatch\nAlerts when a regulation page changes its wording\nFreightFill\nEnter a load once, auto-fill every broker portal\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nRenewGuard — Contract Renewal Alerts runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/renewguard-%e2%80%94-contract-ren/onnecnbdielhalhiknbkhibdlpbljdnk"
+        },
+        {
+          "text": "Download (11 KB)",
+          "href": "https://cyzorcreations.com/extensions/renewguard-contract-renewals.zip"
+        },
+        {
+          "text": "AuthBridgePrior-auth visit + re-auth deadline tracker for PT/BH/DME",
+          "href": "https://cyzorcreations.com/extensions/authbridge"
+        },
+        {
+          "text": "CredFlowCAQH re-attestation + credentialing deadline reminders",
+          "href": "https://cyzorcreations.com/extensions/credflow"
+        },
+        {
+          "text": "ComplyWatchAlerts when a regulation page changes its wording",
+          "href": "https://cyzorcreations.com/extensions/complywatch-regulation-monitor"
+        },
+        {
+          "text": "FreightFillEnter a load once, auto-fill every broker portal",
+          "href": "https://cyzorcreations.com/extensions/freightfill"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "renewguard.png"
+    },
+    {
+      "id": "resumecheck",
+      "requestedUrl": "https://cyzorcreations.com/extensions/roast-my-resume---ai-critique",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/roast-my-resume---ai-critique",
+      "title": "Resume Roast — Instant Resume Check — Chrome Extension",
+      "bodyText": "Resume Roast — Instant Resume Check\nCHROME EXTENSION · V1 · 9 KB\n\nInstant rule-based resume critique.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (9 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nChangeRadar\nAlerts when a page you care about changes\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nResume Roast — Instant Resume Check runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/resume-roast/ddifbdopbjfnmnnbccdndacepnpkpkhf"
+        },
+        {
+          "text": "Download (9 KB)",
+          "href": "https://cyzorcreations.com/extensions/roast-my-resume---ai-critique.zip"
+        },
+        {
+          "text": "ChangeRadarAlerts when a page you care about changes",
+          "href": "https://cyzorcreations.com/extensions/changeradar-website-monitor"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "resumecheck.png"
+    },
+    {
+      "id": "seopeek",
+      "requestedUrl": "https://cyzorcreations.com/extensions/seopeek-seo-auditor",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/seopeek-seo-auditor",
+      "title": "SEOPeek — On-Page SEO Auditor — Chrome Extension",
+      "bodyText": "S\nSEOPeek — On-Page SEO Auditor\nCHROME EXTENSION · V1 · 13 KB\n\nInstant on-page SEO audit with a score, per-issue fixes, copy-report and AI meta rewrite.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (13 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nPixelGrab\nExtract any element as clean SVG + CSS\nStackPeek\nWhat tech stack is this site running\nMockFill\nFill any form with realistic test data instantly\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nSEOPeek — On-Page SEO Auditor runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/seopeek-%e2%80%94-on-page-seo-aud/nhkgbjkjfdmlleajbgamgeodebmdhmdf"
+        },
+        {
+          "text": "Download (13 KB)",
+          "href": "https://cyzorcreations.com/extensions/seopeek-seo-auditor.zip"
+        },
+        {
+          "text": "PixelGrabExtract any element as clean SVG + CSS",
+          "href": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor"
+        },
+        {
+          "text": "StackPeekWhat tech stack is this site running",
+          "href": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner"
+        },
+        {
+          "text": "MockFillFill any form with realistic test data instantly",
+          "href": "https://cyzorcreations.com/extensions/mockfill-test-data-filler"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "seopeek.png"
+    },
+    {
+      "id": "stackpeek",
+      "requestedUrl": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner",
+      "title": "StackPeek — Website Tech Stack Scanner — Chrome Extension",
+      "bodyText": "S\nStackPeek — Website Tech Stack Scanner\nCHROME EXTENSION · V1 · 10 KB\n\nDetect the technologies a website is built with.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (10 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nPixelGrab\nExtract any element as clean SVG + CSS\nSEOPeek\nOn-page SEO audit for the current tab\nMockFill\nFill any form with realistic test data instantly\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nStackPeek — Website Tech Stack Scanner runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/stackpeek-%e2%80%94-website-tech/lejmlaeekbopjdomdbdjcnlgjoaaljdd"
+        },
+        {
+          "text": "Download (10 KB)",
+          "href": "https://cyzorcreations.com/extensions/stackpeek-techstack-scanner.zip"
+        },
+        {
+          "text": "PixelGrabExtract any element as clean SVG + CSS",
+          "href": "https://cyzorcreations.com/extensions/pixelgrab-svg-css-extractor"
+        },
+        {
+          "text": "SEOPeekOn-page SEO audit for the current tab",
+          "href": "https://cyzorcreations.com/extensions/seopeek-seo-auditor"
+        },
+        {
+          "text": "MockFillFill any form with realistic test data instantly",
+          "href": "https://cyzorcreations.com/extensions/mockfill-test-data-filler"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "stackpeek.png"
+    },
+    {
+      "id": "stepdoc",
+      "requestedUrl": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker",
+      "title": "StepDoc — SOP & Screenshot Guide Maker — Chrome Extension",
+      "bodyText": "S\nStepDoc — SOP & Screenshot Guide Maker\nCHROME EXTENSION · V1 · 11 KB\n\nRecord any web workflow into a clean step-by-step guide with auto screenshots. Export polished SOPs in one click.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (11 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nTextGlow\nBold, italic, and Unicode styling for social posts\nProFill\nSmart profile autofill across job apps + forms\nQuiet Tabs\nAuto-mute background tabs the moment they play\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nStepDoc — SOP & Screenshot Guide Maker runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/stepdoc-%e2%80%94-sop-screenshot/cbhgmofpckolnnflbpdbidbdnkakbhpf"
+        },
+        {
+          "text": "Download (11 KB)",
+          "href": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker.zip"
+        },
+        {
+          "text": "TextGlowBold, italic, and Unicode styling for social posts",
+          "href": "https://cyzorcreations.com/extensions/textglow-social-formatter"
+        },
+        {
+          "text": "ProFillSmart profile autofill across job apps + forms",
+          "href": "https://cyzorcreations.com/extensions/profill-smart-autofill"
+        },
+        {
+          "text": "Quiet TabsAuto-mute background tabs the moment they play",
+          "href": "https://cyzorcreations.com/extensions/quiet-tabs-auto-muter"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "stepdoc.png"
+    },
+    {
+      "id": "textglow",
+      "requestedUrl": "https://cyzorcreations.com/extensions/textglow-social-formatter",
+      "success": true,
+      "finalUrl": "https://cyzorcreations.com/extensions/textglow-social-formatter",
+      "title": "TextGlow — Bold and Italic for Social — Chrome Extension",
+      "bodyText": "T\nTextGlow — Bold and Italic for Social\nCHROME EXTENSION · V1 · 8 KB\n\nUnicode bold and italic text for social platforms.\n\nInstall from Chrome Web Store →\nOR SIDELOAD THE ZIP\nDownload (8 KB)\nOpen chrome://extensions in Chrome (or any Chromium browser — Edge, Brave, Arc)\nToggle Developer mode (top-right)\nUnzip the file you just downloaded\nClick Load unpacked and select the unzipped folder\nThe extension icon appears in your toolbar — click it to use\nRELATED CYZOR EXTENSIONS\nStepDoc\nTurn any workflow into a screenshot-based guide\nProFill\nSmart profile autofill across job apps + forms\nQuiet Tabs\nAuto-mute background tabs the moment they play\nMORE FREE TOOLS FROM CYZOR\n\nThis extension is free with no signup. We also run free browser tools — no account, nothing stored on our servers.\n\nDigital Products Mega Bundle — templates, kits & tools →\nWhat this extension can (and can't) do\n\nChrome extensions run inside your browser. They can read and modify the pages you actively visit — nothing on your computer beyond the browser tab. The manifest.json declares exactly which permissions the extension asks for, and Chrome asks you to approve them at install time. You can review any extension's permissions before installing under Details in chrome://extensions.\n\nTextGlow — Bold and Italic for Social runs locally in your browser. It does not send your browsing history to a server, does not sync data to a CYZOR account (there's no account), and cannot see anything outside the tabs it's actively working on. Uninstalling removes both the extension and every setting it stored — Chrome handles the cleanup, nothing lingers on our side.\n\nIf the sideload install fails\n\nMost sideload errors come from one of three things:\n\nYou picked the ZIP instead of the unzipped folder. Chrome loads a folder, not a ZIP. Unzip first, then point Chrome at the resulting folder that contains manifest.json.\nDeveloper mode is off. Toggle it in the top-right corner of chrome://extensions — the Load unpacked button only appears when it's on.\nYour organization's Chrome policy blocks sideloading. Some managed Chrome installs (work laptops) disable Developer Mode. In that case, install from the Chrome Web Store instead when the listing goes live.\nFree forever — the trade behind that\n\nThis extension is free with no upsell path. That's possible because it runs on your machine, uses your browser, and costs us nothing to serve after we published it. No cloud infrastructure to fund, no per-user cost. We monetize elsewhere on the site (paid printables, done-for-you services, the AI receptionist) — this extension isn't a lead magnet or a stealth upsell.\n\nBuilt by CYZOR Creations · Free tools · Store",
+      "links": [
+        {
+          "text": "Install from Chrome Web Store →",
+          "href": "https://chromewebstore.google.com/detail/textglow-%e2%80%94-bold-italic-fo/hcognajiafaodjdcmmpgckpebbaopihm"
+        },
+        {
+          "text": "Download (8 KB)",
+          "href": "https://cyzorcreations.com/extensions/textglow-social-formatter.zip"
+        },
+        {
+          "text": "StepDocTurn any workflow into a screenshot-based guide",
+          "href": "https://cyzorcreations.com/extensions/stepdoc-sop-guide-maker"
+        },
+        {
+          "text": "ProFillSmart profile autofill across job apps + forms",
+          "href": "https://cyzorcreations.com/extensions/profill-smart-autofill"
+        },
+        {
+          "text": "Quiet TabsAuto-mute background tabs the moment they play",
+          "href": "https://cyzorcreations.com/extensions/quiet-tabs-auto-muter"
+        },
+        {
+          "text": "free browser tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Digital Products Mega Bundle — templates, kits & tools →",
+          "href": "https://cyzorcreations.com/p/mega-bundle-cyzor"
+        },
+        {
+          "text": "CYZOR Creations",
+          "href": "https://cyzorcreations.com/"
+        },
+        {
+          "text": "Free tools",
+          "href": "https://cyzorcreations.com/tools"
+        },
+        {
+          "text": "Store",
+          "href": "https://cyzorcreations.com/store"
+        }
+      ],
+      "screenshot": "textglow.png"
+    }
+  ],
+  "success": true,
+  "finishedAt": "2026-10-06T16:26:48.661Z"
+}
