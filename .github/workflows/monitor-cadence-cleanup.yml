@@ -1,0 +1,31 @@
+name: CYZOR Monitor Cadence Cleanup
+
+on:
+  push:
+    paths:
+      - 'automation/monitor-cadence/cleanup.mjs'
+      - '.github/workflows/monitor-cadence-cleanup.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Delete cadence test watch and verify
+        run: node automation/monitor-cadence/cleanup.mjs
+      - name: Persist cleanup evidence
+        shell: bash
+        run: |
+          git config user.name "cyzor-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add MONITOR_CADENCE_RESULT.json
+          git diff --cached --quiet || git commit -m "fix monitor cadence cleanup blocker"
+          git push
