@@ -5,6 +5,7 @@ export function shopUrl(shopId){ return `${API}/shops/${shopId}`; }
 export function sectionsUrl(shopId){ return `${API}/shops/${shopId}/sections`; }
 export function listingUrl(shopId,listingId){ return `${API}/shops/${shopId}/listings/${listingId}`; }
 export function publicListingUrl(listingId){ return `${API}/listings/${listingId}`; }
+export function listingFilesUrl(shopId,listingId){ return `${API}/shops/${shopId}/listings/${listingId}/files`; }
 
 async function readJson(res){
   const text=await res.text();
@@ -58,4 +59,22 @@ export async function updateShop({shopId,patch,token,apiKeyValue,fetchImpl=fetch
 export async function createSection({shopId,title,token,apiKeyValue,fetchImpl=fetch}){
   const form=new URLSearchParams({title});
   return readJson(await fetchImpl(sectionsUrl(shopId),{method:'POST',headers:headers(token,apiKeyValue,true),body:form}));
+}
+
+
+export async function uploadListingFile({shopId,listingId,filename,bytes,rank=1,token,apiKeyValue,fetchImpl=fetch}){
+  if(!(bytes instanceof Uint8Array)) throw new Error('bytes must be Uint8Array');
+  const form=new FormData();
+  form.set('name',filename);
+  form.set('rank',String(rank));
+  form.set('file',new Blob([bytes]),filename);
+  const res=await fetchImpl(listingFilesUrl(shopId,listingId),{
+    method:'POST',
+    headers:{'x-api-key':apiKeyValue,Authorization:`Bearer ${token}`},
+    body:form
+  });
+  return readJson(res);
+}
+export async function listListingFiles({shopId,listingId,token,apiKeyValue,fetchImpl=fetch}){
+  return readJson(await fetchImpl(listingFilesUrl(shopId,listingId),{headers:headers(token,apiKeyValue)}));
 }
