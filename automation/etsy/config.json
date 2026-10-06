@@ -2,20 +2,21 @@
   "shop_id": 43299966,
   "shop_name": "CyzorCreations",
   "desired_shop": {
-    "title": "Practical Printables + Cute Kawaii Gifts",
-    "announcement": "Welcome to Cyzor Creations — practical printable planners, trackers and business forms, plus cute kawaii stickers and gifts. Digital items are instant downloads; physical items are clearly marked and shipped. Browse by section to find exactly what you need, and message me anytime if you need help with a file or order."
+    "title": "Digital Planners, Spreadsheets & Printable Bundles",
+    "announcement": "Welcome to Cyzor Creations — 100% digital downloads. Shop practical planners, spreadsheets, printable systems, wall-art bundles, digital stickers and business templates. Nothing is shipped and no POD is used. Every listing is designed for instant access through Etsy after payment confirmation."
   },
   "sections": [
-    "Kawaii Stickers",
-    "Kawaii Apparel",
+    "Digital Planners",
+    "Spreadsheets",
     "Budget & Money",
+    "Business Templates",
     "Wedding & Events",
-    "Pet & Puppy",
     "Home & Family",
+    "Pet & Puppy",
     "Health Trackers",
-    "School & Work",
-    "Planners & Journals",
-    "Business Forms",
+    "School & Career",
+    "Digital Stickers",
+    "Printable Wall Art",
     "Bundles"
   ],
   "flagship_patch_file": "../../ETSY_FLAGSHIP_PATCHES.json",
