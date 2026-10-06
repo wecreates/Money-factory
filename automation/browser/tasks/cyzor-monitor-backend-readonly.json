@@ -1,0 +1,19 @@
+{
+  "id": "cyzor-monitor-backend-readonly",
+  "type": "multi-inspect",
+  "pages": [
+    {
+      "id": "watch-list",
+      "url": "https://cyzorcreations.com/api/v1/ext/watch?clientId=cyzor-release-smoke-20261006"
+    },
+    {
+      "id": "events-list",
+      "url": "https://cyzorcreations.com/api/v1/ext/events?clientId=cyzor-release-smoke-20261006"
+    },
+    {
+      "id": "events-unseen",
+      "url": "https://cyzorcreations.com/api/v1/ext/events?clientId=cyzor-release-smoke-20261006&unseen=1"
+    }
+  ],
+  "screenshot": false
+}
