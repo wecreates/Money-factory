@@ -1,0 +1,9 @@
+[
+  {
+    "id": "cyzor-free-monitor-smoke",
+    "kind": "change",
+    "targetUrl": "https://example.com/",
+    "label": "CYZOR free monitor smoke",
+    "status": "active"
+  }
+]
