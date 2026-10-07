@@ -1,0 +1,243 @@
+{
+  "checked_at": "2026-10-07T13:52:42.881Z",
+  "results": [
+    {
+      "path": "/check",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/check",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/tick",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/tick",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/run",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/run",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/poll",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/poll",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/health",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/cron",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/cron",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/worker",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/worker",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/watch/check",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/watch/check",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/watch/tick",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/watch/tick",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/watch/run",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/watch/run",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/watch/poll",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/watch/poll",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/watch/check-now",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/watch/check-now",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/watch/check_now",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/watch/check_now",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/watcher/check",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/watcher/check",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/monitor/check",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/monitor/check",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/monitor/tick",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/monitor/tick",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    },
+    {
+      "path": "/monitor/run",
+      "method": "GET",
+      "status": 404,
+      "allow": null,
+      "body": "{\"error\":\"not found\"}"
+    },
+    {
+      "path": "/monitor/run",
+      "method": "OPTIONS",
+      "status": 400,
+      "allow": null,
+      "body": "Invalid Preflight Request"
+    }
+  ]
+}
