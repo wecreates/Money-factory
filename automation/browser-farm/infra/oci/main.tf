@@ -75,6 +75,26 @@ resource "oci_core_security_list" "farm" {
     }
     description = "SSH bootstrap only"
   }
+
+  ingress_security_rules {
+    protocol = "6"
+    source   = "0.0.0.0/0"
+    tcp_options {
+      min = 80
+      max = 80
+    }
+    description = "HTTP migration edge"
+  }
+
+  ingress_security_rules {
+    protocol = "6"
+    source   = "0.0.0.0/0"
+    tcp_options {
+      min = 443
+      max = 443
+    }
+    description = "HTTPS migration edge"
+  }
 }
 
 resource "oci_core_subnet" "farm" {
