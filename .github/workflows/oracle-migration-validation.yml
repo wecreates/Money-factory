@@ -1,0 +1,66 @@
+name: CYZOR Oracle Migration Validation
+
+on:
+  push:
+    paths:
+      - 'automation/oracle-monitor-api/**'
+      - 'automation/oracle-edge/**'
+      - 'automation/browser-farm/infra/oci/**'
+      - '.github/workflows/oracle-migration-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+
+      - name: Validate stack
+        shell: bash
+        run: |
+          set +e
+          (cd automation/oracle-monitor-api && npm test) > /tmp/tests.log 2>&1
+          TEST_CODE=$?
+
+          (cd automation/browser-farm/infra/oci && terraform init -backend=false -input=false && terraform validate) > /tmp/tf.log 2>&1
+          TF_CODE=$?
+
+          docker compose -f automation/oracle-edge/docker-compose.yml config > /tmp/compose.log 2>&1
+          COMPOSE_CODE=$?
+
+          node - "$TEST_CODE" "$TF_CODE" "$COMPOSE_CODE" <<'NODE'
+          const fs=require('fs');
+          const [testCode,tfCode,composeCode]=process.argv.slice(2).map(Number);
+          const report={
+            checked_at:new Date().toISOString(),
+            monitor_api_tests:{pass:testCode===0,code:testCode,output:fs.readFileSync('/tmp/tests.log','utf8').slice(0,12000)},
+            terraform_validate:{pass:tfCode===0,code:tfCode,output:fs.readFileSync('/tmp/tf.log','utf8').slice(0,12000)},
+            compose_validate:{pass:composeCode===0,code:composeCode,output:fs.readFileSync('/tmp/compose.log','utf8').slice(0,12000)}
+          };
+          report.pass=report.monitor_api_tests.pass&&report.terraform_validate.pass&&report.compose_validate.pass;
+          fs.writeFileSync('ORACLE_MIGRATION_VALIDATION.json',JSON.stringify(report,null,2)+'\n');
+          if(!report.pass) process.exitCode=1;
+          NODE
+
+      - name: Persist validation
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "cyzor-migration-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add ORACLE_MIGRATION_VALIDATION.json
+          git diff --cached --quiet || git commit -m "record Oracle migration validation"
+          git pull --rebase origin main
+          git push origin HEAD:main
