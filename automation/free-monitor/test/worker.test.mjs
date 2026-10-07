@@ -38,3 +38,9 @@ test('isMainEntry matches a file URL to the executable path',()=>{
   assert.equal(isMainEntry('file:///tmp/free-monitor/worker.mjs','/tmp/free-monitor/worker.mjs'),true);
   assert.equal(isMainEntry('file:///tmp/free-monitor/worker.mjs','/tmp/free-monitor/other.mjs'),false);
 });
+
+
+test('normalizeWatch preserves status metadata',()=>{
+  const w=normalizeWatch({id:'demo2',targetUrl:'https://example.com/',status:'active',last_status:200});
+  assert.equal(w.last_status,200);
+});
