@@ -3,63 +3,72 @@
 Updated: 2026-10-06
 
 ## Shop title
-Digital Planners, Spreadsheets & Printable Bundles
+Digital Planners, Templates & Printable Bundles
 
 ## Shop announcement
-Welcome to Cyzor Creations — 100% digital downloads.
+Welcome to Cyzor Creations — a digital-only shop for practical planners, trackers, spreadsheets, business templates, printable wall art, and original kawaii sticker packs.
 
-Shop practical planners, spreadsheets, printable systems, wall-art bundles, digital stickers and business templates. Nothing is shipped and no POD is used.
+Every active product is an instant digital download. Nothing is POD or physically shipped.
 
-Every listing is designed for instant Etsy delivery after payment confirmation. Use the shop sections to find the exact system you need.
+Browse the shop by section:
+- Digital Planners
+- Budget & Spreadsheets
+- Business Templates
+- Wedding & Events
+- Home & Family
+- Health Trackers
+- School & Career
+- Digital Stickers
+- Printable Wall Art
+- Bundles
 
-Need help opening a file? Message CyzorCreations through Etsy.
+Need help with a file? Message CyzorCreations through Etsy with the listing name and I’ll help you get it sorted.
 
 ## About headline
-Useful digital systems. Instant access. No shipping.
+Useful digital systems. Clear design. Instant access.
 
 ## About
-Cyzor Creations builds practical digital downloads for real-life organization, planning and small-business workflows.
+Cyzor Creations creates digital tools designed to make everyday work and life easier to organize.
 
-The shop is now fully digital: planners, spreadsheets, trackers, printable bundles, digital stickers, clipart and downloadable wall art. Nothing is manufactured or shipped.
+The shop focuses on practical downloadable products: planners, trackers, spreadsheets, business forms, wedding systems, home organizers, health logs, school and career tools, printable wall art, and original kawaii sticker packs.
 
-Each product is designed around a specific job-to-be-done rather than generic filler pages. That means deeper bundles, clearer dashboards, more useful trackers and files that are easy to understand from the first listing image.
+Every active listing is digital-only. There is no POD, no made-to-order physical fulfillment, and nothing is shipped.
 
-The product line is continually tested against real Etsy demand patterns, but every CYZOR file, layout and piece of copy is original. We reverse-engineer what buyers value — not other sellers' protected artwork or files.
+The goal is simple: clear files, useful structure, and products that are easy to understand before you buy. Listing images show the actual product style, and each listing explains the file types included.
 
-If you have trouble with a download, message me through Etsy with the listing name and I’ll help.
+If a file does not open correctly or you need help locating your Etsy download, message me through Etsy.
+
+Thanks for supporting Cyzor Creations.
 
 ## Digital buyer message
-Thanks for your order! This shop is 100% digital.
+Thanks for your order! Your digital files are available through Etsy after payment is confirmed.
 
-Your Etsy files become available after payment is confirmed. Nothing will be mailed.
+Before downloading, check the listing for the included file types. Save a backup copy of your original files before making edits.
 
-Open the listing again if you need to confirm included file types or usage instructions. If you have trouble accessing a file, message CyzorCreations through Etsy with the listing name.
+If something does not open correctly or you need help locating the download, message Cyzor Creations through Etsy and include the listing name.
 
 ## Section order
 1. Digital Planners
-2. Spreadsheets
-3. Budget & Money
-4. Business Templates
-5. Wedding & Events
-6. Home & Family
-7. Pet & Puppy
-8. Health Trackers
-9. School & Career
-10. Digital Stickers
-11. Printable Wall Art
-12. Bundles
+2. Budget & Spreadsheets
+3. Business Templates
+4. Wedding & Events
+5. Home & Family
+6. Health Trackers
+7. School & Career
+8. Digital Stickers
+9. Printable Wall Art
+10. Bundles
 
 ## Banner direction
 Primary line:
-**DIGITAL PLANNERS • SPREADSHEETS • PRINTABLE BUNDLES**
+**Digital Planners, Templates & Printable Bundles**
 
 Secondary line:
-**100% instant digital downloads • no shipping • no POD**
+**Instant downloads • practical systems • original digital art**
 
-Visual proof:
-- laptop/tablet showing spreadsheet dashboard;
-- 3-page planner spread;
-- digital sticker/clipart sheet;
-- one bundle preview.
-
-Do not show physical product mockups as if an item ships.
+Visual composition:
+- left: clean planner/spreadsheet preview
+- center: CYZOR Creations wordmark
+- right: original kawaii sticker pack + printable wall art preview
+- no physical-product language
+- no POD language
