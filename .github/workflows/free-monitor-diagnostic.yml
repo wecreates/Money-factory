@@ -1,0 +1,58 @@
+name: CYZOR Free Monitor Diagnostic
+
+on:
+  push:
+    paths:
+      - '.github/workflows/free-monitor-diagnostic.yml'
+      - 'automation/free-monitor/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run diagnostic
+        id: diag
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          TEST_OUT=$(cd automation/free-monitor && npm test 2>&1)
+          TEST_CODE=$?
+          WORKER_OUT=$(node automation/free-monitor/worker.mjs 2>&1)
+          WORKER_CODE=$?
+          node - "$TEST_CODE" "$WORKER_CODE" "$TEST_OUT" "$WORKER_OUT" <<'NODE'
+          const fs=require('fs');
+          const [testCode,workerCode,testOut,workerOut]=process.argv.slice(2);
+          const report={
+            checked_at:new Date().toISOString(),
+            test_code:Number(testCode),
+            worker_code:Number(workerCode),
+            test_output:testOut.slice(0,12000),
+            worker_output:workerOut.slice(0,12000),
+            state_exists:fs.existsSync('FREE_MONITOR_STATE.json'),
+            events_exists:fs.existsSync('FREE_MONITOR_EVENTS.json')
+          };
+          if(report.state_exists) report.state=JSON.parse(fs.readFileSync('FREE_MONITOR_STATE.json','utf8'));
+          fs.writeFileSync('FREE_MONITOR_DIAGNOSTIC.json',JSON.stringify(report,null,2)+'\n');
+          NODE
+      - name: Persist diagnostic
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "cyzor-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add FREE_MONITOR_DIAGNOSTIC.json FREE_MONITOR_STATE.json FREE_MONITOR_EVENTS.json 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "record free monitor diagnostic"
+          git pull --rebase origin main
+          git push origin HEAD:main
