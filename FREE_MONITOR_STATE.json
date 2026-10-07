@@ -1,12 +1,1 @@
-{
-  "cyzor-free-monitor-smoke": {
-    "id": "cyzor-free-monitor-smoke",
-    "kind": "change",
-    "targetUrl": "https://example.com/",
-    "label": "CYZOR free monitor smoke",
-    "status": "active",
-    "last_value": "25ddf2c883e0d1958ea971d279a7e4f0fd446724ee3db7db19dadabd4a62e484",
-    "last_checked_at": 1791390329462,
-    "last_change_at": null
-  }
-}
+{}
