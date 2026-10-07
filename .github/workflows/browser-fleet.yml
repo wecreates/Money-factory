@@ -1,0 +1,83 @@
+
+name: CYZOR Browser Fleet
+
+on:
+  workflow_dispatch:
+    inputs:
+      business:
+        description: 'Business ID or all'
+        required: true
+        default: all
+      group:
+        description: 'all, frequent, normal'
+        required: true
+        default: all
+  schedule:
+    - cron: '*/15 * * * *'
+    - cron: '7 */2 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: build
+        working-directory: automation/github-browser-fleet
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "*/15 * * * *" ]; then
+            GROUP=frequent
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            GROUP=normal
+          else
+            GROUP="${{ inputs.group }}"
+          fi
+
+          ONLY=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.business }}" != "all" ]; then
+            ONLY="${{ inputs.business }}"
+          fi
+
+          MATRIX="$(node src/matrix.mjs "$GROUP" "$ONLY")"
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+  run:
+    needs: matrix
+    if: ${{ fromJson(needs.matrix.outputs.matrix).include[0] != null }}
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix: ${{ fromJson(needs.matrix.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BUSINESS_ID: ${{ matrix.business }}
+      TASK_FILE: ${{ matrix.task_file }}
+      BROWSER_SESSIONS_JSON: ${{ secrets.BROWSER_SESSIONS_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install fleet
+        working-directory: automation/github-browser-fleet
+        run: |
+          npm install
+          npx playwright install chromium
+      - name: Run browser business
+        working-directory: automation/github-browser-fleet
+        run: node src/run-business.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-fleet-${{ matrix.business }}-${{ github.run_id }}
+          path: automation/github-browser-fleet/artifacts/${{ matrix.business }}
+          retention-days: 7
