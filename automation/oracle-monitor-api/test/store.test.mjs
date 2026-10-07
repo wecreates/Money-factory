@@ -30,3 +30,16 @@ test('events default to an empty list',()=>{
   const store=createStore();
   assert.deepEqual(listEvents(store,'a'),[]);
 });
+
+
+test('applyCheck advances timestamps and emits a change event only after baseline', async()=>{
+  const {applyCheck}=await import('../store.mjs');
+  const store=createStore();
+  const w=createWatch(store,{clientId:'c1',kind:'change',targetUrl:'https://example.com/',label:'Demo'});
+  applyCheck(store,w.id,{hash:'aaa',checkedAt:100,status:200});
+  assert.equal(listWatches(store,'c1')[0].last_checked_at,100);
+  assert.equal(listEvents(store,'c1').length,0);
+  applyCheck(store,w.id,{hash:'bbb',checkedAt:200,status:200});
+  assert.equal(listWatches(store,'c1')[0].last_checked_at,200);
+  assert.equal(listEvents(store,'c1').length,1);
+});
