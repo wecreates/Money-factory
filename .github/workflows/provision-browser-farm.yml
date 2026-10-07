@@ -102,7 +102,7 @@ jobs:
 
           ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "cd /opt/cyzor/Money-factory/automation/browser-farm &&              sed -i 's/^MAX_PARALLEL=.*/MAX_PARALLEL=3/' .env &&              sed -i 's/^HEADLESS=.*/HEADLESS=true/' .env"
 
-          printf '%s' "$FARM_GITHUB_TOKEN" |             ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "read -r TOKEN; cd /opt/cyzor/Money-factory/automation/browser-farm;              grep -v '^GITHUB_TOKEN=' .env > .env.tmp;              printf 'GITHUB_TOKEN=%s\n' \"$TOKEN\" >> .env.tmp;              mv .env.tmp .env;              sudo docker compose up -d --build"
+          printf '%s\n' "$FARM_GITHUB_TOKEN" | ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP" 'read -r TOKEN; cd /opt/cyzor/Money-factory/automation/browser-farm; grep -v "^GITHUB_TOKEN=" .env > .env.tmp; printf "GITHUB_TOKEN=%s\n" "$TOKEN" >> .env.tmp; mv .env.tmp .env; sudo docker compose up -d --build'
 
           ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "cd /opt/cyzor/Money-factory/automation/oracle-edge && sudo docker compose up -d --build"
 
