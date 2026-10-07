@@ -1,0 +1,12 @@
+{
+  "checked_at": "2026-10-07T19:21:26.160Z",
+  "missing_required_secret_count": 7,
+  "secrets_ready": false,
+  "terraform_init_pass": false,
+  "terraform_plan_pass": false,
+  "requested_shape": "VM.Standard.A1.Flex",
+  "requested_ocpus": 2,
+  "requested_memory_gb": 12,
+  "applies_resources": false,
+  "pass": false
+}
