@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node src/server.mjs",
+    "start": "node src/farm.mjs",
+    "server": "node src/server.mjs",
     "worker": "node src/worker.mjs",
     "test": "node --test test/*.test.mjs"
   },
