@@ -1,0 +1,6 @@
+
+region           = "us-phoenix-1"
+compartment_ocid = "ocid1.compartment.oc1..."
+instance_name    = "cyzor-browser-farm-1"
+ocpus            = 2
+memory_gb        = 12
