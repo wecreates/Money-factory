@@ -1,0 +1,23 @@
+{
+  "id": "cyzor-novan-scheduler-probe",
+  "type": "multi-inspect",
+  "pages": [
+    {
+      "id": "openapi",
+      "url": "https://cyzorcreations.com/openapi.json"
+    },
+    {
+      "id": "docs",
+      "url": "https://cyzorcreations.com/novan-docs"
+    },
+    {
+      "id": "ext-root",
+      "url": "https://cyzorcreations.com/api/v1/ext"
+    },
+    {
+      "id": "watchtower",
+      "url": "https://cyzorcreations.com/watchtower"
+    }
+  ],
+  "screenshot": false
+}
