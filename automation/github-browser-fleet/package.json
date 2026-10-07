@@ -1,0 +1,12 @@
+{
+  "name": "cyzor-github-browser-fleet",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "run": "node src/run-business.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.56.1"
+  }
+}
