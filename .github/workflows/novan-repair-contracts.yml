@@ -1,0 +1,29 @@
+name: CYZOR Novan Repair Contracts
+
+on:
+  push:
+    paths:
+      - 'automation/novan-scheduler/repair-contracts.mjs'
+      - '.github/workflows/novan-repair-contracts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node automation/novan-scheduler/repair-contracts.mjs
+      - shell: bash
+        run: |
+          git config user.name "cyzor-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add NOVAN_REPAIR_CONTRACTS.json
+          git diff --cached --quiet || git commit -m "record Novan repair contracts"
+          git push
