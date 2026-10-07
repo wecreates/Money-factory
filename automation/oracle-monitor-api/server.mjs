@@ -1,10 +1,12 @@
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {createStore,createWatch,listWatches,deleteWatch,listEvents} from './store.mjs';
+import crypto from 'node:crypto';
+import {createStore,createWatch,listWatches,deleteWatch,listEvents,applyCheck} from './store.mjs';
 
 const PORT=Number(process.env.PORT||8080);
 const DATA_FILE=process.env.DATA_FILE||'/data/monitor.json';
+const CHECK_MS=Math.max(60000,Number(process.env.CHECK_MS||300000));
 
 async function load(){
   try{return createStore(JSON.parse(await fs.readFile(DATA_FILE,'utf8')))}
@@ -24,6 +26,33 @@ async function body(req){
   return s?JSON.parse(s):{};
 }
 const store=await load();
+
+let checking=false;
+async function runChecks(){
+  if(checking) return;
+  checking=true;
+  try{
+    for(const w of store.watches.filter(x=>x.status==='active')){
+      try{
+        const r=await fetch(w.target_url,{redirect:'follow',headers:{'user-agent':'CYZOR-Oracle-Monitor/1.0'}});
+        const body=Buffer.from(await r.arrayBuffer());
+        const hash=crypto.createHash('sha256').update(body).digest('hex');
+        applyCheck(store,w.id,{hash,checkedAt:Date.now(),status:r.status});
+      }catch(error){
+        const current=store.watches.find(x=>x.id===w.id);
+        if(current){
+          current.last_checked_at=Date.now();
+          current.last_error=String(error);
+        }
+      }
+    }
+    await save(store);
+  }finally{
+    checking=false;
+  }
+}
+setTimeout(runChecks,5000);
+setInterval(runChecks,CHECK_MS);
 
 const server=http.createServer(async(req,res)=>{
   try{
