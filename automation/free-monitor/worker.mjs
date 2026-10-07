@@ -1,5 +1,12 @@
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+export function isMainEntry(importMetaUrl,argv1){
+  if(!argv1) return false;
+  return path.resolve(fileURLToPath(importMetaUrl))===path.resolve(argv1);
+}
 
 export function normalizeWatch(raw){
   const id=String(raw?.id||'').trim();
@@ -86,7 +93,7 @@ export async function runWorker({
   return {ran_at:new Date(now).toISOString(),results};
 }
 
-if(import.meta.url===`file://${process.argv[1]}`){
+if(isMainEntry(import.meta.url,process.argv[1])){
   const report=await runWorker();
   console.log(JSON.stringify(report,null,2));
 }
