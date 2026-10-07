@@ -1,0 +1,29 @@
+name: CYZOR Ext API Route Probe
+
+on:
+  push:
+    paths:
+      - 'automation/novan-scheduler/ext-routes.mjs'
+      - '.github/workflows/ext-api-routes.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node automation/novan-scheduler/ext-routes.mjs
+      - shell: bash
+        run: |
+          git config user.name "cyzor-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add EXT_API_ROUTES.json EXT_API_ROUTES.txt
+          git diff --cached --quiet || git commit -m "record extension API routes"
+          git push
