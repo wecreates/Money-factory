@@ -1,52 +1,73 @@
 {
   "version": 1,
+  "defaults": {
+    "max_parallel_per_business": 1,
+    "hot": false,
+    "enabled": true
+  },
   "businesses": [
     {
       "id": "etsy",
+      "label": "Cyzor Etsy",
       "enabled": true,
-      "priority": 100,
-      "mode": "persistent",
-      "max_concurrent": 1,
-      "notes": "CYZOR Etsy digital store"
-    },
-    {
-      "id": "chrome-store",
-      "enabled": true,
-      "priority": 90,
-      "mode": "persistent",
-      "max_concurrent": 1,
-      "notes": "Chrome Web Store publisher"
-    },
-    {
-      "id": "cyzor-site",
-      "enabled": true,
-      "priority": 80,
-      "mode": "persistent",
-      "max_concurrent": 1,
-      "notes": "CYZOR production website"
+      "hot": true,
+      "priority": 100
     },
     {
       "id": "redbubble",
-      "enabled": false,
-      "priority": 60,
-      "mode": "persistent",
-      "max_concurrent": 1,
-      "notes": "Enable after Etsy completion"
+      "label": "Redbubble",
+      "enabled": true,
+      "hot": false,
+      "priority": 80
     },
     {
       "id": "ebay",
-      "enabled": false,
-      "priority": 50,
-      "mode": "persistent",
-      "max_concurrent": 1,
-      "notes": "Future commerce workflow"
+      "label": "eBay",
+      "enabled": true,
+      "hot": false,
+      "priority": 80
+    },
+    {
+      "id": "chrome-store",
+      "label": "Chrome Web Store",
+      "enabled": true,
+      "hot": false,
+      "priority": 70
+    },
+    {
+      "id": "cyzor-site",
+      "label": "CYZOR Website",
+      "enabled": true,
+      "hot": false,
+      "priority": 70
+    },
+    {
+      "id": "pinterest",
+      "label": "Pinterest",
+      "enabled": true,
+      "hot": false,
+      "priority": 60
+    },
+    {
+      "id": "youtube",
+      "label": "YouTube",
+      "enabled": true,
+      "hot": false,
+      "priority": 60
+    },
+    {
+      "id": "instagram",
+      "label": "Instagram",
+      "enabled": true,
+      "hot": false,
+      "priority": 60
+    },
+    {
+      "id": "tiktok",
+      "label": "TikTok",
+      "enabled": true,
+      "hot": false,
+      "priority": 60
     }
-  ],
-  "scaling": {
-    "initial_workers": 3,
-    "max_workers_per_node": 4,
-    "add_node_when_average_cpu_pct_over": 75,
-    "add_node_when_queue_depth_over": 20,
-    "observe_minutes": 15
-  }
+  ]
 }
