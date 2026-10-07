@@ -1,0 +1,104 @@
+{
+  "checked_at": "2026-10-07T04:00:43.919Z",
+  "host": "cyzorcreations.com",
+  "A": [
+    "137.184.198.2"
+  ],
+  "AAAA": {
+    "error": "ENODATA"
+  },
+  "CNAME": {
+    "error": "ENODATA"
+  },
+  "NS": [
+    "dns1.registrar-servers.com",
+    "dns2.registrar-servers.com"
+  ],
+  "MX": [
+    {
+      "exchange": "eforward1.registrar-servers.com",
+      "priority": 10
+    },
+    {
+      "exchange": "eforward2.registrar-servers.com",
+      "priority": 10
+    },
+    {
+      "exchange": "eforward3.registrar-servers.com",
+      "priority": 10
+    },
+    {
+      "exchange": "eforward4.registrar-servers.com",
+      "priority": 15
+    },
+    {
+      "exchange": "eforward5.registrar-servers.com",
+      "priority": 20
+    }
+  ],
+  "reverse": {
+    "137.184.198.2": [
+      "cyzorcreations.com"
+    ]
+  },
+  "ipinfo": {
+    "137.184.198.2": {
+      "ip": "137.184.198.2",
+      "hostname": "cyzorcreations.com",
+      "city": "North Bergen",
+      "region": "New Jersey",
+      "country": "US",
+      "loc": "40.8043,-74.0121",
+      "org": "AS14061 DigitalOcean, LLC",
+      "postal": "07047",
+      "timezone": "America/New_York",
+      "readme": "https://ipinfo.io/missingauth"
+    }
+  },
+  "tls": {
+    "subject": {
+      "CN": "cyzorcreations.com"
+    },
+    "issuer": {
+      "C": "US",
+      "O": "Let's Encrypt",
+      "CN": "YE1"
+    },
+    "subjectaltname": "DNS:cyzorcreations.com",
+    "valid_from": "Aug 28 07:49:47 2026 GMT",
+    "valid_to": "Nov 26 07:49:46 2026 GMT",
+    "fingerprint256": "E8:86:E3:7F:6F:81:E5:0E:E1:4C:CE:DE:F9:36:02:6F:CB:7F:CD:2F:E3:63:ED:2D:4C:F5:77:9C:44:8C:F5:4A"
+  },
+  "http": {
+    "status": 200,
+    "headers": {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-headers": "content-type",
+      "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
+      "access-control-allow-origin": "*",
+      "alt-svc": "h3=\":443\"; ma=2592000",
+      "content-length": "14",
+      "content-security-policy": "default-src 'self';script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.googleadservices.com https://adservice.google.com https://tpc.googlesyndication.com https://*.adtrafficquality.google;frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://*.adtrafficquality.google https://*.google.com https://*.doubleclick.net;style-src 'self' 'unsafe-inline';img-src 'self' data: https:;connect-src 'self' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.googleadservices.com https://adservice.google.com https://tpc.googlesyndication.com https://*.adtrafficquality.google;font-src 'self' data:;object-src 'none';frame-ancestors 'self' https://app.gohighlevel.com https://*.gohighlevel.com https://*.leadconnectorhq.com https://*.msgsndr.com;base-uri 'self';form-action 'self';script-src-attr 'none';upgrade-insecure-requests",
+      "content-type": "application/json; charset=utf-8",
+      "cross-origin-opener-policy": "same-origin",
+      "cross-origin-resource-policy": "same-origin",
+      "date": "Wed, 07 Oct 2026 04:00:44 GMT",
+      "origin-agent-cluster": "?1",
+      "referrer-policy": "no-referrer",
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+      "vary": "Origin",
+      "via": "1.1 Caddy",
+      "x-content-type-options": "nosniff",
+      "x-dns-prefetch-control": "off",
+      "x-download-options": "noopen",
+      "x-frame-options": "SAMEORIGIN",
+      "x-permitted-cross-domain-policies": "none",
+      "x-ratelimit-limit": "15",
+      "x-ratelimit-remaining": "14",
+      "x-ratelimit-reset": "60",
+      "x-request-id": "req-12x9",
+      "x-trace-id": "01a11485-550f-74ed-8147-c95d181b4874",
+      "x-xss-protection": "0"
+    }
+  }
+}
