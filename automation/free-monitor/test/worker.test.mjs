@@ -10,13 +10,13 @@ test('normalizeWatch accepts an active HTTPS watch',()=>{
 });
 
 test('dueForCheck is true when no prior check exists',()=>{
-  assert.equal(dueForCheck({last_checked_at:null},Date.now(),300000),true);
+  assert.equal(dueForCheck({status:'active',last_checked_at:null},Date.now(),300000),true);
 });
 
 test('dueForCheck honors cadence interval',()=>{
   const now=1_000_000;
-  assert.equal(dueForCheck({last_checked_at:now-299999},now,300000),false);
-  assert.equal(dueForCheck({last_checked_at:now-300000},now,300000),true);
+  assert.equal(dueForCheck({status:'active',last_checked_at:now-299999},now,300000),false);
+  assert.equal(dueForCheck({status:'active',last_checked_at:now-300000},now,300000),true);
 });
 
 test('evaluateCheck records baseline without false change event',()=>{
