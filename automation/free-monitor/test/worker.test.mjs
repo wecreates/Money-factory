@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeWatch, evaluateCheck, dueForCheck} from '../worker.mjs';
+import {normalizeWatch, evaluateCheck, dueForCheck, isMainEntry} from '../worker.mjs';
 
 test('normalizeWatch accepts an active HTTPS watch',()=>{
   const w=normalizeWatch({id:'demo',kind:'change',targetUrl:'https://example.com/',label:'Demo',status:'active'});
@@ -31,4 +31,10 @@ test('evaluateCheck flags changed content after baseline',()=>{
   assert.equal(out.changed,true);
   assert.equal(out.next.last_value,'def');
   assert.equal(out.next.last_checked_at,200);
+});
+
+
+test('isMainEntry matches a file URL to the executable path',()=>{
+  assert.equal(isMainEntry('file:///tmp/free-monitor/worker.mjs','/tmp/free-monitor/worker.mjs'),true);
+  assert.equal(isMainEntry('file:///tmp/free-monitor/worker.mjs','/tmp/free-monitor/other.mjs'),false);
 });
