@@ -1,6 +1,10 @@
 name: CYZOR Etsy Overhaul
 
 on:
+  push:
+    paths:
+      - 'automation/etsy/**'
+      - '.github/workflows/etsy-overhaul.yml'
   workflow_dispatch:
     inputs:
       action:
@@ -18,7 +22,21 @@ permissions:
   contents: read
 
 jobs:
-  etsy:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit tests
+        working-directory: automation/etsy
+        run: npm test
+
+  live:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -32,9 +50,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Unit tests
-        working-directory: automation/etsy
-        run: npm test
       - name: Check Etsy secrets
         shell: bash
         run: |
