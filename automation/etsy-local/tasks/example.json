@@ -1,0 +1,25 @@
+{
+  "id": "example-listing",
+  "type": "update_listing",
+  "listing_id": "4536000657",
+  "patch": {
+    "type": "download",
+    "title": "All-in-One Undated Digital Life Planner",
+    "price": "9.99",
+    "tags": [
+      "digital planner",
+      "daily planner",
+      "weekly planner",
+      "monthly planner",
+      "life planner",
+      "planner template",
+      "digital journal",
+      "productivity",
+      "instant download",
+      "printable pdf",
+      "planner bundle",
+      "digital file",
+      "organizer"
+    ]
+  }
+}
