@@ -1,0 +1,57 @@
+{
+  "checked_at": "2026-10-07T13:53:37.024Z",
+  "clientId": "cyzor-upsert-probe-1791381213795",
+  "first_create": {
+    "status": 200,
+    "ok": true,
+    "data": {
+      "ok": true,
+      "id": "01a116a4-137f-7059-9ca8-1fc538bd219d"
+    }
+  },
+  "second_create": {
+    "status": 200,
+    "ok": true,
+    "data": {
+      "ok": true,
+      "id": "01a116a4-1e47-750b-863f-5538e62db33a"
+    }
+  },
+  "first_watch_count": 1,
+  "second_watch_count": 2,
+  "before": {
+    "id": "01a116a4-137f-7059-9ca8-1fc538bd219d",
+    "kind": "change",
+    "target_url": "https://example.com/",
+    "label": "CYZOR upsert probe",
+    "last_value": null,
+    "last_checked_at": null,
+    "last_change_at": null,
+    "status": "active"
+  },
+  "after": {
+    "id": "01a116a4-1e47-750b-863f-5538e62db33a",
+    "kind": "change",
+    "target_url": "https://example.com/",
+    "label": "CYZOR upsert probe",
+    "last_value": null,
+    "last_checked_at": null,
+    "last_change_at": null,
+    "status": "active"
+  },
+  "same_id": false,
+  "timestamp_advanced": null,
+  "deleted": [
+    {
+      "id": "01a116a4-1e47-750b-863f-5538e62db33a",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "id": "01a116a4-137f-7059-9ca8-1fc538bd219d",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "final_watch_count": 0
+}
