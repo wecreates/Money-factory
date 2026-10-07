@@ -1,0 +1,6 @@
+{
+  "name":"cyzor-free-monitor",
+  "private":true,
+  "type":"module",
+  "scripts":{"test":"node --test test/*.test.mjs","run":"node worker.mjs"}
+}
