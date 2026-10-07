@@ -1,0 +1,21 @@
+name: CYZOR Oracle Monitor API Tests
+
+on:
+  push:
+    paths:
+      - 'automation/oracle-monitor-api/**'
+      - '.github/workflows/oracle-monitor-api-test.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run monitor API tests
+        working-directory: automation/oracle-monitor-api
+        run: npm test
