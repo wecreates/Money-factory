@@ -1,0 +1,47 @@
+name: CYZOR Free Monitor Worker
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'FREE_MONITOR_WATCHES.json'
+      - 'automation/free-monitor/**'
+      - '.github/workflows/free-monitor-worker.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cyzor-free-monitor-worker
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit tests
+        working-directory: automation/free-monitor
+        run: npm test
+      - name: Run free monitor worker
+        run: node automation/free-monitor/worker.mjs
+      - name: Persist monitor state
+        shell: bash
+        run: |
+          git config user.name "cyzor-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add FREE_MONITOR_STATE.json FREE_MONITOR_EVENTS.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "free monitor cadence tick"
+          git pull --rebase origin main
+          git push origin HEAD:main
