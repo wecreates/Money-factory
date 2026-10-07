@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "action": "goto",
+      "url": "https://www.ebay.com/sh/lst/active"
+    },
+    {
+      "action": "screenshot",
+      "filename": "ebay.png"
+    }
+  ]
+}
