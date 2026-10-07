@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "action": "goto",
+      "url": "https://www.redbubble.com/portfolio/manage_works"
+    },
+    {
+      "action": "screenshot",
+      "filename": "redbubble.png"
+    }
+  ]
+}
