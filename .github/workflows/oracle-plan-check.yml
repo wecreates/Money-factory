@@ -1,0 +1,81 @@
+name: CYZOR Oracle Plan Check
+
+on:
+  push:
+    paths:
+      - 'automation/browser-farm/infra/oci/**'
+      - '.github/workflows/oracle-plan-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+      TF_VAR_user_ocid: ${{ secrets.OCI_USER_OCID }}
+      TF_VAR_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
+      TF_VAR_private_key: ${{ secrets.OCI_API_PRIVATE_KEY }}
+      TF_VAR_region: ${{ secrets.OCI_REGION }}
+      TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID }}
+      TF_VAR_ssh_public_key: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.8'
+
+      - name: Check secrets and plan
+        shell: bash
+        run: |
+          set +e
+          MISSING=0
+          for v in TF_VAR_tenancy_ocid TF_VAR_user_ocid TF_VAR_fingerprint TF_VAR_private_key TF_VAR_region TF_VAR_compartment_ocid TF_VAR_ssh_public_key
+          do
+            if [ -z "${!v}" ]; then MISSING=$((MISSING+1)); fi
+          done
+
+          INIT_CODE=99
+          PLAN_CODE=99
+          if [ "$MISSING" -eq 0 ]; then
+            (cd automation/browser-farm/infra/oci && terraform init -input=false >/tmp/oci-init.log 2>&1)
+            INIT_CODE=$?
+            if [ "$INIT_CODE" -eq 0 ]; then
+              (cd automation/browser-farm/infra/oci && terraform plan -input=false -out=tfplan >/tmp/oci-plan.log 2>&1)
+              PLAN_CODE=$?
+            fi
+          fi
+
+          node - "$MISSING" "$INIT_CODE" "$PLAN_CODE" <<'NODE'
+          const fs=require('fs');
+          const [missing,initCode,planCode]=process.argv.slice(2).map(Number);
+          const report={
+            checked_at:new Date().toISOString(),
+            missing_required_secret_count:missing,
+            secrets_ready:missing===0,
+            terraform_init_pass:initCode===0,
+            terraform_plan_pass:planCode===0,
+            requested_shape:'VM.Standard.A1.Flex',
+            requested_ocpus:2,
+            requested_memory_gb:12,
+            applies_resources:false,
+            pass:missing===0&&initCode===0&&planCode===0
+          };
+          fs.writeFileSync('ORACLE_PLAN_STATUS.json',JSON.stringify(report,null,2)+'\n');
+          NODE
+
+      - name: Persist plan status
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "cyzor-migration-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add ORACLE_PLAN_STATUS.json
+          git diff --cached --quiet || git commit -m "record Oracle plan status"
+          git pull --rebase origin main
+          git push origin HEAD:main
