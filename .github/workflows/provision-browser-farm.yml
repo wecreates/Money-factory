@@ -102,7 +102,26 @@ jobs:
 
           ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "cd /opt/cyzor/Money-factory/automation/browser-farm &&              sed -i 's/^MAX_PARALLEL=.*/MAX_PARALLEL=3/' .env &&              sed -i 's/^HEADLESS=.*/HEADLESS=true/' .env"
 
-          printf '%s' "$FARM_GITHUB_TOKEN" |             ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "read -r TOKEN; cd /opt/cyzor/Money-factory/automation/browser-farm;              grep -v '^GITHUB_TOKEN=' .env > .env.tmp;              printf 'GITHUB_TOKEN=%s\n' "$TOKEN" >> .env.tmp;              mv .env.tmp .env;              sudo docker compose up -d --build"
+          printf '%s' "$FARM_GITHUB_TOKEN" |             ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "read -r TOKEN; cd /opt/cyzor/Money-factory/automation/browser-farm;              grep -v '^GITHUB_TOKEN=' .env > .env.tmp;              printf 'GITHUB_TOKEN=%s\n' \"$TOKEN\" >> .env.tmp;              mv .env.tmp .env;              sudo docker compose up -d --build"
+
+          ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "cd /opt/cyzor/Money-factory/automation/oracle-edge && sudo docker compose up -d --build"
+
+      - name: Verify Oracle migration edge
+        if: ${{ inputs.action == 'apply' }}
+        shell: bash
+        env:
+          FARM_IP: ${{ steps.outputs.outputs.ip }}
+        run: |
+          for i in {1..30}; do
+            BODY=$(curl -fsS --max-time 5 "http://$FARM_IP/health" || true)
+            if echo "$BODY" | grep -q 'cyzor-oracle-monitor-api'; then
+              echo "$BODY"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Oracle migration edge health check failed"
+          exit 1
 
       - name: Deployment summary
         if: ${{ inputs.action == 'apply' }}
@@ -113,3 +132,6 @@ jobs:
           echo "First node provisioned at: `$FARM_IP`" >> "$GITHUB_STEP_SUMMARY"
           echo "Workers configured: **3**" >> "$GITHUB_STEP_SUMMARY"
           echo "Task ingress: GitHub queue polling (no public farm API)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Oracle monitor compatibility API: **healthy**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Migration edge: `http://$FARM_IP/health`" >> "$GITHUB_STEP_SUMMARY"
+          echo "DNS remains unchanged until explicit cutover." >> "$GITHUB_STEP_SUMMARY"
