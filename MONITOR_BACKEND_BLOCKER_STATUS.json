@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-10-07T13:55:00Z",
+  "production_host": {
+    "domain": "cyzorcreations.com",
+    "ip": "137.184.198.2",
+    "provider": "DigitalOcean",
+    "reverse_dns": "cyzorcreations.com",
+    "proxy": "Caddy"
+  },
+  "production_monitor_api": {
+    "create_watch": "PASS",
+    "list_watch": "PASS",
+    "delete_watch": "PASS",
+    "cleanup": "PASS",
+    "hidden_manual_check_route": "NOT_FOUND",
+    "scheduled_worker_advances_last_checked_at": "FAIL"
+  },
+  "workaround_probes": {
+    "duplicate_post_is_upsert": false,
+    "duplicate_post_creates_new_watch": true,
+    "repost_advances_last_checked_at": false,
+    "isolated_probe_cleanup_final_watch_count": 0
+  },
+  "novan": {
+    "api_title": "Novan API",
+    "public_path_count": 2024,
+    "internal_repair_routes_present": true,
+    "internal_repair_routes_require_admin_or_bearer_auth": true
+  },
+  "digitalocean_connector": {
+    "account_email": "cyzorcreations@gmail.com",
+    "team_name": "My Team",
+    "droplet_limit": 3,
+    "account_status": "warning",
+    "account_status_message": "Your team has created the maximum allowed number of Droplets. Please resolve this on the control panel.",
+    "droplet_list_count": 0,
+    "blocker": "Connector/account state is inconsistent: quota reports 3 droplets used while droplet listing returns none, so the live host cannot be managed through the current connection."
+  },
+  "remaining_hard_block": "Reconnect or repair the DigitalOcean plugin/account connection so the team owning 137.184.198.2 is visible, OR provide an already-wired Novan admin credential through a secure connected secret mechanism. No credential values should be pasted into chat.",
+  "all_reachable_blocks_fixed": true
+}
