@@ -1,0 +1,3006 @@
+{
+  "checked_at": "2026-10-07T04:01:36.857Z",
+  "count": 2020,
+  "routes": [
+    {
+      "path": "/brain/reach.read",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_reach_read",
+          "summary": "Read any web page as clean markdown via Jina Reader (free, no key). Cleaner than raw HTML scrape for"
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.library.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_library_list",
+          "summary": "List the imported agency-agents specialist library (74 marketing/sales/growth/finance/ops personas, "
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.empire.roster",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_empire_roster",
+          "summary": "List all Agent Empire agents (id, name, role, department, team) with their performance row (dispatch"
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.empire.brief",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_empire_brief",
+          "summary": "Get one agent brief: definition + its top-5 most-recent accumulated knowledge notes. Params: agentId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.empire.learn",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_empire_learn",
+          "summary": "Run one learning tick. With agentId, that agent learns; without, round-robins to the least-recently-"
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.empire.dispatch",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_empire_dispatch",
+          "summary": "Dispatch a task to an agent: loads its expertise, runs the LLM, records the result. Params: agentId "
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.pipeline.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_pipeline_list",
+          "summary": "List all team pipelines (id, name, goal, ordered stage agent chain). No params."
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.pipeline.run",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_pipeline_run",
+          "summary": "Run a team pipeline end-to-end: chains its agents, gates on quality_inspector (revise-once), fires p"
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.pipeline.status",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_pipeline_status",
+          "summary": "Get a pipeline run + its recorded steps (handoffs, QC results). Params: runId (required)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/orchestrator.tick",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_orchestrator_tick",
+          "summary": "R743: run one autonomous orchestrator tick — gated (autonomy switch), budget-aware, human-paced. Sou"
+        }
+      ]
+    },
+    {
+      "path": "/brain/orchestrator.state",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_orchestrator_state",
+          "summary": "R743: inspect orchestrator pacing state — current orchestrator_state row plus the live pacing decisi"
+        }
+      ]
+    },
+    {
+      "path": "/brain/orchestrator.humanize",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_orchestrator_humanize",
+          "summary": "R743: run a light humanizer pass over provided text. Params: text (string). Returns the rephrased te"
+        }
+      ]
+    },
+    {
+      "path": "/brain/notion.generate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_notion_generate",
+          "summary": "Generate a sellable Notion template. If a Notion integration is connected (NOTION_TOKEN/NOTION_API_K"
+        }
+      ]
+    },
+    {
+      "path": "/brain/video.produce",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_produce",
+          "summary": "Produce a real short-form vertical mp4 FILE from a script using the existing FREE render pipeline (P"
+        }
+      ]
+    },
+    {
+      "path": "/brain/music.produce",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_music_produce",
+          "summary": "Generate a real short royalty-free audio clip from a text prompt (HF MusicGen, /usr/bin/bash) and st"
+        }
+      ]
+    },
+    {
+      "path": "/brain/software.generate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_software_generate",
+          "summary": "Generate a complete, runnable small software project (CLI, automation script, micro-tool, browser sn"
+        }
+      ]
+    },
+    {
+      "path": "/brain/outcome.record",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_outcome_record",
+          "summary": "Record a product outcome as a learning signal for the agents that built it. Updates agent_performanc"
+        }
+      ]
+    },
+    {
+      "path": "/brain/outcome.provenance",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_outcome_provenance",
+          "summary": "Return the provenance row for a product (which agents / run / pipeline produced it). Params: product"
+        }
+      ]
+    },
+    {
+      "path": "/brain/demand.context",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_demand_context",
+          "summary": "Compact block of REAL demand signals (trend_signals / research_findings / keyword_research_cache / c"
+        }
+      ]
+    },
+    {
+      "path": "/brain/demand.brief",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_demand_brief",
+          "summary": "Demand-grounded + dedup-checked single-line product brief for a pipeline. Params: pipelineId? (notio"
+        }
+      ]
+    },
+    {
+      "path": "/brain/demand.dupecheck",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_demand_dupecheck",
+          "summary": "Cheap deterministic duplicate check of an idea against the recent catalog (digital_products + design"
+        }
+      ]
+    },
+    {
+      "path": "/brain/qc.verify",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_qc_verify",
+          "summary": "QC: REAL structural verification of a generated artifact. Syntax-checks code (parse-only, never exec"
+        }
+      ]
+    },
+    {
+      "path": "/brain/qc.verify_product",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_qc_verify_product",
+          "summary": "QC: verify a published digital_products row against its SOURCE markdown (notion_templates / software"
+        }
+      ]
+    },
+    {
+      "path": "/brain/trust.status",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_trust_status",
+          "summary": "Trust score for an asset type. params: { assetType?: \"notion\"|\"software\"|\"other\" } (default notion)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/trust.config",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_trust_config",
+          "summary": "Current trust-ladder thresholds + today auto-publish count. No params."
+        }
+      ]
+    },
+    {
+      "path": "/brain/trust.auto_approve",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_trust_auto_approve",
+          "summary": "Run the auto-publish gate for a verified draft and publish if trusted. params: { productId: string, "
+        }
+      ]
+    },
+    {
+      "path": "/brain/heal.probe",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_heal_probe",
+          "summary": "Self-heal: probe the free-LLM stack once against the default workspace. Returns ok + which provider "
+        }
+      ]
+    },
+    {
+      "path": "/brain/heal.tick",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_heal_tick",
+          "summary": "Self-heal: run one full health tick — probe LLM (auto-heal if down), recover stuck pipeline runs, ve"
+        }
+      ]
+    },
+    {
+      "path": "/brain/heal.llm",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_heal_llm",
+          "summary": "Self-heal: force LLM recovery now — if the stack is down, cycle known-good free providers (cerebras/"
+        }
+      ]
+    },
+    {
+      "path": "/brain/heal.fleet",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_heal_fleet",
+          "summary": "Self-heal: direct per-provider LLM fleet health check (one cheap paced call per provider, bypasses t"
+        }
+      ]
+    },
+    {
+      "path": "/brain/heal.log",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_heal_log",
+          "summary": "Self-heal: list recent heal_log rows (auto-recovery audit trail). Params: limit? (<=200, default 25)"
+        }
+      ]
+    },
+    {
+      "path": "/brain/treasury.pnl",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_treasury_pnl",
+          "summary": "Real P&L over a window. revenue=SUM(business_revenue.net_usd); cost=SUM(ai_usage.cost_usd)+treasury "
+        }
+      ]
+    },
+    {
+      "path": "/brain/treasury.set_cap",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_treasury_set_cap",
+          "summary": "OPERATOR AUTHORIZATION: set a HARD per-category spend cap (daily + total) and enable/disable it. Thi"
+        }
+      ]
+    },
+    {
+      "path": "/brain/treasury.can_spend",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_treasury_can_spend",
+          "summary": "HARD GATE check: would a spend be allowed right now? Denies unless an enabled cap exists and daily+t"
+        }
+      ]
+    },
+    {
+      "path": "/brain/treasury.plan",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_treasury_plan",
+          "summary": "Reinvestment plan from real P&L + per-asset-type track record. At $0 profit/caps: reinvest effort to"
+        }
+      ]
+    },
+    {
+      "path": "/brain/treasury.ledger",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_treasury_ledger",
+          "summary": "Recent treasury ledger rows (revenue + spend events). Params: limit? (<=500, default 50)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/ceo.strategy",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_ceo_strategy",
+          "summary": "Current goal-directed pipeline weights + revenue-goal context + human rationale. No params. Drives p"
+        }
+      ]
+    },
+    {
+      "path": "/brain/ceo.next",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_ceo_next",
+          "summary": "Pick the next pipeline (notion|software|content|pod) via epsilon-greedy weighted choice. This is wha"
+        }
+      ]
+    },
+    {
+      "path": "/brain/ceo.tick",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_ceo_tick",
+          "summary": "Run a strategic review: compute strategy, persist a ceo_strategy_log row, return weights + rationale"
+        }
+      ]
+    },
+    {
+      "path": "/brain/ceo.log",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_ceo_log",
+          "summary": "Recent ceo_strategy_log rows. params: { limit?: number } (default 10)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/compliance.check",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_compliance_check",
+          "summary": "Compliance-check raw content (deterministic + free-LLM). Params: content. Returns {pass,risk,flags}."
+        }
+      ]
+    },
+    {
+      "path": "/brain/compliance.check_product",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_compliance_check_product",
+          "summary": "Compliance-check a digital product by id (resolves source markdown). Params: productId."
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.health",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_health",
+          "summary": "List platform_health rows + currently-healthy platforms (publish redundancy)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/video.clip",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_clip",
+          "summary": "Turn a source video URL into viral 9:16 captioned short clips (supoclip, free/local: yt-dlp + auto-c"
+        }
+      ]
+    },
+    {
+      "path": "/brain/video.set_youtube_cookies",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_set_youtube_cookies",
+          "summary": "Install a Netscape cookies.txt (from a logged-in YouTube session) so the clipper can download from Y"
+        }
+      ]
+    },
+    {
+      "path": "/brain/video.clips_recent",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_clips_recent",
+          "summary": "List recently produced clips. Params: limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/hardware.design",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_hardware_design",
+          "summary": "CYZOR Blueprint: turn a plain-English hardware/maker project description into a full design package "
+        }
+      ]
+    },
+    {
+      "path": "/brain/hardware.get",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_hardware_get",
+          "summary": "Get a saved hardware design by id. Params: id."
+        }
+      ]
+    },
+    {
+      "path": "/brain/hardware.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_hardware_list",
+          "summary": "List recent community hardware designs. Params: limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/video.montage",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_montage",
+          "summary": "Create a 9:16 montage VIDEO from a brief (AI scene plan → cohesive-style CF image per scene → ffmpeg"
+        }
+      ]
+    },
+    {
+      "path": "/brain/video.musicBeds",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_musicBeds",
+          "summary": "One-time: generate ~3 reusable instrumental music beds into /data/music (HF MusicGen) if empty. Tole"
+        }
+      ]
+    },
+    {
+      "path": "/brain/survival.status",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_survival_status",
+          "summary": "Earn-or-die status: org runway + per-asset-type survival verdicts (earning/unproven/dying) + suspend"
+        }
+      ]
+    },
+    {
+      "path": "/brain/survival.tick",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_survival_tick",
+          "summary": "Run survival pressure: suspend dying production lines, revive earning ones, log. Non-autonomy-gated."
+        }
+      ]
+    },
+    {
+      "path": "/brain/video.harvest",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_harvest",
+          "summary": "Automated long-form→short-form: find RIGHTS-CLEARED long videos (Creative-Commons search via query, "
+        }
+      ]
+    },
+    {
+      "path": "/brain/voice.tts",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_voice_tts",
+          "summary": "Text→speech mp3. Piper (free, many natural voices) primary; OpenAI tts-1 / espeak fallback. Params: "
+        }
+      ]
+    },
+    {
+      "path": "/brain/rag.add",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_rag_add",
+          "summary": "Index text into the RAG knowledge base (chunked + embedded via free CF bge). Params: text, source?."
+        }
+      ]
+    },
+    {
+      "path": "/brain/rag.search",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_rag_search",
+          "summary": "Semantic search the knowledge base. Params: query, k?(default 5). Returns top chunks with similarity"
+        }
+      ]
+    },
+    {
+      "path": "/brain/rag.stats",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_rag_stats",
+          "summary": "R621: Document RAG stats — total docs, chunks, embedded count."
+        }
+      ]
+    },
+    {
+      "path": "/brain/benchmark.compare",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_benchmark_compare",
+          "summary": "Compare an item against the REAL top competitors on the web and verify it is as-good-or-better. Para"
+        }
+      ]
+    },
+    {
+      "path": "/brain/benchmark.recent",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_benchmark_recent",
+          "summary": "Recent competitive benchmark results."
+        }
+      ]
+    },
+    {
+      "path": "/brain/content.measure",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_content_measure",
+          "summary": "Pull REAL YouTube performance (views/likes/comments) for the connected channel's posted videos and r"
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.benchmark",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_benchmark",
+          "summary": "Benchmark every flagship Novan FEATURE against the best competitor platforms on the web; record conc"
+        }
+      ]
+    },
+    {
+      "path": "/brain/benchmark.sweep",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_benchmark_sweep",
+          "summary": "Benchmark every recent PRODUCT (all types) against the top similar items on the web; record gaps to "
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.improvements",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_improvements",
+          "summary": "The open competitor-driven improvement backlog (what to build to outmatch competitors). Params: limi"
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.improve",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_improve",
+          "summary": "Autonomously WORK the next (worst-scoring) competitor gap: dispatch the right agent to produce a con"
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.plans",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_plans",
+          "summary": "Planned competitor-outmatch build specs (ready for the operator/dev or a supervised build to execute"
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.ship.codegen",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_ship_codegen",
+          "summary": "Generate the next planned outmatch feature as an isolated Fastify plugin (code only — the host orche"
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.ship.mark",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_ship_mark",
+          "summary": "Record a ship outcome. Params: itemId, status(shipped|failed), route?, note?."
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.autoFeatures",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_autoFeatures",
+          "summary": "Report which auto-shipped features LOADED vs FAILED at boot (ship verification — catches a feature t"
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.shipped",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_shipped",
+          "summary": "List the autonomously shipped live features (and their routes)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/design.tshirt",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_design_tshirt",
+          "summary": "Render text into a professional T-shirt design as a high-res TRANSPARENT PNG (real fonts, crisp read"
+        }
+      ]
+    },
+    {
+      "path": "/brain/qc.improveDrafts",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_qc_improveDrafts",
+          "summary": "Improvement pass over gated DRAFTS: generate competitive sales copy and RECORD it in copy_proposals "
+        }
+      ]
+    },
+    {
+      "path": "/brain/qc.recoverDrafts",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_qc_recoverDrafts",
+          "summary": "Re-run the QC gate over stuck DRAFT products. DRY RUN by default: reports which drafts would pass an"
+        }
+      ]
+    },
+    {
+      "path": "/brain/qc.gate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_qc_gate",
+          "summary": "Run the mandatory pre-publish QC gate on a product (competitive comparison + compliance). pass=true "
+        }
+      ]
+    },
+    {
+      "path": "/brain/thumbnail.make",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_thumbnail_make",
+          "summary": "Generate a high-CTR thumbnail: striking image + huge bold hook text (outlined) + legibility gradient"
+        }
+      ]
+    },
+    {
+      "path": "/brain/sales.optimize",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_sales_optimize",
+          "summary": "Run the sales layer against ONE product and record SUGGESTIONS for human review: conversion copy to "
+        }
+      ]
+    },
+    {
+      "path": "/brain/sales.sweep",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_sales_sweep",
+          "summary": "Sweep un-swept live products, recording a conversion-copy proposal (copy_proposals) and a price prop"
+        }
+      ]
+    },
+    {
+      "path": "/brain/sales.audit",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_sales_audit",
+          "summary": "CRO audit — the cro_analyst finds the friction killing conversion + gives specific fixes (CTA, trust"
+        }
+      ]
+    },
+    {
+      "path": "/brain/project.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_project_list",
+          "summary": "List tracked initiatives (open first, by priority). Params: open?(true=only unfinished)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/project.add",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_project_add",
+          "summary": "Track a new initiative/project so it is not forgotten. Params: name, category?, status?, priority?(1"
+        }
+      ]
+    },
+    {
+      "path": "/brain/project.update",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_project_update",
+          "summary": "Update an initiative. Params: name, status?, priority?, nextAction?, blocker?."
+        }
+      ]
+    },
+    {
+      "path": "/brain/project.remind",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_project_remind",
+          "summary": "Push a phone digest (ntfy) of incomplete/stalled/blocked projects so the operator does not forget th"
+        }
+      ]
+    },
+    {
+      "path": "/brain/project.seed",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_project_seed",
+          "summary": "Seed the tracker with the current incomplete-items + missing-layers list (idempotent)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/knowledge.consolidate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_knowledge_consolidate",
+          "summary": "Ingest the org's real current state (economics, agent expertise, trends, competitors) into the RAG k"
+        }
+      ]
+    },
+    {
+      "path": "/brain/content.cycle",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_content_cycle",
+          "summary": "Run one content->post cycle NOW: seed store-linked topics, script, render narrated montage, publish "
+        }
+      ]
+    },
+    {
+      "path": "/brain/content.seedTrends",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_content_seedTrends",
+          "summary": "Pull LIVE free demand signals (Google Trends + Hacker News), LLM-frame them into on-brand short-form"
+        }
+      ]
+    },
+    {
+      "path": "/brain/video.study",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_study",
+          "summary": "Video team studies real short/long-form content → extracts a production playbook fed into the direct"
+        }
+      ]
+    },
+    {
+      "path": "/brain/video.playbook",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_playbook",
+          "summary": "View or rebuild the studied video production playbook (short + long form). params: rebuild?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/perf.resnapshot",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_perf_resnapshot",
+          "summary": "Re-fetch live stats for recently published videos (YouTube/Instagram/TikTok) so winners emerge. para"
+        }
+      ]
+    },
+    {
+      "path": "/brain/perf.winners",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_perf_winners",
+          "summary": "The best-performing topics/hooks on our own channels (fed into the script team)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pw.tools",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pw_tools",
+          "summary": "List every Playwright browser-automation tool available (discovery). No params."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pw.navigate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pw_navigate",
+          "summary": "Open a URL in the headless browser. params: url"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pw.snapshot",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pw_snapshot",
+          "summary": "Accessibility-tree snapshot of the current page — READ THIS to understand the page and get element r"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pw.click",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pw_click",
+          "summary": "Click an element. params: element (human-readable description), ref (element ref from browser.snapsh"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pw.type",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pw_type",
+          "summary": "Type text into an input. params: element, ref, text, submit? (press Enter after)"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pw.screenshot",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pw_screenshot",
+          "summary": "Screenshot the current page (returns MCP image content). params: fullPage?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pw.evaluate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pw_evaluate",
+          "summary": "Run a JS function in the page to extract data. params: function (e.g. \"() => document.title\")"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pw.call",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pw_call",
+          "summary": "Generic passthrough — call ANY Playwright MCP tool (use browser.tools to discover names, e.g. browse"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pw.close",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pw_close",
+          "summary": "Close the current browser page/context (frees memory, resets state). No params."
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.libraryLearnTick",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_libraryLearnTick",
+          "summary": "One career-learning tick for a library persona (least-learned, or params.agentId). Writes a first-pe"
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.libraryLearnStatus",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_libraryLearnStatus",
+          "summary": "How many of the imported agent_library personas have finished studying their whole career."
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.libraryBootstrap",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_libraryBootstrap",
+          "summary": "Kick off (in background) every agent_library persona studying its ENTIRE career syllabus. Returns im"
+        }
+      ]
+    },
+    {
+      "path": "/brain/drafts.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_drafts_list",
+          "summary": "List pending draft digital products (id, name, type, price, url, created). Params: limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/drafts.approve",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_drafts_approve",
+          "summary": "Approve a draft → compliance-check, then publish to Gumroad + record the approval (teaches agents). "
+        }
+      ]
+    },
+    {
+      "path": "/brain/drafts.reject",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_drafts_reject",
+          "summary": "Reject/archive a draft + record the rejection (teaches agents to avoid it). Params: productId, reaso"
+        }
+      ]
+    },
+    {
+      "path": "/brain/db.query",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_db_query",
+          "summary": "SELECT from a whitelisted table. Params: table, limit?, minutes?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/brain.query",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_brain_query",
+          "summary": "Dataview-style read-only query for chat/notes ```query blocks. Params: source (one of businesses|goa"
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.smoke",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_smoke",
+          "summary": "Hit every public GET route the UI uses; return pass/fail."
+        }
+      ]
+    },
+    {
+      "path": "/brain/providers.validate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_providers_validate",
+          "summary": "Probe every configured provider for liveness + auth."
+        }
+      ]
+    },
+    {
+      "path": "/brain/mind.cycle",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_mind_cycle",
+          "summary": "Force a capability-gap detection + planning cycle."
+        }
+      ]
+    },
+    {
+      "path": "/brain/provider.health.probe_all",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_provider_health_probe_all",
+          "summary": "R333: Probe every wired provider for liveness; classify failures (auth_revoked/billing_exhausted/rat"
+        }
+      ]
+    },
+    {
+      "path": "/brain/provider.health.snapshot",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_provider_health_snapshot",
+          "summary": "R333: Read the latest health snapshot (no probe)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/capability.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_capability_list",
+          "summary": "R333: List every operator capability + whether Novan does it autonomously yet."
+        }
+      ]
+    },
+    {
+      "path": "/brain/capability.gaps",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_capability_gaps",
+          "summary": "R333: Just the gaps — capabilities not yet implemented at Novan-autonomous level."
+        }
+      ]
+    },
+    {
+      "path": "/brain/capability.parity_report",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_capability_parity_report",
+          "summary": "R334: Score Novan vs Claude across every capability category. Honest evidence-based scoring 0-10 per"
+        }
+      ]
+    },
+    {
+      "path": "/brain/capability.next_target",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_capability_next_target",
+          "summary": "R334: Pick the highest-leverage Claude-parity gap to attack next (gap-size × tractability)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/privacy.check_submit",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_privacy_check_submit",
+          "summary": "R334: Test the privacy runtime gate. Pass {channel, fieldName, value} to see if it would block."
+        }
+      ]
+    },
+    {
+      "path": "/brain/brand.dba_propagation_plan",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_brand_dba_propagation_plan",
+          "summary": "R334: Generate the plan to propagate DBA across every connected platform."
+        }
+      ]
+    },
+    {
+      "path": "/brain/art.public_domain_fetch",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_art_public_domain_fetch",
+          "summary": "R335: Fetch CC0/public-domain art from Met/LoC/Smithsonian. Params: query, limit?, niche?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/decide.image_gen_fallback",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_decide_image_gen_fallback",
+          "summary": "R335: When image-gen providers are down, score paths (public domain / topup / fresh key / cap raise "
+        }
+      ]
+    },
+    {
+      "path": "/brain/decide.return_address",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_decide_return_address",
+          "summary": "R335: Return-address strategy decision (phase 1 case-by-case / virtual mailbox / PO box / home)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/lesson.applicable_for",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_lesson_applicable_for",
+          "summary": "R335: Pre-flight hook — return lessons applicable to an upcoming op. Params: op, tags?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/clarify.score_ambiguity",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_clarify_score_ambiguity",
+          "summary": "R336: Score ambiguity in a request 0-1 + propose clarify chips."
+        }
+      ]
+    },
+    {
+      "path": "/brain/report.revenue_by_business",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_report_revenue_by_business",
+          "summary": "R336: Generate revenue-by-business report. Params: format?, daysBack?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/report.capability_parity",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_report_capability_parity",
+          "summary": "R336: Generate Claude-parity report as markdown/csv table."
+        }
+      ]
+    },
+    {
+      "path": "/brain/memory.recall",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_memory_recall",
+          "summary": "#1 Semantic recall top-k chunks for a query. Params: query, k?, sourceType?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/policy.check_action",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_policy_check_action",
+          "summary": "R337: Check a proposed action against hard-policy registry. Params: type, channel, fieldOrLabel, val"
+        }
+      ]
+    },
+    {
+      "path": "/brain/confidence.score_op",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_confidence_score_op",
+          "summary": "R338: Score Novan confidence to attempt a given op (0-1 + recommendation)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.state_probe",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_state_probe",
+          "summary": "R338: Probe platform state before running onboarding workflow (plot-twist detector). Params: platfor"
+        }
+      ]
+    },
+    {
+      "path": "/brain/closer.tick",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_closer_tick",
+          "summary": "R339: Continuous-closer tick — pick next parity gap, draft closure proposal, persist."
+        }
+      ]
+    },
+    {
+      "path": "/brain/platform.poll_all",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platform_poll_all",
+          "summary": "R339: Poll every connected platform for state + alerts."
+        }
+      ]
+    },
+    {
+      "path": "/brain/verify.claim",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_verify_claim",
+          "summary": "R340: Adversarial verification of a claim across 6 lenses (correctness/security/cost/privacy/regress"
+        }
+      ]
+    },
+    {
+      "path": "/brain/review.source",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_review_source",
+          "summary": "R340: Static review of source content. Params: fileHint, content."
+        }
+      ]
+    },
+    {
+      "path": "/brain/skill.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_skill_list",
+          "summary": "List all skills registered for the workspace, sorted by uses."
+        }
+      ]
+    },
+    {
+      "path": "/brain/skill.rank_for_request",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_skill_rank_for_request",
+          "summary": "R341: Rank skills against a request given current op availability. Params: request, availableOps[]."
+        }
+      ]
+    },
+    {
+      "path": "/brain/mcp.plan_invocation",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_mcp_plan_invocation",
+          "summary": "R341: Pick best MCP/op chain for a capability. Params: capability, preferCost?, excludeProviders?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/prestaged.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_prestaged_list",
+          "summary": "R342: List all pre-staged operator deliverables (portfolio, application, listings, policies)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pod.account_kit",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pod_account_kit",
+          "summary": "R344: List all POD platforms with cost/margin/ban-risk + sequenced rollout plan."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pod.revenue_projection",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pod_revenue_projection",
+          "summary": "R345: Items-to-list math per platform for a target MRR. Params: targetMrrPerStoreUsd?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pod.portfolio_plan",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pod_portfolio_plan",
+          "summary": "R345: Optimal multi-store allocation to hit a TOTAL MRR target across all platforms. Params: totalTa"
+        }
+      ]
+    },
+    {
+      "path": "/brain/gumroad.whoami",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_gumroad_whoami",
+          "summary": "R346: Verify GUMROAD_ACCESS_TOKEN is configured and active."
+        }
+      ]
+    },
+    {
+      "path": "/brain/gumroad.list_products",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_gumroad_list_products",
+          "summary": "R346: List all existing Gumroad products."
+        }
+      ]
+    },
+    {
+      "path": "/brain/gumroad.publish_first_three",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_gumroad_publish_first_three",
+          "summary": "R346: Autonomously publish the 3 prestaged first-listings (woodpecker, iris, vintage map) via Gumroa"
+        }
+      ]
+    },
+    {
+      "path": "/brain/publish.mechanism_report",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_publish_mechanism_report",
+          "summary": "R347: Report which platforms publish via API (Novan autonomous) vs manual (operator). Codifies the n"
+        }
+      ]
+    },
+    {
+      "path": "/brain/publish.route_for_platform",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_publish_route_for_platform",
+          "summary": "R347: Plan publish route for a single platform. Returns mechanism + ready/blocked + next action. Par"
+        }
+      ]
+    },
+    {
+      "path": "/brain/publish.list_ready",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_publish_list_ready",
+          "summary": "R347: List all platforms where Novan can publish autonomously right now."
+        }
+      ]
+    },
+    {
+      "path": "/brain/design.generate_batch",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_design_generate_batch",
+          "summary": "R349: Generate N designs in a niche. Params: niche, subjects[], styleOverride?, promptTemplateIndex?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/design.suggest_subjects",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_design_suggest_subjects",
+          "summary": "R349: List curated subject ideas per niche, drawn from POD bestseller patterns."
+        }
+      ]
+    },
+    {
+      "path": "/brain/image.generate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_image_generate",
+          "summary": "Generate an image via Pollinations.ai (free, no key, FLUX). Params: prompt (≤500 chars), width?=1024"
+        }
+      ]
+    },
+    {
+      "path": "/brain/uptime.status",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_uptime_status",
+          "summary": "Read-only: list current uptime-check state for all monitored endpoints (last status, consecutive fai"
+        }
+      ]
+    },
+    {
+      "path": "/brain/uptime.check_now",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_uptime_check_now",
+          "summary": "Run an uptime check sweep immediately. Returns {checked, downCount, alertsFired}."
+        }
+      ]
+    },
+    {
+      "path": "/brain/consensus.ask",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_consensus_ask",
+          "summary": "Consensus Mode: fire ONE prompt to THREE free OpenRouter models in PARALLEL and return all three res"
+        }
+      ]
+    },
+    {
+      "path": "/brain/assets.audit",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_assets_audit",
+          "summary": "Asset Integrity Auditor: scan digital_products and report any whose image_url points at the local ss"
+        }
+      ]
+    },
+    {
+      "path": "/brain/assets.repair_missing",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_assets_repair_missing",
+          "summary": "Asset Integrity Auditor — repair: audit first, then for each missing product (up to maxRepair, defau"
+        }
+      ]
+    },
+    {
+      "path": "/brain/compliance.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_compliance_list",
+          "summary": "R147: List active blocklist phrases for the workspace. Read-only."
+        }
+      ]
+    },
+    {
+      "path": "/brain/compliance.add",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_compliance_add",
+          "summary": "R147: Add a blocklist phrase. Lowercased + trimmed. Idempotent. Params: phrase (required), source?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/compliance.remove",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_compliance_remove",
+          "summary": "R147: Deactivate a blocklist phrase by id (soft-delete). Params: id (required)"
+        }
+      ]
+    },
+    {
+      "path": "/brain/compliance.scrub",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_compliance_scrub",
+          "summary": "R147: Scrub a text string against active blocklist phrases (case-insensitive whole-word). Pure — no "
+        }
+      ]
+    },
+    {
+      "path": "/brain/finance.winner_reseed",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_finance_winner_reseed",
+          "summary": "R147: Seed up to N draft variants from top-selling products via OpenRouter free LLM. Honestly return"
+        }
+      ]
+    },
+    {
+      "path": "/brain/trends.scout",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_trends_scout",
+          "summary": "R147: Suggest SEO-optimized title + trending tags + pin hook for a product via OpenRouter free LLM. "
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.prospect_add",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_prospect_add",
+          "summary": "Add a prospective affiliate partner (manual entry). Params: handle, platform, followerCount?, niche?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.prospects_list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_prospects_list",
+          "summary": "List affiliate prospects. Params: status? (uncontacted|pitch_drafted|pitch_approved|sent|accepted|de"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.prospect_remove",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_prospect_remove",
+          "summary": "Delete an affiliate prospect (cascades to drafts, tokens, commissions). Params: id"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.draft_pitch",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_draft_pitch",
+          "summary": "Draft a personalized outreach DM for an affiliate prospect via free OpenRouter LLM. Compliance-scrub"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.draft_approve",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_draft_approve",
+          "summary": "Approve an outreach draft and provision a tracking token. Params: draftId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.draft_mark_sent",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_draft_mark_sent",
+          "summary": "Mark an approved draft as sent (operator sent the DM manually). Params: draftId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.draft_reject",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_draft_reject",
+          "summary": "Reject an outreach draft. Params: draftId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.token_provision",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_token_provision",
+          "summary": "Provision a tracking token for a prospect. Params: prospectId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.tokens_list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_tokens_list",
+          "summary": "List affiliate tracking tokens. Params: prospectId?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.commission_record",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_commission_record",
+          "summary": "Record a commission from a real sale (called by webhook hook). Params: token, businessRevenueId, gro"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.commissions_list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_commissions_list",
+          "summary": "List commissions with totals. Params: status? (pending|cleared|paid_manually|all), prospectId?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.commission_clear",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_commission_clear",
+          "summary": "Mark a pending commission as cleared (past refund cooldown). Params: commissionId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.commission_mark_paid",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_commission_mark_paid",
+          "summary": "Operator confirms a cleared commission was paid manually. Params: commissionId, paidMethod, paidRefe"
+        }
+      ]
+    },
+    {
+      "path": "/brain/affiliate.summary",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_affiliate_summary",
+          "summary": "Affiliate program summary: prospect counts by status, commission totals by status, top 5 partners by"
+        }
+      ]
+    },
+    {
+      "path": "/brain/ntfy.send",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_ntfy_send",
+          "summary": "R149: Push a phone alert via ntfy.sh. Params: {title, message, severity?, tags?}"
+        }
+      ]
+    },
+    {
+      "path": "/brain/ntfy.test",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_ntfy_test",
+          "summary": "R149: Send a canned test alert to verify ntfy wiring."
+        }
+      ]
+    },
+    {
+      "path": "/brain/ntfy.status",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_ntfy_status",
+          "summary": "R149: Report whether NTFY_TOPIC is configured. Topic is masked — never returned in full."
+        }
+      ]
+    },
+    {
+      "path": "/brain/design.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_design_list",
+          "summary": "R349: List recent designs from the catalog. Params: niche?, limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/design.get",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_design_get",
+          "summary": "R357: Fetch ONE design by id with the FULL image_url (not truncated). Used by the local-agent design"
+        }
+      ]
+    },
+    {
+      "path": "/brain/listing.generate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_listing_generate",
+          "summary": "R349: Generate platform-tuned listing content (title/desc/tags/price/file-hint). Params: platform, s"
+        }
+      ]
+    },
+    {
+      "path": "/brain/listing.generate_multi",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_listing_generate_multi",
+          "summary": "R349: Generate listing content for ONE design across MULTIPLE platforms. Params: platforms[], subjec"
+        }
+      ]
+    },
+    {
+      "path": "/brain/upload_queue.add",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_upload_queue_add",
+          "summary": "R349: Add a design to the upload queue for a platform. Params: designId, platform, title, descriptio"
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.heartbeat",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_heartbeat",
+          "summary": "R358: Local-agent posts a heartbeat per tick. Params: agentId, platforms[], uploads, failures, versi"
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.report_event",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_report_event",
+          "summary": "R358: Local-agent posts an upload outcome. Params: agentId, platform, queueItemId, status (success|s"
+        }
+      ]
+    },
+    {
+      "path": "/brain/agent.report_failure",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_agent_report_failure",
+          "summary": "R358: Local-agent reports a driver crash with screenshot + error context. Params: agentId, platform,"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pinterest.enqueue",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pinterest_enqueue",
+          "summary": "R368: Add a pin to the Pinterest queue. Params: title, description, tags[], linkUrl, boardName?, des"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pinterest.next",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pinterest_next",
+          "summary": "R368: Pull the next pin to post (respects 5/day cap)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pinterest.mark_posted",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pinterest_mark_posted",
+          "summary": "R368: Mark a pin as live. Params: pinQueueId, externalUrl"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pinterest.mark_failed",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pinterest_mark_failed",
+          "summary": "R368: Mark a pin as failed. Params: pinQueueId, reason"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pinterest.stats",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pinterest_stats",
+          "summary": "R368: Pin queue stats (queued / posted / today / remaining)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pinterest.bulk_load",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pinterest_bulk_load",
+          "summary": "R368: Bulk-load pins (idempotent on workspace+title). Params: pins[]"
+        }
+      ]
+    },
+    {
+      "path": "/brain/social.connection_status",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_social_connection_status",
+          "summary": "R163: Per-platform browser-login status (pinterest/tiktok/youtube/instagram/etsy/gumroad/inprnt/redb"
+        }
+      ]
+    },
+    {
+      "path": "/brain/social.pin_queue_summary",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_social_pin_queue_summary",
+          "summary": "R163: pinterest_pin_queue counts by status + last 5 queued pins (the posting pipeline)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/video_channels.add_pinterest_default",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_video_channels_add_pinterest_default",
+          "summary": "R163: One-shot — append \"pinterest\" to target_platforms of every active channel that lacks it. Retur"
+        }
+      ]
+    },
+    {
+      "path": "/brain/next_actions.push",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_next_actions_push",
+          "summary": "R386: For each workspace, if top action changed and score ≥ 60, send web-push to subscribed devices "
+        }
+      ]
+    },
+    {
+      "path": "/brain/variants.generate_for_design",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_variants_generate_for_design",
+          "summary": "R390: Force-generate winner variants for any designId (operator override; sale-triggered path also c"
+        }
+      ]
+    },
+    {
+      "path": "/brain/niches.recommend_weights",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_niches_recommend_weights",
+          "summary": "R405: Recommended per-niche generation counts for the next pipeline. 70% to proven niches (softmax o"
+        }
+      ]
+    },
+    {
+      "path": "/brain/niches.performance",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_niches_performance",
+          "summary": "R404: Revenue/sales/winner-rate aggregated by niche. Drives next pipeline focus."
+        }
+      ]
+    },
+    {
+      "path": "/brain/sales.bulk_import",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_sales_bulk_import",
+          "summary": "R419: Import sales from non-webhook platforms (Etsy/INPRNT/etc). Params: rows[] {sale_id, source, ne"
+        }
+      ]
+    },
+    {
+      "path": "/brain/workspace.set_summary_hour",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_workspace_set_summary_hour",
+          "summary": "R454: Operator preferred daily-summary hour (0-23) in their tz. Default 8."
+        }
+      ]
+    },
+    {
+      "path": "/brain/workspace.set_timezone",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_workspace_set_timezone",
+          "summary": "R437: Set operator IANA timezone (e.g. America/Chicago). Reschedules daily/weekly pushes to operator"
+        }
+      ]
+    },
+    {
+      "path": "/brain/workspace.get_timezone",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_workspace_get_timezone",
+          "summary": "R437: Get operator IANA timezone for this workspace."
+        }
+      ]
+    },
+    {
+      "path": "/brain/spend.snapshot",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_spend_snapshot",
+          "summary": "R428: Today's AI spend per source + cap status if NOVAN_DAILY_AI_BUDGET_USD configured."
+        }
+      ]
+    },
+    {
+      "path": "/brain/mrr.project",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_mrr_project",
+          "summary": "R414: Forward MRR projection — 7d/14d rate, acceleration, projected days to each next tier."
+        }
+      ]
+    },
+    {
+      "path": "/brain/platforms.list_disabled",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platforms_list_disabled",
+          "summary": "R412: Workspace platforms auto-disabled due to 10+ failures + 0 success in 7d."
+        }
+      ]
+    },
+    {
+      "path": "/brain/platforms.enable",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platforms_enable",
+          "summary": "R412: Operator re-enables a previously auto-disabled platform. Params: platform"
+        }
+      ]
+    },
+    {
+      "path": "/brain/designs.coverage",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_designs_coverage",
+          "summary": "R410: Per-design platform coverage map (live/queued/failed/missing). Params: design_ids? (default: t"
+        }
+      ]
+    },
+    {
+      "path": "/brain/designs.performance",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_designs_performance",
+          "summary": "R395: Top designs by revenue + winner-score (usd/day × recency). Drives R374/R390 decisions."
+        }
+      ]
+    },
+    {
+      "path": "/brain/queue.stuck",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_queue_stuck",
+          "summary": "R391: Items queued >48h with no attempt. Operator may want to reprioritize, switch platform, or kill"
+        }
+      ]
+    },
+    {
+      "path": "/brain/dashboard.snapshot",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_dashboard_snapshot",
+          "summary": "R715: operator dashboard state as JSON (for API tools). The full HTML lives at GET /dashboard?token="
+        }
+      ]
+    },
+    {
+      "path": "/brain/session.touch",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_session_touch",
+          "summary": "R506: Local agent reports a successful upload or login check for this (workspace, platform). Params:"
+        }
+      ]
+    },
+    {
+      "path": "/brain/session.ages",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_session_ages",
+          "summary": "R506: How old is each platform session per workspace."
+        }
+      ]
+    },
+    {
+      "path": "/brain/webhook.self_test",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_webhook_self_test",
+          "summary": "R502: Fire a synthetic Gumroad ping at our own /webhooks/gumroad/sale to verify URL/token/parser/DB."
+        }
+      ]
+    },
+    {
+      "path": "/brain/platforms.earnings",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_platforms_earnings",
+          "summary": "R511/R512: Per-source revenue + estimated net-after-fees. Params: sinceDays?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/metrics.period_comparison",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_metrics_period_comparison",
+          "summary": "R513: WoW + MoM uploads / sales / gross with delta percentages."
+        }
+      ]
+    },
+    {
+      "path": "/brain/tax.thresholds",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_tax_thresholds",
+          "summary": "R510: YTD gross by source vs 1099-K thresholds; fires push at 80% and 100%."
+        }
+      ]
+    },
+    {
+      "path": "/brain/imagegen.provider_health",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_imagegen_provider_health",
+          "summary": "R509: Last seen health per image-gen provider (fal/replicate/stability/openai)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/buyers.list_optins",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_buyers_list_optins",
+          "summary": "R517: List opted-in buyer emails (most recent first). Params: limit? (default 100, max 500)"
+        }
+      ]
+    },
+    {
+      "path": "/brain/backup.offsite_sync",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_backup_offsite_sync",
+          "summary": "R508: Force an offsite S3 sync of the latest local backup files. Requires NOVAN_OFFSITE_S3_* env."
+        }
+      ]
+    },
+    {
+      "path": "/brain/gdpr.delete_email",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_gdpr_delete_email",
+          "summary": "R515: GDPR/CCPA — redact a buyer email from all stored rows. Params: email"
+        }
+      ]
+    },
+    {
+      "path": "/brain/dmca.file",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_dmca_file",
+          "summary": "R516: Record a DMCA claim + return draft notice text. Params: offendingUrl, platform?, originalDesig"
+        }
+      ]
+    },
+    {
+      "path": "/brain/dmca.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_dmca_list",
+          "summary": "R516: Recent DMCA claims for this workspace."
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.roster",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_roster",
+          "summary": "R589: Roster for one business — all members with effective access (workspace-wide + business-scoped)"
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.all_rosters",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_all_rosters",
+          "summary": "R589: Roster for every business in this workspace."
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.rollup",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_rollup",
+          "summary": "R587: Workspace-wide rollup — total businesses, active in 24h, by stage, by health."
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.cron_fanout_test",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_cron_fanout_test",
+          "summary": "R587: Run a no-op fan-out across all businesses (verifies the iteration + skip logic without side ef"
+        }
+      ]
+    },
+    {
+      "path": "/brain/parity.file_self_dev",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_parity_file_self_dev",
+          "summary": "R590: File high-confidence (>=90 by default) R584 parity entries as R195 self_dev_proposal draft. Op"
+        }
+      ]
+    },
+    {
+      "path": "/brain/parity.preview_self_dev",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_parity_preview_self_dev",
+          "summary": "R590: Preview what file_self_dev would queue without writing. Params: minScore?, max?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.list_members",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_list_members",
+          "summary": "R585: List active team members in workspace. Params: businessId? (filter to one)"
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.invite",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_invite",
+          "summary": "R585: Create email invite. Params: email, role (admin|manager|operator|va|accountant|viewer), busine"
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.list_invites",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_list_invites",
+          "summary": "R585: Pending invites for this workspace."
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.accept_invite",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_accept_invite",
+          "summary": "R585: Accept an invite via token. Params: token"
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.cancel_invite",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_cancel_invite",
+          "summary": "R585: Cancel a pending invite. Params: inviteId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.set_role",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_set_role",
+          "summary": "R585: Change member role. Params: memberId, role"
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.revoke",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_revoke",
+          "summary": "R585: Revoke a member. Params: memberId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/team.can_run_op",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_team_can_run_op",
+          "summary": "R585: Check if email can run a (op, risk) within business scope. Params: email, opName, opRisk, busi"
+        }
+      ]
+    },
+    {
+      "path": "/brain/connector.registry",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_connector_registry",
+          "summary": "R581: All known connectors with config + health (last_ok_at, fails, errors)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/connector.summary",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_connector_summary",
+          "summary": "R581: Connector health rollup — total, configured, healthy, unhealthy, by-kind breakdown."
+        }
+      ]
+    },
+    {
+      "path": "/brain/memory.embed_backfill",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_memory_embed_backfill",
+          "summary": "R582: Embed entries that lack a vector. Params: max?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/memory.recall_stats",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_memory_recall_stats",
+          "summary": "R582: How much of workspace_memory is embedded."
+        }
+      ]
+    },
+    {
+      "path": "/brain/plan.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_plan_list",
+          "summary": "R646a: List plans in workspace. Params: limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/plan.approve",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_plan_approve",
+          "summary": "R583: Approve a proposal + pick an alternative index. Params: planId, chosenIdx"
+        }
+      ]
+    },
+    {
+      "path": "/brain/plan.reject",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_plan_reject",
+          "summary": "R583: Reject a proposal. Params: planId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/competitor.score_batch",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_competitor_score_batch",
+          "summary": "R584: Score unscored competitor entries via Claude. Emits parity_gap events for score >= 70."
+        }
+      ]
+    },
+    {
+      "path": "/brain/competitor.top_unshipped",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_competitor_top_unshipped",
+          "summary": "R584: Top-scored competitor features Novan has not yet shipped. Params: limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.list_active",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_list_active",
+          "summary": "R580: List businesses in this workspace with default-flag, stage, health, and last-active-at heartbe"
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.set_default",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_set_default",
+          "summary": "R580: Set the workspace default business_id. Used when callers omit business_id. Params: businessId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.budget_set",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_budget_set",
+          "summary": "R580: Set per-business daily AI budget cap in USD. Params: businessId, dailyUsd"
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.spend_today",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_spend_today",
+          "summary": "R580: Per-business AI spend today + by-source breakdown. Params: businessId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.kill_switch_set",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_kill_switch_set",
+          "summary": "R580: Engage/disengage per-business kill switch (separate from workspace-wide R443). Params: busines"
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.archive",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_archive",
+          "summary": "R715: Archive a business — hides it from portfolio.list/status (sets metrics.archived). Use to retir"
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.unarchive",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_unarchive",
+          "summary": "R715: Unarchive a business (clears metrics.archived) so it shows + is worked again. Params: business"
+        }
+      ]
+    },
+    {
+      "path": "/brain/business.autonomy_status",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_business_autonomy_status",
+          "summary": "R580: Whether autonomous writes are allowed for this (workspace, business). Params: businessId"
+        }
+      ]
+    },
+    {
+      "path": "/brain/competitor.seed_feeds",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_competitor_seed_feeds",
+          "summary": "R579: Insert default competitor feed list (Anthropic, OpenAI, Cursor, etc) into competitor_feeds. Id"
+        }
+      ]
+    },
+    {
+      "path": "/brain/competitor.scan_all",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_competitor_scan_all",
+          "summary": "R579: Fetch every enabled feed, scrape headings, dedupe entries, mark scanned_at."
+        }
+      ]
+    },
+    {
+      "path": "/brain/competitor.recent_entries",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_competitor_recent_entries",
+          "summary": "R579: Last-N competitor feed entries with parity scores. Params: limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/email.send",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_email_send",
+          "summary": "R578: Send email via configured transport (Postmark). Respects R517 opt-in unless bypassOptIn. Param"
+        }
+      ]
+    },
+    {
+      "path": "/brain/email.log_tail",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_email_log_tail",
+          "summary": "R578: Recent email-send log entries for this workspace. Params: limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/email.stats",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_email_stats",
+          "summary": "R578: Today + 7d send counts, status breakdown."
+        }
+      ]
+    },
+    {
+      "path": "/brain/memory.compact",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_memory_compact",
+          "summary": "R575: Compact low+mid importance workspace_memory entries older than 90d/180d into per-scope summari"
+        }
+      ]
+    },
+    {
+      "path": "/brain/memory.stats",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_memory_stats",
+          "summary": "R575: workspace_memory size + average importance + oldest entry per scope."
+        }
+      ]
+    },
+    {
+      "path": "/brain/memory.compact_chains",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_memory_compact_chains",
+          "summary": "R720: Compress old reasoning_chains rows into workspace_memory archive summaries via free LLM. Bound"
+        }
+      ]
+    },
+    {
+      "path": "/brain/hooks.create",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_hooks_create",
+          "summary": "R576: Register a pre/post hook on op-name pattern. Params: opPattern (glob), whenKind (pre|post), ac"
+        }
+      ]
+    },
+    {
+      "path": "/brain/hooks.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_hooks_list",
+          "summary": "R576: All hooks for this workspace."
+        }
+      ]
+    },
+    {
+      "path": "/brain/hooks.set_enabled",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_hooks_set_enabled",
+          "summary": "R576: Enable/disable a hook. Params: hookId, enabled"
+        }
+      ]
+    },
+    {
+      "path": "/brain/hooks.delete",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_hooks_delete",
+          "summary": "R576: Delete a hook."
+        }
+      ]
+    },
+    {
+      "path": "/brain/registry.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_registry_list",
+          "summary": "R573: All brain ops with name/description/risk/category. For plugin discovery / external docs."
+        }
+      ]
+    },
+    {
+      "path": "/brain/federation.opt_in",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_federation_opt_in",
+          "summary": "R570: Opt this workspace in to the cross-operator bandit pool (anonymized SHA256 hashes only)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/federation.opt_out",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_federation_opt_out",
+          "summary": "R570: Stop contributing to / reading from the cross-operator bandit pool."
+        }
+      ]
+    },
+    {
+      "path": "/brain/federation.stats",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_federation_stats",
+          "summary": "R570: Federation pool size + freshness (entries, total sales, oldest/newest signal)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/federation.trending",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_federation_trending",
+          "summary": "R570: Top-N rising products by sales velocity over a lookback window. Params: lookbackDays?, topN?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/brand.get",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_brand_get",
+          "summary": "R571: Get this workspace’s brand profile (tone, persona, banned/required phrases, examples)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/brand.set",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_brand_set",
+          "summary": "R571: Update brand profile. Params: any of {brandName, tone, persona, audience, styleGuide, bannedPh"
+        }
+      ]
+    },
+    {
+      "path": "/brain/brand.validate",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_brand_validate",
+          "summary": "R571: Scan an output for brand violations. Params: output"
+        }
+      ]
+    },
+    {
+      "path": "/brain/finance.reserve_recommendations",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_finance_reserve_recommendations",
+          "summary": "R572: Recompute recommended reserves per source from refund-rate observations."
+        }
+      ]
+    },
+    {
+      "path": "/brain/voice.omni.health",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_voice_omni_health",
+          "summary": "R599: Probe OmniVoice Studio local server. Records connector health."
+        }
+      ]
+    },
+    {
+      "path": "/brain/voice.omni.list_voices",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_voice_omni_list_voices",
+          "summary": "R599: List voices from OmniVoice /v1/voices."
+        }
+      ]
+    },
+    {
+      "path": "/brain/voice.omni.tts",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_voice_omni_tts",
+          "summary": "R599: Generate speech via OmniVoice. Params: text, voice?, language?, speed?, format? (mp3|wav|flac|"
+        }
+      ]
+    },
+    {
+      "path": "/brain/voice.omni.asr",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_voice_omni_asr",
+          "summary": "R599: Transcribe audio via OmniVoice. Params: audioBase64, filename?, language?, model?, prompt?. Re"
+        }
+      ]
+    },
+    {
+      "path": "/brain/voice.omni.clone",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_voice_omni_clone",
+          "summary": "R599: Create a voice profile from a 3-sec sample. Params: name, audioBase64, filename?, refText?, la"
+        }
+      ]
+    },
+    {
+      "path": "/brain/voice.omni.dub_start",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_voice_omni_dub_start",
+          "summary": "R599: Start a video dub job (YouTube URL or any media URL). Params: url, targetLanguages[]?, voice?,"
+        }
+      ]
+    },
+    {
+      "path": "/brain/voice.omni.dub_status",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_voice_omni_dub_status",
+          "summary": "R599: Poll dub job status. Params: jobId."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pipeline.seed",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pipeline_seed",
+          "summary": "R598: Install 4 canonical end-to-end pipelines (idempotent)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pipeline.define",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pipeline_define",
+          "summary": "R598: Create/update a pipeline. Params: name, stages[], description?, scheduleCron?, businessId?, en"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pipeline.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pipeline_list",
+          "summary": "R598: List all pipelines for this workspace."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pipeline.run",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pipeline_run",
+          "summary": "R598: Execute a pipeline by name. Params: name, trigger?, params?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pipeline.runs",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pipeline_runs",
+          "summary": "R598: Recent runs. Params: name?, limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pipeline.health",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pipeline_health",
+          "summary": "R598: Per-pipeline health snapshot (last-run age, 7d success rate, staleness)."
+        }
+      ]
+    },
+    {
+      "path": "/brain/pipeline.overdue",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pipeline_overdue",
+          "summary": "R614: List enabled pipelines whose last successful run is older than their most recent expected fire"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pipeline.fire_overdue",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pipeline_fire_overdue",
+          "summary": "R614: Run every overdue pipeline once. Honors business autonomy/budget per stage. Returns per-pipeli"
+        }
+      ]
+    },
+    {
+      "path": "/brain/pipeline.set_enabled",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_pipeline_set_enabled",
+          "summary": "R598: Enable or disable a pipeline. Params: name, enabled"
+        }
+      ]
+    },
+    {
+      "path": "/brain/standards.discover",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_standards_discover",
+          "summary": "R597: Scan repo for recurring patterns, return candidate standards (does NOT auto-insert). Params: p"
+        }
+      ]
+    },
+    {
+      "path": "/brain/standards.promote",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_standards_promote",
+          "summary": "R597: Promote a discovered candidate to a real standard. Params: slug (must match a recent discover "
+        }
+      ]
+    },
+    {
+      "path": "/brain/standards.injectExplicit",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_standards_injectExplicit",
+          "summary": "R597: Inject standards by explicit slugs or category (no detection). Params: slugs[]? OR category?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/spec.archive",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_spec_archive",
+          "summary": "R597: Persist a timestamped spec folder (plan + shape + standards snapshot + references). Params: sl"
+        }
+      ]
+    },
+    {
+      "path": "/brain/spec.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_spec_list",
+          "summary": "R597: List archived specs. Params: limit?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/spec.get",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_spec_get",
+          "summary": "R597: Fetch a single spec artifact. Params: id"
+        }
+      ]
+    },
+    {
+      "path": "/brain/product.set",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_product_set",
+          "summary": "R597: Set a product artifact. Params: kind (mission|roadmap|techstack), bodyMd, businessId?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/product.get",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_product_get",
+          "summary": "R597: Get a product artifact. Params: kind (mission|roadmap|techstack), businessId?"
+        }
+      ]
+    },
+    {
+      "path": "/brain/product.list",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "brain_product_list",
+          "summary": "R597: List all product artifacts. Params: businessId?"
+        }
+      ]
+    }
+  ]
+}
