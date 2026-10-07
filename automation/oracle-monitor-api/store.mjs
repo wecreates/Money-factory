@@ -36,6 +36,29 @@ export function deleteWatch(store,clientId,id){
   return store.watches.length!==before;
 }
 
+export function applyCheck(store,id,{hash,checkedAt,status}){
+  const watch=store.watches.find(w=>w.id===String(id));
+  if(!watch) return null;
+  const previous=watch.last_value;
+  const changed=previous!==null && previous!==hash;
+  watch.last_value=hash;
+  watch.last_checked_at=checkedAt;
+  watch.last_status=status;
+  if(changed){
+    watch.last_change_at=checkedAt;
+    store.events.unshift({
+      id:crypto.randomUUID(),
+      client_id:watch.client_id,
+      watch_id:watch.id,
+      type:'change',
+      at:checkedAt,
+      label:watch.label,
+      target_url:watch.target_url
+    });
+  }
+  return {watch,changed};
+}
+
 export function listEvents(store,clientId){
   return store.events.filter(e=>e.client_id===String(clientId));
 }
