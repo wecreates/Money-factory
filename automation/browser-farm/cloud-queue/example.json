@@ -1,0 +1,6 @@
+{
+  "id": "public-smoke",
+  "business": "public-checks",
+  "type": "inspect",
+  "url": "https://example.com/"
+}
