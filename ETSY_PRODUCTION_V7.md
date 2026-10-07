@@ -1,72 +1,53 @@
-# CYZOR Etsy Digital-Only Production v7
+# CYZOR Etsy Digital-Only Production v8
 
 Updated: 2026-10-06
 
-## Final production state
+## Production master
 
-- 59 current Etsy listings rebuilt as digital-download products.
-- POD removed from the production strategy.
-- 59/59 listings have:
-  - digital-only product type target;
-  - conversion-focused Etsy title;
-  - 13 tags;
-  - digital-only description;
-  - price target;
-  - 4 listing images;
-  - actual downloadable product files.
-- Physical stickers/apparel were converted to original digital sticker/clipart packs.
-- Physical wall art was converted to high-resolution printable art bundles.
-- Spreadsheet listings only retain spreadsheet claims where an XLSX is actually included.
-- Hyperlinked/editable/count claims were removed unless actually supported.
-- Sticker packs include transparent PNG assets.
-- Wall-art bundles include high-resolution JPG files plus PDF.
-- First-image retail headlines are intentionally shorter than the SEO listing title.
+Persistent Library archive:
+`/CYZOR Etsy/CYZOR-Etsy-59-Digital-Only-Production-v8.zip`
 
-## Visual system
+SHA-256:
+`3cf22fda23fb5d6923306065c57270e3df789b914af78beeda07a7c9a480e612`
 
-- Inter-based typography.
-- restrained editorial color palette;
-- one accent per product family;
-- real product previews rather than fake product renders;
-- no fake reviews;
-- no fake urgency;
-- no AI-generated decorative clutter;
-- no POD mockups;
-- hero text optimized for Etsy thumbnail readability.
+## Completed
 
-## QA
+- 59/59 current listings rebuilt for digital-download-only operation.
+- POD removed from the Etsy catalog strategy.
+- 59/59 have conversion-focused listing titles.
+- 59/59 have 13 tags.
+- 59/59 have digital-only descriptions.
+- 59/59 have price targets.
+- 59/59 have four 2000px-wide listing images.
+- First-image retail headlines are shorter than SEO titles for thumbnail readability.
+- Spreadsheet claims remain only where an XLSX is actually included.
+- Hyperlinked/editable/count claims were removed unless supported.
+- Physical sticker/apparel concepts became original digital sticker/clipart packs.
+- Sticker products include transparent PNG assets.
+- Physical wall art became original high-resolution printable JPG + PDF collections.
+- Store branding pack added:
+  - 1600x400 big banner
+  - 1600x213 mini banner
+  - 500x500 shop icon
+  - 1520x200 order receipt banner
+- Shop title/announcement/About copy rewritten for a 100% digital storefront.
+- Portfolio hero-image contact sheet reviewed for visual consistency.
 
-Production QA result:
-- listing_count: 59
-- all_digital: true
-- all_have_13_tags: true
-- all_have_4_images: true
-- unsupported_claims: 0
+## Final QA
 
-Production archive SHA-256:
-`03239f113677bb683574d4fc752277a1bd9bf074d97e0c9363177ad9c715264d`
+- listing_count = 59
+- all_digital = true
+- all_have_13_tags = true
+- all_have_4_images = true
+- unsupported_claims = 0
 
-Persistent Library files:
-- `/CYZOR Etsy/CYZOR-Etsy-59-Digital-Only-Production-v7.zip`
-- `/CYZOR Etsy/VELA-BULK-UPDATE-v7.csv`
-- `/CYZOR Etsy/59-HERO-CONTACT-SHEET-v7.jpg`
+## Current live blocker
 
-## Live application path
+The production files are complete, but the live Etsy storefront still needs authenticated seller-side application.
 
-Preferred path because Etsy developer API access was rejected:
-1. Connect CyzorCreations to Vela.
-2. Export the 59 current listings from Vela.
-3. Merge/update using `VELA-BULK-UPDATE-v7.csv`.
-4. Force all intended active listings to digital-download only.
-5. Attach corresponding digital product files from the v7 archive.
-6. Apply corrected Etsy categories/attributes.
-7. Upload the four listing images per listing.
-8. Review changes in Vela before sync.
-9. Sync to Etsy.
-10. Verify all 59 public pages after sync.
+Preferred application route:
+Vela -> Etsy, because the owner's Etsy developer API applications were rejected.
 
-Fallback:
-- Etsy native bulk edit for metadata fields;
-- authenticated browser automation for fields Vela cannot change.
+Vela can bulk edit titles, descriptions, pricing, categories, attributes, and photos, and its CSV import supports direct media/digital-file URLs. Existing listing IDs must remain unchanged when updating existing listings.
 
-Do not delete old listings blindly. Where a physical listing is being changed into a fundamentally different digital product, compare preserving the listing versus creating a clean replacement before sync.
+No live Sync should occur until the entire staging batch is reviewed.
