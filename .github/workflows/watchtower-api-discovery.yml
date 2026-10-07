@@ -1,0 +1,29 @@
+name: CYZOR Watchtower API Discovery
+
+on:
+  push:
+    paths:
+      - 'automation/novan-scheduler/watchtower-api-discovery.mjs'
+      - '.github/workflows/watchtower-api-discovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node automation/novan-scheduler/watchtower-api-discovery.mjs
+      - shell: bash
+        run: |
+          git config user.name "cyzor-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add WATCHTOWER_API_DISCOVERY.json WATCHTOWER_API_DISCOVERY.txt
+          git diff --cached --quiet || git commit -m "discover Watchtower API calls"
+          git push
