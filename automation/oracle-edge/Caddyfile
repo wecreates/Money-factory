@@ -1,0 +1,17 @@
+:80 {
+  encode zstd gzip
+
+  @monitor path /health /api/v1/ext/watch* /api/v1/ext/events*
+  handle @monitor {
+    reverse_proxy oracle-monitor-api:8080
+  }
+
+  handle {
+    reverse_proxy https://137.184.198.2 {
+      header_up Host cyzorcreations.com
+      transport http {
+        tls_server_name cyzorcreations.com
+      }
+    }
+  }
+}
