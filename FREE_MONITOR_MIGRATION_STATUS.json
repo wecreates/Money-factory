@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-10-07T16:25:29.463Z",
+  "scheduler_replacement": "GitHub Actions",
+  "digitalocean_scheduler_required": false,
+  "verification": {
+    "pass": true,
+    "before_last_checked_at": 1791390152588,
+    "first_cycle_last_checked_at": 1791390329421,
+    "second_cycle_last_checked_at": 1791390329462,
+    "advanced_first_cycle": true,
+    "advanced_second_cycle": true,
+    "http_status": 200
+  },
+  "production_readiness": {
+    "worker_logic": "PASS",
+    "tests": "PASS",
+    "persisted_state": "PASS",
+    "persisted_events": "PASS",
+    "scheduled_workflow": "CONFIGURED",
+    "smoke_watch": "RETIRED_AFTER_PASS"
+  },
+  "remaining_migration_scope": [
+    "Move the existing production watch API/data source off the DigitalOcean-hosted Novan server if full DigitalOcean removal is desired.",
+    "Provision the staged Oracle Always Free node for persistent browser/server workloads when the account is available."
+  ]
+}
