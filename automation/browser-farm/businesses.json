@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "businesses": [
+    {
+      "id": "etsy",
+      "enabled": true,
+      "priority": 100,
+      "mode": "persistent",
+      "max_concurrent": 1,
+      "notes": "CYZOR Etsy digital store"
+    },
+    {
+      "id": "chrome-store",
+      "enabled": true,
+      "priority": 90,
+      "mode": "persistent",
+      "max_concurrent": 1,
+      "notes": "Chrome Web Store publisher"
+    },
+    {
+      "id": "cyzor-site",
+      "enabled": true,
+      "priority": 80,
+      "mode": "persistent",
+      "max_concurrent": 1,
+      "notes": "CYZOR production website"
+    },
+    {
+      "id": "redbubble",
+      "enabled": false,
+      "priority": 60,
+      "mode": "persistent",
+      "max_concurrent": 1,
+      "notes": "Enable after Etsy completion"
+    },
+    {
+      "id": "ebay",
+      "enabled": false,
+      "priority": 50,
+      "mode": "persistent",
+      "max_concurrent": 1,
+      "notes": "Future commerce workflow"
+    }
+  ],
+  "scaling": {
+    "initial_workers": 3,
+    "max_workers_per_node": 4,
+    "add_node_when_average_cpu_pct_over": 75,
+    "add_node_when_queue_depth_over": 20,
+    "observe_minutes": 15
+  }
+}
