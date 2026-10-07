@@ -1,0 +1,115 @@
+
+name: Provision CYZOR Browser Farm
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action"
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+        default: plan
+
+permissions:
+  contents: read
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+      TF_VAR_user_ocid: ${{ secrets.OCI_USER_OCID }}
+      TF_VAR_fingerprint: ${{ secrets.OCI_FINGERPRINT }}
+      TF_VAR_private_key: ${{ secrets.OCI_API_PRIVATE_KEY }}
+      TF_VAR_region: ${{ secrets.OCI_REGION }}
+      TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID }}
+      TF_VAR_ssh_public_key: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          for v in             TF_VAR_tenancy_ocid TF_VAR_user_ocid TF_VAR_fingerprint             TF_VAR_private_key TF_VAR_region TF_VAR_compartment_ocid TF_VAR_ssh_public_key
+          do
+            if [ -z "${!v}" ]; then
+              echo "::error::Missing required Oracle secret backing $v"
+              exit 2
+            fi
+          done
+
+      - name: Terraform init
+        working-directory: automation/browser-farm/infra/oci
+        run: terraform init
+
+      - name: Terraform validate
+        working-directory: automation/browser-farm/infra/oci
+        run: terraform validate
+
+      - name: Terraform plan
+        working-directory: automation/browser-farm/infra/oci
+        run: terraform plan -out=tfplan
+
+      - name: Terraform apply
+        if: ${{ inputs.action == 'apply' }}
+        working-directory: automation/browser-farm/infra/oci
+        run: terraform apply -auto-approve tfplan
+
+      - name: Capture farm IP
+        if: ${{ inputs.action == 'apply' }}
+        id: outputs
+        working-directory: automation/browser-farm/infra/oci
+        shell: bash
+        run: |
+          echo "ip=$(terraform output -raw public_ip)" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for SSH
+        if: ${{ inputs.action == 'apply' }}
+        shell: bash
+        env:
+          FARM_IP: ${{ steps.outputs.outputs.ip }}
+          SSH_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+        run: |
+          printf '%s' "$SSH_KEY" > /tmp/oci_key
+          chmod 600 /tmp/oci_key
+          for i in {1..60}; do
+            ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i /tmp/oci_key ubuntu@"$FARM_IP" true && exit 0
+            sleep 5
+          done
+          exit 1
+
+      - name: Configure farm and start
+        if: ${{ inputs.action == 'apply' }}
+        shell: bash
+        env:
+          FARM_IP: ${{ steps.outputs.outputs.ip }}
+          SSH_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          FARM_GITHUB_TOKEN: ${{ secrets.FARM_GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$SSH_KEY" > /tmp/oci_key
+          chmod 600 /tmp/oci_key
+          test -n "$FARM_GITHUB_TOKEN" || (echo "::error::Missing FARM_GITHUB_TOKEN" && exit 3)
+
+          ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "cd /opt/cyzor/Money-factory && git pull --ff-only"
+
+          ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "cd /opt/cyzor/Money-factory/automation/browser-farm &&              sed -i 's/^MAX_PARALLEL=.*/MAX_PARALLEL=3/' .env &&              sed -i 's/^HEADLESS=.*/HEADLESS=true/' .env"
+
+          printf '%s' "$FARM_GITHUB_TOKEN" |             ssh -o StrictHostKeyChecking=no -i /tmp/oci_key ubuntu@"$FARM_IP"             "read -r TOKEN; cd /opt/cyzor/Money-factory/automation/browser-farm;              grep -v '^GITHUB_TOKEN=' .env > .env.tmp;              printf 'GITHUB_TOKEN=%s\n' "$TOKEN" >> .env.tmp;              mv .env.tmp .env;              sudo docker compose up -d --build"
+
+      - name: Deployment summary
+        if: ${{ inputs.action == 'apply' }}
+        env:
+          FARM_IP: ${{ steps.outputs.outputs.ip }}
+        run: |
+          echo "### CYZOR Browser Farm" >> "$GITHUB_STEP_SUMMARY"
+          echo "First node provisioned at: `$FARM_IP`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Workers configured: **3**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Task ingress: GitHub queue polling (no public farm API)." >> "$GITHUB_STEP_SUMMARY"
