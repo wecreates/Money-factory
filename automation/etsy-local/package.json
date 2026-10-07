@@ -1,0 +1,12 @@
+{
+  "name": "cyzor-etsy-local-runner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "run": "node src/run.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.56.1"
+  }
+}
