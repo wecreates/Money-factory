@@ -1,17 +1,19 @@
+
 services:
   browser-farm:
     build: .
     restart: unless-stopped
     environment:
-      PORT: 8787
-      MAX_PARALLEL: 4
+      MAX_PARALLEL: ${MAX_PARALLEL:-4}
       PROFILE_ROOT: /data/profiles
       QUEUE_ROOT: /data/queue
       ARTIFACT_ROOT: /data/artifacts
-      FARM_TOKEN: ${FARM_TOKEN}
-      HEADLESS: "true"
-    ports:
-      - "8787:8787"
+      HEADLESS: ${HEADLESS:-true}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_REPOSITORY: ${GITHUB_REPOSITORY:-wecreates/Money-factory}
+      GITHUB_BRANCH: ${GITHUB_BRANCH:-main}
+      GITHUB_QUEUE_PATH: ${GITHUB_QUEUE_PATH:-automation/browser-farm/cloud-queue}
+      GITHUB_POLL_MS: ${GITHUB_POLL_MS:-15000}
     volumes:
       - browser_data:/data
     shm_size: "2gb"
