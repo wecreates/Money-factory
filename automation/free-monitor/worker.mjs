@@ -21,7 +21,9 @@ export function normalizeWatch(raw){
     status:raw.status||'active',
     last_value:raw.last_value??null,
     last_checked_at:raw.last_checked_at??null,
-    last_change_at:raw.last_change_at??null
+    last_change_at:raw.last_change_at??null,
+    last_status:raw.last_status??null,
+    last_error:raw.last_error??null
   };
 }
 
