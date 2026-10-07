@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-10-07T19:19:37.586Z",
+  "migration": "DigitalOcean to Oracle staged migration",
+  "phases": {
+    "scheduler": {
+      "status": "PASS",
+      "platform": "GitHub Actions"
+    },
+    "oracle_infra_code": {
+      "status": "READY",
+      "notes": "Ampere A1 Terraform, SSH bootstrap, ports 22/80/443"
+    },
+    "oracle_monitor_api": {
+      "status": "READY_FOR_VALIDATION",
+      "routes": [
+        "/health",
+        "/api/v1/ext/watch",
+        "/api/v1/ext/events"
+      ]
+    },
+    "oracle_edge_proxy": {
+      "status": "READY_FOR_VALIDATION",
+      "behavior": "monitor routes local; all other traffic proxied to current DigitalOcean origin"
+    },
+    "oracle_provisioning": {
+      "status": "NOT_YET_PROVEN"
+    },
+    "edge_health": {
+      "status": "NOT_YET_PROVEN"
+    },
+    "dns_cutover": {
+      "status": "NOT_STARTED"
+    },
+    "full_novan_migration": {
+      "status": "PARTIAL",
+      "notes": "monitor subsystem can move now; remaining Novan routes still need source/data migration"
+    }
+  },
+  "production_dns_changed": false,
+  "current_origin_ip": "137.184.198.2"
+}
