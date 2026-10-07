@@ -1,0 +1,28 @@
+services:
+  oracle-monitor-api:
+    build:
+      context: ../oracle-monitor-api
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      DATA_FILE: /data/monitor.json
+      CHECK_MS: 300000
+    volumes:
+      - oracle_monitor_data:/data
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - oracle-monitor-api
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  oracle_monitor_data:
+  caddy_data:
+  caddy_config:
