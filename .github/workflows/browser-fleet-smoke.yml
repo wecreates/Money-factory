@@ -1,0 +1,42 @@
+name: CYZOR Browser Fleet Smoke
+
+on:
+  push:
+    paths:
+      - 'automation/github-browser-fleet/smoke-trigger.txt'
+      - 'automation/github-browser-fleet/**'
+      - '.github/workflows/browser-fleet-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BUSINESS_ID: cyzor-site
+      TASK_FILE: tasks/cyzor-site.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        working-directory: automation/github-browser-fleet
+        run: |
+          npm install
+          npx playwright install chromium
+      - name: Unit tests
+        working-directory: automation/github-browser-fleet
+        run: npm test
+      - name: Public CYZOR browser smoke
+        working-directory: automation/github-browser-fleet
+        run: node src/run-business.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-fleet-smoke-${{ github.run_id }}
+          path: automation/github-browser-fleet/artifacts/cyzor-site
+          retention-days: 7
