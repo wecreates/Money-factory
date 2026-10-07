@@ -1,0 +1,518 @@
+{
+  "checked_at": "2026-10-07T13:49:44.216Z",
+  "routes": {
+    "/brain/db.query": {
+      "post": {
+        "operationId": "brain_db_query",
+        "summary": "SELECT from a whitelisted table. Params: table, limit?, minutes?",
+        "description": "SELECT from a whitelisted table. Params: table, limit?, minutes?",
+        "tags": [
+          "db"
+        ],
+        "x-risk": "low",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "default": "default"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/brain/platform.state_probe": {
+      "post": {
+        "operationId": "brain_platform_state_probe",
+        "summary": "R338: Probe platform state before running onboarding workflow (plot-twist detector). Params: platfor",
+        "description": "R338: Probe platform state before running onboarding workflow (plot-twist detector). Params: platform.",
+        "tags": [
+          "platform"
+        ],
+        "x-risk": "low",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "default": "default"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/brain/queue.stuck": {
+      "post": {
+        "operationId": "brain_queue_stuck",
+        "summary": "R391: Items queued >48h with no attempt. Operator may want to reprioritize, switch platform, or kill",
+        "description": "R391: Items queued >48h with no attempt. Operator may want to reprioritize, switch platform, or kill.",
+        "tags": [
+          "queue"
+        ],
+        "x-risk": "low",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "default": "default"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/brain/business.cron_fanout_test": {
+      "post": {
+        "operationId": "brain_business_cron_fanout_test",
+        "summary": "R587: Run a no-op fan-out across all businesses (verifies the iteration + skip logic without side ef",
+        "description": "R587: Run a no-op fan-out across all businesses (verifies the iteration + skip logic without side effects).",
+        "tags": [
+          "business"
+        ],
+        "x-risk": "low",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "default": "default"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/brain/heal.tick": {
+      "post": {
+        "operationId": "brain_heal_tick",
+        "summary": "Self-heal: run one full health tick — probe LLM (auto-heal if down), recover stuck pipeline runs, ve",
+        "description": "Self-heal: run one full health tick — probe LLM (auto-heal if down), recover stuck pipeline runs, verify DB, alert operator on unrecoverable state. Runs regardless of autonomy. Returns { healthy, actions }.",
+        "tags": [
+          "heal"
+        ],
+        "x-risk": "medium",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "default": "default"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/brain/parity.file_self_dev": {
+      "post": {
+        "operationId": "brain_parity_file_self_dev",
+        "summary": "R590: File high-confidence (>=90 by default) R584 parity entries as R195 self_dev_proposal draft. Op",
+        "description": "R590: File high-confidence (>=90 by default) R584 parity entries as R195 self_dev_proposal draft. Operator must approve before applier ships. Params: minScore?, max?, workspaceId?",
+        "tags": [
+          "parity"
+        ],
+        "x-risk": "high",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "default": "default"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/brain/parity.preview_self_dev": {
+      "post": {
+        "operationId": "brain_parity_preview_self_dev",
+        "summary": "R590: Preview what file_self_dev would queue without writing. Params: minScore?, max?",
+        "description": "R590: Preview what file_self_dev would queue without writing. Params: minScore?, max?",
+        "tags": [
+          "parity"
+        ],
+        "x-risk": "low",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "default": "default"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/brain/platform.ship.codegen": {
+      "post": {
+        "operationId": "brain_platform_ship_codegen",
+        "summary": "Generate the next planned outmatch feature as an isolated Fastify plugin (code only — the host orche",
+        "description": "Generate the next planned outmatch feature as an isolated Fastify plugin (code only — the host orchestrator deploys+health-checks+rolls-back). Used by ship-feature.sh.",
+        "tags": [
+          "platform"
+        ],
+        "x-risk": "medium",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "default": "default"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/brain/platform.ship.mark": {
+      "post": {
+        "operationId": "brain_platform_ship_mark",
+        "summary": "Record a ship outcome. Params: itemId, status(shipped|failed), route?, note?.",
+        "description": "Record a ship outcome. Params: itemId, status(shipped|failed), route?, note?.",
+        "tags": [
+          "platform"
+        ],
+        "x-risk": "low",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string",
+                    "default": "default"
+                  },
+                  "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        },
+        "security": [
+          {
+            "adminToken": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  }
+}
