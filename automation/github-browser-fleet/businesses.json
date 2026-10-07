@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "default_timeout_minutes": 12,
+  "businesses": [
+    {
+      "id": "etsy",
+      "enabled": true,
+      "mode": "authenticated",
+      "schedule_group": "frequent",
+      "task_file": "tasks/etsy.json"
+    },
+    {
+      "id": "chrome-store",
+      "enabled": true,
+      "mode": "authenticated",
+      "schedule_group": "normal",
+      "task_file": "tasks/chrome-store.json"
+    },
+    {
+      "id": "cyzor-site",
+      "enabled": true,
+      "mode": "public",
+      "schedule_group": "frequent",
+      "task_file": "tasks/cyzor-site.json"
+    },
+    {
+      "id": "redbubble",
+      "enabled": false,
+      "mode": "authenticated",
+      "schedule_group": "normal",
+      "task_file": "tasks/redbubble.json"
+    },
+    {
+      "id": "ebay",
+      "enabled": false,
+      "mode": "authenticated",
+      "schedule_group": "normal",
+      "task_file": "tasks/ebay.json"
+    }
+  ]
+}
