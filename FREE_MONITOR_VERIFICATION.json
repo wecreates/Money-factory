@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-10-07T16:25:29.463Z",
+  "before_last_checked_at": 1791390152588,
+  "first_cycle_last_checked_at": 1791390329421,
+  "second_cycle_last_checked_at": 1791390329462,
+  "first_cycle": {
+    "ran_at": "2026-10-07T16:25:29.341Z",
+    "results": [
+      {
+        "id": "cyzor-free-monitor-smoke",
+        "checked": true,
+        "changed": false,
+        "status": 200,
+        "last_checked_at": 1791390329421
+      }
+    ]
+  },
+  "second_cycle": {
+    "ran_at": "2026-10-07T16:25:29.448Z",
+    "results": [
+      {
+        "id": "cyzor-free-monitor-smoke",
+        "checked": true,
+        "changed": false,
+        "status": 200,
+        "last_checked_at": 1791390329462
+      }
+    ]
+  },
+  "advanced_first_cycle": true,
+  "advanced_second_cycle": true,
+  "pass": true
+}
