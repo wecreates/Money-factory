@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "action": "inspect",
+      "url": "https://cyzorcreations.com"
+    },
+    {
+      "action": "screenshot",
+      "filename": "home.png"
+    }
+  ]
+}
