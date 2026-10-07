@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "action": "goto",
+      "url": "https://www.etsy.com/your/shops/me/tools/listings"
+    },
+    {
+      "action": "screenshot",
+      "filename": "etsy-listings.png"
+    }
+  ]
+}
