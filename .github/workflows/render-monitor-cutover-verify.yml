@@ -1,4 +1,5 @@
 name: CYZOR Render Cutover Verification
+# rerun after Render API became live
 
 on:
   push:
