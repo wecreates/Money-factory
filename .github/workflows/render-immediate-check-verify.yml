@@ -1,0 +1,68 @@
+name: CYZOR Render Immediate Check Verification
+
+on:
+  push:
+    paths:
+      - '.github/workflows/render-immediate-check-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify immediate first check
+        shell: bash
+        run: |
+          cat > /tmp/verify.mjs <<'NODE'
+          import fs from 'node:fs/promises';
+          const API='https://content-control-render-worker.onrender.com/api/v1/ext';
+          const clientId='render-immediate-'+Date.now();
+          const payload={clientId,kind:'change',targetUrl:'https://example.com/',label:'Immediate check verification'};
+          async function req(url,options={}){
+            const r=await fetch(url,options);
+            const text=await r.text();
+            let data; try{data=JSON.parse(text)}catch{data={raw:text}};
+            return {status:r.status,ok:r.ok,data};
+          }
+          const created=await req(API+'/watch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+          const watchId=created.data?.id;
+          const list=await req(API+'/watch?clientId='+encodeURIComponent(clientId));
+          const watch=(list.data?.watches||[]).find(w=>w.id===watchId)||null;
+          const del=watchId?await req(API+'/watch/'+encodeURIComponent(watchId)+'?clientId='+encodeURIComponent(clientId),{method:'DELETE'}):{status:0,ok:false,data:{}};
+          const finalList=await req(API+'/watch?clientId='+encodeURIComponent(clientId));
+          const out={
+            checked_at:new Date().toISOString(),
+            create_status:created.status,
+            create_last_checked_at:created.data?.last_checked_at??null,
+            first_check_ok:created.data?.first_check_ok??null,
+            listed_last_checked_at:watch?.last_checked_at??null,
+            immediate_check_pass:Boolean(created.ok && created.data?.last_checked_at && watch?.last_checked_at),
+            delete_status:del.status,
+            final_watch_count:finalList.data?.watches?.length??null,
+            pass:Boolean(created.ok && created.data?.last_checked_at && watch?.last_checked_at && del.ok && finalList.data?.watches?.length===0)
+          };
+          await fs.writeFile('RENDER_IMMEDIATE_CHECK_RESULT.json',JSON.stringify(out,null,2)+'\n');
+          console.log(JSON.stringify(out,null,2));
+          if(!out.pass) process.exitCode=1;
+          NODE
+          node /tmp/verify.mjs
+      - name: Persist result
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "cyzor-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add RENDER_IMMEDIATE_CHECK_RESULT.json
+          git diff --cached --quiet || git commit -m "verify Render immediate first check"
+          git pull --rebase origin main
+          git push origin HEAD:main
