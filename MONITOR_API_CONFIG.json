@@ -4,6 +4,8 @@
   "active_provider": "Render free web service",
   "scheduler": "GitHub Actions + Render checker loop",
   "persistence": "Render local state with GitHub backup/restore",
-  "cutover_status": "VERIFYING",
-  "digitalocean_monitor_role": "ROLLBACK_ONLY"
+  "cutover_status": "ACTIVE_PASS",
+  "digitalocean_monitor_role": "ROLLBACK_ONLY",
+  "verified_at": "2026-10-08T03:08:01.476Z",
+  "verification_file": "RENDER_MONITOR_CUTOVER_RESULT.json"
 }
