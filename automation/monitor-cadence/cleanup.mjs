@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 
-const API='https://cyzorcreations.com/api/v1/ext';
+const API=process.env.CYZOR_MONITOR_API||'https://content-control-render-worker.onrender.com/api/v1/ext';
 const state=JSON.parse(await fs.readFile('MONITOR_CADENCE_TEST.json','utf8'));
 const previous=JSON.parse(await fs.readFile('MONITOR_CADENCE_RESULT.json','utf8').catch(()=> '{}'));
 
