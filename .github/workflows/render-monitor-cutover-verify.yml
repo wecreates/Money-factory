@@ -1,0 +1,82 @@
+name: CYZOR Render Cutover Verification
+
+on:
+  push:
+    paths:
+      - '.github/workflows/render-monitor-cutover-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Render monitor cutover
+        shell: bash
+        run: |
+          cat > /tmp/verify.mjs <<'NODE'
+          import fs from 'node:fs/promises';
+          const API='https://content-control-render-worker.onrender.com/api/v1/ext';
+          const clientId='cyzor-render-cutover-'+Date.now();
+          const payload={clientId,kind:'change',targetUrl:'https://example.com/',label:'CYZOR Render cutover verification'};
+          async function req(url,options={}){
+            const r=await fetch(url,options);
+            const text=await r.text();
+            let data; try{data=JSON.parse(text)}catch{data={raw:text}};
+            return {status:r.status,ok:r.ok,data};
+          }
+
+          const created=await req(API+'/watch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+          if(!created.ok||!created.data?.id) throw new Error('create failed');
+          const watchId=created.data.id;
+
+          let watch=null;
+          let advanced=false;
+          for(let i=0;i<20;i++){
+            const list=await req(API+'/watch?clientId='+encodeURIComponent(clientId));
+            watch=(list.data?.watches||[]).find(w=>w.id===watchId)||null;
+            if(watch?.last_checked_at){advanced=true;break}
+            await new Promise(r=>setTimeout(r,5000));
+          }
+
+          const del=await req(API+'/watch/'+encodeURIComponent(watchId)+'?clientId='+encodeURIComponent(clientId),{method:'DELETE'});
+          const finalList=await req(API+'/watch?clientId='+encodeURIComponent(clientId));
+
+          const out={
+            checked_at:new Date().toISOString(),
+            api_base:API,
+            clientId,
+            watchId,
+            create_status:created.status,
+            last_checked_at:watch?.last_checked_at??null,
+            scheduled_check_advanced:advanced,
+            delete_status:del.status,
+            final_watch_count:finalList.data?.watches?.length??null,
+            final_watch_list_empty:(finalList.data?.watches?.length??-1)===0,
+            pass:Boolean(created.ok&&advanced&&del.ok&&(finalList.data?.watches?.length===0)),
+            rollback_api:'https://cyzorcreations.com/api/v1/ext'
+          };
+          await fs.writeFile('RENDER_MONITOR_CUTOVER_RESULT.json',JSON.stringify(out,null,2)+'\n');
+          console.log(JSON.stringify(out,null,2));
+          if(!out.pass) process.exitCode=1;
+          NODE
+          node /tmp/verify.mjs
+      - name: Persist cutover result
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "cyzor-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add RENDER_MONITOR_CUTOVER_RESULT.json
+          git diff --cached --quiet || git commit -m "verify Render monitor cutover"
+          git pull --rebase origin main
+          git push origin HEAD:main
