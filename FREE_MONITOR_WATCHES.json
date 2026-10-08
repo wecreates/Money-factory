@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "cyzor-website",
+    "label": "CYZOR Creations website",
+    "kind": "change",
+    "targetUrl": "https://cyzorcreations.com",
+    "status": "active"
+  },
+  {
+    "id": "money-factory-repository",
+    "label": "Money Factory GitHub repository",
+    "kind": "change",
+    "targetUrl": "https://github.com/wecreates/Money-factory",
+    "status": "active"
+  }
+]
