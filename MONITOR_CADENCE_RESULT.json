@@ -1,11 +1,13 @@
 {
-  "checked_at": "2026-10-08T03:08:01.476Z",
-  "clientId": "cyzor-render-cutover-1791428798845",
-  "stored_watchId": "2b7b0412-afb6-410e-8f7b-6ff80b9fa69c",
+  "checked_at": "2026-10-08T03:15:07.480Z",
+  "clientId": "cyzor-render-cutover-1791429306705",
+  "stored_watchId": "7313586c-2440-4fb2-be43-5297d0e1094d",
   "watch_found_before_cleanup": true,
   "production_get_status": 200,
   "initial_last_checked_at": null,
-  "current_last_checked_at": "1791428878496",
+  "current_last_checked_at": "1791429307042",
+  "immediate_first_check": true,
+  "first_check_ok": true,
   "scheduled_backend_check_advanced": true,
   "cadence_result": "PASS",
   "delete_attempted": true,
@@ -16,11 +18,5 @@
   "overall_pass": true,
   "remaining_backend_blocker": null,
   "active_api": "https://content-control-render-worker.onrender.com/api/v1/ext",
-  "rollback_api": "https://cyzorcreations.com/api/v1/ext",
-  "evidence": {
-    "provider": "Render free web service",
-    "scheduler": "Render checker loop + GitHub Actions backup",
-    "target_url": "https://example.com/",
-    "label": "CYZOR Render cutover verification"
-  }
+  "rollback_api": "https://cyzorcreations.com/api/v1/ext"
 }
