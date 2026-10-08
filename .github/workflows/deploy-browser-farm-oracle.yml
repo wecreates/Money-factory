@@ -1,0 +1,68 @@
+name: Deploy Browser Farm to Oracle
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_parallel:
+        description: 'Initial parallel browser workers'
+        required: true
+        default: '3'
+      headless:
+        description: 'Run browsers headless'
+        required: true
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+        default: 'true'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate required secrets
+        shell: bash
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          FARM_GITHUB_TOKEN: ${{ secrets.FARM_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for key in ORACLE_HOST ORACLE_USER ORACLE_SSH_KEY FARM_GITHUB_TOKEN; do
+            if [ -z "${!key:-}" ]; then echo "::error::Missing required secret: $key"; exit 2; fi
+          done
+      - name: Prepare SSH
+        shell: bash
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf "%s\n" "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Copy deploy scripts
+        shell: bash
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "mkdir -p ~/cyzor-deploy"
+          scp -i ~/.ssh/oracle_key automation/browser-farm/deploy/install-or-update.sh automation/browser-farm/deploy/configure-env.sh automation/browser-farm/deploy/health-check.sh "$ORACLE_USER@$ORACLE_HOST:~/cyzor-deploy/"
+      - name: Deploy
+        shell: bash
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          FARM_GITHUB_TOKEN: ${{ secrets.FARM_GITHUB_TOKEN }}
+          MAX_PARALLEL: ${{ inputs.max_parallel }}
+          HEADLESS: ${{ inputs.headless }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "export FARM_GITHUB_TOKEN='$FARM_GITHUB_TOKEN' MAX_PARALLEL='$MAX_PARALLEL' HEADLESS='$HEADLESS'; bash ~/cyzor-deploy/install-or-update.sh; bash ~/cyzor-deploy/configure-env.sh; cd /opt/cyzor/Money-factory/automation/browser-farm; sudo docker compose up -d --build; bash ~/cyzor-deploy/health-check.sh"
