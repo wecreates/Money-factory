@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-10-08T03:17:25.650Z",
+  "active_stack": {
+    "monitor_api": "Render free web service",
+    "monitor_scheduler": "Render immediate first check + 5 minute loop",
+    "monitor_backup": "GitHub Actions -> repository snapshot",
+    "browser_runtime": "GitHub Actions Playwright fleet",
+    "browser_public_smoke": "cyzor-site",
+    "source_control": "GitHub"
+  },
+  "disabled_or_rollback": {
+    "oracle": "DISABLED",
+    "digitalocean_monitor": "ROLLBACK_ONLY",
+    "tinyfish": "REMOVED_FROM_WORKFLOW"
+  },
+  "current_monitor_result": "PASS",
+  "current_monitor_immediate_first_check": true
+}
