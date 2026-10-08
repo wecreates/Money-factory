@@ -1,4 +1,5 @@
 name: CYZOR Render Cutover Verification
+# verify immediate first check
 # rerun after Render API became live
 
 on:
@@ -39,9 +40,10 @@ jobs:
           const created=await req(API+'/watch',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
           if(!created.ok||!created.data?.id) throw new Error('create failed');
           const watchId=created.data.id;
+          const createLastCheckedAt=created.data.last_checked_at??null;
 
           let watch=null;
-          let advanced=false;
+          let advanced=Boolean(createLastCheckedAt);
           for(let i=0;i<20;i++){
             const list=await req(API+'/watch?clientId='+encodeURIComponent(clientId));
             watch=(list.data?.watches||[]).find(w=>w.id===watchId)||null;
@@ -58,7 +60,9 @@ jobs:
             clientId,
             watchId,
             create_status:created.status,
-            last_checked_at:watch?.last_checked_at??null,
+            create_last_checked_at:createLastCheckedAt,
+            first_check_ok:created.data?.first_check_ok??null,
+            last_checked_at:watch?.last_checked_at??createLastCheckedAt??null,
             scheduled_check_advanced:advanced,
             delete_status:del.status,
             final_watch_count:finalList.data?.watches?.length??null,
