@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": "6ac6a1d7-3e72-4cd5-abd9-a255623c4f62",
+    "watch_id": "money-factory-repository",
+    "at": 1791443755865,
+    "type": "change",
+    "label": "Money Factory GitHub repository",
+    "target_url": "https://github.com/wecreates/Money-factory"
+  }
+]
