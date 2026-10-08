@@ -1,0 +1,9 @@
+{
+  "active_monitor_api": "https://content-control-render-worker.onrender.com/api/v1/ext",
+  "rollback_monitor_api": "https://cyzorcreations.com/api/v1/ext",
+  "active_provider": "Render free web service",
+  "scheduler": "GitHub Actions + Render checker loop",
+  "persistence": "Render local state with GitHub backup/restore",
+  "cutover_status": "VERIFYING",
+  "digitalocean_monitor_role": "ROLLBACK_ONLY"
+}
