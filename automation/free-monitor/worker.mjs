@@ -50,6 +50,7 @@ export function evaluateCheck(watch,check){
 
 async function fetchHash(url){
   const r=await fetch(url,{redirect:'follow',headers:{'user-agent':'CYZOR-Free-Monitor/1.0'}});
+  if(!r.ok) throw new Error(`HTTP ${r.status} from monitored URL`);
   const body=await r.arrayBuffer();
   const hash=crypto.createHash('sha256').update(Buffer.from(body)).digest('hex');
   return {hash,checkedAt:Date.now(),status:r.status};
@@ -79,7 +80,7 @@ export async function runWorker({
     try{
       const check=await fetchHash(base.targetUrl);
       const {changed,next}=evaluateCheck(base,check);
-      nextState[base.id]=next;
+      nextState[base.id]={...next,last_error:null};
       if(changed){
         events.push({id:crypto.randomUUID(),watch_id:base.id,at:check.checkedAt,type:'change',label:base.label,target_url:base.targetUrl});
       }
