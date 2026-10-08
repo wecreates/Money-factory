@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-const API='https://cyzorcreations.com/api/v1/ext';
+const API=process.env.CYZOR_MONITOR_API||'https://content-control-render-worker.onrender.com/api/v1/ext';
 const clientId='cyzor-cadence-smoke-'+Date.now();
 const payload={clientId,kind:'change',targetUrl:'https://example.com/',label:'CYZOR cadence smoke test'};
 async function req(url,options={}){
