@@ -6,6 +6,8 @@
   "persistence": "Render local state with GitHub backup/restore",
   "cutover_status": "ACTIVE_PASS",
   "digitalocean_monitor_role": "ROLLBACK_ONLY",
-  "verified_at": "2026-10-08T03:08:01.476Z",
-  "verification_file": "RENDER_MONITOR_CUTOVER_RESULT.json"
+  "verified_at": "2026-10-08T03:15:07.480Z",
+  "verification_file": "RENDER_MONITOR_CUTOVER_RESULT.json",
+  "immediate_first_check": true,
+  "first_check_ok": true
 }
