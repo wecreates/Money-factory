@@ -29,6 +29,17 @@ Authenticated sites can optionally use a GitHub Actions secret named `BROWSER_SE
 
 Never place passwords, OTP codes, cookies, recovery codes, or session state in source files or chat.
 
+Saved session state is decoded in memory and passed directly to Playwright. It is
+never saved or refreshed in artifacts. Artifacts contain only result summaries
+and PNG screenshots; malformed configured sessions fail closed without logging
+their contents. Screenshots and page summaries can still contain private account
+information, so review task scope before enabling authenticated runs.
+
+## Regression tests
+Run `npm test` from `automation/github-browser-fleet`. These tests use synthetic
+session data and no browser, network access, real credentials, or paid services.
+The dedicated pull-request workflow runs the same tests without account secrets.
+
 When a saved login expires or a site requires CAPTCHA/2FA, the account owner must refresh that site's session manually. This system does not bypass account security challenges.
 
 ## Scaling

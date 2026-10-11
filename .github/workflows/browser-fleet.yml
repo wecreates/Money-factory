@@ -79,5 +79,8 @@ jobs:
         if: always()
         with:
           name: browser-fleet-${{ matrix.business }}-${{ github.run_id }}
-          path: automation/github-browser-fleet/artifacts/${{ matrix.business }}
+          # Allow only review outputs, never browser storage-state/session files.
+          path: |
+            automation/github-browser-fleet/artifacts/${{ matrix.business }}/result.json
+            automation/github-browser-fleet/artifacts/${{ matrix.business }}/**/*.png
           retention-days: 7
