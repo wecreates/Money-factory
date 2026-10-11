@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-05",
+  "updated_at": "2026-10-11",
   "producer": "CYZOR Money Factory",
   "consumer": "Content Control",
   "contract": {
@@ -43,5 +43,18 @@
       "Use viral_format_replication for proven structure adaptation",
       "Apply originality guardrails to every reference-driven format"
     ]
+  },
+  "social_intake": {
+    "canonical_repository": "wecreates/content-control",
+    "canonical_queue": "capability-queue.json",
+    "dashboard": "https://content-control-render-worker.onrender.com/social",
+    "status_endpoint": "https://content-control-render-worker.onrender.com/api/social/status",
+    "route_verification_endpoint": "https://content-control-render-worker.onrender.com/api/social/project-links",
+    "publication_enabled": false,
+    "dashboard_writes": "blocked_until_authenticated_durable_writer",
+    "chat_assisted_intake": "verified_via_existing_GitHub_connection",
+    "acceptance_record_id": "social-instagram-DeUlQTQxv5O",
+    "money_factory_idea_id": "extension-retention-evidence-experiment",
+    "verification_record": "SOCIAL_INTEGRATION_VERIFICATION.json"
   }
 }

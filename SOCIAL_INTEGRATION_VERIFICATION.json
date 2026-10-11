@@ -1,0 +1,46 @@
+{
+  "checked_at": "2026-10-11T15:13:05Z",
+  "content_control_commit": "2f96c9d35152269589550a3687616552fee66cfe",
+  "render_deploy_id": "dep-db5qe7vavr4c73fbiq10",
+  "deployment_status": "live",
+  "dashboard_http": 200,
+  "status_http": 200,
+  "platform_records": 9,
+  "capability_queue_records": 3,
+  "acceptance_findings": 3,
+  "money_factory_reference_http": 200,
+  "money_factory_reference_verified": true,
+  "tracked_url_duplicate_test": true,
+  "publish_attempt_http": [
+    403,
+    403
+  ],
+  "publish_error": "PUBLICATION_DISABLED",
+  "publication_enabled": false,
+  "local_tests": {
+    "passed": 13,
+    "failed": 0
+  },
+  "reel_review": {
+    "automatic_timestamped_transcript_end_seconds": 52.08,
+    "sampled_frames_inspected_seconds": [
+      0,
+      15,
+      35
+    ],
+    "full_video_and_audio_watched": false
+  },
+  "visual_browser_qa": {
+    "status": "blocked",
+    "error": "ERR_BLOCKED_BY_CLIENT",
+    "android_device_tested": false
+  },
+  "unverified_or_unimplemented": [
+    "Owner social account connections",
+    "Automatic token renewal",
+    "Authenticated durable dashboard writer",
+    "Complete audiovisual Reel analysis",
+    "Remaining partly verified platform permissions/costs/quotas"
+  ],
+  "new_background_job_created": false
+}
