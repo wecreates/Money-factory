@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-04",
+  "updated_at": "2026-10-11",
   "operating_goal": {
     "near_term": "$100/day verified new revenue",
     "long_term": "$1,000/day verified revenue",
@@ -419,6 +419,38 @@
         "Avoid misleading price or performance claims"
       ],
       "promotion_gate": "Promote only after delivered-cost, safety/compliance, supplier, and margin checks pass"
+    },
+    {
+      "id": "extension-retention-evidence-experiment",
+      "name": "Consent-based extension retention experiment",
+      "status": "idea_vault",
+      "source_record": {
+        "repository": "wecreates/content-control",
+        "path": "capability-queue.json",
+        "id": "social-instagram-DeUlQTQxv5O",
+        "finding_id": "retention-experiment"
+      },
+      "source_url": "https://www.instagram.com/reel/DeUlQTQxv5O/",
+      "classification": "Automation improvement",
+      "validation_hypothesis": "Test whether opted-in reminders improve returning usage; CYZOR lift unknown",
+      "demand_validation": "not_validated",
+      "publication_enabled": false,
+      "messaging_enabled": false,
+      "telemetry_enabled": false,
+      "metrics": {
+        "traffic": null,
+        "leads": null,
+        "sales": null,
+        "costs": null,
+        "refunds": null,
+        "net_profit": null
+      },
+      "required_before_execution": [
+        "Choose an existing extension and approved consent design",
+        "Verify actual event and outcome feeds",
+        "Explicit authorization before sending notifications"
+      ],
+      "promotion_gate": "Remain internal until demand, consent, measurement and explicit distribution gates pass"
     }
   ],
   "systems": [
