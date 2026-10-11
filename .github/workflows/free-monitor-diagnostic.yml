@@ -2,6 +2,7 @@ name: CYZOR Free Monitor Diagnostic
 
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/free-monitor-diagnostic.yml'
       - 'automation/free-monitor/**'
@@ -12,6 +13,8 @@ permissions:
 
 jobs:
   diagnose:
+    # Manual dispatch can select a branch, so the trigger filter alone is not enough.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

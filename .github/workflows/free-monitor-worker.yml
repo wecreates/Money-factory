@@ -5,6 +5,7 @@ on:
     - cron: '*/5 * * * *'
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'FREE_MONITOR_WATCHES.json'
       - 'automation/free-monitor/**'
@@ -19,6 +20,8 @@ concurrency:
 
 jobs:
   monitor:
+    # Manual dispatch can select a branch, so the trigger filter alone is not enough.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

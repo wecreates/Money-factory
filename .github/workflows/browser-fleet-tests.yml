@@ -5,11 +5,23 @@ on:
     paths:
       - 'automation/github-browser-fleet/**'
       - '.github/workflows/browser-fleet*.yml'
+      - '.github/workflows/free-browser-fleet-health.yml'
+      - '.github/workflows/free-monitor-diagnostic.yml'
+      - '.github/workflows/free-monitor-verify.yml'
+      - '.github/workflows/free-monitor-worker.yml'
+      - '.github/workflows/render-immediate-check-verify.yml'
+      - '.github/workflows/render-monitor-cutover-verify.yml'
   push:
     branches: [main]
     paths:
       - 'automation/github-browser-fleet/**'
       - '.github/workflows/browser-fleet*.yml'
+      - '.github/workflows/free-browser-fleet-health.yml'
+      - '.github/workflows/free-monitor-diagnostic.yml'
+      - '.github/workflows/free-monitor-verify.yml'
+      - '.github/workflows/free-monitor-worker.yml'
+      - '.github/workflows/render-immediate-check-verify.yml'
+      - '.github/workflows/render-monitor-cutover-verify.yml'
 
 permissions:
   contents: read

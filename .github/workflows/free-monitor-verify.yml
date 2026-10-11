@@ -2,6 +2,7 @@ name: CYZOR Free Monitor Verification
 
 on:
   push:
+    branches: [main]
     paths:
       - 'automation/free-monitor/verify.mjs'
       - '.github/workflows/free-monitor-verify.yml'
@@ -12,6 +13,8 @@ permissions:
 
 jobs:
   verify:
+    # Manual dispatch can select a branch, so the trigger filter alone is not enough.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
