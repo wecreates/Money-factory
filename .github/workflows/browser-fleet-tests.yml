@@ -1,0 +1,26 @@
+name: Browser Fleet Regression Tests
+
+on:
+  pull_request:
+    paths:
+      - 'automation/github-browser-fleet/**'
+      - '.github/workflows/browser-fleet*.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'automation/github-browser-fleet/**'
+      - '.github/workflows/browser-fleet*.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+        working-directory: automation/github-browser-fleet

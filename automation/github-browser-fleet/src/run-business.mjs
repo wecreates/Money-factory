@@ -2,6 +2,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {chromium} from 'playwright';
+import {sessionForBusiness} from './session.mjs';
 
 const business=process.env.BUSINESS_ID;
 const taskFile=process.env.TASK_FILE;
@@ -11,16 +12,8 @@ const task=JSON.parse(await fs.readFile(taskFile,'utf8'));
 const artifactDir=path.resolve('artifacts',business);
 await fs.mkdir(artifactDir,{recursive:true});
 
-let storageState;
-const sessionMapRaw=process.env.BROWSER_SESSIONS_JSON||'{}';
-try{
-  const sessionMap=JSON.parse(sessionMapRaw);
-  if(sessionMap[business]){
-    const p=path.join(artifactDir,'storage-state.json');
-    await fs.writeFile(p,Buffer.from(sessionMap[business],'base64'));
-    storageState=p;
-  }
-}catch{}
+// Keep credentials in memory only, never in the uploaded artifact directory.
+const storageState=sessionForBusiness(process.env.BROWSER_SESSIONS_JSON,business);
 
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
 const context=await browser.newContext(storageState?{storageState}:{viewport:{width:1440,height:1000}});
@@ -64,8 +57,6 @@ async function runStep(step){
 const results=[];
 for(const step of (task.steps||[])) results.push(await runStep(step));
 
-const currentState=await context.storageState();
-await fs.writeFile(path.join(artifactDir,'storage-state-latest.json'),JSON.stringify(currentState,null,2));
 const summary={
   business,
   ok:results.every(x=>x.ok),
