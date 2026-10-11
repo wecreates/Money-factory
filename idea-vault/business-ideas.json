@@ -450,7 +450,15 @@
         "Verify actual event and outcome feeds",
         "Explicit authorization before sending notifications"
       ],
-      "promotion_gate": "Remain internal until demand, consent, measurement and explicit distribution gates pass"
+      "promotion_gate": "Remain internal until demand, consent, measurement and explicit distribution gates pass",
+      "additional_content_reference": {
+        "repository": "wecreates/content-control",
+        "path": "capability-queue.json",
+        "id": "social-instagram-DeUlQTQxv5O",
+        "finding_id": "watch-visual-alternation",
+        "basis": "sampled_frame",
+        "full_analysis": false
+      }
     }
   ],
   "systems": [
@@ -507,7 +515,7 @@
         "Use context as a price anchor; premium presentation should make the higher price feel expected rather than surprising",
         "Preserve the underlying offer when possible and test presentation changes before product changes",
         "Use specific before/after proof and hard numbers instead of vague quality claims",
-        "Use a mini-story arc: character or buyer problem → simple change → measurable result",
+        "Use a mini-story arc: character or buyer problem \u2192 simple change \u2192 measurable result",
         "Broaden total addressable market through more aspirational and universally legible presentation",
         "Use lead magnets or keyword-triggered DMs only when relevant and compliant with platform rules",
         "Avoid fake scarcity, fake testimonials, fake before/after data, or deceptive luxury cues"
