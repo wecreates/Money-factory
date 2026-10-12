@@ -1,0 +1,21 @@
+[submodule "integrations/vendor/wan21"]
+	path = integrations/vendor/wan21
+	url = https://github.com/Wan-Video/Wan2.1.git
+[submodule "integrations/vendor/youtube-clipper-skill"]
+	path = integrations/vendor/youtube-clipper-skill
+	url = https://github.com/op7418/Youtube-clipper-skill.git
+[submodule "integrations/vendor/openshorts"]
+	path = integrations/vendor/openshorts
+	url = https://github.com/mutonby/openshorts.git
+[submodule "integrations/vendor/claude-seo"]
+	path = integrations/vendor/claude-seo
+	url = https://github.com/AgricIDaniel/claude-seo.git
+[submodule "integrations/vendor/toonflow-app"]
+	path = integrations/vendor/toonflow-app
+	url = https://github.com/HBAI-Ltd/Toonflow-app.git
+[submodule "integrations/vendor/ruflo"]
+	path = integrations/vendor/ruflo
+	url = https://github.com/ruvnet/ruflo.git
+[submodule "integrations/vendor/youtube-automation-agent"]
+	path = integrations/vendor/youtube-automation-agent
+	url = https://github.com/darkzOGx/youtube-automation-agent.git

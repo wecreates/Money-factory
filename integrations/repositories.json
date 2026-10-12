@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-10-12",
+  "publication_enabled": false,
+  "paid_services_enabled": false,
+  "canonical_content_repository": "wecreates/content-control",
+  "repositories": [
+    {
+      "order": 1,
+      "id": "wan21",
+      "repository": "https://github.com/Wan-Video/Wan2.1",
+      "path": "integrations/vendor/wan21",
+      "revision": "9737cba9c1c3c4d04b33fcad41c111989865d315",
+      "capability": "video_generation",
+      "integration_target": "Content Control asset generation",
+      "source_status": "pinned",
+      "runtime_status": "not_configured_or_verified",
+      "enabled": false,
+      "blockers": [
+        "GPU capacity and model weights",
+        "Isolated Python environment",
+        "Render adapter and end-to-end QA"
+      ]
+    },
+    {
+      "order": 2,
+      "id": "youtube-clipper-skill",
+      "repository": "https://github.com/op7418/Youtube-clipper-skill",
+      "path": "integrations/vendor/youtube-clipper-skill",
+      "revision": "f31f077ee0905c95a510a6f34bbd0c3c85b15129",
+      "capability": "video_clipping",
+      "integration_target": "Content Control repurposing",
+      "source_status": "pinned",
+      "runtime_status": "not_configured_or_verified",
+      "enabled": false,
+      "blockers": [
+        "Python dependencies and FFmpeg with libass",
+        "Skill-host connection",
+        "Clip and subtitle QA"
+      ]
+    },
+    {
+      "order": 3,
+      "id": "openshorts",
+      "repository": "https://github.com/mutonby/openshorts",
+      "path": "integrations/vendor/openshorts",
+      "revision": "0240abeccc0e18463f6fd3f881767c4bc33ae3a6",
+      "capability": "shorts_production",
+      "integration_target": "Content Control repurposing",
+      "source_status": "pinned",
+      "runtime_status": "not_configured_or_verified",
+      "enabled": false,
+      "blockers": [
+        "Isolated service with model storage and sufficient RAM",
+        "Local LLM or approved provider configuration",
+        "Authenticated adapter and output QA"
+      ]
+    },
+    {
+      "order": 4,
+      "id": "claude-seo",
+      "repository": "https://github.com/AgricIDaniel/claude-seo",
+      "path": "integrations/vendor/claude-seo",
+      "revision": "4b99de2f7de7e7d5247042e5fb5b4ea9368ef734",
+      "capability": "seo_audit",
+      "integration_target": "Money Factory acquisition and website audits",
+      "source_status": "pinned",
+      "runtime_status": "not_configured_or_verified",
+      "enabled": false,
+      "blockers": [
+        "Compatible skill host",
+        "Audit adapter and target-site verification"
+      ]
+    },
+    {
+      "order": 5,
+      "id": "toonflow-app",
+      "repository": "https://github.com/HBAI-Ltd/Toonflow-app",
+      "path": "integrations/vendor/toonflow-app",
+      "revision": "2c7fb257affb65777110fe4c6e60cd3c09187d9b",
+      "capability": "story_production",
+      "integration_target": "Content Control story and asset planning",
+      "source_status": "pinned",
+      "runtime_status": "not_configured_or_verified",
+      "enabled": false,
+      "blockers": [
+        "Bun or Docker runtime and persistent storage",
+        "Model-provider configuration",
+        "Authentication before public hosting",
+        "Character-board and timeline adapter QA"
+      ]
+    },
+    {
+      "order": 6,
+      "id": "ruflo",
+      "repository": "https://github.com/ruvnet/ruflo",
+      "path": "integrations/vendor/ruflo",
+      "revision": "3209ba266750908ea88fb0bc69672e106478bbef",
+      "capability": "agent_orchestration",
+      "integration_target": "Money Factory orchestration and memory",
+      "source_status": "pinned",
+      "runtime_status": "not_configured_or_verified",
+      "enabled": false,
+      "blockers": [
+        "Isolated MCP runtime",
+        "Client registration and permissions review",
+        "Existing project-memory adapter and smoke test"
+      ]
+    },
+    {
+      "order": 7,
+      "id": "youtube-automation-agent",
+      "repository": "https://github.com/darkzOGx/youtube-automation-agent",
+      "path": "integrations/vendor/youtube-automation-agent",
+      "revision": "e26792ae00dc1ec2434faf32632896609396dfad",
+      "capability": "youtube_production",
+      "integration_target": "Content Control YouTube planning and analytics",
+      "source_status": "pinned",
+      "runtime_status": "not_configured_or_verified",
+      "enabled": false,
+      "blockers": [
+        "Node dependencies and persistent SQLite",
+        "Text and narration provider configuration",
+        "Phone-compatible OAuth integration",
+        "Bridge adapter and production QA"
+      ]
+    }
+  ]
+}

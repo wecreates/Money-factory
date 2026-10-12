@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-11",
+  "updated_at": "2026-10-12",
   "producer": "CYZOR Money Factory",
   "consumer": "Content Control",
   "contract": {
@@ -56,5 +56,13 @@
     "acceptance_record_id": "social-instagram-DeUlQTQxv5O",
     "money_factory_idea_id": "extension-retention-evidence-experiment",
     "verification_record": "SOCIAL_INTEGRATION_VERIFICATION.json"
+  },
+  "repository_integrations": {
+    "registry": "integrations/repositories.json",
+    "project_memory": "PROJECT_MEMORY.md",
+    "verification_command": "python3 integrations/verify.py",
+    "source_status": "seven_repositories_pinned",
+    "runtime_status": "not_configured_or_verified",
+    "publication_enabled": false
   }
 }
