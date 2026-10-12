@@ -14,13 +14,15 @@
       "capability": "video_generation",
       "integration_target": "Content Control asset generation",
       "source_status": "pinned",
-      "runtime_status": "not_configured_or_verified",
+      "runtime_status": "blocked_no_cuda_worker_or_model_weights",
       "enabled": false,
       "blockers": [
-        "GPU capacity and model weights",
-        "Isolated Python environment",
-        "Render adapter and end-to-end QA"
-      ]
+        "No CUDA GPU available in current runtime",
+        "Model weights not downloaded",
+        "GPU runtime installation and real generation unverified"
+      ],
+      "verified_local_operations": [],
+      "verification_report": "integrations/local-verification.json"
     },
     {
       "order": 2,
@@ -31,13 +33,17 @@
       "capability": "video_clipping",
       "integration_target": "Content Control repurposing",
       "source_status": "pinned",
-      "runtime_status": "not_configured_or_verified",
+      "runtime_status": "local_operations_verified_deployment_pending",
       "enabled": false,
       "blockers": [
-        "Python dependencies and FFmpeg with libass",
-        "Skill-host connection",
-        "Clip and subtitle QA"
-      ]
+        "Hosted worker deployment",
+        "Semantic chapter selection, subtitle translation and source download not end-to-end verified"
+      ],
+      "verified_local_operations": [
+        "clip",
+        "captions"
+      ],
+      "verification_report": "integrations/local-verification.json"
     },
     {
       "order": 3,
@@ -48,13 +54,17 @@
       "capability": "shorts_production",
       "integration_target": "Content Control repurposing",
       "source_status": "pinned",
-      "runtime_status": "not_configured_or_verified",
+      "runtime_status": "local_operations_verified_deployment_pending",
       "enabled": false,
       "blockers": [
-        "Isolated service with model storage and sufficient RAM",
-        "Local LLM or approved provider configuration",
-        "Authenticated adapter and output QA"
-      ]
+        "Hosted worker deployment",
+        "LLM moment selection and generative UGC providers not configured or verified"
+      ],
+      "verified_local_operations": [
+        "vertical",
+        "transcript-windows"
+      ],
+      "verification_report": "integrations/local-verification.json"
     },
     {
       "order": 4,
@@ -65,12 +75,16 @@
       "capability": "seo_audit",
       "integration_target": "Money Factory acquisition and website audits",
       "source_status": "pinned",
-      "runtime_status": "not_configured_or_verified",
+      "runtime_status": "local_operations_verified_deployment_pending",
       "enabled": false,
       "blockers": [
-        "Compatible skill host",
-        "Audit adapter and target-site verification"
-      ]
+        "Hosted worker deployment",
+        "Browser rendering and authenticated external SEO APIs not configured or verified"
+      ],
+      "verified_local_operations": [
+        "parse-html"
+      ],
+      "verification_report": "integrations/local-verification.json"
     },
     {
       "order": 5,
@@ -81,14 +95,16 @@
       "capability": "story_production",
       "integration_target": "Content Control story and asset planning",
       "source_status": "pinned",
-      "runtime_status": "not_configured_or_verified",
+      "runtime_status": "local_operations_verified_deployment_pending",
       "enabled": false,
       "blockers": [
-        "Bun or Docker runtime and persistent storage",
-        "Model-provider configuration",
-        "Authentication before public hosting",
-        "Character-board and timeline adapter QA"
-      ]
+        "Authenticated hosted deployment",
+        "Model providers and complete story generation not configured or verified"
+      ],
+      "verified_local_operations": [
+        "import-brief"
+      ],
+      "verification_report": "integrations/local-verification.json"
     },
     {
       "order": 6,
@@ -99,13 +115,16 @@
       "capability": "agent_orchestration",
       "integration_target": "Money Factory orchestration and memory",
       "source_status": "pinned",
-      "runtime_status": "not_configured_or_verified",
+      "runtime_status": "local_operations_verified_deployment_pending",
       "enabled": false,
       "blockers": [
-        "Isolated MCP runtime",
-        "Client registration and permissions review",
-        "Existing project-memory adapter and smoke test"
-      ]
+        "Persistent hosted worker storage",
+        "MCP client registration and full agent orchestration not verified"
+      ],
+      "verified_local_operations": [
+        "remember-project"
+      ],
+      "verification_report": "integrations/local-verification.json"
     },
     {
       "order": 7,
@@ -116,14 +135,20 @@
       "capability": "youtube_production",
       "integration_target": "Content Control YouTube planning and analytics",
       "source_status": "pinned",
-      "runtime_status": "not_configured_or_verified",
+      "runtime_status": "local_operations_verified_deployment_pending",
       "enabled": false,
       "blockers": [
-        "Node dependencies and persistent SQLite",
-        "Text and narration provider configuration",
-        "Phone-compatible OAuth integration",
-        "Bridge adapter and production QA"
-      ]
+        "Hosted worker deployment",
+        "Text/narration providers and phone-compatible OAuth not configured or verified",
+        "Complete production and analytics not verified"
+      ],
+      "verified_local_operations": [
+        "audit"
+      ],
+      "verification_report": "integrations/local-verification.json"
     }
-  ]
+  ],
+  "worker_entrypoint": "integrations/run.py",
+  "setup_entrypoint": "integrations/setup.py",
+  "full_production_ready": false
 }

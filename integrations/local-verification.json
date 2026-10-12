@@ -1,0 +1,146 @@
+{
+  "status": "PASS",
+  "scope": "Eight local CPU operations; Wan generation and hosted operation not verified",
+  "publication_enabled": false,
+  "receipts": [
+    {
+      "schema_version": 1,
+      "tool": "youtube-clipper-skill",
+      "operation": "clip",
+      "revision": "f31f077ee0905c95a510a6f34bbd0c3c85b15129",
+      "status": "PASS",
+      "verified_at": "2026-10-12T14:06:36Z",
+      "output_sha256": "f8a8ad88f53c627f393dacc1959f494394b786135eb5b1808bb3df6416737806",
+      "media": {
+        "duration": 2.083333,
+        "streams": [
+          {
+            "codec_type": "video",
+            "codec_name": "h264",
+            "width": 320,
+            "height": 180
+          },
+          {
+            "codec_type": "audio",
+            "codec_name": "aac"
+          }
+        ]
+      },
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "youtube-clipper-skill",
+      "operation": "captions",
+      "revision": "f31f077ee0905c95a510a6f34bbd0c3c85b15129",
+      "status": "PASS",
+      "verified_at": "2026-10-12T14:06:36Z",
+      "output_sha256": "f1d8c22dc78d7c147599c5f6f4ec0db365942b860a0bb402b3d04a16ae36388b",
+      "media": {
+        "duration": 4.0,
+        "streams": [
+          {
+            "codec_type": "video",
+            "codec_name": "h264",
+            "width": 320,
+            "height": 180
+          },
+          {
+            "codec_type": "audio",
+            "codec_name": "aac"
+          }
+        ]
+      },
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "openshorts",
+      "operation": "vertical",
+      "revision": "0240abeccc0e18463f6fd3f881767c4bc33ae3a6",
+      "status": "PASS",
+      "verified_at": "2026-10-12T14:06:46Z",
+      "output_sha256": "019b2ca96709b1bcb5bb142d3e9eb100225f56451508e40a05b4a8e87889691c",
+      "media": {
+        "duration": 4.0,
+        "streams": [
+          {
+            "codec_type": "video",
+            "codec_name": "h264",
+            "width": 1080,
+            "height": 1920
+          },
+          {
+            "codec_type": "audio",
+            "codec_name": "aac"
+          }
+        ]
+      },
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "openshorts",
+      "operation": "transcript-windows",
+      "revision": "0240abeccc0e18463f6fd3f881767c4bc33ae3a6",
+      "status": "PASS",
+      "verified_at": "2026-10-12T14:06:46Z",
+      "output_sha256": "06f409e074fdc869efcec6534919a4a38fd0672a16ff59f651d1bb963ec9ca98",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "claude-seo",
+      "operation": "parse-html",
+      "revision": "4b99de2f7de7e7d5247042e5fb5b4ea9368ef734",
+      "status": "PASS",
+      "verified_at": "2026-10-12T14:06:47Z",
+      "output_sha256": "d7d3371311706562bf0eef01c73bd4213611365db15894212e89e9048c1bc721",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "youtube-automation-agent",
+      "operation": "audit",
+      "revision": "e26792ae00dc1ec2434faf32632896609396dfad",
+      "status": "PASS",
+      "verified_at": "2026-10-12T14:06:47Z",
+      "output_sha256": "75c743528870b88108238ab6d6bc52c4a712406b6d03f2a23ff78c023d7a12fd",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "ruflo",
+      "operation": "remember-project",
+      "revision": "3209ba266750908ea88fb0bc69672e106478bbef",
+      "status": "PASS",
+      "verified_at": "2026-10-12T14:06:48Z",
+      "output_sha256": "a36fa1a37f9715d63c4877b08e4e7107e779c0996b00e84c3c5092e36509f174",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "toonflow-app",
+      "operation": "import-brief",
+      "revision": "2c7fb257affb65777110fe4c6e60cd3c09187d9b",
+      "status": "PASS",
+      "verified_at": "2026-10-12T14:06:50Z",
+      "output_sha256": "65df8bd26c6a94c28a8eb9a051306312484d28423fb3be176ca11e515664b568",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    }
+  ],
+  "negative_checks": 3
+}

@@ -62,7 +62,12 @@
     "project_memory": "PROJECT_MEMORY.md",
     "verification_command": "python3 integrations/verify.py",
     "source_status": "seven_repositories_pinned",
-    "runtime_status": "not_configured_or_verified",
-    "publication_enabled": false
+    "runtime_status": "six_repositories_have_verified_local_operations; hosted_deployment_pending",
+    "publication_enabled": false,
+    "worker_entrypoint": "integrations/run.py",
+    "consumer_entrypoint": "scripts/repository_tools.py",
+    "consumer_environment": "MONEY_FACTORY_ROOT",
+    "verification_report": "integrations/local-verification.json",
+    "full_production_ready": false
   }
 }

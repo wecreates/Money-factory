@@ -19,3 +19,11 @@ Preserve the existing Content Control/Remotion engine, character board, voice as
 URL query parameters supplied with the request were intentionally discarded. Never persist those tokens in configuration or project memory.
 
 On resume, read the registry and bridge, initialize the pinned submodules, and configure/test each integration in the recorded order. Update runtime status only with actual execution evidence. This file is durable repository memory; it does not claim to modify ChatGPT's personal memory.
+
+## Runtime integration follow-up
+
+Six repositories now have verified local operations through `integrations/run.py`: clipping and burned captions; OpenShorts CPU vertical reframing and transcript windows; Claude SEO HTML parsing; Toonflow workspace brief import; Ruflo native SQLite store/read-back; AgentTube discoverability audit. The eight-operation smoke suite and three negative checks pass. AgentTube's upstream suite passed 47/47 after native SQLite repair. Toonflow web/server builds passed using direct package builds. See `integrations/local-verification.json` for operation-specific receipts.
+
+Content Control calls the same worker through `scripts/repository_tools.py`; no duplicate vendor copy is needed. Its read-only `/api/integrations/status` endpoint does not claim hosted readiness from local tests.
+
+Outstanding: Wan needs a CUDA host and model weights. Hosted worker setup, model/provider connections, MCP registration, and full end-to-end production remain unverified. The Render connector requires explicit workspace selection; it listed `My Workspace` for cyzorcreations@gmail.com, ID `tea-darsafojo6nc739844hg`, but no workspace was selected. Do not label the overall system 100% ready.
