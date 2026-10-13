@@ -14,7 +14,7 @@ on:
         type: string
   push:
     branches: [main]
-    paths: ['integrations/jobs/amex-vs-chase-audit.*.json', '.github/workflows/repository-job.yml', 'integrations/hosted_job.py', 'integrations/persist_job.py']
+    paths: ['integrations/jobs/amex-vs-chase-audit.*.json', '.github/workflows/repository-job.yml', 'integrations/hosted_job.py', 'integrations/persist_job.py', 'integrations/check_live_content_control.py', 'integrations/test_check_live_content_control.py']
 permissions:
   contents: read
 concurrency:
@@ -48,6 +48,7 @@ jobs:
           set -euo pipefail
           python -m unittest discover -s integrations -p 'test_hosted_job.py'
           python -m unittest discover -s integrations -p 'test_persist_job.py'
+          python -m unittest discover -s integrations -p 'test_check_live_content_control.py'
           tool=$(python integrations/hosted_job.py "$JOB_FILE" --runtime "$RUNNER_TEMP/runtime" --content-control content-control-bridge --output "$RUNNER_TEMP/job-output" --print-tool)
           echo "tool=$tool" >> "$GITHUB_OUTPUT"
       - name: Install selected free CPU runtime
