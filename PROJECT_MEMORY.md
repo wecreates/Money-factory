@@ -49,3 +49,15 @@ Remaining blockers are unchanged: Wan CUDA/model backend, private persistent Too
 ## 2026-10-13: Wan optional by user decision
 
 Chris authorized skipping Wan and completing the existing Remotion production path. Wan remains pinned for optional future use, disabled and not required for production. Do not provision GPU services or count Wan as a current release blocker. This does not waive voice, sound, captions, visual-style, character, factual, or mobile-playback QA. Latest inspected Content Control V2 record (run 38372639017) passes six technical/audio checks but remains blocked on verified reference provenance and exact-candidate aligned-frame style comparison. No finished-video or publication approval is implied.
+
+## 2026-10-13: operational visual analysis and comparison
+
+Four additional agents repaired and independently reviewed the visual-analysis path. Content Control now separates completed visual measurements (`analysis_status: COMPLETE`) from artistic acceptance. The actual V2 draft (SHA-256 `8d8b0559f8f0b49dd5875e4c81e19d9005c15933faf22adce10968ef3169743b`) was fully decoded: 839 frames at 24 fps, 34.96 seconds. Timestamped reference/candidate contact sheets, full-frame motion metrics, independent frame findings, and real OpenCLIP/Florence CPU comparison are saved under `state/visual-analysis/` in Content Control. 26 Python and 8 creative-handoff tests passed. Hosted deterministic visual-analysis run 38432656338 passed.
+
+The independent inspection identified smaller/thinner captions, smaller characters and sparse staging relative to the ten reference images. White backgrounds remain intentional brand direction. These findings are not artistic approval. Existing reference images lack verified source-video provenance and therefore cannot establish competitor motion or audio parity. New source-video intake records exact frame/source hashes; no provenance was invented.
+
+The dedicated visual-analysis workflow runs on relevant changes and hourly. Semantic analysis follows completed V2 builds and runs daily; each run writes fresh artifacts separate from historical snapshots. Both paths keep publication disabled and do not bypass full audiovisual/creative approval. Wan remains optional and disabled.
+
+Hosted semantic run 38432656326 completed successfully with real model inference and fresh video-derived frames; artifact digest `14f723be59f01d4d0d07d0a36f42cdbfe1daff446c7ccca8965d4ef842d99774`. The legacy always-blocked visual gate is repaired: an exact-artifact documented static-frame review can now PASS or FAIL, while invalid or incomplete evidence remains BLOCKED. Current inspected draft correctly FAILS on observed mismatches; this is successful analyzer operation, not a finished-video approval. Full audiovisual and competitor review remain required before customer handoff.
+
+Final hosted visual-analysis run 38433915515 passed after integrating the documented-review gate. Software execution is verified; the current video's artistic verdict remains FAIL.
