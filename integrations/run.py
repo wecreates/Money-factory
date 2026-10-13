@@ -53,7 +53,7 @@ def source(tool):
     dirty = subprocess.check_output(['git', '-C', str(path), 'status', '--porcelain',
                                      '--untracked-files=no'], text=True)
     if dirty:
-        raise ValueError(f'{tool}: tracked upstream source has local changes')
+        raise ValueError(f'{tool}: tracked upstream source has local changes: {dirty.strip()}')
     return path
 
 

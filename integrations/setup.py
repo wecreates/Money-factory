@@ -61,7 +61,15 @@ def setup(tool, runtime):
                 cmd([bun, script], cwd=script.parent)
         cmd([bun, 'scripts/build.ts'], cwd=upstream / 'packages/mcp')
         cmd([bun, 'scripts/build.ts'], cwd=upstream / 'apps/server')
-        cmd([bun, 'node_modules/vite/bin/vite.js', 'build'], cwd=upstream / 'apps/web')
+        # Vite's component resolver regenerates this tracked type declaration.
+        # Preserve the reviewed source while retaining the compiled web assets.
+        generated_types = upstream / 'apps/web/src/types/components.d.ts'
+        original_types = generated_types.read_bytes()
+        try:
+            cmd([bun, 'node_modules/vite/bin/vite.js', 'build'], cwd=upstream / 'apps/web')
+        finally:
+            generated_types.write_bytes(original_types)
+        source(tool)  # Any other tracked change remains a hard failure.
     elif tool == 'ruflo':
         cmd(['npm', 'install', '--prefix', runtime / 'ruflo', 'ruflo@3.56.7',
              '--ignore-scripts', '--no-audit', '--no-fund'])
