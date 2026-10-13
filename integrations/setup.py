@@ -54,7 +54,14 @@ def setup(tool, runtime):
         bun = runtime / 'bun/node_modules/.bin/bun'
         env['PATH'] = str(bun.parent) + os.pathsep + env['PATH']
         env['NODE_ENV'] = 'production'
-        cmd([bun, 'install', '--frozen-lockfile', '--ignore-scripts'])
+        # Bun links the workspace's CLI and chmods its tracked bin source.
+        # Restore only its original permission bits; content changes still fail.
+        cli_source = upstream / 'packages/mcp/src/stdio.ts'
+        cli_mode = cli_source.stat().st_mode & 0o777
+        try:
+            cmd([bun, 'install', '--frozen-lockfile', '--ignore-scripts'])
+        finally:
+            cli_source.chmod(cli_mode)
         # Direct package builds avoid Bun's workspace-filter ENOENT on this host.
         for category in ('tools', 'ext'):
             for script in sorted((upstream / 'packages' / category).glob('*/build.ts')):

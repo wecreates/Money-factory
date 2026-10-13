@@ -1,0 +1,15 @@
+{
+  "tool": "youtube-automation-agent",
+  "operation": "audit",
+  "input": "amex-vs-chase-audit.input.json",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "provenance": {
+    "repository": "wecreates/content-control",
+    "revision": "00fbb60bf345a312563ac4da13812933fe86619c",
+    "ccsd_path": "projects/v2/amex-vs-chase-boss-fight/ccsd.json",
+    "ccsd_sha256": "4e2abfff214c0ddc8e3d5145f0db8dd7036cc6a9ce465d2c51a99062e689e4b7",
+    "metadata_sha256": "6055681473838d367fd573e9b4e759c61f83e34e709640a0779eddc698e4c551",
+    "scope": "Draft metadata audit only; not creative approval or publication authorization"
+  }
+}

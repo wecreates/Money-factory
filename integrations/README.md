@@ -11,7 +11,7 @@ python3 integrations/verify.py
 
 `repositories.json` records the requested order, revision, intended integration target, and runtime blockers. `CONTENT_CONTROL_BRIDGE.json` links this inventory into the existing bridge; `PROJECT_MEMORY.md` stores the user directive.
 
-The verifier checks source identity and revision only. A passing source check does not mean runtime readiness. No upstream install scripts, services, model downloads, publishing, or paid calls are automatically executed. Keep each runtime isolated and validate the adapter into the existing pipeline before enabling it. Do not use `git submodule update --remote` in deployment: upgrades require an explicitly reviewed pin change.
+The verifier checks source identity and revision only. A passing source check does not mean runtime readiness. The hosted workflows below install isolated CPU runtimes; they do not download Wan models, publish, or call paid providers. Do not use `git submodule update --remote` in deployment: upgrades require an explicitly reviewed pin change.
 
 ## Executable worker
 
@@ -48,3 +48,26 @@ The worker serializes operations to avoid concurrent ML memory exhaustion. It re
 Toonflow runs privately with `TOONFLOW_DATA_DIR=/persistent/toonflow <runtime>/bun/node_modules/.bin/bun integrations/toonflow-server.ts`. It binds only loopback. Public phone access requires an authenticated reverse proxy; the upstream web app is not a full authentication boundary. No model generation provider is configured by this integration.
 
 Content Control's `scripts/repository_tools.py` delegates here using `MONEY_FACTORY_ROOT`. The existing Remotion engine and production QA remain canonical. `local-verification.json` is local evidence, not live deployment health. AgentTube's separate upstream suite passed 47/47; provider-backed end-to-end generation remains unverified. The whole system is **not production-ready** until the registry's blockers are resolved and hosted runs pass.
+
+## Hosted execution without paid provisioning
+
+`repository-integrations.yml` installs the six CPU runtimes in order and executes the
+eight-operation smoke suite through the pinned Content Control bridge. A separate
+write-permission job persists the receipt only after successful execution. Render's
+`REPOSITORY_WORKER_BACKEND=github-actions` status route checks this evidence against
+the latest workflow run and source pins; it never infers full production readiness.
+
+`repository-job.yml` is the usable job entry point: choose **Run workflow**, then a
+reviewed `.job.json` filename under `integrations/jobs`. GitHub controls authorization.
+The provided Amex-vs-Chase audit uses actual existing Content Control draft metadata
+and dialogue with source hashes, and runs automatically when that job changes.
+Other reviewed jobs are run manually. Outputs and receipts are retained as workflow
+artifacts for one day; download or consume them before expiry. No social upload occurs.
+
+Hosted job inputs must already be in the public repository's `integrations/jobs`
+directory. Do not put private media, secrets, or account data there. Jobs explicitly
+disable publication and paid generation. Output paths and Toonflow's loopback service
+are assigned by the worker. Wan is refused on this CPU backend. Toonflow workspaces
+and Ruflo SQLite state are ephemeral here; durable repository project memory is kept
+in `PROJECT_MEMORY.md`. This backend does not make every upstream application feature
+available or establish persistent, always-on production hosting.
