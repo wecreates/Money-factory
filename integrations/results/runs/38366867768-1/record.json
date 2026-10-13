@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "workflow_run_id": "38366867768",
+  "workflow_run_attempt": "1",
+  "source_revision": "ae664c3cb2c0bf3e29dd75cfc8bd2b062f3957e9",
+  "job": "amex-vs-chase-audit.job.json",
+  "tool": "youtube-automation-agent",
+  "operation": "audit",
+  "operation_status": "PASS",
+  "result_persisted": true,
+  "output_sha256": "46e2e5bc81c3922d741bc54377917cead5a5efc7e6d46d42c85d044f09c16072",
+  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/38366867768",
+  "publication_enabled": false,
+  "production_ready": false,
+  "scope": "Operation execution evidence; findings and content approval are separate"
+}
