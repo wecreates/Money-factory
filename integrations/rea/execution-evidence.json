@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "tool": "REA",
+  "version": "6.4.0",
+  "operation": "analyze-javascript-application",
+  "status": "BLOCKED",
+  "exit_code": 1,
+  "input_sha256": {
+    "main.js": "b6b81cd121d5fb8c22bafce93e9d80be76f7e12f83b3e682497a98ed60777727",
+    "math.js": "0503842d9e2a803ead018a6e894550ff3ab940e492f67e27f6473408a1be7c90"
+  },
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "scope": "Offline source analysis only; partial observations never imply completion",
+  "error": {
+    "code": "capability_unavailable",
+    "category": "unsupported_provider",
+    "message": "Linux process ownership inspection requires a procps-compatible ps on REA's PATH before launching a child: Command failed: ps -axo pid=,ppid=,pgid=,uid=,stat=,command=\nfatal library error, lookup self\n",
+    "retryable": false
+  },
+  "execution_environment": "Current Work Mode workspace; Linux procps ownership inspection unavailable"
+}
