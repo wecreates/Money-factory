@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-10-12",
+  "updated_at": "2026-10-13",
   "publication_enabled": false,
   "paid_services_enabled": false,
   "canonical_content_repository": "wecreates/content-control",
@@ -14,7 +14,7 @@
       "capability": "video_generation",
       "integration_target": "Content Control asset generation",
       "source_status": "pinned",
-      "runtime_status": "blocked_no_cuda_worker_or_model_weights",
+      "runtime_status": "optional_disabled_by_user",
       "enabled": false,
       "blockers": [
         "No CUDA GPU available in current runtime",
@@ -22,7 +22,9 @@
         "GPU runtime installation and real generation unverified"
       ],
       "verified_local_operations": [],
-      "verification_report": "integrations/local-verification.json"
+      "verification_report": "integrations/local-verification.json",
+      "required_for_production": false,
+      "selection_reason": "Use existing Remotion production engine; Wan GPU generation is outside the required production path."
     },
     {
       "order": 2,
