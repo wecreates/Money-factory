@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-12",
+  "updated_at": "2026-10-13",
   "producer": "CYZOR Money Factory",
   "consumer": "Content Control",
   "contract": {
@@ -62,12 +62,19 @@
     "project_memory": "PROJECT_MEMORY.md",
     "verification_command": "python3 integrations/verify.py",
     "source_status": "seven_repositories_pinned",
-    "runtime_status": "six_repositories_have_verified_local_operations; hosted_deployment_pending",
+    "runtime_status": "eight_cpu_operations_verified_through_content_control_on_hosted_runner",
     "publication_enabled": false,
     "worker_entrypoint": "integrations/run.py",
     "consumer_entrypoint": "scripts/repository_tools.py",
     "consumer_environment": "MONEY_FACTORY_ROOT",
     "verification_report": "integrations/local-verification.json",
-    "full_production_ready": false
+    "full_production_ready": false,
+    "hosted_backend": "github-actions",
+    "hosted_workflow": ".github/workflows/repository-integrations.yml",
+    "job_workflow": ".github/workflows/repository-job.yml",
+    "hosted_verification_report": "integrations/hosted-verification.json",
+    "hosted_run_id": 38364409610,
+    "live_status_endpoint": "https://content-control-render-worker.onrender.com/api/integrations/status",
+    "persistent_worker_configured": false
   }
 }
