@@ -14,7 +14,7 @@ from run import ROOT
 OPERATIONS = {
     'youtube-clipper-skill': ('clip', 'captions'),
     'openshorts': ('vertical', 'transcript-windows'),
-    'claude-seo': ('parse-html',),
+    'claude-seo': ('parse-html', 'render-page'),
     'toonflow-app': ('import-brief',),
     'ruflo': ('remember-project',),
     'youtube-automation-agent': ('audit',),

@@ -1,5 +1,10 @@
 name: Process reviewed Content Control repository job
 on:
+  workflow_call:
+    inputs:
+      job:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       job:
@@ -51,7 +56,12 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg build-essential python3-dev
-          python integrations/setup.py "$TOOL" --runtime "$RUNNER_TEMP/runtime"
+          if [ "$TOOL" = claude-seo ]; then
+            python integrations/setup.py "$TOOL" --runtime "$RUNNER_TEMP/runtime" --browser
+            "$RUNNER_TEMP/runtime/seo/.venv/bin/python" -m playwright install-deps chromium
+          else
+            python integrations/setup.py "$TOOL" --runtime "$RUNNER_TEMP/runtime"
+          fi
       - name: Process job through Content Control
         run: >-
           python integrations/hosted_job.py "$JOB_FILE"

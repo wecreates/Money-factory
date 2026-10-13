@@ -10,7 +10,7 @@ import sys
 from run import ROOT, TOOLS, source
 
 
-def setup(tool, runtime):
+def setup(tool, runtime, browser=False):
     upstream = source(tool)
     runtime.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ, PUBLICATION_ENABLED='false', PIP_NO_CACHE_DIR='1',
@@ -47,7 +47,7 @@ def setup(tool, runtime):
             'torch==2.11.0', 'torchvision==0.26.0')
         pip(python, '-r', upstream / 'requirements.txt')
     elif tool == 'claude-seo':
-        cmd(['bash', upstream / 'scripts/claude-seo', 'setup', '--skip-browser'])
+        cmd(['bash', upstream / 'scripts/claude-seo', 'setup', *([] if browser else ['--skip-browser'])])
         cmd(['bash', upstream / 'scripts/claude-seo', 'doctor', '--json'])
     elif tool == 'toonflow-app':
         cmd(['npm', 'install', '--prefix', runtime / 'bun', 'bun@1.3.14', '--no-audit', '--no-fund'])
@@ -93,5 +93,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('tool', choices=list(TOOLS))
     parser.add_argument('--runtime', type=Path, required=True)
+    parser.add_argument('--browser', action='store_true', help='Install managed Chromium for Claude SEO')
     args = parser.parse_args()
-    setup(args.tool, args.runtime.resolve())
+    setup(args.tool, args.runtime.resolve(), browser=args.browser)

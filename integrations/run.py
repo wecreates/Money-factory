@@ -71,6 +71,18 @@ def bounds(job):
     return start, end
 
 
+def website_request(data):
+    from urllib.parse import urlsplit
+    url=data.get('url','')
+    parsed=urlsplit(url)
+    if parsed.scheme!='https' or parsed.hostname not in ('cyzorcreations.com','www.cyzorcreations.com') or parsed.username or parsed.password or parsed.port or parsed.query or parsed.fragment:
+        raise ValueError('Rendered website jobs require the public CYZOR HTTPS site without credentials or query parameters')
+    viewport=data.get('viewport','mobile')
+    if viewport not in ('mobile','desktop'):
+        raise ValueError('Use mobile or desktop viewport')
+    return url,viewport
+
+
 def media_probe(output, runtime):
     data = json.loads(execute(['ffprobe', '-v', 'error', '-show_streams',
                               '-show_format', '-of', 'json', output], ROOT, runtime))
@@ -130,6 +142,14 @@ def _run(job, runtime):
         result = execute(['bash', upstream / 'scripts/claude-seo', 'run',
                           'parse_html.py', file_input(job), '--json'], upstream, runtime)
         output.write_text(json.dumps(json.loads(result), indent=2) + '\n')
+    elif (tool, operation) == ('claude-seo', 'render-page'):
+        url,viewport=website_request(json.loads(file_input(job).read_text()))
+        result=execute(['bash',upstream/'scripts/claude-seo','run','render_page.py',url,
+                        '--mode','always','--viewport',viewport,'--json','--max-text','50000'],upstream,runtime)
+        rendered=json.loads(result)
+        if rendered.get('error') or rendered.get('render_engine')!='playwright-chromium' or rendered.get('mode_used')!='rendered' or not 200<=int(rendered.get('status_code') or 0)<300 or not rendered.get('content'):
+            raise ValueError('Live Chromium rendering did not complete successfully')
+        output.write_text(json.dumps(rendered,indent=2)+'\n')
     elif (tool, operation) == ('youtube-automation-agent', 'audit'):
         code = ('const fs=require("fs");const {auditContent}=require('
                 '"./utils/discoverability-adapters/darkzseo.js");'
