@@ -77,5 +77,25 @@
     "live_status_endpoint": "https://content-control-render-worker.onrender.com/api/integrations/status",
     "persistent_worker_configured": false,
     "hosted_verification_scope": "Historical scoped operation evidence; live_status_endpoint validates current workflow and freshness."
+  },
+  "pod_kdp": {
+    "canonical_repository": "wecreates/content-control",
+    "platforms": [
+      "kdp",
+      "redbubble",
+      "teepublic",
+      "zazzle",
+      "spreadshirt"
+    ],
+    "runtime_queue": "PostgreSQL pod_production_queue",
+    "capability_registry": "capability-queue.json",
+    "publication_enabled": false,
+    "baseline_unique_concepts_daily": 100,
+    "maximum_configurable_unique_concepts_daily": 1000,
+    "production_ready": false,
+    "readiness_authority": "CONTENT_READINESS.json",
+    "grant_adapter": "integrations/pod/readiness-grant.mjs",
+    "event_inbox": "integrations/pod/event-inbox.mjs",
+    "acceptance_record": "Content Control POD_IMPLEMENTATION_STATUS.md"
   }
 }

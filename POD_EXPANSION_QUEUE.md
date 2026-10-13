@@ -1,14 +1,10 @@
-# POD Expansion Queue — Start Only After Etsy Completion
+# POD Expansion Queue — Dedicated POD/KDP Lane
 
-Owner directive:
-After the Etsy digital-only rebuild is fully live and verified, expand original CYZOR designs to POD marketplaces. Etsy is explicitly excluded from POD.
+Owner directive (2026-10-13):
+Implement the dedicated Amazon KDP, Redbubble, TeePublic, Zazzle and Spreadshirt lane now. Etsy is explicitly excluded from this lane; unrelated Etsy workflows remain unchanged.
 
 ## Start gate
-Do not begin POD publishing until:
-- all 59 Etsy listings are live as intended;
-- Etsy public QA passes;
-- digital-file delivery is verified;
-- no old POD Etsy listing remains.
+The current POD/KDP implementation supersedes the prior Etsy-completion prerequisite for this lane. Production/publication still require the Money Factory readiness ceiling, explicit scoped permission, verified rights, exact-artifact QA, authorized provider access and durable storage. See integrations/pod/README.md. No publication is enabled by this document.
 
 ## Marketplace research queue
 Evaluate and prioritize:
@@ -36,7 +32,7 @@ Evaluate and prioritize:
 - Track verified orders, fees, fulfillment cost, returns and contribution profit by marketplace.
 
 ## Initial design candidates
-The original digital sticker/clipart characters created for Etsy can be adapted into POD artwork after Etsy is complete:
+The original digital sticker/clipart characters created for Etsy can be adapted into POD artwork after independent rights, template and readiness checks:
 - coffee character family
 - taco character family
 - donut character family
@@ -47,3 +43,4 @@ The original digital sticker/clipart characters created for Etsy can be adapted 
 - bear character family
 
 Wall-art collections can also be adapted to permitted physical-print marketplaces where the art is original and the unit economics make sense.
+
