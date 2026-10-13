@@ -3,9 +3,16 @@ from pathlib import Path
 import tempfile
 import unittest
 from hosted_job import load_job
+from run import website_request
 
 
 class JobBoundaryTests(unittest.TestCase):
+    def test_website_render_targets_only_public_cyzor_without_credentials(self):
+        self.assertEqual(website_request({'url':'https://cyzorcreations.com/'}),('https://cyzorcreations.com/','mobile'))
+        for url in ('http://cyzorcreations.com','https://127.0.0.1','https://cyzorcreations.com.evil.test',
+                    'https://user@cyzorcreations.com','https://cyzorcreations.com/?token=secret'):
+            with self.subTest(url=url),self.assertRaises(ValueError):website_request({'url':url})
+
     def test_rejects_escape_spend_publication_and_worker_owned_fields(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

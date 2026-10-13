@@ -61,8 +61,21 @@ the latest workflow run and source pins; it never infers full production readine
 reviewed `.job.json` filename under `integrations/jobs`. GitHub controls authorization.
 The provided Amex-vs-Chase audit uses actual existing Content Control draft metadata
 and dialogue with source hashes, and runs automatically when that job changes.
-Other reviewed jobs are run manually. Outputs and receipts are retained as workflow
-artifacts for one day; download or consume them before expiry. No social upload occurs.
+Other reviewed jobs are run manually or through the same reusable workflow. Artifacts
+are retained for one day. A separate recording runner verifies the source job hash,
+upstream pin, output hash and publication flags before committing small JSON/text
+results under `integrations/results/runs/<run-id>-<attempt>/`. These records survive
+runner shutdown and artifact expiry. Conflicting replays, tampered results, linked
+files and results larger than 1 MiB are rejected. Media files remain in the temporary
+artifact; only their receipts are durable. No social upload occurs.
+
+`repository-website-seo.yml` calls this same worker with
+`cyzor-website-render.job.json`. Claude SEO's managed Chromium is installed with
+`setup.py claude-seo --browser`, then the upstream renderer visits the public CYZOR
+homepage in a mobile viewport. The adapter requires an actual successful Chromium
+render, not a raw-HTML fallback. This operation permits only the public CYZOR HTTPS
+domain without URL credentials/query parameters, and never submits a form or logs in.
+Other upstream SEO APIs still require separate authorization and verification.
 
 Hosted job inputs must already be in the public repository's `integrations/jobs`
 directory. Do not put private media, secrets, or account data there. Jobs explicitly
