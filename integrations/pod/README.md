@@ -16,3 +16,11 @@ Tests: `node --test integrations/pod/readiness-grant.test.mjs`.
 The corresponding Content Control change documents all twelve acceptance gates
 in POD_IMPLEMENTATION_STATUS.md. Publishing stays disabled. Etsy pipelines are
 outside this lane; their independent workflows are preserved.
+
+Production-only approvals may now set `production_permission: true` and
+`publication_permission: false`. Scope, expiry, evidence event and readiness
+checks still apply. These grants authorize internal RESEARCH/PRELAUNCH work only;
+LAUNCH requires explicit publication permission, healthy providers, launch
+readiness and a bound package hash. The matching Content Control policy must be
+deployed before using production-only grants. No grant adapter is mounted in a
+live Money Factory service by this change.

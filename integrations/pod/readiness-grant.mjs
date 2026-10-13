@@ -8,13 +8,13 @@ export function issuePodGrant({readiness,job,approval,verifiedFacts={},forbidden
  const business=readiness?.businesses?.find(b=>b.id===job.business_id);
  if(!business||business.content_production_ready!==true||!platforms.has(job.platform)||job.destination_platform!==job.platform||
   !Object.hasOwn(modes,business.max_mode)||!Object.hasOwn(modes,job.mode)||modes[job.mode]>modes[business.max_mode])throw Error('READINESS_BLOCKED');
- if(approval?.publication_permission!==true||approval.revoked!==false||approval.business_id!==job.business_id||
+ if((approval?.production_permission!==true&&approval?.publication_permission!==true)||approval.revoked!==false||approval.business_id!==job.business_id||
   approval.job_id!==job.id||approval.account_id!==job.account_id||approval.platform!==job.platform||
   !Number.isFinite(approval.expires_at_ms)||approval.expires_at_ms<=now||!approval.evidence_event_id)throw Error('APPROVAL_REQUIRED');
- if(job.mode==='LAUNCH'&&(business.launch_content_allowed!==true||approval.providers_healthy!==true||approval.package_sha256!==job.package_sha256||!/^[a-f0-9]{64}$/.test(job.package_sha256||'')))throw Error('LAUNCH_BLOCKED');
+ if(job.mode==='LAUNCH'&&(approval.publication_permission!==true||business.launch_content_allowed!==true||approval.providers_healthy!==true||approval.package_sha256!==job.package_sha256||!/^[a-f0-9]{64}$/.test(job.package_sha256||'')))throw Error('LAUNCH_BLOCKED');
  const payload={schema_version:1,audience:'content-control:pod',issued_at_ms:now,expires_at_ms:Math.min(now+300000,approval.expires_at_ms),
   job_id:job.id,business_id:job.business_id,account_id:job.account_id,platform:job.platform,max_mode:business.max_mode,
-  launch_content_allowed:business.launch_content_allowed===true,publication_permission:true,revoked:false,
+  launch_content_allowed:business.launch_content_allowed===true,production_permission:true,publication_permission:approval.publication_permission===true,revoked:false,
   package_sha256:job.package_sha256,approval_event_id:approval.evidence_event_id,
   readiness_sha256:crypto.createHash('sha256').update(JSON.stringify(readiness)).digest('hex'),
   verified_facts:verifiedFacts,forbidden_claims:forbiddenClaims,price};
