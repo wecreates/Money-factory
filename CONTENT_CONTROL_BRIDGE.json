@@ -76,5 +76,25 @@
     "hosted_run_id": 38364409610,
     "live_status_endpoint": "https://content-control-render-worker.onrender.com/api/integrations/status",
     "persistent_worker_configured": false
+  },
+  "pod_kdp": {
+    "canonical_repository": "wecreates/content-control",
+    "platforms": [
+      "kdp",
+      "redbubble",
+      "teepublic",
+      "zazzle",
+      "spreadshirt"
+    ],
+    "runtime_queue": "PostgreSQL pod_production_queue",
+    "capability_registry": "capability-queue.json",
+    "publication_enabled": false,
+    "baseline_unique_concepts_daily": 100,
+    "maximum_configurable_unique_concepts_daily": 1000,
+    "production_ready": false,
+    "readiness_authority": "CONTENT_READINESS.json",
+    "grant_adapter": "integrations/pod/readiness-grant.mjs",
+    "event_inbox": "integrations/pod/event-inbox.mjs",
+    "acceptance_record": "Content Control POD_IMPLEMENTATION_STATUS.md"
   }
 }
