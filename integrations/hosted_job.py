@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run a reviewed, repository-owned job through Content Control on a CPU runner."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -85,6 +86,8 @@ def execute(job, runtime, content_control, output):
         receipt = json.loads(Path(str(result)+'.receipt.json').read_text())
         if receipt['status']!='PASS' or receipt['publication_enabled'] is not False:
             raise ValueError('Invalid operation receipt')
+        if hashlib.sha256(result.read_bytes()).hexdigest()!=receipt['output_sha256']:
+            raise ValueError('Output does not match its receipt')
         print('Completed reviewed job; publication remains disabled.')
     finally:
         if server is not None:
@@ -107,3 +110,10 @@ if __name__ == '__main__':
         print(job['tool'])
     else:
         execute(job,args.runtime.resolve(),args.content_control.resolve(),args.output.resolve())
+        original=inside(ROOT / 'integrations/jobs',args.job)
+        evidence={'schema_version':1,'job':args.job,
+            'job_sha256':hashlib.sha256(original.read_bytes()).hexdigest(),
+            'repository_revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
+            'content_control_revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.content_control,text=True).strip(),
+            'output':Path(job['output']).name,'publication_enabled':False,'paid_generation_enabled':False}
+        (args.output / 'job-evidence.json').write_text(json.dumps(evidence,indent=2)+'\n')

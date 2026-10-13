@@ -9,7 +9,7 @@ on:
         type: string
   push:
     branches: [main]
-    paths: ['integrations/jobs/amex-vs-chase-audit.*.json', '.github/workflows/repository-job.yml', 'integrations/hosted_job.py']
+    paths: ['integrations/jobs/amex-vs-chase-audit.*.json', '.github/workflows/repository-job.yml', 'integrations/hosted_job.py', 'integrations/persist_job.py']
 permissions:
   contents: read
 concurrency:
@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   process:
-    if: github.event.repository.private == false
+    if: github.event.repository.private == false && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -42,6 +42,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s integrations -p 'test_hosted_job.py'
+          python -m unittest discover -s integrations -p 'test_persist_job.py'
           tool=$(python integrations/hosted_job.py "$JOB_FILE" --runtime "$RUNNER_TEMP/runtime" --content-control content-control-bridge --output "$RUNNER_TEMP/job-output" --print-tool)
           echo "tool=$tool" >> "$GITHUB_OUTPUT"
       - name: Install selected free CPU runtime
@@ -61,6 +62,36 @@ jobs:
           name: reviewed-repository-job-output
           path: |
             ${{ runner.temp }}/job-output/result*
+            ${{ runner.temp }}/job-output/job-evidence.json
             ${{ runner.temp }}/job-output/toonflow-data/**/cyzor-content-brief.json
           if-no-files-found: error
           retention-days: 1
+  record:
+    needs: process
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          name: reviewed-repository-job-output
+          path: ${{ runner.temp }}/job-output
+      - name: Verify and persist reviewed public result
+        env:
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python integrations/persist_job.py --artifact-dir "$RUNNER_TEMP/job-output" --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" --revision "$SOURCE_REVISION"
+          git config user.name cyzor-repository-jobs
+          git config user.email actions@users.noreply.github.com
+          git add integrations/results/runs
+          git diff --cached --quiet && exit 0
+          git commit -m "Persist verified public repository job output"
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
