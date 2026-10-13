@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-10-13T08:42:20.954880+00:00",
+  "base_url": "https://content-control-render-worker.onrender.com",
+  "production_ready": false,
+  "scope": "Read-only live observations; old artifact playback does not prove current generation acceptance",
+  "accepted_media_hash_matches_health": true,
+  "observations": [
+    {
+      "path": "/health",
+      "http_status": 200,
+      "sha256": "68da983b7f781da9e7ac325368979bd71898313ca38a955993d0c2eea197edd3",
+      "bytes": 497,
+      "content_type": "application/json; charset=utf-8",
+      "content_range": null,
+      "body": {
+        "ok": true,
+        "engine": "remotion-v10-free",
+        "publication": false,
+        "qaStatus": "GREEN",
+        "expectedSha256": "54f37c847c79e632e26648a3f31f11f24266d316217dd71025187b1924c1b127",
+        "actualSha256": "54f37c847c79e632e26648a3f31f11f24266d316217dd71025187b1924c1b127",
+        "hashBound": true,
+        "captionReady": true,
+        "captionSha256": "488545502ef9d1485ece67700eab3cbf81c383e0093e14b389a51a89e236d548",
+        "captionCandidateSha256": "54f37c847c79e632e26648a3f31f11f24266d316217dd71025187b1924c1b127",
+        "renderStatus": "v2-validation-complete"
+      }
+    },
+    {
+      "path": "/api/integrations/status",
+      "http_status": 200,
+      "sha256": "07effdb2b76fa7fb04af5b0e3c389e556eee1cdd47293d9f89d68519d9fa4d04",
+      "bytes": 2286,
+      "content_type": "application/json; charset=utf-8",
+      "content_range": null,
+      "body": {
+        "publication_enabled": false,
+        "paid_generation_enabled": false,
+        "production_ready": false,
+        "status_scope": "Hosted CPU verification only; GPU generation, provider workflows and persistent project state remain unverified",
+        "repository": "https://github.com/wecreates/Money-factory/tree/main/integrations",
+        "backend": "github-actions",
+        "workflow_url": "https://github.com/wecreates/Money-factory/actions/workflows/repository-integrations.yml",
+        "status": "HOSTED_CPU_OPERATIONS_VERIFIED",
+        "persistent_worker_configured": false,
+        "repositories": [
+          {
+            "id": "wan21",
+            "order": 1,
+            "revision": "9737cba9c1c3c4d04b33fcad41c111989865d315",
+            "capability": "video_generation",
+            "runtime_status": "BLOCKED_CUDA_AND_MODEL_REQUIRED",
+            "verified_operations": []
+          },
+          {
+            "id": "youtube-clipper-skill",
+            "order": 2,
+            "revision": "f31f077ee0905c95a510a6f34bbd0c3c85b15129",
+            "capability": "video_clipping",
+            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
+            "verified_operations": [
+              "clip",
+              "captions"
+            ]
+          },
+          {
+            "id": "openshorts",
+            "order": 3,
+            "revision": "0240abeccc0e18463f6fd3f881767c4bc33ae3a6",
+            "capability": "shorts_production",
+            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
+            "verified_operations": [
+              "vertical",
+              "transcript-windows"
+            ]
+          },
+          {
+            "id": "claude-seo",
+            "order": 4,
+            "revision": "4b99de2f7de7e7d5247042e5fb5b4ea9368ef734",
+            "capability": "seo_audit",
+            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
+            "verified_operations": [
+              "parse-html"
+            ]
+          },
+          {
+            "id": "toonflow-app",
+            "order": 5,
+            "revision": "2c7fb257affb65777110fe4c6e60cd3c09187d9b",
+            "capability": "story_production",
+            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
+            "verified_operations": [
+              "import-brief"
+            ]
+          },
+          {
+            "id": "ruflo",
+            "order": 6,
+            "revision": "3209ba266750908ea88fb0bc69672e106478bbef",
+            "capability": "agent_orchestration",
+            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
+            "verified_operations": [
+              "remember-project"
+            ]
+          },
+          {
+            "id": "youtube-automation-agent",
+            "order": 7,
+            "revision": "e26792ae00dc1ec2434faf32632896609396dfad",
+            "capability": "youtube_production",
+            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
+            "verified_operations": [
+              "audit"
+            ]
+          }
+        ],
+        "run": {
+          "id": 38367673446,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/wecreates/Money-factory/actions/runs/38367673446"
+        },
+        "verified_at": "2026-10-13T08:18:35Z",
+        "tested_money_factory_revision": "21ed62a010909bb23d1f6e5add1b2124f1ae8db9",
+        "tested_content_control_revision": "00fbb60bf345a312563ac4da13812933fe86619c"
+      }
+    },
+    {
+      "path": "/api/production/v2",
+      "http_status": 200,
+      "sha256": "7eb4922bbb49dcfae2172e67c6bf17c2d1aec1883be0d44b83cbcab967ede249",
+      "bytes": 1817,
+      "content_type": "application/json; charset=utf-8",
+      "content_range": null,
+      "body": {
+        "schema_version": 1,
+        "run_id": 38367398106,
+        "recorded_at": "2026-10-13T08:13:48.754901+00:00",
+        "source_commit": "9de2d323d41a20724eb87c636e32ee9147caa81c",
+        "workflow_outcome": "failure",
+        "workflow_url": "https://github.com/wecreates/content-control/actions/runs/38367398106",
+        "candidate_sha256": "807497c1c533195c8a563c22bfb9011c3599dd05b8d9f49b90719970acaa79af",
+        "candidate_generated": true,
+        "checks": {
+          "voices": {
+            "status": "PASS",
+            "failed_checks": [],
+            "receipt_sha256": "ff2bbd9d2aa13d95d3badd998752fc7e745e96c5fa9da33f461dfa859a5e7549"
+          },
+          "sound_mix": {
+            "status": "PASS",
+            "failed_checks": [],
+            "receipt_sha256": "54e9dc1074af28cc8bf9ebf9b55bee6ff93920db4115df09b3bcb3f0a2fde0cb"
+          },
+          "transcription": {
+            "status": "PASS",
+            "failed_checks": [],
+            "receipt_sha256": "3aa92e2a174ef0e76a2521955cef53082fce9f2d111ff8aa698b89af931eb214"
+          },
+          "captions": {
+            "status": "PASS",
+            "failed_checks": [],
+            "receipt_sha256": "0a1a322f3ef57bd991bb1799cd62abead674253eff171d454dae42a7ff1638e5"
+          },
+          "caption_frames": {
+            "status": "PASS",
+            "failed_checks": [],
+            "receipt_sha256": "995e12c350a5df21f4569e06aabc665f12c729c1bcfd83738b2c1a9f656204df"
+          },
+          "technical_video": {
+            "status": "PASS",
+            "failed_checks": [],
+            "receipt_sha256": "67c7ced8439e79020fb479d966ac658d2e371d4c003dffe999347765f5517e9e"
+          },
+          "style_parity": {
+            "status": "FAIL",
+            "failed_checks": [
+              "framewise_style_parity"
+            ],
+            "receipt_sha256": "d1e213022fd83faba21975b82e554829a53de1edd66c3a42aa30c70f69d5998b",
+            "reason": "Reference frame statistics differ; dominant component: white_fraction (0.3325 of 0.3624). This does not assess creative quality or override the required brand style."
+          }
+        },
+        "scope": "Recorded build result; no full audiovisual or competitor approval.",
+        "status": "BLOCKED",
+        "publication_enabled": false,
+        "production_approved": false,
+        "report_age_seconds": 1704,
+        "report_stale": false,
+        "status_scope": "Last recorded build; not a live running-job poll",
+        "watch_url": null
+      }
+    },
+    {
+      "path": "/v2/draft/media",
+      "http_status": 409,
+      "sha256": "b64a5e89e5638300d6f069cd604e8f729f5b8e1d6b1ca265ccd8f58dc97d6bda",
+      "bytes": 100,
+      "content_type": "application/json; charset=utf-8",
+      "content_range": null,
+      "body": {
+        "error": "PREVIEW_WITHHELD_PENDING_CREATIVE_REVIEW",
+        "publication": false,
+        "production_approved": false
+      }
+    },
+    {
+      "path": "/media",
+      "http_status": 200,
+      "sha256": "54f37c847c79e632e26648a3f31f11f24266d316217dd71025187b1924c1b127",
+      "bytes": 4052327,
+      "content_type": "video/mp4",
+      "content_range": null
+    },
+    {
+      "path": "/captions",
+      "http_status": 200,
+      "sha256": "488545502ef9d1485ece67700eab3cbf81c383e0093e14b389a51a89e236d548",
+      "bytes": 673,
+      "content_type": "text/vtt; charset=utf-8",
+      "content_range": null
+    },
+    {
+      "path": "/media",
+      "http_status": 206,
+      "sha256": "acad5179ecead2b792677472f2c56734e65431aada602a815945f4890543314d",
+      "bytes": 1024,
+      "content_type": "video/mp4",
+      "content_range": "bytes 0-1023/4052327"
+    }
+  ]
+}
