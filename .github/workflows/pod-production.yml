@@ -1,0 +1,31 @@
+name: POD cross-repository review verification
+on:
+  pull_request:
+    paths: ['integrations/pod/**', '.github/workflows/pod-production.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PUBLICATION_ENABLED: 'false'
+      POD_PUBLICATION_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: wecreates/content-control
+          ref: 72cde7a4332ebc3543203e005da3a0e5a990f622
+          path: content-control-test
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install Pillow==12.3.0 reportlab==4.4.9 PyMuPDF==1.26.6
+      - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core
+      - run: node --test integrations/pod/readiness-grant.test.mjs
+      - run: CONTENT_CONTROL_ROOT="$GITHUB_WORKSPACE/content-control-test" python3 -m unittest discover -s integrations/pod -p 'test_*.py'

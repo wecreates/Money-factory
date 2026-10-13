@@ -24,3 +24,28 @@ LAUNCH requires explicit publication permission, healthy providers, launch
 readiness and a bound package hash. The matching Content Control policy must be
 deployed before using production-only grants. No grant adapter is mounted in a
 live Money Factory service by this change.
+
+## Python review production agent
+
+Run a supplied review brief through the existing Content Control checkout:
+
+```sh
+python3 integrations/pod/production_agent.py --job reviewed-job.json \
+  --content-control /path/to/content-control \
+  --font /path/to/licensed-font.ttf --output /new/review-output
+```
+
+The job requires `publication_enabled: false`, `paid_generation_enabled: false`,
+`platform`, `metadata`, `original_art`, `cover_template`, and for KDP an `interior`
+containing a template and actual manuscript pages. `market_research` observations
+are preserved as unassessed input, not invented market evidence. The test fixture
+in `test_production_agent.py` demonstrates the schema with synthetic dimensions;
+it must not be published as a product. Font selection belongs to the worker.
+
+The agent invokes Content Control's Node coordinator and Python production modules,
+checks the full manifest and each artifact, then writes a receipt. It creates real
+art and PDFs, but deliberately reports REVIEW_REQUIRED. It does not provide a
+live authorizing service, verified marketplace data, paid generation or publishing.
+
+Cross-repository test:
+`CONTENT_CONTROL_ROOT=/path/to/content-control python3 -m unittest discover -s integrations/pod -p 'test_*.py'`.
