@@ -1,0 +1,34 @@
+name: REA offline source analysis
+on:
+  pull_request:
+    paths:
+      - 'integrations/rea/**'
+      - '.github/workflows/rea-offline-analysis.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-analysis:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PUBLICATION_ENABLED: 'false'
+      PAID_GENERATION_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned offline analyzer without optional providers or lifecycle scripts
+        run: npm ci --prefix integrations/rea --ignore-scripts --omit=optional --no-audit --no-fund
+      - name: Analyze original source fixture without executing it
+        env:
+          REA_RUNTIME: ${{ github.workspace }}/integrations/rea
+          REA_REQUIRE_PASS: '1'
+        run: python -m unittest discover -s integrations/rea -p 'test_*.py' -v
