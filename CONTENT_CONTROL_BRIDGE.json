@@ -73,8 +73,9 @@
     "hosted_workflow": ".github/workflows/repository-integrations.yml",
     "job_workflow": ".github/workflows/repository-job.yml",
     "hosted_verification_report": "integrations/hosted-verification.json",
-    "hosted_run_id": 38364409610,
+    "hosted_run_id": 38411502269,
     "live_status_endpoint": "https://content-control-render-worker.onrender.com/api/integrations/status",
-    "persistent_worker_configured": false
+    "persistent_worker_configured": false,
+    "hosted_verification_scope": "Historical scoped operation evidence; live_status_endpoint validates current workflow and freshness."
   }
 }
