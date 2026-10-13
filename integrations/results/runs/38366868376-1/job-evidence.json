@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "job": "cyzor-website-render.job.json",
+  "job_sha256": "1ac14ce98d0a42b48ea67c5bb7f83bf18bda08cbdacc84f0dd34c5626a3b7cd9",
+  "repository_revision": "ae664c3cb2c0bf3e29dd75cfc8bd2b062f3957e9",
+  "content_control_revision": "00fbb60bf345a312563ac4da13812933fe86619c",
+  "output": "result.json",
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}
