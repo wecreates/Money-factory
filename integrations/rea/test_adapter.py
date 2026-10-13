@@ -16,6 +16,23 @@ class StaticAnalysisTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Linked'):
                 adapter.analyze(root,root/'absent')
 
+    def test_root_link_rejected_before_resolution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'real').mkdir();(root/'link').symlink_to(root/'real',target_is_directory=True)
+            with self.assertRaisesRegex(ValueError,'Linked'):
+                adapter.analyze(root/'link',root/'absent')
+
+    def test_output_creation_rejects_existing_and_dangling_links(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);output=root/'evidence.json'
+            adapter.save_evidence(output,{'status':'PASS'})
+            original=output.read_bytes()
+            with self.assertRaises(FileExistsError): adapter.save_evidence(output,{'status':'OTHER'})
+            self.assertEqual(output.read_bytes(),original)
+            output.unlink();output.symlink_to(root/'missing.json')
+            with self.assertRaises(FileExistsError): adapter.save_evidence(output,{'status':'PASS'})
+            self.assertFalse((root/'missing.json').exists())
+
     @unittest.skipUnless(os.environ.get('REA_RUNTIME'),'Provide an installed pinned runtime for real execution')
     def test_actual_static_analysis_never_executes_source(self):
         with tempfile.TemporaryDirectory() as directory:

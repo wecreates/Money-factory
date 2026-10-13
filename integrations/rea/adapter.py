@@ -11,7 +11,10 @@ VERSION = '6.4.0'
 
 
 def analyze(target, runtime):
-    target = Path(target).resolve(strict=True)
+    target = Path(target)
+    if target.is_symlink():
+        raise ValueError('Linked inputs are not supported')
+    target = target.resolve(strict=True)
     if not target.is_dir():
         raise ValueError('An authorized local JavaScript directory is required')
     # Refuse links: the authorized target must not redirect analysis elsewhere.
@@ -47,14 +50,18 @@ def analyze(target, runtime):
         'scope': 'Offline source analysis only; partial observations never imply completion'}
 
 
+def save_evidence(output, result):
+    # Exclusive creation rejects files and dangling links without a check/write race.
+    with Path(output).open('x') as handle:
+        handle.write(json.dumps(result,indent=2)+'\n')
+
+
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--target', required=True, type=Path)
     parser.add_argument('--runtime', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     args=parser.parse_args()
-    if args.output.exists():
-        raise SystemExit('Refusing to overwrite existing evidence')
     result=analyze(args.target,args.runtime)
-    args.output.write_text(json.dumps(result,indent=2)+'\n')
+    save_evidence(args.output,result)
     raise SystemExit(0 if result['status']=='PASS' else 2)
