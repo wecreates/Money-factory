@@ -1,10 +1,97 @@
 {
-  "schema_version": 1,
-  "observed_at": "2026-10-13T08:42:20.954880+00:00",
+  "schema_version": 2,
+  "observed_at": "2026-10-13T21:45:49.690631+00:00",
   "base_url": "https://content-control-render-worker.onrender.com",
   "production_ready": false,
   "scope": "Read-only live observations; old artifact playback does not prove current generation acceptance",
   "accepted_media_hash_matches_health": true,
+  "social_integration": {
+    "runtime_status": "NOT_ACTIVATED",
+    "runtime_response_valid": true,
+    "publication_policy": "REPORTED_DISABLED",
+    "external_writes_reported_disabled": true,
+    "policy_scope": "Read-only reported flags; this observation does not test write enforcement",
+    "storage": {
+      "mode": "postgres_encrypted",
+      "startup_read_verified": true,
+      "startup_checked_at": "2026-10-13T21:45:09.678Z",
+      "health_status": "STARTUP_OBSERVATION_ONLY",
+      "live_database_available": false,
+      "durability_verified_by_this_monitor": false,
+      "expires_at": "2026-10-26T20:02:09.446Z",
+      "operations_blocked": false,
+      "scope": "Startup reads are historical; no database read or restart test is performed by this monitor"
+    },
+    "missing_storage_configuration": [],
+    "missing_authorization_configuration": {
+      "owner": [
+        "OWNER_GITHUB_CLIENT_ID",
+        "OWNER_GITHUB_CLIENT_SECRET",
+        "OWNER_GITHUB_ID"
+      ],
+      "youtube": [
+        "YOUTUBE_OAUTH_CLIENT_ID",
+        "YOUTUBE_OAUTH_CLIENT_SECRET",
+        "YOUTUBE_CHANNEL_ID"
+      ],
+      "instagram": [
+        "META_APP_ID",
+        "META_APP_SECRET",
+        "INSTAGRAM_ACCOUNT_ID"
+      ]
+    },
+    "worker_reported_running": false,
+    "oauth_routes_reported_enabled": false,
+    "connection_observations": [
+      {
+        "platform": "instagram",
+        "status": "disconnected"
+      },
+      {
+        "platform": "facebook",
+        "status": "disconnected"
+      },
+      {
+        "platform": "threads",
+        "status": "disconnected"
+      },
+      {
+        "platform": "youtube",
+        "status": "disconnected"
+      },
+      {
+        "platform": "tiktok",
+        "status": "disconnected"
+      },
+      {
+        "platform": "x",
+        "status": "disconnected"
+      },
+      {
+        "platform": "pinterest",
+        "status": "disconnected"
+      },
+      {
+        "platform": "linkedin",
+        "status": "disconnected"
+      },
+      {
+        "platform": "reddit",
+        "status": "disconnected"
+      }
+    ],
+    "connections_live_verified_by_this_monitor": false,
+    "connection_scope": "Repository observations only; no authenticated provider request performed",
+    "evidence_routing": {
+      "status": "VERIFIED_REPOSITORY_REFERENCES",
+      "response_schema_valid": true,
+      "reference_count": 2,
+      "verified_reference_count": 2,
+      "runtime_routing_verified": false,
+      "revenue_verified": false,
+      "scope": "Repository reference integrity only; not execution, full video analysis or revenue"
+    }
+  },
   "observations": [
     {
       "path": "/health",
@@ -29,9 +116,9 @@
     },
     {
       "path": "/api/integrations/status",
-      "http_status": 200,
-      "sha256": "07effdb2b76fa7fb04af5b0e3c389e556eee1cdd47293d9f89d68519d9fa4d04",
-      "bytes": 2286,
+      "http_status": 503,
+      "sha256": "a4b82452e524ad58fa3c980832b62ce75b8f7bd3318b8e9c6bff89de756ac96f",
+      "bytes": 2214,
       "content_type": "application/json; charset=utf-8",
       "content_range": null,
       "body": {
@@ -42,7 +129,7 @@
         "repository": "https://github.com/wecreates/Money-factory/tree/main/integrations",
         "backend": "github-actions",
         "workflow_url": "https://github.com/wecreates/Money-factory/actions/workflows/repository-integrations.yml",
-        "status": "HOSTED_CPU_OPERATIONS_VERIFIED",
+        "status": "HOSTED_CPU_VERIFICATION_RUNNING",
         "persistent_worker_configured": false,
         "repositories": [
           {
@@ -50,7 +137,8 @@
             "order": 1,
             "revision": "9737cba9c1c3c4d04b33fcad41c111989865d315",
             "capability": "video_generation",
-            "runtime_status": "BLOCKED_CUDA_AND_MODEL_REQUIRED",
+            "required_for_production": false,
+            "runtime_status": "OPTIONAL_DISABLED",
             "verified_operations": []
           },
           {
@@ -58,136 +146,125 @@
             "order": 2,
             "revision": "f31f077ee0905c95a510a6f34bbd0c3c85b15129",
             "capability": "video_clipping",
-            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
-            "verified_operations": [
-              "clip",
-              "captions"
-            ]
+            "required_for_production": true,
+            "runtime_status": "HOSTED_EXECUTION_NOT_VERIFIED",
+            "verified_operations": []
           },
           {
             "id": "openshorts",
             "order": 3,
             "revision": "0240abeccc0e18463f6fd3f881767c4bc33ae3a6",
             "capability": "shorts_production",
-            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
-            "verified_operations": [
-              "vertical",
-              "transcript-windows"
-            ]
+            "required_for_production": true,
+            "runtime_status": "HOSTED_EXECUTION_NOT_VERIFIED",
+            "verified_operations": []
           },
           {
             "id": "claude-seo",
             "order": 4,
             "revision": "4b99de2f7de7e7d5247042e5fb5b4ea9368ef734",
             "capability": "seo_audit",
-            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
-            "verified_operations": [
-              "parse-html"
-            ]
+            "required_for_production": true,
+            "runtime_status": "HOSTED_EXECUTION_NOT_VERIFIED",
+            "verified_operations": []
           },
           {
             "id": "toonflow-app",
             "order": 5,
             "revision": "2c7fb257affb65777110fe4c6e60cd3c09187d9b",
             "capability": "story_production",
-            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
-            "verified_operations": [
-              "import-brief"
-            ]
+            "required_for_production": true,
+            "runtime_status": "HOSTED_EXECUTION_NOT_VERIFIED",
+            "verified_operations": []
           },
           {
             "id": "ruflo",
             "order": 6,
             "revision": "3209ba266750908ea88fb0bc69672e106478bbef",
             "capability": "agent_orchestration",
-            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
-            "verified_operations": [
-              "remember-project"
-            ]
+            "required_for_production": true,
+            "runtime_status": "HOSTED_EXECUTION_NOT_VERIFIED",
+            "verified_operations": []
           },
           {
             "id": "youtube-automation-agent",
             "order": 7,
             "revision": "e26792ae00dc1ec2434faf32632896609396dfad",
             "capability": "youtube_production",
-            "runtime_status": "HOSTED_OPERATIONS_VERIFIED",
-            "verified_operations": [
-              "audit"
-            ]
+            "required_for_production": true,
+            "runtime_status": "HOSTED_EXECUTION_NOT_VERIFIED",
+            "verified_operations": []
           }
         ],
         "run": {
-          "id": 38367673446,
-          "status": "completed",
-          "conclusion": "success",
-          "url": "https://github.com/wecreates/Money-factory/actions/runs/38367673446"
-        },
-        "verified_at": "2026-10-13T08:18:35Z",
-        "tested_money_factory_revision": "21ed62a010909bb23d1f6e5add1b2124f1ae8db9",
-        "tested_content_control_revision": "00fbb60bf345a312563ac4da13812933fe86619c"
+          "id": 38472839415,
+          "status": "pending",
+          "conclusion": null,
+          "url": "https://github.com/wecreates/Money-factory/actions/runs/38472839415"
+        }
       }
     },
     {
       "path": "/api/production/v2",
       "http_status": 200,
-      "sha256": "7eb4922bbb49dcfae2172e67c6bf17c2d1aec1883be0d44b83cbcab967ede249",
-      "bytes": 1817,
+      "sha256": "b0f6f104ea5b354519135773895e82be7e126edd0331bd2886f0dbfaf644b6a1",
+      "bytes": 1703,
       "content_type": "application/json; charset=utf-8",
       "content_range": null,
       "body": {
         "schema_version": 1,
-        "run_id": 38367398106,
-        "recorded_at": "2026-10-13T08:13:48.754901+00:00",
-        "source_commit": "9de2d323d41a20724eb87c636e32ee9147caa81c",
+        "run_id": 38452208211,
+        "recorded_at": "2026-10-13T19:10:29.756910+00:00",
+        "source_commit": "6810581ff756dd20d96d03631527f4c82fb20ef9",
         "workflow_outcome": "failure",
-        "workflow_url": "https://github.com/wecreates/content-control/actions/runs/38367398106",
-        "candidate_sha256": "807497c1c533195c8a563c22bfb9011c3599dd05b8d9f49b90719970acaa79af",
+        "workflow_url": "https://github.com/wecreates/content-control/actions/runs/38452208211",
+        "candidate_sha256": "e8fd5b0b51930c662d89a8d4ad2348b0b81f414bf51ffa0e637afc0618b6d2d8",
         "candidate_generated": true,
         "checks": {
           "voices": {
             "status": "PASS",
             "failed_checks": [],
-            "receipt_sha256": "ff2bbd9d2aa13d95d3badd998752fc7e745e96c5fa9da33f461dfa859a5e7549"
+            "receipt_sha256": "b8259ab409c157ee58e164e8b63a95e21c3cc8575a81c08b340a9cf80ab54fa0"
           },
           "sound_mix": {
             "status": "PASS",
             "failed_checks": [],
-            "receipt_sha256": "54e9dc1074af28cc8bf9ebf9b55bee6ff93920db4115df09b3bcb3f0a2fde0cb"
+            "receipt_sha256": "279cf28461d5f833f294c21b7daa4ef46bae63b0488818e35c6703cf5790ec19"
           },
           "transcription": {
             "status": "PASS",
             "failed_checks": [],
-            "receipt_sha256": "3aa92e2a174ef0e76a2521955cef53082fce9f2d111ff8aa698b89af931eb214"
+            "receipt_sha256": "72f82b91335f7694dc72e767a1e14a7e2db03c860aa6f461db3282303741c50b"
           },
           "captions": {
             "status": "PASS",
             "failed_checks": [],
-            "receipt_sha256": "0a1a322f3ef57bd991bb1799cd62abead674253eff171d454dae42a7ff1638e5"
+            "receipt_sha256": "3d0c290b9912dd11d32a038e476297aaeb9c942b183f903295f6966bee739845"
           },
           "caption_frames": {
             "status": "PASS",
             "failed_checks": [],
-            "receipt_sha256": "995e12c350a5df21f4569e06aabc665f12c729c1bcfd83738b2c1a9f656204df"
+            "receipt_sha256": "7434d3c1203f1165a3611dec28582393a28256854d8b616abf3c0487a7b17d6c"
           },
           "technical_video": {
             "status": "PASS",
             "failed_checks": [],
-            "receipt_sha256": "67c7ced8439e79020fb479d966ac658d2e371d4c003dffe999347765f5517e9e"
+            "receipt_sha256": "e4b1140891ac90ed1bcc42418a008d69880f9c24a47d07a3ab5088d91b4c0a76"
           },
           "style_parity": {
-            "status": "FAIL",
+            "status": "BLOCKED",
             "failed_checks": [
               "framewise_style_parity"
             ],
-            "receipt_sha256": "d1e213022fd83faba21975b82e554829a53de1edd66c3a42aa30c70f69d5998b",
-            "reason": "Reference frame statistics differ; dominant component: white_fraction (0.3325 of 0.3624). This does not assess creative quality or override the required brand style."
+            "receipt_sha256": "1a43b98d78e13d87be90377336e49163bff88dfa7964714ab40b33459e3c65f5",
+            "reason": "Review candidate hash does not match exact video"
           }
         },
         "scope": "Recorded build result; no full audiovisual or competitor approval.",
         "status": "BLOCKED",
         "publication_enabled": false,
         "production_approved": false,
-        "report_age_seconds": 1704,
+        "report_age_seconds": 9311,
         "report_stale": false,
         "status_scope": "Last recorded build; not a live running-job poll",
         "watch_url": null
@@ -221,6 +298,1245 @@
       "bytes": 673,
       "content_type": "text/vtt; charset=utf-8",
       "content_range": null
+    },
+    {
+      "path": "/api/social/runtime",
+      "http_status": 200,
+      "sha256": "3c4620b1d41406def117133fa2208b7f65667c00bceca5ead4cca5719dd3a56c",
+      "bytes": 3927,
+      "content_type": "application/json; charset=utf-8",
+      "content_range": null,
+      "body": {
+        "status": "NOT_ACTIVATED",
+        "publication_enabled": false,
+        "external_writes_enabled": false,
+        "missing_configuration": [],
+        "durable_storage_verified": false,
+        "oauth_routes_enabled": false,
+        "worker_running": false,
+        "provider_adapters_registered": [],
+        "implemented_read_adapters": [
+          "instagram",
+          "facebook",
+          "youtube",
+          "tiktok",
+          "threads",
+          "pinterest",
+          "linkedin"
+        ],
+        "worker_implemented": true,
+        "reason": "Existing storage read verified; OAuth and worker remain disabled.",
+        "configured_storage_mode": "postgres_encrypted",
+        "providers": [
+          {
+            "platform": "instagram",
+            "operations": [
+              "read_profile",
+              "read_media"
+            ],
+            "scope": "authorized_professional_account_metadata",
+            "required_scopes": [
+              "instagram_basic"
+            ],
+            "implementation": "read_adapter",
+            "live_account_verified": false,
+            "publication_enabled": false
+          },
+          {
+            "platform": "facebook",
+            "operations": [
+              "read_profile"
+            ],
+            "scope": "authorized_page_identity_only",
+            "required_scopes": [
+              "pages_read_engagement"
+            ],
+            "implementation": "read_adapter",
+            "live_account_verified": false,
+            "publication_enabled": false
+          },
+          {
+            "platform": "youtube",
+            "operations": [
+              "read_profile",
+              "read_media"
+            ],
+            "scope": "authorized_channel_upload_metadata",
+            "required_scopes": [
+              "https://www.googleapis.com/auth/youtube.readonly"
+            ],
+            "implementation": "read_adapter",
+            "live_account_verified": false,
+            "publication_enabled": false
+          },
+          {
+            "platform": "tiktok",
+            "operations": [
+              "read_profile",
+              "read_media"
+            ],
+            "scope": "authorized_user_public_video_metadata",
+            "required_scopes": [
+              "user.info.basic",
+              "video.list"
+            ],
+            "implementation": "read_adapter",
+            "live_account_verified": false,
+            "publication_enabled": false
+          },
+          {
+            "platform": "threads",
+            "operations": [
+              "read_profile",
+              "read_media"
+            ],
+            "scope": "authorized_user_thread_metadata",
+            "required_scopes": [
+              "threads_basic"
+            ],
+            "implementation": "read_adapter",
+            "live_account_verified": false,
+            "publication_enabled": false
+          },
+          {
+            "platform": "pinterest",
+            "operations": [
+              "read_profile",
+              "read_media"
+            ],
+            "scope": "authorized_account_pin_metadata",
+            "required_scopes": [
+              "user_accounts:read",
+              "pins:read"
+            ],
+            "implementation": "read_adapter",
+            "live_account_verified": false,
+            "publication_enabled": false
+          },
+          {
+            "platform": "linkedin",
+            "operations": [
+              "read_profile"
+            ],
+            "scope": "openid_profile_only_no_posts_or_messages",
+            "required_scopes": [
+              "openid",
+              "profile"
+            ],
+            "implementation": "read_adapter",
+            "live_account_verified": false,
+            "publication_enabled": false
+          },
+          {
+            "platform": "x",
+            "operations": [],
+            "blocked_reason": "FREE_ONLY_POLICY",
+            "scope": "no_api_calls",
+            "implementation": "blocked",
+            "live_account_verified": false,
+            "publication_enabled": false
+          },
+          {
+            "platform": "reddit",
+            "operations": [],
+            "blocked_reason": "COMMERCIAL_ACCESS_APPROVAL_REQUIRED",
+            "scope": "no_api_calls",
+            "implementation": "blocked",
+            "live_account_verified": false,
+            "publication_enabled": false
+          }
+        ],
+        "authorization_configuration": {
+          "owner": {
+            "status": "INCOMPLETE",
+            "missing_configuration": [
+              "OWNER_GITHUB_CLIENT_ID",
+              "OWNER_GITHUB_CLIENT_SECRET",
+              "OWNER_GITHUB_ID"
+            ],
+            "live_verified": false
+          },
+          "youtube": {
+            "status": "INCOMPLETE",
+            "missing_configuration": [
+              "YOUTUBE_OAUTH_CLIENT_ID",
+              "YOUTUBE_OAUTH_CLIENT_SECRET",
+              "YOUTUBE_CHANNEL_ID"
+            ],
+            "live_verified": false
+          },
+          "instagram": {
+            "status": "INCOMPLETE",
+            "missing_configuration": [
+              "META_APP_ID",
+              "META_APP_SECRET",
+              "INSTAGRAM_ACCOUNT_ID"
+            ],
+            "live_verified": false
+          }
+        },
+        "storage_bootstrap": {
+          "checked_at": "2026-10-13T21:45:09.678Z",
+          "status": "EXISTING_READ_VERIFIED",
+          "read_verified": true,
+          "write_read_verified": false,
+          "probe_id": "d2867471-289c-43a2-8d66-502a93773720",
+          "runtime_boot_id": "244fda9c-8478-4243-ac47-b869c0a61b74",
+          "durable_storage_verified": false,
+          "scope": "Existing encrypted vault and probe read only; restart persistence requires independent comparison"
+        },
+        "storage_expires_at": "2026-10-26T20:02:09.446Z",
+        "storage_health": {
+          "status": "STARTUP_OBSERVATION_ONLY",
+          "live_database_checked": false,
+          "availability_verified": false,
+          "last_read_verified_at": "2026-10-13T21:45:09.678Z",
+          "observation_age_ms": 34571,
+          "operations_blocked": false,
+          "reason_code": null,
+          "scope": "Storage policy and recorded startup failures; operations_blocked=false does not verify live availability; no database polling",
+          "publication_enabled": false
+        }
+      }
+    },
+    {
+      "path": "/api/social/project-links",
+      "http_status": 200,
+      "sha256": "5aa8aa27031d30ca2f649afca4a1b1cb6b894cb02439960b58ce448ec2bce47d",
+      "bytes": 1441,
+      "content_type": "application/json; charset=utf-8",
+      "content_range": null,
+      "body": {
+        "retrieved_at": "2026-10-13T21:45:44.161Z",
+        "verification_scope": "repository_references_only_not_runtime_routing_or_revenue",
+        "repository": "wecreates/Money-factory",
+        "references": [
+          {
+            "id": "extension-retention-evidence-experiment",
+            "status": "idea_vault",
+            "source_record": {
+              "repository": "wecreates/content-control",
+              "path": "capability-queue.json",
+              "id": "social-instagram-DeUlQTQxv5O",
+              "finding_id": "retention-experiment"
+            },
+            "additional_content_reference": {
+              "repository": "wecreates/content-control",
+              "path": "capability-queue.json",
+              "id": "social-instagram-DeUlQTQxv5O",
+              "finding_id": "watch-visual-alternation",
+              "basis": "sampled_frame",
+              "full_analysis": false
+            },
+            "reference_checks": [
+              {
+                "repository": "wecreates/content-control",
+                "path": "capability-queue.json",
+                "id": "social-instagram-DeUlQTQxv5O",
+                "finding_id": "retention-experiment",
+                "evidence_verified": true,
+                "publication_enabled": false,
+                "status": "verified_repository_evidence",
+                "basis": "metadata",
+                "full_analysis": false,
+                "evidence_refs": [
+                  "duolingo-primary"
+                ]
+              },
+              {
+                "repository": "wecreates/content-control",
+                "path": "capability-queue.json",
+                "id": "social-instagram-DeUlQTQxv5O",
+                "finding_id": "watch-visual-alternation",
+                "basis": "sampled_frame",
+                "full_analysis": false,
+                "evidence_verified": true,
+                "publication_enabled": false,
+                "status": "verified_repository_evidence",
+                "evidence_refs": [
+                  "watch-frame-0-20261011",
+                  "watch-frame-4-20261011",
+                  "watch-frame-17-20261011",
+                  "watch-frame-41-20261011"
+                ]
+              }
+            ],
+            "publication_enabled": false
+          }
+        ],
+        "publication_enabled": false
+      }
+    },
+    {
+      "path": "/api/social/status",
+      "http_status": 200,
+      "sha256": "d689208b8b1867242d79f889afe40003a6cb48a8f173145deb7473d74db0279e",
+      "bytes": 25061,
+      "content_type": "application/json; charset=utf-8",
+      "content_range": null,
+      "body": {
+        "connection_health": [
+          {
+            "platform": "instagram",
+            "status": "disconnected",
+            "read_verified": false,
+            "renewal": {
+              "action": "reauthorization_required",
+              "automatic": false
+            }
+          },
+          {
+            "platform": "facebook",
+            "status": "disconnected",
+            "read_verified": false,
+            "renewal": {
+              "action": "reauthorization_required",
+              "automatic": false
+            }
+          },
+          {
+            "platform": "threads",
+            "status": "disconnected",
+            "read_verified": false,
+            "renewal": {
+              "action": "reauthorization_required",
+              "automatic": false
+            }
+          },
+          {
+            "platform": "youtube",
+            "status": "disconnected",
+            "read_verified": false,
+            "renewal": {
+              "action": "reauthorization_required",
+              "automatic": false
+            }
+          },
+          {
+            "platform": "tiktok",
+            "status": "disconnected",
+            "read_verified": false,
+            "renewal": {
+              "action": "reauthorization_required",
+              "automatic": false
+            }
+          },
+          {
+            "platform": "x",
+            "status": "disconnected",
+            "read_verified": false,
+            "renewal": {
+              "action": "reauthorization_required",
+              "automatic": false
+            }
+          },
+          {
+            "platform": "pinterest",
+            "status": "disconnected",
+            "read_verified": false,
+            "renewal": {
+              "action": "reauthorization_required",
+              "automatic": false
+            }
+          },
+          {
+            "platform": "linkedin",
+            "status": "disconnected",
+            "read_verified": false,
+            "renewal": {
+              "action": "reauthorization_required",
+              "automatic": false
+            }
+          },
+          {
+            "platform": "reddit",
+            "status": "disconnected",
+            "read_verified": false,
+            "renewal": {
+              "action": "reauthorization_required",
+              "automatic": false
+            }
+          }
+        ],
+        "publication_enabled": false,
+        "external_actions_enabled": false,
+        "storage": "versioned_existing_repository_queue",
+        "intake_mode": "owner_authenticated_github_workflow; dashboard_validation_only",
+        "intake_workflow_url": "https://github.com/wecreates/content-control/actions/workflows/social-link-intake.yml",
+        "automatic_token_renewal": false,
+        "capabilities": {
+          "schema_version": 1,
+          "research_date": "2026-10-11",
+          "publication_policy": {
+            "publishing": false,
+            "messages": false,
+            "ads": false,
+            "spending": false
+          },
+          "verification_note": "Documentation research is not a runtime connection test. Meta primary references failed retrieval; Meta-owned Postman search evidence used. Exact costs and all capabilities not fully verified. Empty Instagram/YouTube connector inventories supplied by parent agent; no accounts connected.",
+          "platforms": [
+            {
+              "id": "instagram",
+              "documentation_verification": "partial",
+              "eligibility": "Professional business/creator; Instagram Login needs no linked Facebook Page; Facebook Login does.",
+              "scopes": "instagram_business_basic; feature-specific content/comment/message/insights grants",
+              "costs": "No per-call cost verified; hosting/review costs unverified",
+              "quota": "Current exact limits not verified; inspect usage headers and publishing-limit endpoint",
+              "renewal": "Refresh endpoint documented; current lifetime/review details require verification",
+              "limitations": "Own-account authorization does not establish access to arbitrary Reel video/audio.",
+              "sources": [
+                "https://www.postman.com/meta/instagram/folder/6raa77c/instagram-api-with-instagram-login"
+              ],
+              "publishing": false,
+              "connection": {
+                "status": "unverified",
+                "connected": false,
+                "read_check": {
+                  "provider": "vidIQ",
+                  "observed": "accounts=[]",
+                  "result": "no_connected_account"
+                }
+              },
+              "actions": {
+                "account": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "analytics": {
+                  "documented": "permission_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "intake": {
+                  "documented": "own_media_only_arbitrary_url_unverified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "comments": {
+                  "documented": "permission_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "messages": {
+                  "documented": "permission_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "drafts": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "scheduling": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "publishing": {
+                  "documented": "permission_dependent",
+                  "runtime": "disabled",
+                  "enabled": false
+                }
+              },
+              "read_adapter": {
+                "provider": "official_meta_business_sdk",
+                "version": "26.0.2",
+                "route": "facebook_login_professional_account",
+                "workflow": "https://github.com/wecreates/content-control/actions/workflows/instagram-official-read.yml",
+                "runtime": "adapter_tests_only_live_account_unverified",
+                "publication_enabled": false
+              }
+            },
+            {
+              "id": "facebook",
+              "documentation_verification": "partial",
+              "eligibility": "Managed Facebook Page and appropriate role; personal-profile-wide management unsupported by evidence.",
+              "scopes": "pages_show_list; pages_read_engagement; feature-specific grants",
+              "costs": "No current per-call price verified",
+              "quota": "App/use-case dependent; not verified",
+              "renewal": "Inspect token validity/data-access expiry; do not assume permanent token",
+              "limitations": "Meta reference fetch failed; exact approved functions require console and token inspection.",
+              "sources": [
+                "https://www.postman.com/meta/facebook/request/bqfxwbp/get-access-tokens-of-pages-you-manage"
+              ],
+              "publishing": false,
+              "connection": {
+                "status": "unverified",
+                "connected": false,
+                "read_check": {
+                  "result": "not_tested"
+                }
+              },
+              "actions": {
+                "account": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "analytics": {
+                  "documented": "permission_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "intake": {
+                  "documented": "authorized_page_media_only",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "comments": {
+                  "documented": "permission_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "messages": {
+                  "documented": "separate_messenger_product",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "drafts": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "scheduling": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "publishing": {
+                  "documented": "permission_dependent",
+                  "runtime": "disabled",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "threads",
+              "documentation_verification": "partial",
+              "eligibility": "Threads account plus Meta app authorization/review as applicable.",
+              "scopes": "threads_basic; threads_manage_insights; threads_read_replies; threads_manage_replies; threads_content_publish",
+              "costs": "No current per-call price verified",
+              "quota": "Exact current quota not verified",
+              "renewal": "Refresh/debug endpoints documented; lifetime not verified",
+              "limitations": "General inbox access not established; native scheduling/drafts not established.",
+              "sources": [
+                "https://www.postman.com/meta/threads/documentation/dht3nzz/threads-api"
+              ],
+              "publishing": false,
+              "connection": {
+                "status": "unverified",
+                "connected": false,
+                "read_check": {
+                  "result": "not_tested"
+                }
+              },
+              "actions": {
+                "account": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "analytics": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "intake": {
+                  "documented": "permission_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "comments": {
+                  "documented": "replies_documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "messages": {
+                  "documented": "not_established",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "drafts": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "scheduling": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "publishing": {
+                  "documented": "permission_dependent",
+                  "runtime": "disabled",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "youtube",
+              "documentation_verification": "verified_for_cited_details",
+              "eligibility": "Google API project and channel-owner OAuth; consent verification/audit as applicable.",
+              "scopes": "youtube.readonly; yt-analytics.readonly separately; write scopes excluded",
+              "costs": "Quota-based; no billing configured or price guarantee made",
+              "quota": "100 search.list/day; 100 videos.insert/day; 10000 units/day other endpoints; extensions audited",
+              "renewal": "Offline web-server OAuth refresh; handle revocation and consent-state expiry",
+              "limitations": "Caption download requires edit permission; API metadata does not provide arbitrary full video/audio.",
+              "sources": [
+                "https://developers.google.com/youtube/v3/guides/quota_and_compliance_audits",
+                "https://developers.google.com/youtube/v3/docs/captions/download",
+                "https://developers.google.com/identity/protocols/oauth2/web-server"
+              ],
+              "publishing": false,
+              "connection": {
+                "status": "unverified",
+                "connected": false,
+                "read_check": {
+                  "provider": "vidIQ",
+                  "observed": "channels=[]",
+                  "result": "no_connected_channel"
+                }
+              },
+              "actions": {
+                "account": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "analytics": {
+                  "documented": "separate_analytics_api",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "intake": {
+                  "documented": "metadata_not_full_video",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "comments": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "messages": {
+                  "documented": "not_established",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "drafts": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "scheduling": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "publishing": {
+                  "documented": "permission_dependent",
+                  "runtime": "disabled",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "tiktok",
+              "documentation_verification": "partial",
+              "eligibility": "Approved Login Kit/Display products and user consent; direct-post separately approved/audited.",
+              "scopes": "user.info.basic; video.list; video.upload for approved native draft upload with user consent (disabled); video.publish only if later authorized",
+              "costs": "Current API costs unknown; free access not verified",
+              "quota": "Display user/info video/list video/query each default 600/min; draft upload initialization 6/min/access token; at most 5 pending shares/24h",
+              "renewal": "Access 24h; refresh initially 365d; persist replacement token from refresh response",
+              "limitations": "Display provides authorized profile/video display; arbitrary video bytes, general inbox/comments not established. Native draft upload does not publish; user continues editing/posting from TikTok inbox notification. Registered app and approved video.upload scope plus user consent required; PULL_FROM_URL requires verified domain or URL prefix.",
+              "sources": [
+                "https://developers.tiktok.com/docs/en/display-api-get-started",
+                "https://developers.tiktok.com/docs/en/tiktok-api-v2-rate-limit",
+                "https://developers.tiktok.com/docs/en/oauth-user-access-token-management",
+                "https://developers.tiktok.com/docs/en/content-posting-api-get-started",
+                "https://developers.tiktok.com/docs/en/content-posting-api-get-started-upload-content",
+                "https://developers.tiktok.com/docs/en/content-posting-api-reference-upload-video"
+              ],
+              "publishing": false,
+              "connection": {
+                "status": "unverified",
+                "connected": false,
+                "read_check": {
+                  "result": "not_tested"
+                }
+              },
+              "actions": {
+                "account": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "analytics": {
+                  "documented": "limited_video_statistics",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "intake": {
+                  "documented": "authorized_display_not_raw_video",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "comments": {
+                  "documented": "not_established",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "messages": {
+                  "documented": "not_established",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "drafts": {
+                  "documented": "native_upload_draft_requires_approved_video_upload_scope_and_user_consent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "scheduling": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "publishing": {
+                  "documented": "permission_dependent",
+                  "runtime": "disabled",
+                  "enabled": false
+                }
+              },
+              "researched_at": "2026-10-12"
+            },
+            {
+              "id": "x",
+              "documentation_verification": "verified_for_pricing_other_details_partial",
+              "eligibility": "Developer app; appropriate OAuth scopes; explicit cost approval before API calls.",
+              "scopes": "Endpoint-specific scopes not yet verified",
+              "costs": "Paid: post reads $0.005/resource; user reads $0.010; qualifying owned reads $0.001; no spend authorized",
+              "quota": "Endpoint-specific; pay-per-use post reads capped 3 million/month",
+              "renewal": "OAuth renewal implementation requires app inspection",
+              "limitations": "Even harmless read probes can incur costs; blocked without cost approval.",
+              "sources": [
+                "https://docs.x.com/x-api/getting-started/pricing"
+              ],
+              "publishing": false,
+              "connection": {
+                "status": "unverified",
+                "connected": false,
+                "read_check": {
+                  "result": "not_tested"
+                }
+              },
+              "actions": {
+                "account": {
+                  "documented": "documented_paid",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "analytics": {
+                  "documented": "permission_dependent_paid",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "intake": {
+                  "documented": "permission_dependent_paid",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "comments": {
+                  "documented": "replies_permission_dependent_paid",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "messages": {
+                  "documented": "permission_dependent_paid",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "drafts": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "scheduling": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "publishing": {
+                  "documented": "permission_dependent",
+                  "runtime": "disabled",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "pinterest",
+              "documentation_verification": "verified_for_cited_details",
+              "eligibility": "Business account; registered app; Trial/Standard approval.",
+              "scopes": "user_accounts:read; pins:read; boards:read; verify approved scopes",
+              "costs": "No current API price verified",
+              "quota": "Trial 1000/day/app universal; Standard 100/sec/user/app plus category caps: analytics 60/min, organic read 1000/min, write 100/min",
+              "renewal": "Access 30d; continuous refresh 60d renewable; old apps continuous_refresh=true",
+              "limitations": "Inbox/comments not established; arbitrary full video retrieval not established.",
+              "sources": [
+                "https://developers.pinterest.com/docs/reference/rate-limits/",
+                "https://developer.pinterest.com/docs/getting-started/set-up-authentication-and-authorization/",
+                "https://developers.pinterest.com/docs/developer-tools/quickstart-tools/"
+              ],
+              "publishing": false,
+              "connection": {
+                "status": "unverified",
+                "connected": false,
+                "read_check": {
+                  "result": "not_tested"
+                }
+              },
+              "actions": {
+                "account": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "analytics": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "intake": {
+                  "documented": "authorized_pins",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "comments": {
+                  "documented": "not_established",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "messages": {
+                  "documented": "not_established",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "drafts": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "scheduling": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "publishing": {
+                  "documented": "permission_dependent",
+                  "runtime": "disabled",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "linkedin",
+              "documentation_verification": "verified_for_cited_details",
+              "eligibility": "Community Management approval and asset roles; separate Standard upgrade.",
+              "scopes": "r_organization_social; r_member_profileAnalytics; r_member_postAnalytics; applicable approved product scopes",
+              "costs": "No current API price verified",
+              "quota": "Development 500 calls/app/day,100/member/day; no BATCH_GET/social webhooks; Standard separately approved",
+              "renewal": "Approved MDP partners: access 60d; refresh fixed 365d; otherwise reauthorize",
+              "limitations": "General private-message access not established; version 202510 sunsets 2026-10-15.",
+              "sources": [
+                "https://learn.microsoft.com/en-us/linkedin/marketing/increasing-access?view=li-lms-2026-04",
+                "https://learn.microsoft.com/en-us/linkedin/shared/authentication/programmatic-refresh-tokens"
+              ],
+              "publishing": false,
+              "connection": {
+                "status": "unverified",
+                "connected": false,
+                "read_check": {
+                  "result": "not_tested"
+                }
+              },
+              "actions": {
+                "account": {
+                  "documented": "documented",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "analytics": {
+                  "documented": "approval_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "intake": {
+                  "documented": "authorized_content_only",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "comments": {
+                  "documented": "approval_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "messages": {
+                  "documented": "not_established",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "drafts": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "scheduling": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "publishing": {
+                  "documented": "permission_dependent",
+                  "runtime": "disabled",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "reddit",
+              "documentation_verification": "verified_for_access_rules_other_details_partial",
+              "eligibility": "Explicit API approval; commercial use needs written approval.",
+              "scopes": "OAuth scopes specific to approved application; not yet inspected",
+              "costs": "Free eligibility not presumed for commercial Money Factory",
+              "quota": "Eligible free access:100 QPM/client averaged over10min",
+              "renewal": "Approved OAuth app renewal path requires verification",
+              "limitations": "Deletion reconciliation required; no unrestricted commercial research or retention.",
+              "sources": [
+                "https://support.reddithelp.com/hc/en-us/articles/16160319875092-Reddit-Data-API-Wiki",
+                "https://redditinc.com/policies/data-api-terms"
+              ],
+              "publishing": false,
+              "connection": {
+                "status": "unverified",
+                "connected": false,
+                "read_check": {
+                  "result": "not_tested"
+                }
+              },
+              "actions": {
+                "account": {
+                  "documented": "approval_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "analytics": {
+                  "documented": "not_established",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "intake": {
+                  "documented": "approval_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "comments": {
+                  "documented": "approval_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "messages": {
+                  "documented": "approval_dependent",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "drafts": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "scheduling": {
+                  "documented": "internal_only_native_not_verified",
+                  "runtime": "unverified",
+                  "enabled": false
+                },
+                "publishing": {
+                  "documented": "permission_dependent",
+                  "runtime": "disabled",
+                  "enabled": false
+                }
+              }
+            }
+          ]
+        },
+        "records": [
+          {
+            "id": "instagram-carousel-DeChDzQDFXy",
+            "source_url": "https://www.instagram.com/p/DeChDzQDFXy/?img_index=7",
+            "source_type": "instagram_carousel",
+            "status": "source_queued_pending_slide_extraction",
+            "requested_use": [
+              "Money Factory",
+              "Content Control",
+              "e-commerce",
+              "lead generation",
+              "Chrome extension growth",
+              "faceless content"
+            ],
+            "instruction": "Extract every distinct skill/capability/workflow/tool/tactic from all slides; deduplicate; preserve visible wording/examples; rank by usefulness; then promote each verified skill into its own queue record.",
+            "integrity_rule": "Do not invent slide content if Instagram blocks or obscures an image.",
+            "coverage_validation": {
+              "verified": false,
+              "reason": "Complete duration-bound audiovisual evidence has not been established"
+            }
+          },
+          {
+            "id": "product-demo-short-form-ad-skill",
+            "source_url": "https://www.instagram.com/reel/DduI87gz9_D/",
+            "source_type": "instagram_reel",
+            "status": "active_verified_reference",
+            "applies_to": [
+              "Money Factory",
+              "Content Control",
+              "e-commerce",
+              "Chrome extensions",
+              "digital products",
+              "physical product demos"
+            ],
+            "capability": [
+              "curiosity-first product demo",
+              "show-dont-tell visual proof",
+              "split-screen/before-after demo",
+              "screen-recording guidance",
+              "loop-optimized payoff",
+              "proof-first CTA"
+            ],
+            "publication_rule": "Use for production only within the business content-readiness ceiling supplied by Money Factory.",
+            "coverage_validation": {
+              "verified": false,
+              "reason": "Complete duration-bound audiovisual evidence has not been established"
+            }
+          },
+          {
+            "id": "social-instagram-DeUlQTQxv5O",
+            "platform": "instagram",
+            "source_url": "https://www.instagram.com/reel/DeUlQTQxv5O/",
+            "canonical_id": "instagram:DeUlQTQxv5O",
+            "source_type": "social_link",
+            "status": "partial_analysis_routed",
+            "created_at": "2026-10-11",
+            "publication_enabled": false,
+            "coverage": {
+              "full_video": false,
+              "full_audio": false,
+              "segments": [],
+              "transcript_segments": [
+                {
+                  "start_seconds": 0,
+                  "end_seconds": 52.08
+                }
+              ],
+              "sampled_frame_seconds": [
+                0,
+                3,
+                4,
+                9,
+                10,
+                13,
+                15,
+                17,
+                18,
+                21,
+                24,
+                25,
+                32,
+                35,
+                39,
+                41,
+                49
+              ]
+            },
+            "evidence": [
+              {
+                "id": "hook-transcript",
+                "kind": "transcript",
+                "verified": true,
+                "start_seconds": 0,
+                "end_seconds": 11.92,
+                "summary": "Creator opens with reverse engineering and a return-tomorrow prediction. Popularity figure is an unverified creator claim."
+              },
+              {
+                "id": "code-frame-15",
+                "kind": "sampled_frame",
+                "verified": true,
+                "seconds": 15,
+                "summary": "Dark code panel highlights widget and notification entry points, with bold captions below. This frame does not prove the code belongs to Duolingo."
+              },
+              {
+                "id": "notification-transcript",
+                "kind": "transcript",
+                "verified": true,
+                "start_seconds": 22.72,
+                "end_seconds": 50.16,
+                "summary": "Creator alleges network-based timing, silent-mode signals and personalized notification prompts; those specific implementation claims remain unverified."
+              },
+              {
+                "id": "cta-transcript",
+                "kind": "transcript",
+                "verified": true,
+                "start_seconds": 50.16,
+                "end_seconds": 52.08,
+                "summary": "Ends by inviting viewers to name the next app for analysis."
+              },
+              {
+                "id": "duolingo-primary",
+                "kind": "metadata",
+                "verified": true,
+                "url": "https://blog.duolingo.com/hi-its-duo-the-ai-behind-the-meme/",
+                "summary": "Duolingo documents notification personalization, controlled experiments and reducing repetition. This does not verify Wi-Fi tracking."
+              },
+              {
+                "id": "watch-frame-0-20261011",
+                "kind": "sampled_frame",
+                "verified": true,
+                "seconds": 0,
+                "timestamp_precision": "whole-second Watch report",
+                "summary": "Opening frame shows a presenter holding a microphone with bold white and purple captions.",
+                "sha256": "c933f252e0f5db41161d51f9a6d7350fdeb43e42de9e72a48d256dd33aa9e77a",
+                "provenance": "Watch local extraction; visually reviewed by agent"
+              },
+              {
+                "id": "watch-frame-4-20261011",
+                "kind": "sampled_frame",
+                "verified": true,
+                "seconds": 4,
+                "timestamp_precision": "whole-second Watch report",
+                "summary": "A dark code panel replaces the presenter; captions remain in the lower area.",
+                "sha256": "d46bca802ac09d09c3750911fbf67a876ebaafcf840141f5234fabf5fa878565",
+                "provenance": "Watch local extraction; visually reviewed by agent"
+              },
+              {
+                "id": "watch-frame-17-20261011",
+                "kind": "sampled_frame",
+                "verified": true,
+                "seconds": 17,
+                "timestamp_precision": "whole-second Watch report",
+                "summary": "An app exercise screenshot interrupts the presenter/code sequence.",
+                "sha256": "c0d563796294b4ba9df41f220c1360053e7fd12fcefdfc075036624ef5639267",
+                "provenance": "Watch local extraction; visually reviewed by agent"
+              },
+              {
+                "id": "watch-frame-41-20261011",
+                "kind": "sampled_frame",
+                "verified": true,
+                "seconds": 41,
+                "timestamp_precision": "whole-second Watch report",
+                "summary": "A dark notification-code panel appears with highlighted caption words. Code ownership and behavioral claims remain unverified.",
+                "sha256": "075e3f9e73a4637c730b16ca7837921c837c4cad54e9d935873073723596ca5d",
+                "provenance": "Watch local extraction; visually reviewed by agent"
+              }
+            ],
+            "findings": [
+              {
+                "id": "evidence-reveal",
+                "category": "Content-production technique",
+                "project": "Content Control",
+                "summary": "Draft a concrete evidence reveal after the hook; preserve white backgrounds, black stick figures, separate audio stems and readable zones.",
+                "basis": "sampled_frame",
+                "evidence_refs": [
+                  "code-frame-15"
+                ],
+                "full_analysis": false,
+                "publication_enabled": false,
+                "status": "internal_review"
+              },
+              {
+                "id": "retention-experiment",
+                "category": "Automation improvement",
+                "project": "CYZOR Money Factory / Chrome extensions",
+                "summary": "Prepare an opt-in retention experiment with consented first-party events and a holdout; no messaging or data collection enabled.",
+                "basis": "metadata",
+                "evidence_refs": [
+                  "duolingo-primary"
+                ],
+                "full_analysis": false,
+                "publication_enabled": false,
+                "status": "internal_review"
+              },
+              {
+                "id": "audience-next-topic",
+                "category": "Marketing strategy",
+                "project": "Content Control",
+                "summary": "Add a next-topic question to the internal script brief; do not post it.",
+                "basis": "transcript",
+                "evidence_refs": [
+                  "cta-transcript"
+                ],
+                "full_analysis": false,
+                "publication_enabled": false,
+                "status": "internal_review"
+              },
+              {
+                "id": "watch-visual-alternation",
+                "category": "Content-production technique",
+                "project": "Content Control",
+                "summary": "Adapt the observed presenter/code/app visual alternation into original stick-figure/action/evidence scenes. Use white/purple caption emphasis selectively; do not infer exact pacing or copy creator assets.",
+                "basis": "sampled_frame",
+                "evidence_refs": [
+                  "watch-frame-0-20261011",
+                  "watch-frame-4-20261011",
+                  "watch-frame-17-20261011",
+                  "watch-frame-41-20261011"
+                ],
+                "full_analysis": false,
+                "publication_enabled": false,
+                "status": "internal_review"
+              }
+            ],
+            "retrieval_attempts": [
+              {
+                "date": "2026-10-11",
+                "route": "Transcriptor metadata",
+                "result": "metadata_available_duration_null"
+              },
+              {
+                "date": "2026-10-11",
+                "route": "Transcriptor automatic Whisper transcript and raw SRT",
+                "result": "returned_untruncated_0_to_52.08_seconds"
+              },
+              {
+                "date": "2026-10-11",
+                "route": "Transcriptor sampled frames",
+                "result": "visually_inspected_0_15_35_seconds"
+              },
+              {
+                "date": "2026-10-11",
+                "route": "watch_skill_local",
+                "revision": "03ceb42f7fa2c4439aca01752118044baabffb8f",
+                "result": "52.1s public media retrieved; 16 sampled frames reviewed; captions unavailable; paid transcription disabled",
+                "authorized_account_used": false
+              }
+            ],
+            "analysis_status": "prior_transcript_plus_watch_sampled_frames",
+            "title": "Duolingo retention breakdown \u2014 limited evidence review",
+            "incomplete_reason": "Public media retrieved at 52.1 seconds and 16 additional sampled frames inspected. Prior transcript evidence preserved. Continuous audiovisual review and signed-in account test remain unverified.",
+            "coverage_validation": {
+              "verified": false,
+              "reason": "Complete duration-bound audiovisual evidence has not been established"
+            }
+          }
+        ],
+        "checked_at": "2026-10-13T21:45:46.812Z",
+        "connection_checks_are": "dated_observations_not_live_provider_polling",
+        "revenue": {
+          "traffic": null,
+          "leads": null,
+          "sales": null,
+          "costs": null,
+          "refunds": null,
+          "net_profit": null,
+          "reason": "No connected attributed financial feed"
+        }
+      }
     },
     {
       "path": "/media",
