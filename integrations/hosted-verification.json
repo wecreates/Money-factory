@@ -1,0 +1,158 @@
+{
+  "status": "PASS",
+  "scope": "Eight CPU operations executed through Content Control on a hosted runner; not full production readiness",
+  "publication_enabled": false,
+  "receipts": [
+    {
+      "schema_version": 1,
+      "tool": "youtube-clipper-skill",
+      "operation": "clip",
+      "revision": "f31f077ee0905c95a510a6f34bbd0c3c85b15129",
+      "status": "PASS",
+      "verified_at": "2026-10-13T07:48:16Z",
+      "output_sha256": "ff47168dec7c3f7c69073b705ccf72ef2427d10c215a52bf432ecf3f0a457e6f",
+      "media": {
+        "duration": 2.083333,
+        "streams": [
+          {
+            "codec_type": "video",
+            "codec_name": "h264",
+            "width": 320,
+            "height": 180
+          },
+          {
+            "codec_type": "audio",
+            "codec_name": "aac"
+          }
+        ]
+      },
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "youtube-clipper-skill",
+      "operation": "captions",
+      "revision": "f31f077ee0905c95a510a6f34bbd0c3c85b15129",
+      "status": "PASS",
+      "verified_at": "2026-10-13T07:48:17Z",
+      "output_sha256": "3bd6b020ac72c9e36ce72c7e6e4165d5ddefd9a36f6b5425332d19dcb24bca58",
+      "media": {
+        "duration": 4.0,
+        "streams": [
+          {
+            "codec_type": "video",
+            "codec_name": "h264",
+            "width": 320,
+            "height": 180
+          },
+          {
+            "codec_type": "audio",
+            "codec_name": "aac"
+          }
+        ]
+      },
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "openshorts",
+      "operation": "vertical",
+      "revision": "0240abeccc0e18463f6fd3f881767c4bc33ae3a6",
+      "status": "PASS",
+      "verified_at": "2026-10-13T07:48:29Z",
+      "output_sha256": "6c242feab7731f6faa1c144a3148822b6dd5983194bca9f7a169b44d137a57cc",
+      "media": {
+        "duration": 4.0,
+        "streams": [
+          {
+            "codec_type": "video",
+            "codec_name": "h264",
+            "width": 1080,
+            "height": 1920
+          },
+          {
+            "codec_type": "audio",
+            "codec_name": "aac"
+          }
+        ]
+      },
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "openshorts",
+      "operation": "transcript-windows",
+      "revision": "0240abeccc0e18463f6fd3f881767c4bc33ae3a6",
+      "status": "PASS",
+      "verified_at": "2026-10-13T07:48:30Z",
+      "output_sha256": "06f409e074fdc869efcec6534919a4a38fd0672a16ff59f651d1bb963ec9ca98",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "claude-seo",
+      "operation": "parse-html",
+      "revision": "4b99de2f7de7e7d5247042e5fb5b4ea9368ef734",
+      "status": "PASS",
+      "verified_at": "2026-10-13T07:48:30Z",
+      "output_sha256": "d7d3371311706562bf0eef01c73bd4213611365db15894212e89e9048c1bc721",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "youtube-automation-agent",
+      "operation": "audit",
+      "revision": "e26792ae00dc1ec2434faf32632896609396dfad",
+      "status": "PASS",
+      "verified_at": "2026-10-13T07:48:30Z",
+      "output_sha256": "b29441563edba313143f310a7c3b5e6269fccf646ee3e44590f88ae22d4244f5",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "ruflo",
+      "operation": "remember-project",
+      "revision": "3209ba266750908ea88fb0bc69672e106478bbef",
+      "status": "PASS",
+      "verified_at": "2026-10-13T07:48:32Z",
+      "output_sha256": "9f1b1c15eafe34570388e6e35ce1f88f9ba7b5112b5a10c5901e60fa2483fc1b",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    },
+    {
+      "schema_version": 1,
+      "tool": "toonflow-app",
+      "operation": "import-brief",
+      "revision": "2c7fb257affb65777110fe4c6e60cd3c09187d9b",
+      "status": "PASS",
+      "verified_at": "2026-10-13T07:48:34Z",
+      "output_sha256": "65df8bd26c6a94c28a8eb9a051306312484d28423fb3be176ca11e515664b568",
+      "media": null,
+      "publication_enabled": false,
+      "scope": "This operation only; not complete product or hosted readiness"
+    }
+  ],
+  "negative_checks": 3,
+  "schema_version": 1,
+  "production_ready": false,
+  "paid_generation_enabled": false,
+  "verified_at": "2026-10-13T07:48:34Z",
+  "money_factory_revision": "ace974bb9da15de97afdde9d77da78b3f574a1c7",
+  "content_control_revision": "00fbb60bf345a312563ac4da13812933fe86619c",
+  "workflow_run_id": "38364409610",
+  "workflow_run_attempt": "1",
+  "blockers": [
+    "Wan CUDA host and model weights unavailable",
+    "Provider-backed generation and persistent hosted project state not verified"
+  ]
+}
