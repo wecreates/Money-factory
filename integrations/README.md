@@ -84,3 +84,7 @@ are assigned by the worker. Wan is refused on this CPU backend. Toonflow workspa
 and Ruflo SQLite state are ephemeral here; durable repository project memory is kept
 in `PROJECT_MEMORY.md`. This backend does not make every upstream application feature
 available or establish persistent, always-on production hosting.
+
+## Optional free GPU asset operation
+
+See [FREE-WAN.md](FREE-WAN.md) for `wan21/generate-free`, wired into the existing private worker and reviewed hosted jobs. The live provider test failed; this operation is not production verified and is not a default fallback. Publication remains disabled.

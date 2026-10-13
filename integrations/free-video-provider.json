@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "space": "multimodalart/wan2-1-fast",
+  "revision": "d8ad2caa4a290086c86e4df59e13789a88ce0e5d",
+  "host": "https://multimodalart-wan2-1-fast.hf.space",
+  "operation": "generate-free",
+  "status": "LIVE_GENERATION_NOT_VERIFIED",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false
+}

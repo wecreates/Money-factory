@@ -42,13 +42,21 @@ def persist(folder, run_id, attempt, revision, root=ROOT):
     if job.get('publication_enabled') is not False or job.get('paid_generation_enabled') is not False:
         raise ValueError('Reviewed job authorization mismatch')
     output=evidence.get('output')
-    expected='result.mp4' if job.get('operation') in ('clip','captions','vertical') else 'result.txt' if job.get('operation')=='remember-project' else 'result.json'
+    expected='result.mp4' if job.get('operation') in ('clip','captions','vertical','generate-free') else 'result.txt' if job.get('operation')=='remember-project' else 'result.json'
     if output!=expected:
         raise ValueError('Unexpected result filename')
     receipt_bytes=read_file(folder,output+'.receipt.json')
     receipt=json.loads(receipt_bytes)
     registry=json.loads(blob(root,revision,'integrations/repositories.json'))
     sources={entry['id']:entry['revision'] for entry in registry['repositories']}
+    if (job.get('tool'), job.get('operation')) == ('wan21', 'generate-free'):
+        provider=json.loads(blob(root,revision,'integrations/free-video-provider.json'))
+        if (job.get('external_processing_approved') is not True or
+                receipt.get('provider_space') != provider['space'] or
+                receipt.get('provider_revision') != provider['revision'] or
+                receipt.get('paid_fallback') is not False or receipt.get('production_approved') is not False):
+            raise ValueError('Free provider authorization or provenance mismatch')
+        sources['wan21']=provider['revision']
     if receipt.get('status')!='PASS' or receipt.get('publication_enabled') is not False or receipt.get('tool')!=job.get('tool') or receipt.get('operation')!=job.get('operation') or receipt.get('revision')!=sources.get(job.get('tool')) or not re.fullmatch(r'[a-f0-9]{64}',receipt.get('output_sha256','')):
         raise ValueError('Operation receipt mismatch')
     if not re.fullmatch(r'[a-f0-9]{40}',evidence.get('content_control_revision','')):

@@ -12,6 +12,7 @@ from urllib.request import urlopen
 from run import ROOT
 
 OPERATIONS = {
+    'wan21': ('generate-free',),
     'youtube-clipper-skill': ('clip', 'captions'),
     'openshorts': ('vertical', 'transcript-windows'),
     'claude-seo': ('parse-html', 'render-page'),
@@ -42,13 +43,17 @@ def load_job(job_path, output, root=ROOT):
     if job.get('operation') not in OPERATIONS.get(job.get('tool'), ()):
         raise ValueError('Unsupported hosted CPU operation')
     allowed = {'tool','operation','input','subtitles','start','end','publication_enabled','paid_generation_enabled','provenance'}
+    if (job['tool'], job['operation']) == ('wan21', 'generate-free'):
+        from free_wan import parameters
+        parameters(job)
+        allowed |= {'prompt', 'duration_seconds', 'seed', 'external_processing_approved'}
     if set(job) - allowed:
         raise ValueError('Unknown job fields; output paths and service URLs are worker-owned')
     job.pop('provenance', None)
     for key in ('input','subtitles'):
         if key in job:
             job[key] = str(inside(root / 'integrations/jobs', job[key]))
-    suffix = '.mp4' if job['operation'] in ('clip','captions','vertical') else '.txt' if job['operation']=='remember-project' else '.json'
+    suffix = '.mp4' if job['operation'] in ('clip','captions','vertical','generate-free') else '.txt' if job['operation']=='remember-project' else '.json'
     job['output'] = str(output.resolve() / ('result'+suffix))
     return job
 
