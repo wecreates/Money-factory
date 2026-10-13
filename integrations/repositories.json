@@ -35,17 +35,21 @@
       "capability": "video_clipping",
       "integration_target": "Content Control repurposing",
       "source_status": "pinned",
-      "runtime_status": "local_operations_verified_deployment_pending",
+      "runtime_status": "hosted_operations_verified_full_capability_unverified",
       "enabled": false,
       "blockers": [
-        "Hosted worker deployment",
         "Semantic chapter selection, subtitle translation and source download not end-to-end verified"
       ],
       "verified_local_operations": [
         "clip",
         "captions"
       ],
-      "verification_report": "integrations/local-verification.json"
+      "verification_report": "integrations/local-verification.json",
+      "verified_hosted_operations": [
+        "clip",
+        "captions"
+      ],
+      "hosted_verification_report": "integrations/hosted-verification.json"
     },
     {
       "order": 3,
@@ -56,17 +60,21 @@
       "capability": "shorts_production",
       "integration_target": "Content Control repurposing",
       "source_status": "pinned",
-      "runtime_status": "local_operations_verified_deployment_pending",
+      "runtime_status": "hosted_operations_verified_full_capability_unverified",
       "enabled": false,
       "blockers": [
-        "Hosted worker deployment",
         "LLM moment selection and generative UGC providers not configured or verified"
       ],
       "verified_local_operations": [
         "vertical",
         "transcript-windows"
       ],
-      "verification_report": "integrations/local-verification.json"
+      "verification_report": "integrations/local-verification.json",
+      "verified_hosted_operations": [
+        "vertical",
+        "transcript-windows"
+      ],
+      "hosted_verification_report": "integrations/hosted-verification.json"
     },
     {
       "order": 4,
@@ -77,16 +85,19 @@
       "capability": "seo_audit",
       "integration_target": "Money Factory acquisition and website audits",
       "source_status": "pinned",
-      "runtime_status": "local_operations_verified_deployment_pending",
+      "runtime_status": "hosted_operations_verified_full_capability_unverified",
       "enabled": false,
       "blockers": [
-        "Hosted worker deployment",
         "Browser rendering and authenticated external SEO APIs not configured or verified"
       ],
       "verified_local_operations": [
         "parse-html"
       ],
-      "verification_report": "integrations/local-verification.json"
+      "verification_report": "integrations/local-verification.json",
+      "verified_hosted_operations": [
+        "parse-html"
+      ],
+      "hosted_verification_report": "integrations/hosted-verification.json"
     },
     {
       "order": 5,
@@ -97,16 +108,20 @@
       "capability": "story_production",
       "integration_target": "Content Control story and asset planning",
       "source_status": "pinned",
-      "runtime_status": "local_operations_verified_deployment_pending",
+      "runtime_status": "hosted_operations_verified_full_capability_unverified",
       "enabled": false,
       "blockers": [
-        "Authenticated hosted deployment",
+        "Persistent authenticated application hosting remains unverified",
         "Model providers and complete story generation not configured or verified"
       ],
       "verified_local_operations": [
         "import-brief"
       ],
-      "verification_report": "integrations/local-verification.json"
+      "verification_report": "integrations/local-verification.json",
+      "verified_hosted_operations": [
+        "import-brief"
+      ],
+      "hosted_verification_report": "integrations/hosted-verification.json"
     },
     {
       "order": 6,
@@ -117,7 +132,7 @@
       "capability": "agent_orchestration",
       "integration_target": "Money Factory orchestration and memory",
       "source_status": "pinned",
-      "runtime_status": "local_operations_verified_deployment_pending",
+      "runtime_status": "hosted_operations_verified_full_capability_unverified",
       "enabled": false,
       "blockers": [
         "Persistent hosted worker storage",
@@ -126,7 +141,11 @@
       "verified_local_operations": [
         "remember-project"
       ],
-      "verification_report": "integrations/local-verification.json"
+      "verification_report": "integrations/local-verification.json",
+      "verified_hosted_operations": [
+        "remember-project"
+      ],
+      "hosted_verification_report": "integrations/hosted-verification.json"
     },
     {
       "order": 7,
@@ -137,20 +156,24 @@
       "capability": "youtube_production",
       "integration_target": "Content Control YouTube planning and analytics",
       "source_status": "pinned",
-      "runtime_status": "local_operations_verified_deployment_pending",
+      "runtime_status": "hosted_operations_verified_full_capability_unverified",
       "enabled": false,
       "blockers": [
-        "Hosted worker deployment",
         "Text/narration providers and phone-compatible OAuth not configured or verified",
         "Complete production and analytics not verified"
       ],
       "verified_local_operations": [
         "audit"
       ],
-      "verification_report": "integrations/local-verification.json"
+      "verification_report": "integrations/local-verification.json",
+      "verified_hosted_operations": [
+        "audit"
+      ],
+      "hosted_verification_report": "integrations/hosted-verification.json"
     }
   ],
   "worker_entrypoint": "integrations/run.py",
   "setup_entrypoint": "integrations/setup.py",
-  "full_production_ready": false
+  "full_production_ready": false,
+  "runtime_status_scope": "Historical operation receipts only; query Content Control /api/integrations/status for latest run, source-pin and seven-day freshness validation. enabled=false preserves the disabled full-capability setting and does not disable reviewed CPU jobs."
 }
