@@ -11,7 +11,7 @@ from urllib.request import urlopen
 from run import ROOT, run
 
 
-def smoke(runtime):
+def smoke(runtime, executor=run):
     receipts = []
     with tempfile.TemporaryDirectory(prefix='cyzor-smoke-') as folder:
         work = Path(folder)
@@ -30,7 +30,7 @@ def smoke(runtime):
             job = dict(tool=tool, operation=operation, output=str(work / output_name), **extra)
             if input_name:
                 job['input'] = str(work / input_name)
-            receipt = run(job, runtime)
+            receipt = executor(job, runtime)
             if receipt['media']:
                 assert any(s['codec_type'] == 'audio' for s in receipt['media']['streams'])
             receipts.append(receipt)
@@ -87,7 +87,7 @@ def smoke(runtime):
                    dict(publication_enabled=True), dict(paid_generation_enabled=True)]
         for job in invalid:
             try:
-                run(job, runtime)
+                executor(job, runtime)
             except ValueError:
                 continue
             raise AssertionError('A prohibited operation was accepted')

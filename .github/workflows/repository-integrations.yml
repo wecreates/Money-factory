@@ -1,0 +1,91 @@
+name: Repository integrations hosted CPU worker
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repository-integrations.yml'
+      - 'integrations/*.py'
+      - 'integrations/toonflow-server.ts'
+      - 'integrations/repositories.json'
+      - 'integrations/vendor/**'
+permissions:
+  contents: read
+concurrency:
+  group: repository-integrations-cpu
+  cancel-in-progress: false
+jobs:
+  verify:
+    # Standard runners in public repositories only: no private billing fallback.
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      PUBLICATION_ENABLED: 'false'
+      PAID_GENERATION_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: wecreates/content-control
+          ref: 00fbb60bf345a312563ac4da13812933fe86619c
+          path: content-control-bridge
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Install system media and native build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg build-essential python3-dev
+      - name: Verify all seven pinned sources
+        run: python integrations/verify.py
+      - name: Install six CPU integrations in requested order
+        run: |
+          set -euo pipefail
+          for tool in youtube-clipper-skill openshorts claude-seo toonflow-app ruflo youtube-automation-agent; do
+            python integrations/setup.py "$tool" --runtime "$RUNNER_TEMP/cyzor-runtime"
+          done
+      - name: Execute real operations through Content Control
+        run: >-
+          python integrations/hosted_smoke.py
+          --runtime "$RUNNER_TEMP/cyzor-runtime"
+          --content-control "$GITHUB_WORKSPACE/content-control-bridge"
+          --report "$RUNNER_TEMP/cyzor-evidence/hosted-verification.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repository-integration-evidence
+          path: ${{ runner.temp }}/cyzor-evidence/hosted-verification.json
+          if-no-files-found: error
+          retention-days: 1
+  record:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          name: repository-integration-evidence
+          path: ${{ runner.temp }}/cyzor-evidence
+      - name: Persist execution evidence without overwriting concurrent work
+        run: |
+          set -euo pipefail
+          git config user.name cyzor-integration-verifier
+          git config user.email actions@users.noreply.github.com
+          cp "$RUNNER_TEMP/cyzor-evidence/hosted-verification.json" integrations/hosted-verification.json
+          git add integrations/hosted-verification.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Record hosted CPU integration execution evidence"
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
