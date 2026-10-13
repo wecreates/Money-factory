@@ -108,14 +108,20 @@ def _run(job, runtime):
     if job.get('publication_enabled') or job.get('paid_generation_enabled'):
         raise ValueError('This worker does not support publication or paid generation')
     tool, operation = job['tool'], job['operation']
-    upstream = source(tool)
+    remote_wan = (tool, operation) == ('wan21', 'generate-free')
+    upstream = None if remote_wan else source(tool)
     output = Path(job['output']).resolve()
     receipt_path = Path(str(output) + '.receipt.json')
     if output.exists() or receipt_path.exists():
         raise ValueError('Output or receipt already exists; use a new job output path')
     output.parent.mkdir(parents=True, exist_ok=True)
     is_media = False
-    if (tool, operation) == ('youtube-clipper-skill', 'clip'):
+    provider_evidence = {}
+    if remote_wan:
+        from free_wan import generate
+        provider_evidence = generate(job, output)
+        is_media = True
+    elif (tool, operation) == ('youtube-clipper-skill', 'clip'):
         start, end = bounds(job)
         execute([runtime / 'clipper/bin/python', upstream / 'scripts/clip_video.py',
                  file_input(job), start, end, output], upstream, runtime)
@@ -207,7 +213,8 @@ def _run(job, runtime):
         raise RuntimeError('Worker returned without a nonempty output file')
     media = media_probe(output, runtime) if is_media else None
     receipt = {'schema_version': 1, 'tool': tool, 'operation': operation,
-               'revision': TOOLS[tool]['revision'], 'status': 'PASS',
+               **provider_evidence,
+               'revision': provider_evidence.get('provider_revision', TOOLS[tool]['revision']), 'status': 'PASS',
                'verified_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                'output_sha256': hashlib.sha256(output.read_bytes()).hexdigest(),
                'media': media, 'publication_enabled': False,

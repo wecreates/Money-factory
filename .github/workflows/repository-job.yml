@@ -48,6 +48,7 @@ jobs:
           set -euo pipefail
           python -m unittest discover -s integrations -p 'test_hosted_job.py'
           python -m unittest discover -s integrations -p 'test_persist_job.py'
+          python -m unittest discover -s integrations -p 'test_free_wan.py'
           tool=$(python integrations/hosted_job.py "$JOB_FILE" --runtime "$RUNNER_TEMP/runtime" --content-control content-control-bridge --output "$RUNNER_TEMP/job-output" --print-tool)
           echo "tool=$tool" >> "$GITHUB_OUTPUT"
       - name: Install selected free CPU runtime
@@ -56,7 +57,9 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg build-essential python3-dev
-          if [ "$TOOL" = claude-seo ]; then
+          if [ "$TOOL" = wan21 ]; then
+            echo "Anonymous ZeroGPU operation: no local CUDA, model install, token or paid fallback"
+          elif [ "$TOOL" = claude-seo ]; then
             python integrations/setup.py "$TOOL" --runtime "$RUNNER_TEMP/runtime" --browser
             "$RUNNER_TEMP/runtime/seo/.venv/bin/python" -m playwright install-deps chromium
           else
