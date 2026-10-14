@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "job": "voicestudio-narration.job.json",
+  "job_sha256": "b617ea225664fd4ec68a925883f6d314373af5949ae11ba1c9fdb1b8a5d0465f",
+  "repository_revision": "ec76f6ceaa7f9676d4458d7522f68c2b370a4c0d",
+  "execution_engine": "money-factory",
+  "content_control_revision": null,
+  "output": "result.wav",
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}
