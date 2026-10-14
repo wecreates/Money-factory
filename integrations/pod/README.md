@@ -123,3 +123,25 @@ revive an expired claim, suspended account or permanently blocked concept.
 This is not atomic cross-system revocation; authorized adapters still require
 provider idempotency and observed-result reconciliation. No real adapter or
 live authority mounting is supplied by these code changes.
+
+## Financial line identity
+
+Content Control's financial intake requires a one-to-one match between the
+provider event and `authority_event_id`. A new provider/event ID cannot count an
+existing upstream financial event again. An exact retry must preserve job,
+provider, provider-event ID, kind, amount, currency, occurrence time, proof hash
+and authority ID. It returns the original row without another outbox event.
+
+Provide actual verified line-level upstream events for compound statements.
+Do not reuse one statement-level authority event for many imported lines, derive
+new authority IDs locally, or refresh occurrence times to bypass a conflict.
+Future-dated forecasts are not financial occurrences. Migration 004 fails closed
+if existing rows reuse authority IDs; it does not delete or relabel history.
+Existing ledger reconciliation/approval is required for any historical conflict.
+The matching contract is Content Control's integrations/pod/FINANCIAL_EVIDENCE.md.
+
+This rule does not mount a live finance authority, confirm any provider statement
+or turn downstream net-recorded amounts into verified profit. Money Factory's
+inbox remains observation-only; its verified revenue ledger remains authoritative.
+Production migration/deployment and all real financial acceptance remain separate
+from disposable CI. Publication stays disabled.
