@@ -20,3 +20,9 @@ test('production-only approval cannot grant LAUNCH',()=>{
  const a={...approval,publication_permission:false,production_permission:true,providers_healthy:true,package_sha256:j.package_sha256};
  assert.throws(()=>issuePodGrant({readiness:r,job:j,approval:a,key,now}),/LAUNCH_BLOCKED/);
 });
+test('task artifact requires exact upstream approval',()=>{
+ const j={...job,task_sha256:'a'.repeat(64)};
+ assert.throws(()=>issuePodGrant({readiness,job:j,approval,key,now}),/TASK_APPROVAL_REQUIRED/);
+ const g=JSON.parse(issuePodGrant({readiness,job:j,approval:{...approval,task_sha256:j.task_sha256},key,now}).payload);
+ assert.equal(g.task_sha256,j.task_sha256);
+});
