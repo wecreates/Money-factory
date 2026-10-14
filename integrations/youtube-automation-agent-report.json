@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/darkzOGx/youtube-automation-agent",
+  "registry_id": "youtube-automation-agent",
+  "registry_order": 7,
+  "source_revision": "e26792ae00dc1ec2434faf32632896609396dfad",
+  "integration_status": "existing_registered_integration_reverified",
+  "verified_operation": "audit",
+  "workflow_run_id": 38622564600,
+  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/38622564600",
+  "durable_result": "integrations/results/runs/38622564600-1/record.json",
+  "output_sha256": "a778bd69bd6b92cb1cebdc1447c2047ca2913fa670605211f5f2c68a8e8d360d",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "scope": "Actual Content Control draft metadata audited through the pinned upstream adapter; result persisted by the normal reviewed-job workflow. Does not verify narration, provider generation, channel OAuth, uploads or analytics.",
+  "remaining_requirements": [
+    "Configured text and narration providers with verified real output",
+    "Authorized channel OAuth and analytics access",
+    "End-to-end production and audiovisual review"
+  ],
+  "audit_result_status": "attention_required",
+  "findings": [
+    {
+      "rule": "geo.entity_salience",
+      "severity": "MEDIUM",
+      "message": "CYZOR missing from title/intro"
+    },
+    {
+      "rule": "aio.comparison_intent",
+      "severity": "HIGH",
+      "message": "Missing structured comparison"
+    }
+  ]
+}

@@ -188,10 +188,20 @@
       "capability": "software_analysis",
       "integration_target": "Money Factory engineering diagnostics",
       "source_status": "pinned",
-      "runtime_status": "integration_pending_verification",
+      "runtime_status": "hosted_registered_operations_verified",
       "enabled": true,
-      "verified_hosted_operations": [],
-      "required_for_production": false
+      "verified_hosted_operations": [
+        "analyze-javascript-application",
+        "mcp-smoke",
+        "inspect-artifact",
+        "capture-owned-process",
+        "inspect-local-web-page"
+      ],
+      "required_for_production": false,
+      "hosted_verification_report": "integrations/rea/hosted-verification.json",
+      "blockers": [
+        "Optional native decompiler and platform-specific providers are not installed or verified"
+      ]
     }
   ]
 }

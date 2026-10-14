@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "verified_at": "2026-10-14",
+  "source_revision": "43a1927246167e2d20207c2174a28b54bad34d29",
+  "workflow_run_id": 38622565011,
+  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/38622565011",
+  "artifact_id": 11921639145,
+  "artifact_sha256": "e2aa76b3528ddb24f28978d5e03f032bf0cd77cbf92dcddf823062f1d7526e69",
+  "scope": "Five registered operations across six hosted cases; source case includes actual Money Factory source. Not all optional REA providers, not video audiovisual approval.",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "checks": [
+    {
+      "case": "source",
+      "operation": "analyze-javascript-application",
+      "status": "PASS",
+      "input_sha256": {
+        "main.js": "aaa793cfa6b6e1f0f076802fe7f08ae5c496c34873b03fe690e12f9dd795d9f3",
+        "math.js": "a94468f11b9e176ff2b3cf31080d67c2a31efc3dc4c0757abf90585f4e765f6a"
+      },
+      "receipt": {
+        "schema_version": 1,
+        "tool": "rea",
+        "operation": "analyze-javascript-application",
+        "revision": "npm:rea-agents@6.4.0",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:19:08Z",
+        "output_sha256": "f966cff2a76e45d22815f6d40fda896cfc974dcc2035959683bebf8d6b6ca45f",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      }
+    },
+    {
+      "case": "mcp",
+      "operation": "mcp-smoke",
+      "status": "PASS",
+      "input_sha256": {
+        "main.js": "aaa793cfa6b6e1f0f076802fe7f08ae5c496c34873b03fe690e12f9dd795d9f3",
+        "math.js": "a94468f11b9e176ff2b3cf31080d67c2a31efc3dc4c0757abf90585f4e765f6a"
+      },
+      "receipt": {
+        "schema_version": 1,
+        "tool": "rea",
+        "operation": "mcp-smoke",
+        "revision": "npm:rea-agents@6.4.0",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:19:10Z",
+        "output_sha256": "f06ef07cf7eb0713ce1d5146ee086a22c3486a9d01738a3cd58fa56b373ed1cc",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      }
+    },
+    {
+      "case": "native",
+      "operation": "inspect-artifact",
+      "status": "PASS",
+      "input_sha256": {
+        "native.bin": "f44971fc413a9105c2e166dc997ae8e891b37ca8db68750535c6e3f327e9b8a7"
+      },
+      "receipt": {
+        "schema_version": 1,
+        "tool": "rea",
+        "operation": "inspect-artifact",
+        "revision": "npm:rea-agents@6.4.0",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:19:11Z",
+        "output_sha256": "d30309ca064865fff17641d6f997680acba515dec614f3d4ef7178affc9eff5a",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      }
+    },
+    {
+      "case": "process",
+      "operation": "capture-owned-process",
+      "status": "PASS",
+      "input_sha256": {
+        "process.js": "497e34f4eea2888a4c41883f74ad5ebf7c6e707c62a1843b4cbe16f4e6c3c446"
+      },
+      "receipt": {
+        "schema_version": 1,
+        "tool": "rea",
+        "operation": "capture-owned-process",
+        "revision": "npm:rea-agents@6.4.0",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:19:13Z",
+        "output_sha256": "aef327f996fc07bf78c714af97121ef2d86f82ef53438bd270ca73114bd947c3",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      }
+    },
+    {
+      "case": "browser",
+      "operation": "inspect-local-web-page",
+      "status": "PASS",
+      "input_sha256": {
+        "index.html": "ac6572f04b941b1a8be35a9777c5c8f52370dc78466f9b396a524b47c6532f8f"
+      },
+      "receipt": {
+        "schema_version": 1,
+        "tool": "rea",
+        "operation": "inspect-local-web-page",
+        "revision": "npm:rea-agents@6.4.0",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:19:16Z",
+        "output_sha256": "a7fe6df28819aaafa4b8d4a93e2abe9cf8a378953c073bcee19e18af6a5c660c",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      }
+    },
+    {
+      "case": "project",
+      "operation": "analyze-javascript-application",
+      "status": "PASS",
+      "input_sha256": {
+        "readiness-grant.mjs": "083099eea4db1db7500b7e1d35e792dfdb3a53170522de51ac1236f4aba609ed",
+        "sign-grant.mjs": "cfe51c1b582ecf441e1380ce2815a3676053c76f0ebb3d9ebe65b85adef6fc7c"
+      },
+      "receipt": {
+        "schema_version": 1,
+        "tool": "rea",
+        "operation": "analyze-javascript-application",
+        "revision": "npm:rea-agents@6.4.0",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:19:17Z",
+        "output_sha256": "85445792ed920f0e316250598da76c7c0596ff36e638d9bab2d7034a368b9041",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      }
+    }
+  ],
+  "normal_job_queue": {
+    "workflow_run_id": 38622724403,
+    "source_revision": "9fe68c0745be703eba1f2a0752038eaff275c751",
+    "status": "PASS",
+    "durable_record": "integrations/results/runs/38622724403-1/record.json",
+    "result_persisted": true
+  }
+}

@@ -59,7 +59,7 @@ REA_RUNTIME=/absolute/runtime/rea REA_REQUIRE_PASS=1 python -m unittest discover
 
 ## Evidence and limitations
 
-Current rollout status: `integration_pending_verification` until the expanded hosted workflow passes.
+Current rollout status: `hosted_registered_operations_verified`; see the current hosted acceptance and receipt report below.
 
 Historical free Ubuntu run [38474010468](https://github.com/wecreates/Money-factory/actions/runs/38474010468) verified the original static adapter. Its throw-containing source fixture was inspected without execution. That historical result does not prove the newer browser, process, artifact, or MCP operations; use their corresponding current hosted receipts.
 
@@ -68,3 +68,7 @@ Local workspace verification on October 14, 2026 established REA 6.4.0 stdio ini
 Deep native decompilation requires a separately installed supported Ghidra, Hopper, or IDA provider. Device, firmware, debugger, and other optional upstream capabilities require their own host tools, targets, permissions, and execution evidence. They are not claimed ready by this integration. `inspect-with-objdump` appears in newer upstream documentation but is absent from pinned 6.4.0. No claim of audiovisual review, competitor parity, production readiness, or publishing permission follows from REA evidence.
 
 Official sources: [repository](https://github.com/morluto/rea), [installation](https://github.com/morluto/rea/blob/main/docs/installation.md), [MCP contracts](https://github.com/morluto/rea/blob/main/docs/mcp-contracts.md), [browser observation](https://github.com/morluto/rea/blob/main/docs/browser-observation.md), [process capture](https://github.com/morluto/rea/blob/main/docs/process-capture.md). Upstream main may describe a newer release; use the installed 6.4.0 catalog and command schemas as the integration contract.
+
+## Hosted acceptance — 2026-10-14
+
+All five registered operations passed across six cases in [run 38622565011](https://github.com/wecreates/Money-factory/actions/runs/38622565011). This includes a real MCP source-analysis call, owned process output, native inventory, dedicated Chromium DOM/accessibility observation, and static analysis of Money Factory source. `hosted-verification.json` records source identity, input hashes, output receipts, and artifact digest. Historical local `execution-evidence.json` remains BLOCKED because that environment lacks working procps; it is not the hosted result. Optional decompiler providers remain unverified.
