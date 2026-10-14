@@ -28,7 +28,7 @@
         "clip",
         "captions"
       ],
-      "workflow_run_id": 38624437198,
+      "workflow_run_id": 38626370239,
       "remaining_full_capability_requirements": [
         "Semantic chapter selection, subtitle translation and source download not end-to-end verified"
       ]
@@ -42,7 +42,7 @@
         "vertical",
         "transcript-windows"
       ],
-      "workflow_run_id": 38624437198,
+      "workflow_run_id": 38626370239,
       "remaining_full_capability_requirements": [
         "LLM moment selection and generative UGC providers not configured or verified"
       ]
@@ -56,7 +56,7 @@
         "parse-html",
         "render-page"
       ],
-      "workflow_run_id": 38624437198,
+      "workflow_run_id": 38626370239,
       "remaining_full_capability_requirements": [
         "Authenticated external SEO APIs not configured or verified"
       ]
@@ -69,7 +69,7 @@
       "verified_operations": [
         "import-brief"
       ],
-      "workflow_run_id": 38624437198,
+      "workflow_run_id": 38626370239,
       "remaining_full_capability_requirements": [
         "Persistent authenticated application hosting remains unverified",
         "Model providers and complete story generation not configured or verified"
@@ -83,7 +83,7 @@
       "verified_operations": [
         "remember-project"
       ],
-      "workflow_run_id": 38624437198,
+      "workflow_run_id": 38626370239,
       "remaining_full_capability_requirements": [
         "Persistent hosted worker storage",
         "MCP client registration and full agent orchestration not verified"
@@ -97,7 +97,7 @@
       "verified_operations": [
         "audit"
       ],
-      "workflow_run_id": 38624437198,
+      "workflow_run_id": 38626370239,
       "remaining_full_capability_requirements": [
         "Text/narration providers and phone-compatible OAuth not configured or verified",
         "Complete production and analytics not verified"
