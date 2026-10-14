@@ -75,6 +75,32 @@ class PersistenceTests(unittest.TestCase):
         self.evidence['execution_engine']='content-control';self.write()
         with self.assertRaisesRegex(ValueError,'Money Factory'):self.run_persist()
 
+    def test_voice_media_is_verified_but_only_provenance_is_committed(self):
+        import math, struct, wave
+        self.job.update(tool='voicestudio', operation='synthesize')
+        (self.root/'integrations/jobs/audit.job.json').write_text(json.dumps(self.job))
+        (self.root/'integrations/repositories.json').write_text(json.dumps({'repositories':[],
+            'media_tools':[{'id':'voicestudio','revision':'a'*40}]}))
+        subprocess.run(['git','add','.'],cwd=self.root,check=True)
+        subprocess.run(['git','-c','user.name=Test','-c','user.email=test@example.com','commit','-qm','voice fixture'],cwd=self.root,check=True)
+        self.revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=self.root,text=True).strip()
+        audio=self.artifact/'result.wav'
+        with wave.open(str(audio),'wb') as wav:
+            wav.setnchannels(1);wav.setsampwidth(2);wav.setframerate(24000)
+            wav.writeframes(struct.pack('<'+'h'*24000,*[int(3000*math.sin(n/10)) for n in range(24000)]))
+        digest=hashlib.sha256(audio.read_bytes()).hexdigest()
+        self.receipt.update(tool='voicestudio',operation='synthesize',output_sha256=digest)
+        self.evidence.update(repository_revision=self.revision,execution_engine='money-factory',
+            content_control_revision=None,job_sha256=hashlib.sha256(json.dumps(self.job).encode()).hexdigest(),output='result.wav')
+        (self.artifact/'result.wav.receipt.json').write_text(json.dumps(self.receipt))
+        (self.artifact/'result.wav.generation.json').write_text(json.dumps({'synthetic':True,'output_sha256':digest}))
+        (self.artifact/'job-evidence.json').write_text(json.dumps(self.evidence))
+        result=self.run_persist()
+        self.assertTrue((result/'result.wav.generation.json').exists())
+        self.assertFalse((result/'result.wav').exists())
+        audio.write_bytes(b'corrupt')
+        with self.assertRaises(Exception):self.run_persist()
+
     def test_conflicting_replay_rejected(self):
         target=self.run_persist()
         (target/'record.json').write_text('{}')

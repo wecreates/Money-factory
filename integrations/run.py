@@ -18,7 +18,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = json.loads((ROOT / 'integrations/repositories.json').read_text())
-TOOLS = {entry['id']: entry for entry in REGISTRY['repositories'] + REGISTRY.get('engineering_tools', [])}
+TOOLS = {entry['id']: entry for entry in REGISTRY['repositories'] + REGISTRY.get('engineering_tools', []) + REGISTRY.get('media_tools', [])}
 
 
 def environment(runtime):
@@ -127,7 +127,15 @@ def _run(job, runtime):
         raise ValueError('Output or receipt already exists; use a new job output path')
     output.parent.mkdir(parents=True, exist_ok=True)
     is_media = False
-    if tool == 'rea':
+    if tool == 'voicestudio':
+        if operation != 'synthesize':
+            raise ValueError('Unsupported VoiceStudio operation')
+        execute([runtime / 'voicestudio/bin/python', ROOT / 'integrations/voicestudio/runner.py',
+                 '--upstream', upstream, '--runtime', runtime / 'voicestudio',
+                 '--input', file_input(job), '--output', output], ROOT, runtime, timeout=900)
+        from voicestudio.validation import validate_audio
+        audio = validate_audio(output)
+    elif tool == 'rea':
         from rea.adapter import dispatch
         result = dispatch(job, runtime / 'rea')
         if not isinstance(result, dict) or result.get('status') not in ('PASS', 'BLOCKED'):
@@ -231,6 +239,7 @@ def _run(job, runtime):
                'verified_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                'output_sha256': hashlib.sha256(output.read_bytes()).hexdigest(),
                'media': media, 'publication_enabled': False,
+               **({'audio': audio} if tool == 'voicestudio' else {}),
                'scope': 'This operation only; not complete product or hosted readiness'}
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
     return receipt

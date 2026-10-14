@@ -28,7 +28,10 @@ def setup(tool, runtime, browser=False):
     def pip(python, *args):
         cmd([python, '-m', 'pip', 'install', '--disable-pip-version-check', *args])
 
-    if tool == 'rea':
+    if tool == 'voicestudio':
+        from voicestudio.setup_runtime import setup as setup_voice
+        setup_voice(upstream, runtime / 'voicestudio')
+    elif tool == 'rea':
         destination = runtime / 'rea'
         destination.mkdir(parents=True, exist_ok=True)
         for name in ('package.json', 'package-lock.json'):

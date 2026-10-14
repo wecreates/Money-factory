@@ -42,22 +42,22 @@ def persist(folder, run_id, attempt, revision, root=ROOT):
     if job.get('publication_enabled') is not False or job.get('paid_generation_enabled') is not False:
         raise ValueError('Reviewed job authorization mismatch')
     output=evidence.get('output')
-    expected='result.mp4' if job.get('operation') in ('clip','captions','vertical') else 'result.txt' if job.get('operation')=='remember-project' else 'result.json'
+    expected='result.wav' if job.get('tool')=='voicestudio' else 'result.mp4' if job.get('operation') in ('clip','captions','vertical') else 'result.txt' if job.get('operation')=='remember-project' else 'result.json'
     if output!=expected:
         raise ValueError('Unexpected result filename')
     receipt_bytes=read_file(folder,output+'.receipt.json')
     receipt=json.loads(receipt_bytes)
     registry=json.loads(blob(root,revision,'integrations/repositories.json'))
-    sources={entry['id']:entry['revision'] for entry in registry['repositories'] + registry.get('engineering_tools', [])}
+    sources={entry['id']:entry['revision'] for entry in registry['repositories'] + registry.get('engineering_tools', []) + registry.get('media_tools', [])}
     if receipt.get('status')!='PASS' or receipt.get('publication_enabled') is not False or receipt.get('tool')!=job.get('tool') or receipt.get('operation')!=job.get('operation') or receipt.get('revision')!=sources.get(job.get('tool')) or not re.fullmatch(r'[a-f0-9]{64}',receipt.get('output_sha256','')):
         raise ValueError('Operation receipt mismatch')
-    if job.get('tool') == 'rea':
+    if job.get('tool') in ('rea', 'voicestudio'):
         if evidence.get('execution_engine') != 'money-factory' or evidence.get('content_control_revision') is not None:
-            raise ValueError('REA requires Money Factory execution evidence')
+            raise ValueError('Direct tool requires Money Factory execution evidence')
     elif not re.fullmatch(r'[a-f0-9]{40}',evidence.get('content_control_revision','')):
         raise ValueError('Content Control source identity required')
     files={'job-evidence.json':evidence_bytes,output+'.receipt.json':receipt_bytes}
-    if output!='result.mp4':
+    if output not in ('result.mp4', 'result.wav'):
         data=read_file(folder,output)
         data.decode('utf-8')
         if hashlib.sha256(data).hexdigest()!=receipt['output_sha256']:
@@ -65,10 +65,23 @@ def persist(folder, run_id, attempt, revision, root=ROOT):
         if output.endswith('.json'):
             json.loads(data)
         files[output]=data
+    if output == 'result.wav':
+        audio_path=folder/output
+        if audio_path.is_symlink() or not audio_path.is_file() or audio_path.stat().st_size>20*1024*1024:
+            raise ValueError('Missing, linked or oversized voice output')
+        from voicestudio.validation import validate_audio
+        validate_audio(audio_path)
+        if hashlib.sha256(audio_path.read_bytes()).hexdigest()!=receipt['output_sha256']:
+            raise ValueError('Voice output hash mismatch')
+        metadata_bytes=read_file(folder,output+'.generation.json')
+        metadata=json.loads(metadata_bytes)
+        if metadata.get('output_sha256')!=receipt['output_sha256'] or metadata.get('synthetic') is not True:
+            raise ValueError('Voice generation provenance mismatch')
+        files[output+'.generation.json']=metadata_bytes
     # Media stays in its explicit retention-bound artifact, never silently in Git.
     record={'schema_version':1,'workflow_run_id':run_id,'workflow_run_attempt':attempt,
             'source_revision':revision,'job':name,'tool':receipt['tool'],'operation':receipt['operation'],
-            'operation_status':'PASS','result_persisted':output!='result.mp4',
+            'operation_status':'PASS','result_persisted':output not in ('result.mp4','result.wav'),
             'output_sha256':receipt['output_sha256'],
             'workflow_url':f'https://github.com/wecreates/Money-factory/actions/runs/{run_id}',
             'publication_enabled':False,'production_ready':False,

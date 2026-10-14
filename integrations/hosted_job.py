@@ -11,7 +11,10 @@ import time
 from urllib.request import urlopen
 from run import ROOT, run
 
+DIRECT_TOOLS = ('rea', 'voicestudio')
+
 OPERATIONS = {
+    'voicestudio': ('synthesize',),
     'rea': ('analyze-javascript-application', 'inspect-artifact', 'mcp-smoke', 'capture-owned-process', 'inspect-local-web-page'),
     'youtube-clipper-skill': ('clip', 'captions'),
     'openshorts': ('vertical', 'transcript-windows'),
@@ -46,15 +49,15 @@ def load_job(job_path, output, root=ROOT):
     if set(job) - allowed:
         raise ValueError('Unknown job fields; output paths and service URLs are worker-owned')
     job.pop('provenance', None)
-    if job['tool'] == 'rea':
+    if job['tool'] in DIRECT_TOOLS:
         if 'input' not in job:
-            raise ValueError('REA analysis requires input')
+            raise ValueError('Direct operations require input')
         if 'subtitles' in job:
-            raise ValueError('REA does not accept subtitles')
+            raise ValueError('Direct operations do not accept subtitles')
     for key in ('input','subtitles'):
         if key in job:
             job[key] = str(inside(root / 'integrations/jobs', job[key], allow_directory=job['tool']=='rea' and job['operation'] in ('analyze-javascript-application', 'mcp-smoke', 'inspect-local-web-page') and key=='input'))
-    suffix = '.mp4' if job['operation'] in ('clip','captions','vertical') else '.txt' if job['operation']=='remember-project' else '.json'
+    suffix = '.wav' if job['tool']=='voicestudio' else '.mp4' if job['operation'] in ('clip','captions','vertical') else '.txt' if job['operation']=='remember-project' else '.json'
     job['output'] = str(output.resolve() / ('result'+suffix))
     return job
 
@@ -85,10 +88,10 @@ def execute(job, runtime, content_control, output):
                 raise RuntimeError('Toonflow startup timeout')
         private_job = output / 'resolved-job.json'
         private_job.write_text(json.dumps(job))
-        if job['tool'] == 'rea':
+        if job['tool'] in DIRECT_TOOLS:
             result = run(job, runtime)
             if result.get('status') != 'PASS':
-                raise RuntimeError('REA operation blocked; inspect result.json for diagnostics')
+                raise RuntimeError('Direct operation blocked; inspect its result for diagnostics')
         else:
             subprocess.run([sys.executable, str(content_control / 'scripts/repository_tools.py'), str(private_job), '--runtime', str(runtime)],
                 env=dict(os.environ, MONEY_FACTORY_ROOT=str(ROOT), PUBLICATION_ENABLED='false'), check=True, timeout=1900)
@@ -112,7 +115,7 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('job', help='File relative to integrations/jobs')
     parser.add_argument('--runtime', type=Path, required=True)
-    parser.add_argument('--content-control', type=Path, help='Required for video repository jobs; REA runs directly')
+    parser.add_argument('--content-control', type=Path, help='Required for bridge jobs; REA and VoiceStudio run directly')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--print-tool', action='store_true')
     args=parser.parse_args()
@@ -120,14 +123,14 @@ if __name__ == '__main__':
     if args.print_tool:
         print(job['tool'])
     else:
-        if job['tool'] != 'rea' and args.content_control is None:
+        if job['tool'] not in DIRECT_TOOLS and args.content_control is None:
             parser.error('--content-control is required for this tool')
         execute(job,args.runtime.resolve(),args.content_control.resolve() if args.content_control else None,args.output.resolve())
         original=inside(ROOT / 'integrations/jobs',args.job)
         evidence={'schema_version':1,'job':args.job,
             'job_sha256':hashlib.sha256(original.read_bytes()).hexdigest(),
             'repository_revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-            'execution_engine':'money-factory' if job['tool']=='rea' else 'content-control',
-            'content_control_revision':None if job['tool']=='rea' else subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.content_control,text=True).strip(),
+            'execution_engine':'money-factory' if job['tool'] in DIRECT_TOOLS else 'content-control',
+            'content_control_revision':None if job['tool'] in DIRECT_TOOLS else subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.content_control,text=True).strip(),
             'output':Path(job['output']).name,'publication_enabled':False,'paid_generation_enabled':False}
         (args.output / 'job-evidence.json').write_text(json.dumps(evidence,indent=2)+'\n')

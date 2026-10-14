@@ -19,3 +19,6 @@
 [submodule "integrations/vendor/youtube-automation-agent"]
 	path = integrations/vendor/youtube-automation-agent
 	url = https://github.com/darkzOGx/youtube-automation-agent.git
+[submodule "integrations/vendor/voicestudio"]
+	path = integrations/vendor/voicestudio
+	url = https://github.com/debpalash/VoiceStudio.git

@@ -203,5 +203,22 @@
         "Optional native decompiler and platform-specific providers are not installed or verified"
       ]
     }
+  ],
+  "media_tools": [
+    {
+      "id": "voicestudio",
+      "repository": "https://github.com/debpalash/VoiceStudio",
+      "path": "integrations/vendor/voicestudio",
+      "revision": "4df5033e5a1a92e22936fb4d7d2d39e03cf10a91",
+      "capability": "local_speech_generation",
+      "integration_target": "Money Factory reviewed narration jobs",
+      "source_status": "pinned",
+      "runtime_status": "integration_pending_verification",
+      "enabled": true,
+      "verified_hosted_operations": [],
+      "required_for_production": false,
+      "license": "AGPL-3.0-only",
+      "scope": "Free local CPU English preset narration; other engines, cloning and dubbing require separate verification"
+    }
   ]
 }
