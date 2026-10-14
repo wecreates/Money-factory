@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['integrations/voicestudio/**', 'integrations/jobs/voicestudio-**', 'integrations/vendor/voicestudio', '.github/workflows/voicestudio-integration.yml']
+    paths: ['integrations/voicestudio/**', 'integrations/jobs/voicestudio-**', 'integrations/vendor/voicestudio', 'integrations/run.py', 'integrations/setup.py', 'integrations/hosted_job.py', 'integrations/persist_job.py', 'integrations/repositories.json', '.github/workflows/repository-job.yml', '.github/workflows/voicestudio-integration.yml']
 permissions:
   contents: read
 jobs:

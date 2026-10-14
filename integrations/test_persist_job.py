@@ -75,12 +75,15 @@ class PersistenceTests(unittest.TestCase):
         self.evidence['execution_engine']='content-control';self.write()
         with self.assertRaisesRegex(ValueError,'Money Factory'):self.run_persist()
 
-    def test_voice_media_is_verified_but_only_provenance_is_committed(self):
+    def prepare_voice_fixture(self):
         import math, struct, wave
-        self.job.update(tool='voicestudio', operation='synthesize')
+        from voicestudio.setup_runtime import REVISION, MODEL, MODEL_REVISION
+        self.job.update(tool='voicestudio', operation='synthesize', input='voice.input.json')
+        request={'text':'Reviewed narration.','publication_enabled':False,'paid_generation_enabled':False}
+        (self.root/'integrations/jobs/voice.input.json').write_text(json.dumps(request))
         (self.root/'integrations/jobs/audit.job.json').write_text(json.dumps(self.job))
         (self.root/'integrations/repositories.json').write_text(json.dumps({'repositories':[],
-            'media_tools':[{'id':'voicestudio','revision':'a'*40}]}))
+            'media_tools':[{'id':'voicestudio','revision':REVISION}]}))
         subprocess.run(['git','add','.'],cwd=self.root,check=True)
         subprocess.run(['git','-c','user.name=Test','-c','user.email=test@example.com','commit','-qm','voice fixture'],cwd=self.root,check=True)
         self.revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=self.root,text=True).strip()
@@ -89,17 +92,38 @@ class PersistenceTests(unittest.TestCase):
             wav.setnchannels(1);wav.setsampwidth(2);wav.setframerate(24000)
             wav.writeframes(struct.pack('<'+'h'*24000,*[int(3000*math.sin(n/10)) for n in range(24000)]))
         digest=hashlib.sha256(audio.read_bytes()).hexdigest()
-        self.receipt.update(tool='voicestudio',operation='synthesize',output_sha256=digest)
+        self.receipt.update(tool='voicestudio',operation='synthesize',revision=REVISION,output_sha256=digest)
         self.evidence.update(repository_revision=self.revision,execution_engine='money-factory',
             content_control_revision=None,job_sha256=hashlib.sha256(json.dumps(self.job).encode()).hexdigest(),output='result.wav')
         (self.artifact/'result.wav.receipt.json').write_text(json.dumps(self.receipt))
-        (self.artifact/'result.wav.generation.json').write_text(json.dumps({'synthetic':True,'output_sha256':digest}))
+        self.voice_metadata={'schema_version':1,'status':'PASS','tool':'voicestudio','operation':'synthesize',
+            'engine':'kittentts','upstream_revision':REVISION,'model':MODEL,'model_revision':MODEL_REVISION,
+            'text_sha256':hashlib.sha256(request['text'].encode()).hexdigest(),'voice':'expr-voice-2-f',
+            'speed':1.0,'language':'en','synthetic':True,'output_sha256':digest,
+            'publication_enabled':False,'paid_generation_enabled':False,'production_ready':False}
+        (self.artifact/'result.wav.generation.json').write_text(json.dumps(self.voice_metadata))
         (self.artifact/'job-evidence.json').write_text(json.dumps(self.evidence))
+        return audio
+
+    def test_voice_media_is_verified_but_only_provenance_is_committed(self):
+        audio=self.prepare_voice_fixture()
         result=self.run_persist()
         self.assertTrue((result/'result.wav.generation.json').exists())
         self.assertFalse((result/'result.wav').exists())
         audio.write_bytes(b'corrupt')
         with self.assertRaises(Exception):self.run_persist()
+
+    def test_voice_provenance_tampering_is_rejected_before_persistence(self):
+        self.prepare_voice_fixture()
+        for field,value in [('upstream_revision','b'*40),('model','wrong/model'),('model_revision','b'*40),
+                ('text_sha256','c'*64),('voice','expr-voice-3-m'),('speed',1.5),('language','fr'),
+                ('status','FAIL'),('tool','rea'),('operation','clone'),('synthetic',False),
+                ('publication_enabled',True),('paid_generation_enabled',True),('production_ready',True)]:
+            altered=self.voice_metadata | {field:value}
+            (self.artifact/'result.wav.generation.json').write_text(json.dumps(altered))
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError,'provenance'):
+                self.run_persist()
+            self.assertFalse((self.root/'integrations/results').exists())
 
     def test_conflicting_replay_rejected(self):
         target=self.run_persist()

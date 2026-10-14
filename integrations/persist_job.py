@@ -75,7 +75,22 @@ def persist(folder, run_id, attempt, revision, root=ROOT):
             raise ValueError('Voice output hash mismatch')
         metadata_bytes=read_file(folder,output+'.generation.json')
         metadata=json.loads(metadata_bytes)
-        if metadata.get('output_sha256')!=receipt['output_sha256'] or metadata.get('synthetic') is not True:
+        from voicestudio.setup_runtime import REVISION, MODEL, MODEL_REVISION
+        input_name=job.get('input')
+        if not isinstance(input_name,str) or not input_name or PurePosixPath(input_name).is_absolute() or '..' in PurePosixPath(input_name).parts:
+            raise ValueError('Reviewed voice input required')
+        request=json.loads(blob(root,revision,'integrations/jobs/'+input_name))
+        if not isinstance(request,dict) or not isinstance(request.get('text'),str) or request.get('publication_enabled') is not False or request.get('paid_generation_enabled') is not False:
+            raise ValueError('Invalid reviewed voice input')
+        expected_metadata={'schema_version':1,'status':'PASS','tool':'voicestudio','operation':'synthesize',
+            'engine':'kittentts','upstream_revision':REVISION,'model':MODEL,'model_revision':MODEL_REVISION,
+            'text_sha256':hashlib.sha256(request['text'].encode()).hexdigest(),
+            'voice':request.get('voice','expr-voice-2-f'),'speed':request.get('speed',1.0),
+            'language':request.get('language','en'),'output_sha256':receipt['output_sha256']}
+        if (not isinstance(metadata,dict) or receipt['revision']!=REVISION or
+                any(metadata.get(key)!=value for key,value in expected_metadata.items()) or
+                metadata.get('synthetic') is not True or metadata.get('publication_enabled') is not False or
+                metadata.get('paid_generation_enabled') is not False or metadata.get('production_ready') is not False):
             raise ValueError('Voice generation provenance mismatch')
         files[output+'.generation.json']=metadata_bytes
     # Media stays in its explicit retention-bound artifact, never silently in Git.
