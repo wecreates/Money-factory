@@ -49,3 +49,10 @@ live authorizing service, verified marketplace data, paid generation or publishi
 
 Cross-repository test:
 `CONTENT_CONTROL_ROOT=/path/to/content-control python3 -m unittest discover -s integrations/pod -p 'test_*.py'`.
+
+Durable production inputs are now bound using `job.task_sha256`. When present,
+the authoritative approval must contain the identical task_sha256 before a grant
+can be issued. This prevents a client changing stored production inputs after
+approval. Content Control resolves that descriptor from its existing ArtifactStore,
+persists generated files, then waits for package-bound QA; it does not invent an
+approval just because production completed.
