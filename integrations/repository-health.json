@@ -53,7 +53,8 @@
       "revision": "4b99de2f7de7e7d5247042e5fb5b4ea9368ef734",
       "status": "registered_operations_verified",
       "verified_operations": [
-        "parse-html"
+        "parse-html",
+        "render-page"
       ],
       "workflow_run_id": 38624437198,
       "remaining_full_capability_requirements": [
@@ -112,7 +113,7 @@
         "capture-owned-process",
         "inspect-local-web-page"
       ],
-      "workflow_run_id": 38625109831,
+      "workflow_run_id": 38626370440,
       "report": "integrations/rea/hosted-verification.json",
       "scope": "Five engineering operations; optional platform/decompiler providers unverified"
     },
@@ -122,9 +123,24 @@
       "verified_operations": [
         "synthesize"
       ],
-      "workflow_run_id": 38625109689,
+      "workflow_run_id": 38626370275,
       "report": "integrations/voicestudio/hosted-verification.json",
       "scope": "Free CPU English preset narration; other VoiceStudio features unverified"
+    },
+    {
+      "id": "youtube-agent-skill",
+      "status": "registered_operations_verified",
+      "verified_operations": [
+        "hook-score",
+        "package-lint",
+        "edit-plan",
+        "chapters",
+        "retention",
+        "outliers"
+      ],
+      "workflow_run_id": 38626370358,
+      "report": "integrations/youtube_skill/hosted-verification.json",
+      "scope": "Eleven project-local skills; six hosted CLI operations. Retention and outlier test data explicitly synthetic; live channel analytics unverified."
     }
   ],
   "additional_browser_evidence": {
@@ -132,5 +148,5 @@
     "operation": "render-page",
     "record": "integrations/results/runs/38366868376-1/record.json"
   },
-  "next_queue_item": "https://github.com/Jakeschincariol/youtube-agent-skill"
+  "next_queue_item": null
 }

@@ -1,36 +1,49 @@
 {
   "schema_version": 1,
   "status": "PASS",
-  "verified_at": "2026-10-14",
-  "source_revision": "43a1927246167e2d20207c2174a28b54bad34d29",
-  "workflow_run_id": 38622565011,
-  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/38622565011",
-  "artifact_id": 11921639145,
-  "artifact_sha256": "e2aa76b3528ddb24f28978d5e03f032bf0cd77cbf92dcddf823062f1d7526e69",
-  "scope": "Five registered operations across six hosted cases; source case includes actual Money Factory source. Not all optional REA providers, not video audiovisual approval.",
+  "workflow_run_id": 38626370440,
+  "workflow_run_attempt": 1,
+  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/38626370440",
+  "source_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+  "verified_at": "2026-10-14T19:50:27Z",
+  "artifact_id": 11923089735,
+  "artifact_sha256": "0f813b896564e5d74c2cc03018d4dc3bb28c0d518b73543b987802b8511e69bd",
+  "artifact_expires_at": "2026-11-13T19:46:40Z",
+  "artifact_digest_verified": true,
+  "output_hashes_verified": true,
   "publication_enabled": false,
   "paid_generation_enabled": false,
   "production_ready": false,
   "checks": [
     {
-      "case": "source",
-      "operation": "analyze-javascript-application",
+      "case": "browser",
+      "operation": "inspect-local-web-page",
       "status": "PASS",
       "input_sha256": {
-        "main.js": "aaa793cfa6b6e1f0f076802fe7f08ae5c496c34873b03fe690e12f9dd795d9f3",
-        "math.js": "a94468f11b9e176ff2b3cf31080d67c2a31efc3dc4c0757abf90585f4e765f6a"
+        "index.html": "ac6572f04b941b1a8be35a9777c5c8f52370dc78466f9b396a524b47c6532f8f"
       },
       "receipt": {
         "schema_version": 1,
         "tool": "rea",
-        "operation": "analyze-javascript-application",
+        "operation": "inspect-local-web-page",
         "revision": "npm:rea-agents@6.4.0",
         "status": "PASS",
-        "verified_at": "2026-10-14T19:19:08Z",
-        "output_sha256": "f966cff2a76e45d22815f6d40fda896cfc974dcc2035959683bebf8d6b6ca45f",
+        "verified_at": "2026-10-14T19:46:37Z",
+        "output_sha256": "74259ef40d33804d3ddcef5d6eede79de6283a0b0eed133cabdb4a0740f3c579",
         "media": null,
         "publication_enabled": false,
         "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "rea-browser.job.json",
+        "job_sha256": "9aa9a65ccf7d2f69d55402603ab400b377fdcfdd54ee3b968744203bdd54e56c",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
       }
     },
     {
@@ -47,11 +60,22 @@
         "operation": "mcp-smoke",
         "revision": "npm:rea-agents@6.4.0",
         "status": "PASS",
-        "verified_at": "2026-10-14T19:19:10Z",
-        "output_sha256": "f06ef07cf7eb0713ce1d5146ee086a22c3486a9d01738a3cd58fa56b373ed1cc",
+        "verified_at": "2026-10-14T19:46:29Z",
+        "output_sha256": "0ee0eb3ef3ba29d3fadbf337c9419242ee8ba08f037eb83804929ffa6fcb9cc7",
         "media": null,
         "publication_enabled": false,
         "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "rea-mcp.job.json",
+        "job_sha256": "6b0658654551bf3b6427b00e49f8b069652ff0602371c550c2dbf36f0e2bd1b7",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
       }
     },
     {
@@ -67,11 +91,22 @@
         "operation": "inspect-artifact",
         "revision": "npm:rea-agents@6.4.0",
         "status": "PASS",
-        "verified_at": "2026-10-14T19:19:11Z",
+        "verified_at": "2026-10-14T19:46:30Z",
         "output_sha256": "d30309ca064865fff17641d6f997680acba515dec614f3d4ef7178affc9eff5a",
         "media": null,
         "publication_enabled": false,
         "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "rea-native.job.json",
+        "job_sha256": "c9c3685fe2809b31fb34e5400596836860bc12b86d5f6558cca85183a2ea0187",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
       }
     },
     {
@@ -87,31 +122,22 @@
         "operation": "capture-owned-process",
         "revision": "npm:rea-agents@6.4.0",
         "status": "PASS",
-        "verified_at": "2026-10-14T19:19:13Z",
-        "output_sha256": "aef327f996fc07bf78c714af97121ef2d86f82ef53438bd270ca73114bd947c3",
+        "verified_at": "2026-10-14T19:46:32Z",
+        "output_sha256": "5d710f27bab9476135f74827450e94ead7b6459538175f8cf6fd2bc5aba15f7c",
         "media": null,
         "publication_enabled": false,
         "scope": "This operation only; not complete product or hosted readiness"
-      }
-    },
-    {
-      "case": "browser",
-      "operation": "inspect-local-web-page",
-      "status": "PASS",
-      "input_sha256": {
-        "index.html": "ac6572f04b941b1a8be35a9777c5c8f52370dc78466f9b396a524b47c6532f8f"
       },
-      "receipt": {
+      "job_evidence": {
         "schema_version": 1,
-        "tool": "rea",
-        "operation": "inspect-local-web-page",
-        "revision": "npm:rea-agents@6.4.0",
-        "status": "PASS",
-        "verified_at": "2026-10-14T19:19:16Z",
-        "output_sha256": "a7fe6df28819aaafa4b8d4a93e2abe9cf8a378953c073bcee19e18af6a5c660c",
-        "media": null,
+        "job": "rea-process.job.json",
+        "job_sha256": "ff5f082437a5d2f32841354130ada610eb23778d830f0f20b5de68462e1cee8a",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
         "publication_enabled": false,
-        "scope": "This operation only; not complete product or hosted readiness"
+        "paid_generation_enabled": false
       }
     },
     {
@@ -128,19 +154,56 @@
         "operation": "analyze-javascript-application",
         "revision": "npm:rea-agents@6.4.0",
         "status": "PASS",
-        "verified_at": "2026-10-14T19:19:17Z",
+        "verified_at": "2026-10-14T19:46:40Z",
         "output_sha256": "85445792ed920f0e316250598da76c7c0596ff36e638d9bab2d7034a368b9041",
         "media": null,
         "publication_enabled": false,
         "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "rea-project.job.json",
+        "job_sha256": "d23ee1ff5dc51a1f89ca5ad70943d31743fb047983ed1107137f777f3b9fb885",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
+      }
+    },
+    {
+      "case": "source",
+      "operation": "analyze-javascript-application",
+      "status": "PASS",
+      "input_sha256": {
+        "main.js": "aaa793cfa6b6e1f0f076802fe7f08ae5c496c34873b03fe690e12f9dd795d9f3",
+        "math.js": "a94468f11b9e176ff2b3cf31080d67c2a31efc3dc4c0757abf90585f4e765f6a"
+      },
+      "receipt": {
+        "schema_version": 1,
+        "tool": "rea",
+        "operation": "analyze-javascript-application",
+        "revision": "npm:rea-agents@6.4.0",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:46:26Z",
+        "output_sha256": "f966cff2a76e45d22815f6d40fda896cfc974dcc2035959683bebf8d6b6ca45f",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "rea-source.job.json",
+        "job_sha256": "bde2e2bcc0143410598c669b794de412cecb5a02f6a9913bc07745da74a99700",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
       }
     }
   ],
-  "normal_job_queue": {
-    "workflow_run_id": 38622724403,
-    "source_revision": "9fe68c0745be703eba1f2a0752038eaff275c751",
-    "status": "PASS",
-    "durable_record": "integrations/results/runs/38622724403-1/record.json",
-    "result_persisted": true
-  }
+  "scope": "Five registered REA operations across six actual hosted cases, including Money Factory source; optional providers and audiovisual approval are not established."
 }

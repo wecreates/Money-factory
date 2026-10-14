@@ -237,11 +237,20 @@
       "capability": "youtube_editorial_analysis",
       "integration_target": "Money Factory YouTube production review",
       "source_status": "pinned",
-      "runtime_status": "integration_pending_verification",
+      "runtime_status": "hosted_registered_operations_verified",
       "enabled": true,
       "license": "MIT",
-      "verified_hosted_operations": [],
-      "required_for_production": false
+      "verified_hosted_operations": [
+        "hook-score",
+        "package-lint",
+        "edit-plan",
+        "chapters",
+        "retention",
+        "outliers"
+      ],
+      "required_for_production": false,
+      "hosted_verification_report": "integrations/youtube_skill/hosted-verification.json",
+      "scope": "Eleven unchanged project-local skills discoverable; six real upstream Python CLI operations executed. Prompt-led channel workflows and live analytics remain unverified."
     }
   ]
 }

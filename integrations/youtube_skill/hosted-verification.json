@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "workflow_run_id": 38626370358,
+  "workflow_run_attempt": 1,
+  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/38626370358",
+  "source_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+  "verified_at": "2026-10-14T19:50:27Z",
+  "artifact_id": 11924540429,
+  "artifact_sha256": "1b8d689d6b22c14aae2ab677ed993679ddf7e7de68e42c68af6508eda33c9e84",
+  "artifact_expires_at": "2026-11-13T19:46:09Z",
+  "artifact_digest_verified": true,
+  "output_hashes_verified": true,
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "checks": [
+    {
+      "case": "chapters",
+      "operation": "chapters",
+      "status": "PASS",
+      "input_sha256": "b6f9d3f106eecb65970b982007f3ae621971e24f54f483f96b590de2173c1a72",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "youtube-agent-skill",
+        "operation": "chapters",
+        "revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:46:08Z",
+        "output_sha256": "1ff5c0866609e315d37d64ef71a946dcdbe1226497302aed180b2ef565cac714",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "youtube-agent-chapters.job.json",
+        "job_sha256": "e5465cc469701416bbe36b4d7e08b3fe5514d1e22eb5910185b847bbd9ab835d",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
+      },
+      "findings": {
+        "valid": false,
+        "chapters": [
+          {
+            "start": 0.0,
+            "label": "0:00",
+            "draft_title": "Stop Shiny Still",
+            "seconds": 12.0
+          },
+          {
+            "start": 12.0,
+            "label": "0:12",
+            "draft_title": "Sandwiches Snacks Tiny",
+            "seconds": 20.0
+          }
+        ]
+      },
+      "execution_status": "PASS"
+    },
+    {
+      "case": "edit-plan",
+      "operation": "edit-plan",
+      "status": "PASS",
+      "input_sha256": "6e18137b9af2d120f654a859140faf068d49cc12a2812c82c8beb24815858eb2",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "youtube-agent-skill",
+        "operation": "edit-plan",
+        "revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:46:08Z",
+        "output_sha256": "afe8e42aa9df29dcbad5ca95b33d36cccdf37595f3d5bc7490b9b5cefabefca5",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "youtube-agent-edit-plan.job.json",
+        "job_sha256": "d76a4bfbf3d371040534aae08818cea3dccda273408a3555eb96f57896cbce33",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
+      },
+      "findings": {
+        "source": "/tmp/money-factory-youtube-6cxo18zi/transcript.srt",
+        "duration": 32.0,
+        "cuts": [],
+        "removed": 0,
+        "out": 32.0
+      },
+      "execution_status": "PASS"
+    },
+    {
+      "case": "hook-score",
+      "operation": "hook-score",
+      "status": "PASS",
+      "input_sha256": "b0544aaf79eeb090a6a59c9a94a0ef061cf0f435d7cb4e06460ded51e3b6d0ff",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "youtube-agent-skill",
+        "operation": "hook-score",
+        "revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:46:08Z",
+        "output_sha256": "5f9af6d19759d03cff79b7a8b94a45fcc1f1b6f9a04da07b93c10c626c382608",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "youtube-agent-hook-score.job.json",
+        "job_sha256": "1068f992c04a5cd5a74340058ea597eb139b940176fead0b7946c1666b7fa975",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
+      },
+      "findings": [
+        {
+          "hook": "Stop attacking my wallet!",
+          "properties": {
+            "SPECIFICITY": 34,
+            "ADDRESS": 26,
+            "STAKES": 48,
+            "CURIOSITY": 24,
+            "BREVITY": 45
+          },
+          "verdict": 31,
+          "band": "WEAK",
+          "formula": "The Mistake"
+        }
+      ],
+      "execution_status": "PASS"
+    },
+    {
+      "case": "outliers",
+      "operation": "outliers",
+      "status": "PASS",
+      "input_sha256": "1c57f981774b937d8fac5267401d2e6aa37bec466d33b1809fa360ffd4a36dd2",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "youtube-agent-skill",
+        "operation": "outliers",
+        "revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:46:09Z",
+        "output_sha256": "b841591fd6b317bed70731d131e29aa7de46c379b20560aed2c206a083a734d1",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "youtube-agent-outliers.job.json",
+        "job_sha256": "c3cad94f07a85400cd998f224ce91fcef783018bd23e0ddbbf39ba8e0ea7aa8a",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
+      },
+      "findings": {
+        "outliers": [
+          {
+            "channel": "SYNTHETIC fixture channel",
+            "title": "SYNTHETIC example outlier",
+            "views": 4000,
+            "median": 1050,
+            "multiple": 3.81,
+            "formula": "Unclassified",
+            "url": ""
+          }
+        ],
+        "skipped_thin_channels": []
+      },
+      "execution_status": "PASS"
+    },
+    {
+      "case": "package-lint",
+      "operation": "package-lint",
+      "status": "PASS",
+      "input_sha256": "1327e7702d79a634434a141f11e7199c0bf368bc5361fad94d742fef9ead11d4",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "youtube-agent-skill",
+        "operation": "package-lint",
+        "revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:46:08Z",
+        "output_sha256": "3928f3a79f62b30d02d21afe693b38035d5e29d8e33ba9a7eb4a0d63bd0199d1",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "youtube-agent-package-lint.job.json",
+        "job_sha256": "100f3a26d95040650287a5ca2b48b279c37191646c04cac376d16f620e03f949",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
+      },
+      "findings": [
+        {
+          "title": "Amex vs Chase: My Wallet Is the Final Boss",
+          "chars": 42,
+          "score": 62,
+          "issues": [
+            [
+              "mobile",
+              "a mobile feed shows about \"Amex vs Chase: My Wallet Is the Final...\" - check the subject survives"
+            ],
+            [
+              "no-number",
+              "no number, date or name - the most reliable single fix"
+            ],
+            [
+              "duplicate",
+              "thumbnail repeats the title on boss, wallet - the thumbnail should say what the title does not"
+            ]
+          ],
+          "good": [
+            "42 characters, inside the 60-character desktop cut"
+          ]
+        }
+      ],
+      "execution_status": "PASS"
+    },
+    {
+      "case": "retention",
+      "operation": "retention",
+      "status": "PASS",
+      "input_sha256": "61f9bbce59d062446aa80c769e61155331c8e76b669a3813db83ed263785d3b1",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "youtube-agent-skill",
+        "operation": "retention",
+        "revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+        "status": "PASS",
+        "verified_at": "2026-10-14T19:46:09Z",
+        "output_sha256": "35190fd25094c4fe3bfba46358b276cd32d846bb594cf72a1ea3ae1bb5674155",
+        "media": null,
+        "publication_enabled": false,
+        "scope": "This operation only; not complete product or hosted readiness"
+      },
+      "job_evidence": {
+        "schema_version": 1,
+        "job": "youtube-agent-retention.job.json",
+        "job_sha256": "30913a6f1406dd843c49dce35d7bf8987a2746ef061cda1048d44a9acba92da4",
+        "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+        "execution_engine": "money-factory",
+        "content_control_revision": null,
+        "output": "result.json",
+        "publication_enabled": false,
+        "paid_generation_enabled": false
+      },
+      "findings": {
+        "points": 11,
+        "start": 100.0,
+        "hook_leak": 51.0,
+        "end": 45.0,
+        "cliffs": [
+          {
+            "from": 20.0,
+            "to": 30.0,
+            "lost": 26.0,
+            "at_seconds": 6.4
+          },
+          {
+            "from": 70.0,
+            "to": 80.0,
+            "lost": 13.0,
+            "at_seconds": 22.4
+          },
+          {
+            "from": 60.0,
+            "to": 70.0,
+            "lost": 8.0,
+            "at_seconds": 19.2
+          },
+          {
+            "from": 30.0,
+            "to": 40.0,
+            "lost": 5.0,
+            "at_seconds": 9.6
+          },
+          {
+            "from": 10.0,
+            "to": 20.0,
+            "lost": 5.0,
+            "at_seconds": 3.2
+          }
+        ],
+        "slide_per_unit": 0,
+        "said": {
+          "20.0": "Stop attacking my wallet! Two cards. Still no budget. Watch the shiny perks. That's where Dave stops reading.",
+          "70.0": "The snacks arrived. So did the fee. Dave only invited one. I'll pay with points! Why does this button say bad idea? Plot twist: the winning ",
+          "60.0": "Lounge snacks? Finally, a financial plan with tiny sandwiches. The snacks arrived. So did the fee. Dave only invited one. I'll pay with poin",
+          "30.0": "Two cards. Still no budget. Watch the shiny perks. That's where Dave stops reading. Lounge snacks? Finally, a financial plan with tiny sandw",
+          "10.0": "Stop attacking my wallet! Two cards. Still no budget."
+        }
+      },
+      "execution_status": "PASS"
+    }
+  ],
+  "scope": "Six actual offline upstream Python operations; execution success does not approve findings. Retention/outlier analytics and transcript timing are explicitly synthetic fixtures, not measured channel performance.",
+  "negative_findings_preserved": true
+}

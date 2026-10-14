@@ -1,21 +1,27 @@
 {
   "schema_version": 1,
   "status": "PASS",
-  "workflow_run_id": 38624721568,
-  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/38624721568",
-  "source_revision": "ec76f6ceaa7f9676d4458d7522f68c2b370a4c0d",
-  "artifact_id": 11924241537,
-  "artifact_sha256": "fce2e3bbdbe8b10679eab341d7ecc48ab7303040ce88607359e565705a977c66",
-  "artifact_expires_at": "2026-11-13T19:36:13Z",
-  "durable_record": "integrations/results/runs/38624721568-1/record.json",
+  "workflow_run_id": 38626370275,
+  "workflow_run_attempt": 1,
+  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/38626370275",
+  "source_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+  "verified_at": "2026-10-14T19:50:27Z",
+  "artifact_id": 11924323377,
+  "artifact_sha256": "89c7845ebb5a4ad1d94e37a8674d02e7383d8af94baf9b678ba22461d42f26af",
+  "artifact_expires_at": "2026-11-13T19:48:04Z",
+  "artifact_digest_verified": true,
+  "output_hashes_verified": true,
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false,
   "receipt": {
     "schema_version": 1,
     "tool": "voicestudio",
     "operation": "synthesize",
     "revision": "4df5033e5a1a92e22936fb4d7d2d39e03cf10a91",
     "status": "PASS",
-    "verified_at": "2026-10-14T19:36:13Z",
-    "output_sha256": "5860f1521427a6d05a612c7f5cdf3246d97636232682339385e85d5730368a18",
+    "verified_at": "2026-10-14T19:48:04Z",
+    "output_sha256": "1bf06321caba3ff1f53ce18968dbb03abfbcd9eb82e0da16e2f555301fa345e7",
     "media": null,
     "publication_enabled": false,
     "audio": {
@@ -23,8 +29,8 @@
       "sample_rate": 24000,
       "channels": 1,
       "sample_width_bytes": 2,
-      "rms": 0.09896246041335016,
-      "clipped_fraction": 2.918855808523059e-06,
+      "rms": 0.09883028176007601,
+      "clipped_fraction": 0.0,
       "scope": "Technical waveform validation; not listening or pronunciation approval"
     },
     "scope": "This operation only; not complete product or hosted readiness"
@@ -47,17 +53,17 @@
     "voice": "expr-voice-2-f",
     "speed": 1.0,
     "language": "en",
-    "output_sha256": "5860f1521427a6d05a612c7f5cdf3246d97636232682339385e85d5730368a18",
+    "output_sha256": "1bf06321caba3ff1f53ce18968dbb03abfbcd9eb82e0da16e2f555301fa345e7",
     "audio": {
       "duration_seconds": 14.275,
       "sample_rate": 24000,
       "channels": 1,
       "sample_width_bytes": 2,
-      "rms": 0.09896246041335016,
-      "clipped_fraction": 2.918855808523059e-06,
+      "rms": 0.09883028176007601,
+      "clipped_fraction": 0.0,
       "scope": "Technical waveform validation; not listening or pronunciation approval"
     },
-    "generation_seconds": 15.894,
+    "generation_seconds": 16.304,
     "synthetic": true,
     "watermark_applied": false,
     "watermark_status": "not_applied_upstream_optional_audioseal_unavailable_or_failed",
@@ -66,15 +72,17 @@
     "production_ready": false,
     "scope": "Actual CPU English preset speech; no cloning, perceptual approval, or commercial-rights clearance"
   },
-  "strengthened_persistence_gate": "Actual hosted artifact accepted by a95c9f228baa02e9c928248d99559f6a0be37a5a persistence validator",
-  "publication_enabled": false,
-  "paid_generation_enabled": false,
+  "job_evidence": {
+    "schema_version": 1,
+    "job": "voicestudio-narration.job.json",
+    "job_sha256": "b617ea225664fd4ec68a925883f6d314373af5949ae11ba1c9fdb1b8a5d0465f",
+    "repository_revision": "de6a2d73eba7cd5808c9b70a33be533a51d20340",
+    "execution_engine": "money-factory",
+    "content_control_revision": null,
+    "output": "result.wav",
+    "publication_enabled": false,
+    "paid_generation_enabled": false
+  },
   "full_application_ready": false,
-  "scope": "Actual free CPU English preset narration through VoiceStudio; no desktop, clone, dubbing, multilingual or listening-quality approval",
-  "final_hosted_provenance_recheck": {
-    "workflow_run_id": 38625109689,
-    "source_revision": "a95c9f228baa02e9c928248d99559f6a0be37a5a",
-    "status": "PASS",
-    "durable_record": "integrations/results/runs/38625109689-1/record.json"
-  }
+  "scope": "Actual free CPU English preset narration through VoiceStudio; waveform/hash verification only, no listening, cloning, desktop, dubbing or multilingual approval."
 }
