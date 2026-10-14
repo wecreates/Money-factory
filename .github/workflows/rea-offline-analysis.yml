@@ -56,3 +56,11 @@ jobs:
           path: ${{ runner.temp }}/rea-results
           retention-days: 30
           if-no-files-found: warn
+  reviewed-project:
+    needs: integrated
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/repository-job.yml
+    with:
+      job: rea-project.job.json
