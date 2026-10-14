@@ -12,6 +12,19 @@ owner, then bind acceptPodEvent to an authenticated internal POST endpoint. This
 module is not yet mounted in the deployed MF core: its runtime source is not in
 this repository root. Downstream observations do not count as verified profit.
 
+`event-handler.mjs` supplies the matching Node HTTP transport. Mount
+`createPodEventHandler({pool, key: POD_OUTBOX_KEY})` on the existing internal HTTPS
+authority host after applying the inbox migration through its migration owner.
+The key must match Content Control's dedicated outbox key and must not be reused
+as a grant-signing or reviewer key. Preserve the raw request stream; mount before
+any middleware that consumes JSON. This handler authenticates the signed envelope,
+requires its event ID to match the Idempotency-Key header, limits request size and
+read time, and acknowledges only committed events. Re-delivery of the same event
+is safe; conflicting content returns 409. Database failure returns a redacted 503
+and remains retryable. It never updates readiness or the verified revenue ledger.
+Tests use an in-memory transaction double and a real local HTTP server; they are
+not evidence that the deployed authority or production database is configured.
+
 Tests: `node --test integrations/pod/readiness-grant.test.mjs`.
 The corresponding Content Control change documents all twelve acceptance gates
 in POD_IMPLEMENTATION_STATUS.md. Publishing stays disabled. Etsy pipelines are

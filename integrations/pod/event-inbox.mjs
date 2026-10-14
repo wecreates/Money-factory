@@ -2,13 +2,14 @@ import crypto from 'node:crypto';
 
 // This inbox records downstream observations. It never upgrades readiness or
 // manufactures a core verified-revenue event. Wire the existing authority separately.
-export async function acceptPodEvent(pool,envelope,key,now=Date.now()){
+export async function acceptPodEvent(pool,envelope,key,now=Date.now(),{expectedEventId}={}){
  if(typeof key!=='string'||Buffer.byteLength(key)<32||typeof envelope?.payload!=='string'||Buffer.byteLength(envelope.payload)>262144||!/^[a-f0-9]{64}$/.test(envelope.signature||''))throw Error('EVENT_ENVELOPE_INVALID');
  const expected=crypto.createHmac('sha256',key).update(envelope.payload).digest();
  if(!crypto.timingSafeEqual(expected,Buffer.from(envelope.signature,'hex')))throw Error('EVENT_SIGNATURE_INVALID');
- const p=JSON.parse(envelope.payload),e=p.event;
- if(p.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isFinite(p.issued_at_ms)||p.issued_at_ms>now||now-p.issued_at_ms>300000||
-  !e?.id||typeof e.kind!=='string'||!e.kind.startsWith('pod.'))throw Error('EVENT_SCOPE_INVALID');
+ const p=JSON.parse(envelope.payload),e=p?.event;
+ if(p?.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isFinite(p.issued_at_ms)||p.issued_at_ms>now||now-p.issued_at_ms>300000||
+  !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(e?.id||'')||typeof e.kind!=='string'||!e.kind.startsWith('pod.')||
+  (expectedEventId!==undefined&&expectedEventId!==e.id))throw Error('EVENT_SCOPE_INVALID');
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
  const c=await pool.connect();
  try{
