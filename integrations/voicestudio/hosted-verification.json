@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "workflow_run_id": 38624721568,
+  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/38624721568",
+  "source_revision": "ec76f6ceaa7f9676d4458d7522f68c2b370a4c0d",
+  "artifact_id": 11924241537,
+  "artifact_sha256": "fce2e3bbdbe8b10679eab341d7ecc48ab7303040ce88607359e565705a977c66",
+  "artifact_expires_at": "2026-11-13T19:36:13Z",
+  "durable_record": "integrations/results/runs/38624721568-1/record.json",
+  "receipt": {
+    "schema_version": 1,
+    "tool": "voicestudio",
+    "operation": "synthesize",
+    "revision": "4df5033e5a1a92e22936fb4d7d2d39e03cf10a91",
+    "status": "PASS",
+    "verified_at": "2026-10-14T19:36:13Z",
+    "output_sha256": "5860f1521427a6d05a612c7f5cdf3246d97636232682339385e85d5730368a18",
+    "media": null,
+    "publication_enabled": false,
+    "audio": {
+      "duration_seconds": 14.275,
+      "sample_rate": 24000,
+      "channels": 1,
+      "sample_width_bytes": 2,
+      "rms": 0.09896246041335016,
+      "clipped_fraction": 2.918855808523059e-06,
+      "scope": "Technical waveform validation; not listening or pronunciation approval"
+    },
+    "scope": "This operation only; not complete product or hosted readiness"
+  },
+  "generation": {
+    "schema_version": 1,
+    "status": "PASS",
+    "tool": "voicestudio",
+    "operation": "synthesize",
+    "engine": "kittentts",
+    "upstream_revision": "4df5033e5a1a92e22936fb4d7d2d39e03cf10a91",
+    "model": "KittenML/kitten-tts-mini-0.8",
+    "model_revision": "c02725660cea441db4c383af69f1f26f5cd00947",
+    "model_files_sha256": {
+      "config.json": "6b160bc9b19e24ecb21e84bc14f8a7da21fdf47ec72d42450bc5cf514b61804a",
+      "kitten_tts_mini_v0_8.onnx": "0f5bbae4fc4800c98dbc544a87ecfa79510de2fb8222db30d12e5bfe9177df91",
+      "voices.npz": "40ad2638952b77b7b2f30127e2608e169fc69dd256b53bd8aaa3409a33193c42"
+    },
+    "text_sha256": "14d924a7d14c7cab05854dd61a52a6ae3f5279fb9477b1f490f8a8d62da4bae0",
+    "voice": "expr-voice-2-f",
+    "speed": 1.0,
+    "language": "en",
+    "output_sha256": "5860f1521427a6d05a612c7f5cdf3246d97636232682339385e85d5730368a18",
+    "audio": {
+      "duration_seconds": 14.275,
+      "sample_rate": 24000,
+      "channels": 1,
+      "sample_width_bytes": 2,
+      "rms": 0.09896246041335016,
+      "clipped_fraction": 2.918855808523059e-06,
+      "scope": "Technical waveform validation; not listening or pronunciation approval"
+    },
+    "generation_seconds": 15.894,
+    "synthetic": true,
+    "watermark_applied": false,
+    "watermark_status": "not_applied_upstream_optional_audioseal_unavailable_or_failed",
+    "publication_enabled": false,
+    "paid_generation_enabled": false,
+    "production_ready": false,
+    "scope": "Actual CPU English preset speech; no cloning, perceptual approval, or commercial-rights clearance"
+  },
+  "strengthened_persistence_gate": "Actual hosted artifact accepted by a95c9f228baa02e9c928248d99559f6a0be37a5a persistence validator",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "full_application_ready": false,
+  "scope": "Actual free CPU English preset narration through VoiceStudio; no desktop, clone, dubbing, multilingual or listening-quality approval",
+  "final_hosted_provenance_recheck": {
+    "workflow_run_id": 38625109689,
+    "source_revision": "a95c9f228baa02e9c928248d99559f6a0be37a5a",
+    "status": "PASS",
+    "durable_record": "integrations/results/runs/38625109689-1/record.json"
+  }
+}

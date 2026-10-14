@@ -88,16 +88,20 @@
       "runtime_status": "hosted_operations_verified_full_capability_unverified",
       "enabled": false,
       "blockers": [
-        "Browser rendering and authenticated external SEO APIs not configured or verified"
+        "Authenticated external SEO APIs not configured or verified"
       ],
       "verified_local_operations": [
         "parse-html"
       ],
       "verification_report": "integrations/local-verification.json",
       "verified_hosted_operations": [
-        "parse-html"
+        "parse-html",
+        "render-page"
       ],
-      "hosted_verification_report": "integrations/hosted-verification.json"
+      "hosted_verification_report": "integrations/hosted-verification.json",
+      "additional_hosted_records": [
+        "integrations/results/runs/38366868376-1/record.json"
+      ]
     },
     {
       "order": 5,
@@ -213,12 +217,15 @@
       "capability": "local_speech_generation",
       "integration_target": "Money Factory reviewed narration jobs",
       "source_status": "pinned",
-      "runtime_status": "integration_pending_verification",
+      "runtime_status": "hosted_synthesis_verified",
       "enabled": true,
-      "verified_hosted_operations": [],
+      "verified_hosted_operations": [
+        "synthesize"
+      ],
       "required_for_production": false,
       "license": "AGPL-3.0-only",
-      "scope": "Free local CPU English preset narration; other engines, cloning and dubbing require separate verification"
+      "scope": "Free local CPU English preset narration; other engines, cloning and dubbing require separate verification",
+      "hosted_verification_report": "integrations/voicestudio/hosted-verification.json"
     }
   ]
 }

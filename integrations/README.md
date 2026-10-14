@@ -84,3 +84,16 @@ are assigned by the worker. Wan is refused on this CPU backend. Toonflow workspa
 and Ruflo SQLite state are ephemeral here; durable repository project memory is kept
 in `PROJECT_MEMORY.md`. This backend does not make every upstream application feature
 available or establish persistent, always-on production hosting.
+
+## Additional engineering and speech tools
+
+REA lives under `engineering_tools`; VoiceStudio lives under `media_tools`. Both use the same reviewed job execution and result persistence without changing the original seven source positions. See `rea/README.md` and `voicestudio/README.md` for exact supported operations.
+
+For VoiceStudio on a free Ubuntu CPU runner:
+
+```sh
+python integrations/setup.py voicestudio --runtime /absolute/runtime
+python integrations/hosted_job.py voicestudio-narration.job.json --runtime /absolute/runtime --output /new/narration-result
+```
+
+The VoiceStudio workflow uses the standard repository-job workflow. Audio remains in its 30-day workflow artifact; generation metadata, hashes and execution receipts are committed as the durable record. This does not change current Content Control voice assignments. `integrations/queue.json` tracks requested additions separately from working integrations.
