@@ -94,3 +94,32 @@ specifications do not satisfy this production gate. Publication stays disabled,
 and live authority mounting, template validation and marketplace acceptance remain
 unverified. The repair's disposable PostgreSQL/Python gate passed:
 https://github.com/wecreates/content-control/actions/runs/38599545277
+
+## Durable market evidence and current local release eligibility
+
+Content Control PR #76 requires stored immutable evidence for incoming market
+observations. Source proof is mandatory; image and rank proof are required when
+claimed. Rank proof is retained by migration 003. The signed market envelope is
+still issued by the market authority, not by this readiness-grant module.
+Exact source/platform/observation-time retries return the original record ID;
+conflicting country, category, price/currency, rank, hashes or observation JSON
+are rejected. Do not refresh timestamps or fabricate proof to force a conflict
+through. Old rows without retained rank proof are not retroactively verified.
+The detailed contract is integrations/pod/MARKET_EVIDENCE.md in Content Control.
+
+The review agent's market_research field remains unassessed input. Inclusion in
+a brief, a signed grant or an immutable artifact does not establish current
+demand, permitted collection, trademark clearance, unit economics or profit.
+The market repair passed its disposable PostgreSQL/Python gate before merge:
+https://github.com/wecreates/content-control/actions/runs/38622442650
+Production requires separately verified deployment and checksum-managed migration;
+neither was established by that test. Existing publication flags remain false.
+
+Content Control's release executor additionally requires current local job lease,
+fencing token, account state and non-tombstoned rights after remote grant lookup.
+A valid Money Factory grant cannot override those local denials. Grant/QA expiry
+is rechecked after the final database wait. Do not renew an upstream grant to
+revive an expired claim, suspended account or permanently blocked concept.
+This is not atomic cross-system revocation; authorized adapters still require
+provider idempotency and observed-result reconciliation. No real adapter or
+live authority mounting is supplied by these code changes.
