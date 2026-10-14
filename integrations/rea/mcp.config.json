@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "money-factory-rea": {
+      "command": "python3",
+      "args": [
+        "integrations/rea/mcp_server.py",
+        "--runtime",
+        ".runtime/rea"
+      ]
+    }
+  }
+}

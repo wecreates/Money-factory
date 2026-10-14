@@ -175,5 +175,23 @@
   "worker_entrypoint": "integrations/run.py",
   "setup_entrypoint": "integrations/setup.py",
   "full_production_ready": false,
-  "runtime_status_scope": "Historical operation receipts only; query Content Control /api/integrations/status for latest run, source-pin and seven-day freshness validation. enabled=false preserves the disabled full-capability setting and does not disable reviewed CPU jobs."
+  "runtime_status_scope": "Historical operation receipts only; query Content Control /api/integrations/status for latest run, source-pin and seven-day freshness validation. enabled=false preserves the disabled full-capability setting and does not disable reviewed CPU jobs.",
+  "engineering_tools": [
+    {
+      "id": "rea",
+      "repository": "https://github.com/morluto/rea",
+      "path": "integrations/rea",
+      "source_type": "npm",
+      "package": "rea-agents",
+      "version": "6.4.0",
+      "revision": "npm:rea-agents@6.4.0",
+      "capability": "software_analysis",
+      "integration_target": "Money Factory engineering diagnostics",
+      "source_status": "pinned",
+      "runtime_status": "integration_pending_verification",
+      "enabled": true,
+      "verified_hosted_operations": [],
+      "required_for_production": false
+    }
+  ]
 }

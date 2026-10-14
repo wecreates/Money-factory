@@ -48,10 +48,13 @@ def persist(folder, run_id, attempt, revision, root=ROOT):
     receipt_bytes=read_file(folder,output+'.receipt.json')
     receipt=json.loads(receipt_bytes)
     registry=json.loads(blob(root,revision,'integrations/repositories.json'))
-    sources={entry['id']:entry['revision'] for entry in registry['repositories']}
+    sources={entry['id']:entry['revision'] for entry in registry['repositories'] + registry.get('engineering_tools', [])}
     if receipt.get('status')!='PASS' or receipt.get('publication_enabled') is not False or receipt.get('tool')!=job.get('tool') or receipt.get('operation')!=job.get('operation') or receipt.get('revision')!=sources.get(job.get('tool')) or not re.fullmatch(r'[a-f0-9]{64}',receipt.get('output_sha256','')):
         raise ValueError('Operation receipt mismatch')
-    if not re.fullmatch(r'[a-f0-9]{40}',evidence.get('content_control_revision','')):
+    if job.get('tool') == 'rea':
+        if evidence.get('execution_engine') != 'money-factory' or evidence.get('content_control_revision') is not None:
+            raise ValueError('REA requires Money Factory execution evidence')
+    elif not re.fullmatch(r'[a-f0-9]{40}',evidence.get('content_control_revision','')):
         raise ValueError('Content Control source identity required')
     files={'job-evidence.json':evidence_bytes,output+'.receipt.json':receipt_bytes}
     if output!='result.mp4':

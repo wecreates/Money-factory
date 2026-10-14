@@ -28,7 +28,14 @@ def setup(tool, runtime, browser=False):
     def pip(python, *args):
         cmd([python, '-m', 'pip', 'install', '--disable-pip-version-check', *args])
 
-    if tool == 'wan21':
+    if tool == 'rea':
+        destination = runtime / 'rea'
+        destination.mkdir(parents=True, exist_ok=True)
+        for name in ('package.json', 'package-lock.json'):
+            shutil.copy2(upstream / name, destination / name)
+        cmd(['npm', 'ci', '--ignore-scripts', '--no-audit', '--no-fund'], cwd=destination)
+        cmd(['node', destination / 'node_modules/playwright/cli.js', 'install', 'chromium'], cwd=destination)
+    elif tool == 'wan21':
         if not shutil.which('nvidia-smi'):
             raise RuntimeError('Wan2.1 requires a provisioned CUDA worker; none detected')
         if shutil.disk_usage(runtime).free < 20 * 1024**3:

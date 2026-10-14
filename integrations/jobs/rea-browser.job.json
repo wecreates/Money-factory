@@ -1,0 +1,7 @@
+{
+  "tool": "rea",
+  "operation": "inspect-local-web-page",
+  "input": "rea-fixtures/web",
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}

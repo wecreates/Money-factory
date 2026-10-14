@@ -14,7 +14,7 @@ on:
         type: string
   push:
     branches: [main]
-    paths: ['integrations/jobs/amex-vs-chase-audit.*.json', '.github/workflows/repository-job.yml', 'integrations/hosted_job.py', 'integrations/persist_job.py', 'integrations/check_live_content_control.py', 'integrations/test_check_live_content_control.py']
+    paths: ['integrations/jobs/amex-vs-chase-audit.*.json', '.github/workflows/repository-job.yml', 'integrations/hosted_job.py', 'integrations/persist_job.py', 'integrations/check_live_content_control.py', 'integrations/test_check_live_content_control.py', 'integrations/rea/prepare_jobs.py']
 permissions:
   contents: read
 concurrency:
@@ -49,6 +49,11 @@ jobs:
           python -m unittest discover -s integrations -p 'test_hosted_job.py'
           python -m unittest discover -s integrations -p 'test_persist_job.py'
           python -m unittest discover -s integrations -p 'test_check_live_content_control.py'
+          if [ "$JOB_FILE" = rea-native.job.json ] && ! command -v gcc >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y gcc
+          fi
+          python integrations/rea/prepare_jobs.py --job "$JOB_FILE"
           tool=$(python integrations/hosted_job.py "$JOB_FILE" --runtime "$RUNNER_TEMP/runtime" --content-control content-control-bridge --output "$RUNNER_TEMP/job-output" --print-tool)
           echo "tool=$tool" >> "$GITHUB_OUTPUT"
       - name: Install selected free CPU runtime
@@ -56,14 +61,17 @@ jobs:
           TOOL: ${{ steps.job.outputs.tool }}
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg build-essential python3-dev
+          sudo apt-get install -y ffmpeg build-essential python3-dev procps
           if [ "$TOOL" = claude-seo ]; then
             python integrations/setup.py "$TOOL" --runtime "$RUNNER_TEMP/runtime" --browser
             "$RUNNER_TEMP/runtime/seo/.venv/bin/python" -m playwright install-deps chromium
           else
             python integrations/setup.py "$TOOL" --runtime "$RUNNER_TEMP/runtime"
+            if [ "$TOOL" = rea ]; then
+              node "$RUNNER_TEMP/runtime/rea/node_modules/playwright/cli.js" install-deps chromium
+            fi
           fi
-      - name: Process job through Content Control
+      - name: Process reviewed job through its registered engine
         run: >-
           python integrations/hosted_job.py "$JOB_FILE"
           --runtime "$RUNNER_TEMP/runtime" --content-control content-control-bridge

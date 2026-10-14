@@ -11,6 +11,12 @@ def verify():
     entries = registry['repositories']
     if [entry['order'] for entry in entries] != list(range(1, 8)):
         raise ValueError('Expected seven repositories in requested order')
+    from run import source
+    for entry in registry.get('engineering_tools', []):
+        if entry.get('source_type') != 'npm':
+            raise ValueError('Unsupported engineering source type')
+        source(entry['id'])
+        print(f"PASS engineering: {entry['id']} npm pin; runtime={entry['runtime_status']}")
     for entry in entries:
         path = ROOT / entry['path']
         if not (path / '.git').is_file():

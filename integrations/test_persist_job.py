@@ -59,6 +59,22 @@ class PersistenceTests(unittest.TestCase):
         (self.artifact/'result.json').write_text('{"tampered":true}')
         with self.assertRaises(ValueError):self.run_persist()
 
+    def test_rea_engineering_receipt_uses_money_factory_identity(self):
+        self.job.update(tool='rea', operation='mcp-smoke')
+        (self.root/'integrations/jobs/audit.job.json').write_text(json.dumps(self.job))
+        (self.root/'integrations/repositories.json').write_text(json.dumps({
+            'repositories':[], 'engineering_tools':[{'id':'rea','revision':'npm:rea-agents@6.4.0'}]}))
+        subprocess.run(['git','add','.'],cwd=self.root,check=True)
+        subprocess.run(['git','-c','user.name=Test','-c','user.email=test@example.com','commit','-qm','rea fixture'],cwd=self.root,check=True)
+        self.revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=self.root,text=True).strip()
+        self.receipt.update(tool='rea',operation='mcp-smoke',revision='npm:rea-agents@6.4.0')
+        self.evidence.update(repository_revision=self.revision,execution_engine='money-factory',
+            content_control_revision=None,job_sha256=hashlib.sha256(json.dumps(self.job).encode()).hexdigest())
+        self.write()
+        self.assertTrue((self.run_persist()/'result.json').exists())
+        self.evidence['execution_engine']='content-control';self.write()
+        with self.assertRaisesRegex(ValueError,'Money Factory'):self.run_persist()
+
     def test_conflicting_replay_rejected(self):
         target=self.run_persist()
         (target/'record.json').write_text('{}')

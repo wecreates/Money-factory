@@ -18,7 +18,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = json.loads((ROOT / 'integrations/repositories.json').read_text())
-TOOLS = {entry['id']: entry for entry in REGISTRY['repositories']}
+TOOLS = {entry['id']: entry for entry in REGISTRY['repositories'] + REGISTRY.get('engineering_tools', [])}
 
 
 def environment(runtime):
@@ -45,6 +45,18 @@ def execute(command, cwd, runtime, timeout=600, stdin=None):
 def source(tool):
     entry = TOOLS[tool]
     path = ROOT / entry['path']
+    if entry.get('source_type') == 'npm':
+        package = json.loads((path / 'package.json').read_text())
+        lock = json.loads((path / 'package-lock.json').read_text())
+        name, version = entry['package'], entry['version']
+        locked = lock.get('packages', {}).get('node_modules/' + name, {})
+        if (entry['revision'] != f'npm:{name}@{version}' or
+                package.get('dependencies', {}).get(name) != version or
+                lock.get('packages', {}).get('', {}).get('dependencies', {}).get(name) != version or
+                locked.get('version') != version or not locked.get('integrity') or
+                locked.get('resolved') != f'https://registry.npmjs.org/{name}/-/{name}-{version}.tgz'):
+            raise ValueError(f'{tool}: npm source pin does not match registry')
+        return path
     if not (path / '.git').exists():
         raise ValueError(f'{tool}: source not initialized')
     actual = subprocess.check_output(['git', '-C', str(path), 'rev-parse', 'HEAD'], text=True).strip()
@@ -115,7 +127,15 @@ def _run(job, runtime):
         raise ValueError('Output or receipt already exists; use a new job output path')
     output.parent.mkdir(parents=True, exist_ok=True)
     is_media = False
-    if (tool, operation) == ('youtube-clipper-skill', 'clip'):
+    if tool == 'rea':
+        from rea.adapter import dispatch
+        result = dispatch(job, runtime / 'rea')
+        if not isinstance(result, dict) or result.get('status') not in ('PASS', 'BLOCKED'):
+            raise ValueError('Invalid REA adapter result')
+        output.write_text(json.dumps(result, indent=2) + '\n')
+        if result['status'] != 'PASS':
+            return result
+    elif (tool, operation) == ('youtube-clipper-skill', 'clip'):
         start, end = bounds(job)
         execute([runtime / 'clipper/bin/python', upstream / 'scripts/clip_video.py',
                  file_input(job), start, end, output], upstream, runtime)

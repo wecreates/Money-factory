@@ -1,0 +1,7 @@
+{
+  "tool": "rea",
+  "operation": "mcp-smoke",
+  "input": "rea-fixtures/source",
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}
