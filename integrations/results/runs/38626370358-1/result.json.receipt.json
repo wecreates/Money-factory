@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "tool": "youtube-agent-skill",
+  "operation": "hook-score",
+  "revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+  "status": "PASS",
+  "verified_at": "2026-10-14T19:47:09Z",
+  "output_sha256": "5f9af6d19759d03cff79b7a8b94a45fcc1f1b6f9a04da07b93c10c626c382608",
+  "media": null,
+  "publication_enabled": false,
+  "scope": "This operation only; not complete product or hosted readiness"
+}
