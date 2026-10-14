@@ -1,0 +1,25 @@
+{
+  "collected": [
+    {
+      "channel": "SYNTHETIC fixture channel",
+      "title": "SYNTHETIC baseline A",
+      "views": 1000
+    },
+    {
+      "channel": "SYNTHETIC fixture channel",
+      "title": "SYNTHETIC baseline B",
+      "views": 1100
+    },
+    {
+      "channel": "SYNTHETIC fixture channel",
+      "title": "SYNTHETIC baseline C",
+      "views": 900
+    },
+    {
+      "channel": "SYNTHETIC fixture channel",
+      "title": "SYNTHETIC example outlier",
+      "views": 4000
+    }
+  ],
+  "minimum_multiple": 1.5
+}

@@ -28,7 +28,11 @@ def setup(tool, runtime, browser=False):
     def pip(python, *args):
         cmd([python, '-m', 'pip', 'install', '--disable-pip-version-check', *args])
 
-    if tool == 'voicestudio':
+    if tool == 'youtube-agent-skill':
+        from youtube_skill.install import verify_skills
+        verify_skills(ROOT, upstream)
+        print('Verified eleven project-local skills; six tools require Python standard library only.')
+    elif tool == 'voicestudio':
         from voicestudio.setup_runtime import setup as setup_voice
         setup_voice(upstream, runtime / 'voicestudio')
     elif tool == 'rea':

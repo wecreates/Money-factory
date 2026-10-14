@@ -7,10 +7,11 @@
       "id": "youtube-agent-skill",
       "repository": "https://github.com/Jakeschincariol/youtube-agent-skill",
       "requested_at": "2026-10-14",
-      "status": "queued",
+      "status": "integration_in_progress",
       "after": "voicestudio",
       "target": "Money Factory and Content Control YouTube workflow",
-      "acceptance": "Inspect and pin the source, map skills into existing production and review steps, then verify actual execution before marking integrated."
+      "acceptance": "Inspect and pin the source, map skills into existing production and review steps, then verify actual execution before marking integrated.",
+      "revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6"
     }
   ]
 }

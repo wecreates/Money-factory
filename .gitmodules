@@ -22,3 +22,6 @@
 [submodule "integrations/vendor/voicestudio"]
 	path = integrations/vendor/voicestudio
 	url = https://github.com/debpalash/VoiceStudio.git
+[submodule "integrations/vendor/youtube-agent-skill"]
+	path = integrations/vendor/youtube-agent-skill
+	url = https://github.com/Jakeschincariol/youtube-agent-skill.git

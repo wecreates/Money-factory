@@ -1,0 +1,12 @@
+{
+  "tool": "youtube-agent-skill",
+  "operation": "outliers",
+  "input": "youtube-agent-outliers.input.json",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "provenance": {
+    "kind": "synthetic_algorithm_fixture",
+    "analytics": "SYNTHETIC unit fixture numbers, not YouTube account observations or competitor measurements",
+    "scope": "Execution of deterministic planning heuristics only; not creative acceptance, actual channel analytics, or publication authorization"
+  }
+}

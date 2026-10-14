@@ -20,7 +20,7 @@ def verify(root=ROOT):
             raise ValueError('Unsupported engineering source type')
         source(entry['id'])
         print(f"PASS engineering: {entry['id']} npm pin; runtime={entry['runtime_status']}")
-    for entry in entries + registry.get('media_tools', []):
+    for entry in entries + registry.get('media_tools', []) + registry.get('agent_tools', []):
         path = root / entry['path']
         if not (path / '.git').is_file():
             raise ValueError(f"Submodule not initialized: {entry['id']}")

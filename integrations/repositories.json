@@ -227,5 +227,21 @@
       "scope": "Free local CPU English preset narration; other engines, cloning and dubbing require separate verification",
       "hosted_verification_report": "integrations/voicestudio/hosted-verification.json"
     }
+  ],
+  "agent_tools": [
+    {
+      "id": "youtube-agent-skill",
+      "repository": "https://github.com/Jakeschincariol/youtube-agent-skill",
+      "path": "integrations/vendor/youtube-agent-skill",
+      "revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+      "capability": "youtube_editorial_analysis",
+      "integration_target": "Money Factory YouTube production review",
+      "source_status": "pinned",
+      "runtime_status": "integration_pending_verification",
+      "enabled": true,
+      "license": "MIT",
+      "verified_hosted_operations": [],
+      "required_for_production": false
+    }
   ]
 }

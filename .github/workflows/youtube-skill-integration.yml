@@ -1,0 +1,45 @@
+name: YouTube skill integrated verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['integrations/youtube_skill/**', 'integrations/jobs/youtube-agent-**', 'integrations/vendor/youtube-agent-skill', '.claude/skills/**', '.agents/skills/**', 'integrations/run.py', 'integrations/hosted_job.py', 'integrations/persist_job.py', '.github/workflows/youtube-skill-integration.yml']
+permissions:
+  contents: read
+jobs:
+  integrated:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {submodules: true, persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Verify skill discovery and real CLI behavior
+        env:
+          YOUTUBE_SKILL_UPSTREAM: ${{ github.workspace }}/integrations/vendor/youtube-agent-skill
+        run: |
+          python integrations/setup.py youtube-agent-skill --runtime "$RUNNER_TEMP/runtime"
+          python -m unittest discover -s integrations/youtube_skill -p 'test_*.py'
+          python -m unittest discover -s integrations -p 'test_hosted_job.py'
+          python -m unittest discover -s integrations -p 'test_persist_job.py'
+      - name: Execute all six reviewed operations
+        run: |
+          for operation in hook-score package-lint edit-plan chapters retention outliers; do
+            python integrations/hosted_job.py "youtube-agent-$operation.job.json" --runtime "$RUNNER_TEMP/runtime" --output "$RUNNER_TEMP/youtube-results/$operation"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: youtube-skill-evidence
+          path: ${{ runner.temp }}/youtube-results
+          retention-days: 30
+          if-no-files-found: error
+  reviewed-hook:
+    needs: integrated
+    permissions:
+      contents: write
+    uses: ./.github/workflows/repository-job.yml
+    with:
+      job: youtube-agent-hook-score.job.json

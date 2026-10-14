@@ -1,0 +1,19 @@
+{
+  "tool": "youtube-agent-skill",
+  "operation": "retention",
+  "input": "youtube-agent-retention.input.json",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "provenance": {
+    "kind": "existing_draft_text_with_reviewed_fixture_parameters",
+    "source_path": "integrations/jobs/amex-vs-chase-audit.input.json",
+    "source_sha256": "f96fb39082ca934ad0f4ff1f49b64db0f3fd3d16f2961560a2d31e39110b5631",
+    "scope": "Execution of deterministic planning heuristics only; not creative acceptance, actual channel analytics, or publication authorization",
+    "timing": "SYNTHETIC fixed four-second segments over existing draft transcript; not observed audio timing",
+    "analytics": "SYNTHETIC unit fixture numbers, not YouTube account observations or competitor measurements",
+    "origin_repository": "wecreates/content-control",
+    "origin_revision": "00fbb60bf345a312563ac4da13812933fe86619c",
+    "source_repository": "wecreates/Money-factory",
+    "source_revision": "16f4da145d6ed3fc729545fa8d53d36f24fe4422"
+  }
+}

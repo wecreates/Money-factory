@@ -18,7 +18,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = json.loads((ROOT / 'integrations/repositories.json').read_text())
-TOOLS = {entry['id']: entry for entry in REGISTRY['repositories'] + REGISTRY.get('engineering_tools', []) + REGISTRY.get('media_tools', [])}
+TOOLS = {entry['id']: entry for entry in REGISTRY['repositories'] + REGISTRY.get('engineering_tools', []) + REGISTRY.get('media_tools', []) + REGISTRY.get('agent_tools', [])}
 
 
 def environment(runtime):
@@ -127,7 +127,13 @@ def _run(job, runtime):
         raise ValueError('Output or receipt already exists; use a new job output path')
     output.parent.mkdir(parents=True, exist_ok=True)
     is_media = False
-    if tool == 'voicestudio':
+    if tool == 'youtube-agent-skill':
+        from youtube_skill.adapter import dispatch
+        result = dispatch(job, upstream)
+        if result.get('status') != 'PASS':
+            raise ValueError('YouTube skill operation did not complete')
+        output.write_text(json.dumps(result, indent=2)+'\n')
+    elif tool == 'voicestudio':
         if operation != 'synthesize':
             raise ValueError('Unsupported VoiceStudio operation')
         execute([runtime / 'voicestudio/bin/python', ROOT / 'integrations/voicestudio/runner.py',
