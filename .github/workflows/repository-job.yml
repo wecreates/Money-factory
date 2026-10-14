@@ -18,7 +18,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: repository-jobs
+  group: repository-jobs-${{ inputs.job || 'amex-vs-chase-audit.job.json' }}
   cancel-in-progress: false
 jobs:
   process:

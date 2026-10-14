@@ -51,6 +51,7 @@ def run(upstream,runtime,input_path,output):
         os.environ.update({'PATH':path,'HOME':home,'OMNIVOICE_DATA_DIR':home,'HF_HUB_CACHE':str(cache),
           'HF_HUB_OFFLINE':'1','HF_HUB_DISABLE_TELEMETRY':'1','HF_HUB_DISABLE_IMPLICIT_TOKEN':'1',
           'OMNIVOICE_TTS_BACKEND':'kittentts','OMNIVOICE_KITTENTTS_MODEL':MODEL,'OMP_NUM_THREADS':'2'})
+        sys.path.insert(0,str(upstream))
         sys.path.insert(0,str(upstream/'backend'))
         import numpy as np
         import soundfile as sf
