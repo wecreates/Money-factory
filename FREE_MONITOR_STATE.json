@@ -6,7 +6,7 @@
     "label": "CYZOR Creations website",
     "status": "active",
     "last_value": "714bed27c169dcabaf7b8a6b20242ac57f17d1fe2878ce69c58443d16e7b3df8",
-    "last_checked_at": 1792017303637,
+    "last_checked_at": 1792025316523,
     "last_change_at": null,
     "last_status": 200,
     "last_error": null
@@ -17,9 +17,9 @@
     "targetUrl": "https://github.com/wecreates/Money-factory",
     "label": "Money Factory GitHub repository",
     "status": "active",
-    "last_value": "c37382ee48512105b7ea8908c1e21b4c7f0e1192590ebd9605aeb1f5962741d7",
-    "last_checked_at": 1792017304290,
-    "last_change_at": 1792017304290,
+    "last_value": "c42f748cf056dd7adaf38592f4e3a59d450e2b876458c4f27aa0b3e948c42923",
+    "last_checked_at": 1792025317056,
+    "last_change_at": 1792025317056,
     "last_status": 200,
     "last_error": null
   }
