@@ -209,3 +209,22 @@ The latter passed 194 Node tests with zero skips, 42 POD Python tests and the du
 PostgreSQL/Python workflow. Merged-main integration and wiring also passed.
 Render still reports failed deployment attempts; live acceptance remains unverified.
 Both publication flags stay false. No credentials, permissions or ledger facts change.
+
+
+## Current economics required for LAUNCH
+
+The server-owned snapshot now supplies the version-1 price/economics contract in
+RELEASE_ECONOMICS.md. LAUNCH signing requires current complete evidence, exact job/
+account/business/platform/package scope, and approval.economics_event_id matching
+the economic decision. Grant validity is capped at the economics expiry. The HTTP
+endpoint still accepts only job_id; clients cannot inject prices or cost approvals.
+Production-only PRELAUNCH does not require or manufacture a release budget.
+
+The counterpart is Content Control PR #123. Its exact implementation commit
+721f475c95d6a7cd84f5d0da9199c09f90ffebdc is pinned in the cross-repository workflow so the
+signed-budget roundtrip uses the actual downstream release validator. Six shared
+numeric/scope/expiry test vectors, two issuer tests and the roundtrip were added.
+17 focused local MF tests passed, alongside 42 local CC tests; hosted execution and
+merge verification are pending. No live cost source, approval, financial event,
+publication switch or database configuration was created. Actual economics and
+all live acceptance requirements remain unverified.
