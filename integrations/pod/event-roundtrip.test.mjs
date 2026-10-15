@@ -63,6 +63,29 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   await assert.rejects(()=>acceptPodEvent(pool,sign({id:duplicateId,kind:'pod.published',payload:{}}),key),/EVENT_REPLAY_CONFLICT/);
   assert.equal((await pool.query('SELECT event FROM pod_content_event_inbox WHERE event_id=$1',[duplicateId])).rows[0].event.kind,'pod.production.qa_failed');
 
+  // Force the receiver to wait on an uncommitted duplicate event, then expire
+  // its envelope. Rolling back the blocker frees the insert; the receiver must
+  // roll back that new row instead of acknowledging an expired delivery.
+  const expiryId=crypto.randomUUID(),expiryEvent={id:expiryId,kind:'pod.test.expiry',payload:{}};
+  const expiryEnvelope=sign(expiryEvent),issued=JSON.parse(expiryEnvelope.payload).issued_at_ms;
+  const expiryHash=crypto.createHash('sha256').update(JSON.stringify(expiryEvent)).digest('hex');
+  const blocker=await pool.connect();let clockNow=issued,pending,workerPid;
+  const waitingPool={connect:async()=>{const c=await pool.connect();workerPid=(await c.query('SELECT pg_backend_pid() AS pid')).rows[0].pid;return c;}};
+  try{
+   await blocker.query('BEGIN');
+   await blocker.query('INSERT INTO pod_content_event_inbox(event_id,event_sha256,event) VALUES($1,$2,$3)',[expiryId,expiryHash,expiryEvent]);
+   pending=acceptPodEvent(waitingPool,expiryEnvelope,key,()=>clockNow).then(value=>({value}),error=>({error}));
+   let waiting=false;
+   for(let attempt=0;attempt<100;attempt++){
+    if(workerPid)waiting=(await pool.query('SELECT cardinality(pg_blocking_pids($1))>0 AS waiting',[workerPid])).rows[0].waiting;
+    if(waiting)break;await new Promise(resolve=>setTimeout(resolve,10));
+   }
+   assert.equal(waiting,true,'receiver reached the held unique-key conflict');
+   clockNow=issued+300001;await blocker.query('ROLLBACK');
+   assert.equal((await pending).error?.message,'EVENT_SCOPE_INVALID');
+   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[expiryId])).rows[0].n,0);
+  }finally{await blocker.query('ROLLBACK');blocker.release();if(pending)await pending;}
+
   await pool.query("ALTER TABLE pod_content_event_inbox ADD CONSTRAINT reject_test_event CHECK(event->>'kind' <> 'pod.test.reject')");
   const rejectedId=crypto.randomUUID();
   await pool.query('INSERT INTO pod_events(id,job_id,kind,payload) VALUES($1,$2,$3,$4)',[rejectedId,job,'pod.test.reject',{}]);

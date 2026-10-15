@@ -176,3 +176,36 @@ The PR #93 deployment dep-db878hh42hec73bvr330 also reports build_failed at
 mounting, production migration/access and all 24 acceptance gates remain open.
 PUBLICATION_ENABLED and POD_PUBLICATION_ENABLED remain false; this checkpoint
 creates no grant, release authorization, revenue event or continuous worker.
+
+## Inbox freshness through database waits — October 15, 2026
+
+The receiver now reevaluates its five-minute event-envelope window immediately
+before commit, after insertion and replay comparison. An envelope that ages out
+during connection or uniqueness waits is rolled back and not acknowledged.
+The HTTP sender must retry with a current envelope for the same immutable event;
+it must not change the event ID/content or infer delivery from a missing response.
+The receiver still records observations only and cannot promote verified profit.
+
+The internal acceptPodEvent fourth argument is now a clock function, defaulting
+to Date.now, instead of a captured numeric timestamp. createPodEventHandler passes
+its existing clock function through. Use a callable clock for deterministic tests;
+numeric callbacks fail closed, and nonfinite clock readings reject the event.
+The external HTTP envelope, Idempotency-Key header and acknowledgement schema
+are unchanged. No source timestamp or signature is rewritten by the receiver.
+
+Two local HTTP regressions reproduced the late acknowledgement and missing clock
+configuration check before the fix. All seven HTTP tests now pass. The hosted
+PostgreSQL roundtrip test adds a unique-key contention barrier and verifies that
+an event expiring while blocked leaves no inbox row or acknowledgement. Hosted
+verification is required before merge; this does not mount a live MF authority.
+
+Related Content Control PR #95 (b541c3c45f4968dd1647989fb52c0587399f4f9b) rejects
+expired intake/queue grants and locks rights during repair; PR #96
+(790e32805d66caf8de360e3b796f1075d3866d6a) rolls back evidence/QA that expires during
+final database writes. Their gates passed respectively:
+https://github.com/wecreates/content-control/actions/runs/38694726760
+https://github.com/wecreates/content-control/actions/runs/38695345427
+The latter passed 194 Node tests with zero skips, 42 POD Python tests and the durable
+PostgreSQL/Python workflow. Merged-main integration and wiring also passed.
+Render still reports failed deployment attempts; live acceptance remains unverified.
+Both publication flags stay false. No credentials, permissions or ledger facts change.
