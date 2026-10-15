@@ -5,7 +5,7 @@ import {acceptPodEvent} from './event-inbox.mjs';
 // observations into verified revenue, rights, readiness, or publication authority.
 export function createPodEventHandler({pool,key,clock=Date.now,timeoutMs=5000}){
  if(!pool||typeof pool.connect!=='function'||typeof key!=='string'||Buffer.byteLength(key)<32||
-    !Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>30000)throw Error('EVENT_HANDLER_CONFIG_INVALID');
+    typeof clock!=='function'||!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>30000)throw Error('EVENT_HANDLER_CONFIG_INVALID');
  return async function handle(req,res){
   let timer;
   const send=(status,value)=>{
@@ -31,7 +31,7 @@ export function createPodEventHandler({pool,key,clock=Date.now,timeoutMs=5000}){
    })]);
    clearTimeout(timer);
    if(!envelope||Array.isArray(envelope)||Object.keys(envelope).sort().join(',')!=='payload,signature')throw Error('EVENT_ENVELOPE_INVALID');
-   const ack=await acceptPodEvent(pool,envelope,key,clock(),{expectedEventId:id});
+   const ack=await acceptPodEvent(pool,envelope,key,clock,{expectedEventId:id});
    return send(200,ack);
   }catch(error){
    const code=error?.message;

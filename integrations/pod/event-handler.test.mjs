@@ -20,8 +20,8 @@ function database(){
   },release:()=>{releases++;}
  };}};
 }
-async function serverFor(pool,run){
- const server=http.createServer(createPodEventHandler({pool,key,clock:()=>now}));
+async function serverFor(pool,run,clock=()=>now){
+ const server=http.createServer(createPodEventHandler({pool,key,clock}));
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const url='http://127.0.0.1:'+server.address().port;
  const post=(body,headers={})=>fetch(url,{method:'POST',headers:{'content-type':'application/json','idempotency-key':id,...headers},body:typeof body==='string'?body:JSON.stringify(body)});
@@ -63,4 +63,29 @@ test('database failure does not leak details or acknowledge an event',async()=>{
 test('missing database and weak receiver keys fail closed at construction',()=>{
  assert.throws(()=>createPodEventHandler({pool:database(),key:'weak'}),/CONFIG_INVALID/);
  assert.throws(()=>createPodEventHandler({key}),/CONFIG_INVALID/);
+});
+test('event expiring during database work is rolled back and never acknowledged over HTTP',async()=>{
+ const base=database();let current=now,rollback=false;
+ const pool={connect:async()=>{
+  const c=await base.connect();return {release:()=>c.release(),query:async(sql,args)=>{
+   const result=await c.query(sql,args);
+   if(sql.startsWith('SELECT'))current=now+300001;
+   if(sql==='ROLLBACK')rollback=true;
+   return result;
+  }};
+ }};
+ await serverFor(pool,async post=>{
+  const response=await post(envelope());assert.equal(response.status,400);
+  assert.deepEqual(await response.json(),{error:'EVENT_REJECTED'});
+  assert.equal(base.stats().commits,0);assert.equal(rollback,true);assert.equal(base.stats().releases,1);
+ },()=>current);
+});
+test('a non-callable clock is rejected before accepting requests',()=>{
+ assert.throws(()=>createPodEventHandler({pool:database(),key,clock:now}),/CONFIG_INVALID/);
+});
+test('a nonfinite clock rejects the event before database access',async()=>{
+ const pool=database();
+ await serverFor(pool,async post=>{
+  assert.equal((await post(envelope())).status,400);assert.equal(pool.stats().connects,0);
+ },()=>NaN);
 });
