@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {issuePodGrant} from './readiness-grant.mjs';
+import {economicsFixture} from './economics-fixture.mjs';
 const key='k'.repeat(48),now=Date.now();
 const job={id:'job',business_id:'pod',account_id:'account',platform:'redbubble',destination_platform:'redbubble',mode:'PRELAUNCH'};
 const readiness={businesses:[{id:'pod',content_production_ready:true,max_mode:'PRELAUNCH',launch_content_allowed:false}]};
@@ -26,3 +27,24 @@ test('task artifact requires exact upstream approval',()=>{
  const g=JSON.parse(issuePodGrant({readiness,job:j,approval:{...approval,task_sha256:j.task_sha256},key,now}).payload);
  assert.equal(g.task_sha256,j.task_sha256);
 });
+
+function launch(){
+ const j={...job,mode:'LAUNCH',package_sha256:'a'.repeat(64)};
+ return {job:j,readiness:{businesses:[{...readiness.businesses[0],max_mode:'LAUNCH',launch_content_allowed:true}]},
+  approval:{...approval,providers_healthy:true,package_sha256:j.package_sha256,economics_event_id:'fixture-economics'},
+  ...economicsFixture(j,now),key,now};
+}
+test('LAUNCH requires current scoped economics and approval of that exact economic event',()=>{
+ for(const change of [s=>delete s.economics,s=>s.economics.variable_cost_minor=601,
+  s=>s.economics.valid_until_ms=now,s=>s.economics.account_id='other',
+  s=>delete s.approval.economics_event_id,s=>s.approval.economics_event_id='other']){
+  const s=launch();change(s);assert.throws(()=>issuePodGrant(s),/ECONOMICS_/);
+ }
+});
+test('LAUNCH grant carries recomputed economics and cannot outlive cost evidence',()=>{
+ const s=launch();s.economics.valid_until_ms=now+1000;s.economics.contribution_minor=999999;
+ const grant=JSON.parse(issuePodGrant(s).payload);
+ assert.equal(grant.expires_at_ms,now+1000);assert.equal(grant.economics.contribution_minor,400);
+ assert.equal(grant.economics.evidence_event_id,s.approval.economics_event_id);
+});
+
