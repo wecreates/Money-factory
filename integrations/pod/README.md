@@ -145,3 +145,34 @@ or turn downstream net-recorded amounts into verified profit. Money Factory's
 inbox remains observation-only; its verified revenue ledger remains authoritative.
 Production migration/deployment and all real financial acceptance remain separate
 from disposable CI. Publication stays disabled.
+
+
+## Production lease and QA freshness at readiness — October 15, 2026
+
+Content Control PR #92 checks production leases using wall time after acquiring
+row locks. Late failure, review-hold and completion writes are rejected, including
+a worker whose fencing token still matches. An upstream grant cannot revive that
+lease. PR #93 additionally revalidates signed QA after connection and rights-row
+waits, immediately before accepting a review or completing production. An expired
+review cannot create readiness or a readiness event. Obtain a new independent
+review of the exact package; do not rewrite or extend a stale signed envelope.
+
+The existing Money Factory bridge fields, readiness ceiling and grant/event
+contracts are unchanged. The current Content Control migration set is 001–005;
+matching checksums and the restricted runtime role must pass production preflight.
+An expired lease is a recovery incident, not a reason to relax local release checks.
+
+PR #92 merged as fb3cf86e0cde856aba6f2d2dcfd3c7999610ebb4 after CI run
+https://github.com/wecreates/content-control/actions/runs/38692725008 passed.
+PR #93 merged as 9e453ab3b3a35650b259b6bad1da5d42b63b1108 after CI run
+https://github.com/wecreates/content-control/actions/runs/38693182715 passed
+(162 Node tests with zero skips, 42 POD Python tests and the durable PostgreSQL/Python
+review workflow). Lock-barrier fixtures and synthetic signatures are test evidence,
+not live marketplace acceptance or independent legal/quality clearance.
+
+Render's deployment of PR #92 explicitly failed for exhausted build minutes.
+The PR #93 deployment dep-db878hh42hec73bvr330 also reports build_failed at
+2026-10-15T06:35:51.903655Z. Neither repair is verified deployed. Live authority
+mounting, production migration/access and all 24 acceptance gates remain open.
+PUBLICATION_ENABLED and POD_PUBLICATION_ENABLED remain false; this checkpoint
+creates no grant, release authorization, revenue event or continuous worker.
