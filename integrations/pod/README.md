@@ -228,3 +228,29 @@ numeric/scope/expiry test vectors, two issuer tests and the roundtrip were added
 merge verification are pending. No live cost source, approval, financial event,
 publication switch or database configuration was created. Actual economics and
 all live acceptance requirements remain unverified.
+
+## Inbox database failure recovery — October 16, 2026
+
+Every inbox transaction now sets a two-second lock timeout and ten-second
+statement timeout before writing. Server-side cancellation rolls back the
+transaction and sends no acknowledgement; the existing HTTP handler returns a
+redacted retryable 503. A failed rollback discards the connection from the pool
+instead of reusing unknown transaction state, while preserving the original
+failure. Successful rollback and commit return healthy connections normally.
+
+These deadlines apply to PostgreSQL locks and individual statements, not to pool
+acquisition or a broken network. The authoritative host must supply a bounded
+pool with connection/query deadlines and verified TLS. No new live pool, database
+role, credential, ingress route or readiness permission is created here.
+
+Three focused regression cases failed before repair; eleven local transaction/
+HTTP tests pass afterward. The PostgreSQL roundtrip fixture now holds an exclusive
+lock and independently runs an intentionally slow test trigger, checks SQLSTATE
+55P03/57014 respectively, verifies no row survived, and retries the same event IDs
+successfully. Fault injection checks failed-rollback disposal. Hosted verification
+is pending; synthetic tests do not establish deployment or live delivery.
+
+The cross-repository workflow pins Content Control's verified main commit
+53b39bc685705ff1743a70b08f1ebdae707c94de so the receiver is exercised with the current
+sender and review production modules. Both publication flags stay false. All 24
+live acceptance areas remain open in Content Control's completion checklist.

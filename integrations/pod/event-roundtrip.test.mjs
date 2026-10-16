@@ -86,6 +86,33 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
    assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[expiryId])).rows[0].n,0);
   }finally{await blocker.query('ROLLBACK');blocker.release();if(pending)await pending;}
 
+  // A sender's HTTP timeout cannot release receiver-side database locks.
+  // Verify the actual transaction-local lock deadline and retry after rollback.
+  const lockId=crypto.randomUUID(),lockEnvelope=sign({id:lockId,kind:'pod.test.lock',payload:{}});
+  const lockHolder=await pool.connect();
+  try{
+   await lockHolder.query('BEGIN');
+   await lockHolder.query('LOCK TABLE pod_content_event_inbox IN ACCESS EXCLUSIVE MODE');
+   await assert.rejects(acceptPodEvent(pool,lockEnvelope,key),error=>error.code==='55P03');
+  }finally{await lockHolder.query('ROLLBACK');lockHolder.release();}
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[lockId])).rows[0].n,0);
+  assert.equal((await acceptPodEvent(pool,lockEnvelope,key)).accepted_event_id,lockId);
+
+  // This trigger exists only in the isolated disposable test schema. Sleeping
+  // without lock contention exercises statement_timeout independently.
+  await pool.query(`CREATE FUNCTION pod_test_delay() RETURNS trigger LANGUAGE plpgsql AS $$
+   BEGIN IF NEW.event->>'kind'='pod.test.slow' THEN PERFORM pg_sleep(11); END IF; RETURN NEW; END $$`);
+  await pool.query('CREATE TRIGGER pod_test_delay BEFORE INSERT ON pod_content_event_inbox FOR EACH ROW EXECUTE FUNCTION pod_test_delay()');
+  const slowId=crypto.randomUUID(),slowEnvelope=sign({id:slowId,kind:'pod.test.slow',payload:{}});
+  try{
+   await assert.rejects(acceptPodEvent(pool,slowEnvelope,key),error=>error.code==='57014');
+  }finally{
+   await pool.query('DROP TRIGGER pod_test_delay ON pod_content_event_inbox');
+   await pool.query('DROP FUNCTION pod_test_delay()');
+  }
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[slowId])).rows[0].n,0);
+  assert.equal((await acceptPodEvent(pool,slowEnvelope,key)).accepted_event_id,slowId);
+
   await pool.query("ALTER TABLE pod_content_event_inbox ADD CONSTRAINT reject_test_event CHECK(event->>'kind' <> 'pod.test.reject')");
   const rejectedId=crypto.randomUUID();
   await pool.query('INSERT INTO pod_events(id,job_id,kind,payload) VALUES($1,$2,$3,$4)',[rejectedId,job,'pod.test.reject',{}]);
