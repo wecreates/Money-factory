@@ -13,9 +13,13 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
   !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(e?.id||'')||typeof e.kind!=='string'||!e.kind.startsWith('pod.')||
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw Error('EVENT_SCOPE_INVALID');
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
- const c=await pool.connect();
+ const c=await pool.connect();let discard=false;
  try{
   await c.query('BEGIN');
+  // Sender timeouts do not cancel PostgreSQL work. Bound lock and statement
+  // waits locally so a blocked inbox cannot hold receiver capacity indefinitely.
+  await c.query("SET LOCAL lock_timeout='2s'");
+  await c.query("SET LOCAL statement_timeout='10s'");
   await c.query('INSERT INTO pod_content_event_inbox(event_id,event_sha256,event) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[e.id,hash,e]);
   const previous=(await c.query('SELECT event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[e.id])).rows[0];
   if(previous.event_sha256!==hash)throw Error('EVENT_REPLAY_CONFLICT');
@@ -24,5 +28,8 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
   const current=clock();
   if(!Number.isFinite(current)||p.issued_at_ms>current||current-p.issued_at_ms>300000)throw Error('EVENT_SCOPE_INVALID');
   await c.query('COMMIT');return {accepted_event_id:e.id};
- }catch(err){await c.query('ROLLBACK').catch(()=>{});throw err;}finally{c.release();}
+ }catch(err){
+  try{await c.query('ROLLBACK');}catch{discard=true;}
+  throw err;
+ }finally{c.release(discard);}
 }
