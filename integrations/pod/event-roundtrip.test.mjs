@@ -101,7 +101,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   // This trigger exists only in the isolated disposable test schema. Sleeping
   // without lock contention exercises statement_timeout independently.
   await pool.query(`CREATE FUNCTION pod_test_delay() RETURNS trigger LANGUAGE plpgsql AS $$
-   BEGIN IF NEW.event->>'kind'='pod.test.slow' THEN PERFORM pg_sleep(11); END IF; RETURN NEW; END $$`);
+   BEGIN IF NEW.event->>'kind'='pod.test.slow' THEN PERFORM pg_sleep(11); END IF; RETURN NEW; END; $`);
   await pool.query('CREATE TRIGGER pod_test_delay BEFORE INSERT ON pod_content_event_inbox FOR EACH ROW EXECUTE FUNCTION pod_test_delay()');
   const slowId=crypto.randomUUID(),slowEnvelope=sign({id:slowId,kind:'pod.test.slow',payload:{}});
   try{
