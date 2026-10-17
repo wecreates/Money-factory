@@ -25,6 +25,18 @@ and remains retryable. It never updates readiness or the verified revenue ledger
 Tests use an in-memory transaction double and a real local HTTP server; they are
 not evidence that the deployed authority or production database is configured.
 
+Both POD HTTP handlers strictly decode the bounded raw body as UTF-8 before
+JSON parsing. Invalid, overlong, surrogate or truncated byte sequences are
+rejected instead of silently replaced before signature or scope checks. Valid
+Unicode, including genuine replacement characters and multibyte sequences split
+across transport chunks, is preserved without normalization. Leading byte-order
+marks remain rejected, matching the previous JSON parser behavior. The event
+handler returns its existing redacted 400 and performs no inbox connection; the
+authority handler retains its redacted 409 and performs no snapshot lookup.
+Size/time limits, signature verification, immutable event identity and grant
+rules are unchanged. Local HTTP regressions cover these cases; live host mounting
+and end-to-end acceptance still require separate verification.
+
 Tests: `node --test integrations/pod/readiness-grant.test.mjs`.
 Content Control tracks all 24 live acceptance areas in POD_COMPLETION_CHECKLIST.md
 and implementation/test evidence in POD_IMPLEMENTATION_STATUS.md. Publishing stays disabled. Etsy pipelines are

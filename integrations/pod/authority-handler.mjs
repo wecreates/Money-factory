@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import {issuePodGrant} from './readiness-grant.mjs';
+import {parsePodRequestJSON} from './request-json.mjs';
 
 // Mount in the existing authoritative HTTP host, with a server-owned snapshot loader.
 // Never accept readiness, approval, facts or price from the request.
@@ -17,7 +18,7 @@ export function createPodAuthorityHandler({loadSnapshot,authKey,signingKey,clock
   const controller=new AbortController(),onClose=()=>controller.abort();
   res.once('close',onClose);
   try{
-   const read=async()=>{const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>4096)throw Error('REQUEST_TOO_LARGE');chunks.push(chunk);}return JSON.parse(Buffer.concat(chunks).toString('utf8'));};
+   const read=async()=>{const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>4096)throw Error('REQUEST_TOO_LARGE');chunks.push(chunk);}return parsePodRequestJSON(Buffer.concat(chunks));};
    const request=await Promise.race([read(),new Promise((_,reject)=>{timer=setTimeout(()=>{req.destroy();reject(Error('TIMEOUT'));},5000);})]);
    clearTimeout(timer);
    if(!request||Object.keys(request).length!==1||typeof request.job_id!=='string'||!/^[-a-zA-Z0-9_]{1,100}$/.test(request.job_id))throw Error('REQUEST_INVALID');
