@@ -21,6 +21,8 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
  const require=createRequire(path.join(root,'package.json'));
  const {Pool}=require('pg');
  const {deliverOutbox}=await import(pathToFileURL(path.join(root,'integrations/pod/outbox.mjs')));
+ const {PodDB}=await import(pathToFileURL(path.join(root,'pod-db-bridge.js')));
+ const {BRIDGE_RULES}=await import(pathToFileURL(path.join(root,'integrations/pod/policy.mjs')));
  const admin=new Pool({connectionString,max:1});
  const schema='pod_bridge_'+crypto.randomBytes(8).toString('hex');
  let pool,server;
@@ -53,6 +55,30 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   const retried=await deliverOutbox(db,options);assert.equal(retried.delivered,1);assert.equal(retried.failed,0);
   assert.ok((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[id])).rows[0].delivered_at);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox')).rows[0].n,1);
+
+  // Cross the sender's real storage cutoff after the receiver commits the first
+  // event. The sender must retain both pending rows and never send the second.
+  const cutoffIds=[crypto.randomUUID(),crypto.randomUUID()],cutoffSent=[];
+  await pool.query(`INSERT INTO pod_events(id,job_id,kind,payload,created_at) VALUES
+   ($1,$3,'pod.test.cutoff','{}','2026-01-01T00:00:00.000001Z'),
+   ($2,$3,'pod.test.cutoff','{}','2026-01-01T00:00:00.000002Z')`,[...cutoffIds,job]);
+  const cutoffDB=new PodDB({pool,bridge:{producer:'CYZOR Money Factory',consumer:'Content Control',contract:{fail_closed_rules:BRIDGE_RULES}},
+   expiresAt:new Date(Date.now()+7*86400000).toISOString()});
+  await assert.rejects(deliverOutbox(cutoffDB,{...options,fetchImpl:async(...args)=>{
+   cutoffSent.push(args[1].headers['idempotency-key']);
+   const response=await transport(...args);assert.equal(response.status,200);
+   cutoffDB.expiresAt=Date.now()+3600000;return response;
+  }}),/POD_STORAGE_EXPIRING/);
+  assert.deepEqual(cutoffSent,[cutoffIds[0]]);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_events WHERE id=ANY($1::uuid[]) AND delivered_at IS NULL',[cutoffIds])).rows[0].n,2);
+  assert.deepEqual((await pool.query('SELECT event_id FROM pod_content_event_inbox WHERE event_id=ANY($1::uuid[])',[cutoffIds])).rows.map(r=>r.event_id),[cutoffIds[0]]);
+  // Restore only the disposable fixture's expiry, then retry unchanged IDs.
+  // This is not a live provider expiry extension or authority approval.
+  cutoffDB.expiresAt=Date.now()+7*86400000;
+  const cutoffRetry=await deliverOutbox(cutoffDB,options);
+  assert.equal(cutoffRetry.delivered,2);assert.equal(cutoffRetry.failed,0);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_events WHERE id=ANY($1::uuid[]) AND delivered_at IS NOT NULL',[cutoffIds])).rows[0].n,2);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=ANY($1::uuid[])',[cutoffIds])).rows[0].n,2);
 
   const sign=event=>{const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:Date.now(),event});
    return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};};

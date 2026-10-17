@@ -308,3 +308,31 @@ credential custody and rotation are not established by checking configuration.
 Render still serves an older Content Control commit and its build-minute blocker
 remains unresolved. All 24 live acceptance areas remain open. Both publication
 flags remain false. No marketplace publication or verified revenue is claimed.
+
+
+## Sender storage cutoff and deduplicated recovery — October 17, 2026
+
+Content Control PR #192 merged as c11f17968fea7d8e41d2d58d31c5762f917639ae. Its outbox
+rechecks the existing 24-hour storage safety cutoff before each send and before
+reporting batch completion, including empty pages. A cutoff is a batch-wide
+rejection even when individual delivery errors are configured to continue. A
+receiver may already have committed an in-flight event while the sender can no
+longer commit its acknowledgement. Retain the stable event ID/content; do not
+infer rejection from a missing acknowledgement or manufacture another event ID.
+
+The cross-repository workflow pins that exact merged commit. Its PostgreSQL/HTTP
+roundtrip now exercises the real sender storage and transaction gates: expire the
+disposable sender after the first receiver commit, verify the second event was
+not sent and both sender rows remain pending, then restore only the fixture's
+expiry and retry both unchanged IDs. Each inbox event must exist exactly once.
+Hosted verification is pending; local syntax validation is not database evidence.
+The sender's own gate passed 372 Node and 157 POD Python tests, one durable E2E
+and three workflow guards with zero failures/skips:
+https://github.com/wecreates/content-control/actions/runs/39005696540
+
+The previous MF pin passed 35 Node and two Python tests in
+https://github.com/wecreates/Money-factory/actions/runs/38992242395
+This new pin also includes cooperative task cancellation and exact-byte QA
+snapshots; the MF roundtrip does not replace Content Control's full QA suite.
+No production expiry is extended. Live authority mounting, retention, real grants
+and all 24 acceptance areas remain open; both publication flags remain false.
