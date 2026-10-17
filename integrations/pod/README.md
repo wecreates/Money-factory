@@ -280,3 +280,31 @@ readiness and economics tests pass. The cross-repository workflow now pins teste
 Content Control main 876cb6217ef41bd6690070b8090d261b0de390fd. Hosted verification and
 merge evidence are pending. Both publication flags remain false and all 24 live
 acceptance areas remain open in Content Control's registry.
+
+
+## Cross-repository credential isolation checkpoint — October 17, 2026
+
+Content Control PR #186 merged as ec034eae057206120a8b2d0b14c0e62412dc032a after its
+PostgreSQL/Python gate passed 361 Node tests, 148 POD Python tests, one durable
+end-to-end test and three workflow guard tests, with no failures or skips:
+https://github.com/wecreates/content-control/actions/runs/38992101973
+Its startup and read-only preflight now reject reuse across all configured POD
+evidence and transport credentials, including grant authentication and outbox.
+Keep those transport keys distinct from grant signing, independent QA and all
+other evidence authorities. Absent optional lanes remain disabled; no credential
+is generated, rotated, disclosed or configured by this checkpoint. The matching
+contract is Content Control's integrations/pod/KEY_ISOLATION.md.
+
+The cross-repository workflow now pins that exact merged Content Control commit,
+so grant/receiver and review-production compatibility are tested against the new
+runtime tree rather than the previous pin. Hosted execution of this pin is pending.
+The earlier bounded-lookup change in MF PR #23 passed 35 Node and two Python tests
+in https://github.com/wecreates/Money-factory/actions/runs/38989886466 and merged as
+74af2af36dbbc75a377abfa2595c7ee378925a2e; its source tree matched the tested tree.
+
+This is implementation and disposable test evidence. The authoritative host and
+current snapshot loader still need live mounting and verification; independent
+credential custody and rotation are not established by checking configuration.
+Render still serves an older Content Control commit and its build-minute blocker
+remains unresolved. All 24 live acceptance areas remain open. Both publication
+flags remain false. No marketplace publication or verified revenue is claimed.
