@@ -254,3 +254,29 @@ The cross-repository workflow pins Content Control's verified main commit
 53b39bc685705ff1743a70b08f1ebdae707c94de so the receiver is exercised with the current
 sender and review production modules. Both publication flags stay false. All 24
 live acceptance areas remain open in Content Control's completion checklist.
+
+## Bounded authority snapshot lookup — October 16, 2026
+
+`createPodAuthorityHandler` now passes an AbortSignal as the second argument to
+`loadSnapshot(jobId, {signal})`. Its `snapshotTimeoutMs` defaults to 5,000 ms and
+must be an integer from 1 through 10,000. This is separate from the existing
+five-second request-body read deadline. A timeout or client disconnect aborts the
+lookup signal; the handler discards late results and never signs them. Elapsed
+monotonic time is checked after resolution, so delaying a timer callback does not
+extend the deadline. Blocked connected requests receive the existing redacted
+409 GRANT_BLOCKED response. Non-callable or nonfinite authority clocks fail closed.
+
+The host's loader must honor cancellation and use bounded pool acquisition,
+database query and network deadlines. The handler cannot forcibly cancel an
+arbitrary loader or preempt synchronous work that blocks Node's event loop. It
+does prevent such late results from becoming grants. Existing one-argument loaders
+remain compatible but must implement cancellation before live capacity acceptance.
+No authority host, current approval snapshot, credential or production grant is
+created by this change. There is no fallback to an old queue approval.
+
+Four regressions failed against the old handler, and a further delayed-timer
+regression failed before the monotonic check. All 22 focused local authority,
+readiness and economics tests pass. The cross-repository workflow now pins tested
+Content Control main 876cb6217ef41bd6690070b8090d261b0de390fd. Hosted verification and
+merge evidence are pending. Both publication flags remain false and all 24 live
+acceptance areas remain open in Content Control's registry.
