@@ -37,6 +37,17 @@ Size/time limits, signature verification, immutable event identity and grant
 rules are unchanged. Local HTTP regressions cover these cases; live host mounting
 and end-to-end acceptance still require separate verification.
 
+Request-body deadlines also check elapsed monotonic time after decoding/parsing
+and before business access. A body completing at or beyond the deadline cannot
+start an inbox transaction or a snapshot lookup even if its timer callback was
+delayed. The event endpoint returns 408 REQUEST_TIMEOUT; the authority retains
+409 GRANT_BLOCKED for a completed late body. Existing timers still terminate
+stalled streams. This cannot preempt synchronous work that blocks Node's event
+loop; it prevents late completion from being accepted afterward. The authority's
+five-second body and separate snapshot deadlines, and the event endpoint's
+configured body timeout, are unchanged. Controlled-clock boundary tests are
+unit evidence, not a measured production capacity or live timeout drill.
+
 Tests: `node --test integrations/pod/readiness-grant.test.mjs`.
 Content Control tracks all 24 live acceptance areas in POD_COMPLETION_CHECKLIST.md
 and implementation/test evidence in POD_IMPLEMENTATION_STATUS.md. Publishing stays disabled. Etsy pipelines are

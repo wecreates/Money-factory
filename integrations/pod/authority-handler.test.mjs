@@ -1,8 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import {EventEmitter} from 'node:events';
 import {createPodAuthorityHandler} from './authority-handler.mjs';
 const authKey='a'.repeat(32),signingKey='s'.repeat(32);
+for(const finishMs of [4999,5000,5001])test(`body completion at ${finishMs}ms respects the authority read deadline`,async t=>{
+ let elapsed=0,loads=0,bodyFinished=false;
+ t.mock.method(performance,'now',()=>elapsed);
+ const res=new EventEmitter();res.writeHead=status=>{res.status=status;};
+ res.end=body=>{res.body=JSON.parse(body);res.writableEnded=true;};
+ const req={method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+authKey},destroy(){this.destroyed=true;},
+  async *[Symbol.asyncIterator](){yield Buffer.from('{"job_id":"job"}');elapsed=finishMs;bodyFinished=true;}};
+ await createPodAuthorityHandler({authKey,signingKey,loadSnapshot:async id=>{loads++;return snapshot(id);}})(req,res);
+ assert.equal(bodyFinished,true);
+ if(finishMs<5000){assert.equal(res.status,200);assert.equal(loads,1);}
+ else{assert.equal(res.status,409);assert.deepEqual(res.body,{error:'GRANT_BLOCKED'});assert.equal(loads,0);}
+});
 const snapshot=id=>({job:{id,business_id:'b',account_id:'a',platform:'kdp',destination_platform:'kdp',mode:'PRELAUNCH'},
  readiness:{businesses:[{id:'b',content_production_ready:true,max_mode:'PRELAUNCH'}]},
  approval:{job_id:id,business_id:'b',account_id:'a',platform:'kdp',revoked:false,production_permission:true,
