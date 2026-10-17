@@ -6,6 +6,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
+import {once} from 'node:events';
 import {createPodEventHandler} from './event-handler.mjs';
 import {acceptPodEvent} from './event-inbox.mjs';
 
@@ -23,6 +24,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
  const {deliverOutbox}=await import(pathToFileURL(path.join(root,'integrations/pod/outbox.mjs')));
  const {PodDB}=await import(pathToFileURL(path.join(root,'pod-db-bridge.js')));
  const {BRIDGE_RULES}=await import(pathToFileURL(path.join(root,'integrations/pod/policy.mjs')));
+ const {monitorPodPool}=await import(pathToFileURL(path.join(root,'integrations/pod/pool-health.mjs')));
  const admin=new Pool({connectionString,max:1});
  const schema='pod_bridge_'+crypto.randomBytes(8).toString('hex');
  let pool,server;
@@ -30,6 +32,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
  try{
   await admin.query(`CREATE SCHEMA ${schema}`);
   pool=new Pool({connectionString,max:10,options:`-c search_path=${schema}`});
+  const poolHealth=monitorPodPool(pool);
   await pool.query(await fs.readFile(new URL('./001_event_inbox.sql',import.meta.url),'utf8'));
   // Only sender event storage is a fixture; delivery and receipt are production modules.
   await pool.query(`CREATE TABLE pod_events(id uuid PRIMARY KEY,job_id uuid,kind text NOT NULL,
@@ -45,6 +48,15 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   const options={url:'https://authority.invalid/pod/events',key,fetchImpl:transport,continueOnError:true};
   const id=crypto.randomUUID(),job=crypto.randomUUID();
   await pool.query('INSERT INTO pod_events(id,job_id,kind,payload) VALUES($1,$2,$3,$4)',[id,job,'pod.production.review_required',{publication_enabled:false}]);
+  // Interrupt only this fixture's idle backend after committing the sender event.
+  // The event must survive reconnection, lost acknowledgement and unchanged-ID retry.
+  const disconnectedPid=(await pool.query('SELECT pg_backend_pid() AS pid')).rows[0].pid;
+  assert.equal(pool.totalCount,1);assert.equal(pool.idleCount,1);
+  const idleError=once(pool,'error',{signal:AbortSignal.timeout(5000)});
+  const [termination]=await Promise.all([
+   admin.query('SELECT pg_terminate_backend($1) AS terminated',[disconnectedPid]),idleError]);
+  assert.equal(termination.rows[0].terminated,true);
+  assert.equal(poolHealth().idle_connection_failures,1);assert.equal(pool.totalCount,0);
   const lost=await deliverOutbox(db,{...options,fetchImpl:async(...args)=>{
    const response=await transport(...args);assert.equal(response.status,200);await response.arrayBuffer();
    throw Error('SIMULATED_LOST_ACK');
@@ -53,6 +65,8 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[id])).rows[0].delivered_at,null);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox')).rows[0].n,1);
   const retried=await deliverOutbox(db,options);assert.equal(retried.delivered,1);assert.equal(retried.failed,0);
+  assert.notEqual((await pool.query('SELECT pg_backend_pid() AS pid')).rows[0].pid,disconnectedPid);
+  assert.equal(poolHealth().idle_connection_failures,1);
   assert.ok((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[id])).rows[0].delivered_at);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox')).rows[0].n,1);
 

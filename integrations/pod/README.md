@@ -336,3 +336,15 @@ This new pin also includes cooperative task cancellation and exact-byte QA
 snapshots; the MF roundtrip does not replace Content Control's full QA suite.
 No production expiry is extended. Live authority mounting, retention, real grants
 and all 24 acceptance areas remain open; both publication flags remain false.
+
+
+## Idle database disconnect and delivery recovery — October 17, 2026
+
+The cross-repository gate now pins Content Control b2b6799833eea5d2498458106e1069da6c34a97a. Its runtime pools handle idle-connection error events before connecting, retaining only a bounded incident count, timestamp and fixed diagnostic. The driver discards the failed idle client and a later acquisition can reconnect under the same TLS and timeout policy. Host-provided Money Factory pools also need an idle-error handler; this fixture does not configure or mount a live authority pool.
+
+The existing PostgreSQL/HTTP roundtrip now attaches the real Content Control monitor, commits a sender event, terminates only its own disposable idle backend, and verifies removal before continuing delivery. The event must survive reconnection, a lost acknowledgement and unchanged-ID retry with one inbox row. The diagnostic remains recorded after recovery. Existing duplicate, expiry, cutoff and transaction rollback cases remain in the same gate. Local validation is syntax-only; hosted execution is pending.
+
+Content Control PR #200 passed its full integration and production-image gates (401 Node tests, 157 Python tests and one durable E2E, zero failures/skips), including a separate actual PostgreSQL reconnection test:
+https://github.com/wecreates/content-control/actions/runs/39020204979
+https://github.com/wecreates/content-control/actions/runs/39020204915
+This pin also includes cooperative independent-review cancellation and the stricter image startup probe. It does not establish production deployment, a live failover drill, current authority mounting or marketplace acceptance. All 24 live areas remain open and both publication flags remain false.
