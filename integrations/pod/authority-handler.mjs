@@ -17,10 +17,13 @@ export function createPodAuthorityHandler({loadSnapshot,authKey,signingKey,clock
   let timer,snapshotTimer,onAbort;
   const controller=new AbortController(),onClose=()=>controller.abort();
   res.once('close',onClose);
+  const readDeadline=performance.now()+5000;
   try{
    const read=async()=>{const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>4096)throw Error('REQUEST_TOO_LARGE');chunks.push(chunk);}return parsePodRequestJSON(Buffer.concat(chunks));};
    const request=await Promise.race([read(),new Promise((_,reject)=>{timer=setTimeout(()=>{req.destroy();reject(Error('TIMEOUT'));},5000);})]);
    clearTimeout(timer);
+   // A delayed timer must not give a late body a fresh snapshot lookup window.
+   if(performance.now()>=readDeadline)throw Error('TIMEOUT');
    if(!request||Object.keys(request).length!==1||typeof request.job_id!=='string'||!/^[-a-zA-Z0-9_]{1,100}$/.test(request.job_id))throw Error('REQUEST_INVALID');
    if(res.destroyed||req.aborted)controller.abort();
    // Bound the authority lookup separately from reading the request. A loader

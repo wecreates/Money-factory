@@ -2,8 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import crypto from 'node:crypto';
+import {EventEmitter} from 'node:events';
 import {createPodEventHandler} from './event-handler.mjs';
 const key='e'.repeat(32),id='12b4c678-1234-4321-abcd-123456789abc',now=1800000000000;
+for(const finishMs of [9,10,11])test(`body completion at ${finishMs}ms respects the 10ms read deadline before its timer runs`,async t=>{
+ let elapsed=0,bodyFinished=false;
+ t.mock.method(performance,'now',()=>elapsed);
+ const pool=database(),res=new EventEmitter();
+ res.writeHead=status=>{res.status=status;};res.end=body=>{res.body=JSON.parse(body);res.writableEnded=true;};
+ const req={method:'POST',headers:{'content-type':'application/json','idempotency-key':id},destroy(){this.destroyed=true;},
+  async *[Symbol.asyncIterator](){yield Buffer.from(JSON.stringify(envelope()));elapsed=finishMs;bodyFinished=true;}};
+ await createPodEventHandler({pool,key,clock:()=>now,timeoutMs:10})(req,res);
+ assert.equal(bodyFinished,true);
+ if(finishMs<10){assert.equal(res.status,200);assert.equal(pool.stats().commits,1);}
+ else{assert.equal(res.status,408);assert.deepEqual(res.body,{error:'REQUEST_TIMEOUT'});assert.equal(pool.stats().connects,0);}
+});
 function envelope(event={id,kind:'pod.production.review_required',payload:{publication_enabled:false}},issued=now){
  const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:issued,event});
  return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};

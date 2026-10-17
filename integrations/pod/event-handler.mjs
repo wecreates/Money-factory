@@ -21,6 +21,7 @@ export function createPodEventHandler({pool,key,clock=Date.now,timeoutMs=5000}){
   // Outer JSON escapes the signed payload; cap both wire bytes and decoded body.
   const maximum=524288;
   if(Number(req.headers['content-length'])>maximum)return send(413,{error:'REQUEST_TOO_LARGE'});
+  const readDeadline=performance.now()+timeoutMs;
   try{
    const read=async()=>{
     const chunks=[];let size=0;
@@ -31,6 +32,9 @@ export function createPodEventHandler({pool,key,clock=Date.now,timeoutMs=5000}){
     timer=setTimeout(()=>{send(408,{error:'REQUEST_TIMEOUT'});req.destroy();reject(Error('REQUEST_TIMEOUT'));},timeoutMs);
    })]);
    clearTimeout(timer);
+   // Completing the stream/decoder can delay the timer callback. Do not let a
+   // late body proceed to signature verification or acquire an inbox client.
+   if(performance.now()>=readDeadline)return send(408,{error:'REQUEST_TIMEOUT'});
    if(!envelope||Array.isArray(envelope)||Object.keys(envelope).sort().join(',')!=='payload,signature')throw Error('EVENT_ENVELOPE_INVALID');
    const ack=await acceptPodEvent(pool,envelope,key,clock,{expectedEventId:id});
    return send(200,ack);
