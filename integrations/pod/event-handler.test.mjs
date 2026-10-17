@@ -24,7 +24,7 @@ async function serverFor(pool,run,clock=()=>now){
  const server=http.createServer(createPodEventHandler({pool,key,clock}));
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const url='http://127.0.0.1:'+server.address().port;
- const post=(body,headers={})=>fetch(url,{method:'POST',headers:{'content-type':'application/json','idempotency-key':id,...headers},body:typeof body==='string'?body:JSON.stringify(body)});
+ const post=(body,headers={})=>fetch(url,{method:'POST',headers:{'content-type':'application/json','idempotency-key':id,...headers},body:typeof body==='string'||Buffer.isBuffer(body)?body:JSON.stringify(body)});
  try{await run(post,url);}finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
 }
 test('signed HTTP delivery acknowledges only after commit and deduplicates stable event IDs',async()=>{
@@ -88,4 +88,42 @@ test('a nonfinite clock rejects the event before database access',async()=>{
  await serverFor(pool,async post=>{
   assert.equal((await post(envelope())).status,400);assert.equal(pool.stats().connects,0);
  },()=>NaN);
+});
+for(const bytes of [[0xff],[0xc0,0xaf],[0xed,0xa0,0x80],[0xe2,0x82]]){
+ test(`malformed UTF-8 ${bytes.join('-')} cannot be repaired into a signed event`,async()=>{
+  const invalid=Buffer.from(bytes),replacement=invalid.toString('utf8');
+  const wire=Buffer.from(JSON.stringify(envelope({id,kind:'pod.test.encoding',payload:{note:replacement}})));
+  const marker=Buffer.from(replacement),offset=wire.indexOf(marker);assert.ok(offset>=0);
+  const malformed=Buffer.concat([wire.subarray(0,offset),invalid,wire.subarray(offset+marker.length)]);
+  const pool=database();
+  await serverFor(pool,async post=>{
+   const response=await post(malformed);assert.equal(response.status,400);
+   assert.deepEqual(await response.json(),{error:'EVENT_REJECTED'});
+   assert.equal(pool.stats().connects,0);
+   // Genuine Unicode replacement characters remain legal when encoded correctly.
+   const valid=await post(wire);assert.equal(valid.status,200);assert.equal(pool.stats().commits,1);
+  });
+ });
+}
+test('valid signed Unicode survives request chunk boundaries without normalization',async()=>{
+ const pool=database();
+ await serverFor(pool,async(_post,url)=>{
+  const wire=Buffer.from(JSON.stringify(envelope({id,kind:'pod.test.encoding',payload:{note:'café 🖨️'}})));
+  const split=wire.indexOf(Buffer.from('🖨'))+2;
+  const response=await new Promise((resolve,reject)=>{
+   const req=http.request(url,{method:'POST',headers:{'content-type':'application/json','idempotency-key':id}},res=>{
+    const chunks=[];res.on('data',c=>chunks.push(c));res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(Buffer.concat(chunks))}));res.on('error',reject);
+   });
+   req.on('error',reject);req.write(wire.subarray(0,split));setImmediate(()=>req.end(wire.subarray(split)));
+  });
+  assert.equal(response.status,200);assert.deepEqual(response.body,{accepted_event_id:id});assert.equal(pool.stats().commits,1);
+ });
+});
+test('UTF-8 decoding preserves rejection of a leading byte-order mark',async()=>{
+ const pool=database();
+ await serverFor(pool,async post=>{
+  const wire=Buffer.concat([Buffer.from([0xef,0xbb,0xbf]),Buffer.from(JSON.stringify(envelope()))]);
+  const response=await post(wire);assert.equal(response.status,400);
+  assert.deepEqual(await response.json(),{error:'EVENT_REJECTED'});assert.equal(pool.stats().connects,0);
+ });
 });

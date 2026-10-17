@@ -11,9 +11,19 @@ async function serve(t,options){
  const server=http.createServer(createPodAuthorityHandler({authKey,signingKey,...options}));
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  t.after(async()=>{server.closeAllConnections();await new Promise(r=>server.close(r));});
- return signal=>fetch('http://127.0.0.1:'+server.address().port,{method:'POST',signal,
-  headers:{authorization:'Bearer '+authKey,'content-type':'application/json'},body:JSON.stringify({job_id:'job'})});
+ return (signal,body=JSON.stringify({job_id:'job'}))=>fetch('http://127.0.0.1:'+server.address().port,{method:'POST',signal,
+  headers:{authorization:'Bearer '+authKey,'content-type':'application/json'},body});
 }
+test('invalid request bytes are rejected before snapshot lookup even in overwritten JSON fields',async t=>{
+ let loads=0;
+ const post=await serve(t,{loadSnapshot:async id=>{loads++;return snapshot(id);}});
+ const wire=Buffer.concat([Buffer.from('{"job_id":"'),Buffer.from([0xff]),Buffer.from('","job_id":"job"}')]);
+ const response=await post(undefined,wire);assert.equal(response.status,409);
+ assert.deepEqual(await response.json(),{error:'GRANT_BLOCKED'});assert.equal(loads,0);
+ const bom=await post(undefined,Buffer.concat([Buffer.from([0xef,0xbb,0xbf]),Buffer.from('{"job_id":"job"}')]));
+ assert.equal(bom.status,409);assert.equal(loads,0);
+ const valid=await post();assert.equal(valid.status,200);assert.equal(loads,1);
+});
 test('authority validates lookup deadline and clock before serving',()=>{
  for(const snapshotTimeoutMs of [0,-1,1.5,Infinity,'50',10001])assert.throws(()=>createPodAuthorityHandler({
   authKey,signingKey,loadSnapshot:async()=>{},snapshotTimeoutMs}),/AUTHORITY_CONFIG_INVALID/);

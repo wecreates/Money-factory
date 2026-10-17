@@ -1,4 +1,5 @@
 import {acceptPodEvent} from './event-inbox.mjs';
+import {parsePodRequestJSON} from './request-json.mjs';
 
 // Mount on the existing internal Money Factory host, behind its TLS ingress.
 // The signed envelope authenticates the sender; the transport cannot promote
@@ -24,7 +25,7 @@ export function createPodEventHandler({pool,key,clock=Date.now,timeoutMs=5000}){
    const read=async()=>{
     const chunks=[];let size=0;
     for await(const chunk of req){size+=chunk.length;if(size>maximum)throw Error('REQUEST_TOO_LARGE');chunks.push(chunk);}
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    return parsePodRequestJSON(Buffer.concat(chunks));
    };
    const envelope=await Promise.race([read(),new Promise((_,reject)=>{
     timer=setTimeout(()=>{send(408,{error:'REQUEST_TIMEOUT'});req.destroy();reject(Error('REQUEST_TIMEOUT'));},timeoutMs);
