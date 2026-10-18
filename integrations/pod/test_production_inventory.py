@@ -34,7 +34,7 @@ class ProductionInventoryTests(unittest.TestCase):
                     'paid_generation_enabled':False,'marketplace_ready':False,'package_sha256':digest,
                     'remaining_checks':['official_template','rights','editorial','independent_visual_review',
                                         'marketplace_account','platform_preview','release_approval']}))
-            with patch.object(agent.subprocess,'run',side_effect=child):
+            with patch.object(agent,'run_review_child',side_effect=child):
                 try:result=agent.run(job,root,font,out)
                 except (ValueError,OSError):
                     self.assertFalse((out/'money-factory-receipt.json').exists())

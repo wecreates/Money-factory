@@ -544,3 +544,31 @@ rights, official templates, independent QA or live acceptance. It is not an
 adversarial filesystem sandbox or an atomic directory snapshot; parent-directory
 replacement and same-user mutation remain outside this guarantee. All publication
 flags remain false and every live acceptance requirement remains open.
+
+
+## Money Factory review cancellation — October 18, 2026
+
+During local rendering, the MF agent now handles SIGTERM and SIGINT and forwards
+cancellation as SIGTERM to its pinned Node coordinator. It waits up to twelve
+seconds for that coordinator to finish its existing Python process-group cleanup,
+including its five-second escalation. The existing 260-second review deadline
+uses the same cooperative shutdown before falling back to killing/reaping Node.
+Cancellation remains a failure even when the child terminates with exit code zero.
+No output verification or success receipt follows a cancelled or timed-out render;
+the private input snapshot is removed and prior signal handlers are restored.
+
+The supervisor requires the Python main thread, rejecting other callers before
+spawning. Seven new tests exercise actual MF -> pinned Node -> fixture Python
+SIGTERM/SIGINT, a stubborn descendant, deadline cleanup, direct-child forced kill,
+spawn failure and the main-thread guard. Existing synthetic child mocks now target
+the explicit supervisor boundary; their original scope, integrity and FIFO checks
+remain. All 36 Python tests pass locally, including genuine art/PDF rendering and
+retry. The existing hosted PostgreSQL/CLI/bridge gate is still required before merge.
+
+This is cooperative lifecycle handling, not a durable job scheduler or a live
+recovery drill. SIGKILL of MF, abrupt host death, a broken/replaced Node supervisor
+or escaped process groups can still leave descendants or partial output. The
+fallback reaps the direct child; it cannot guarantee cleanup of detached processes
+when the coordinator itself is unresponsive. Partial generated directories remain
+for investigation and require authorized recovery. This does not enable publication,
+mount the live authority or complete any of the 24 live acceptance areas.

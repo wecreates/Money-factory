@@ -4,8 +4,11 @@ import hashlib
 import json
 import os
 import re
+import signal
 import stat
 import tempfile
+import threading
+import time
 from pathlib import Path
 import subprocess
 
@@ -21,6 +24,58 @@ REVIEW_CHECKS = {'official_template', 'rights', 'editorial', 'independent_visual
 COMMON_ARTIFACTS = {'print.png', 'art-mask.png', 'text-mask.png', 'metadata.json',
                     'research.json', 'provenance.json'}
 KDP_ARTIFACTS = {'cover.pdf', 'interior.pdf', 'interior.receipt.json'}
+REVIEW_TIMEOUT_SECONDS = 260
+REVIEW_STOP_SECONDS = 12  # Allow the pinned Node supervisor's five-second group cleanup.
+
+
+def run_review_child(argv, *, check=True, timeout=REVIEW_TIMEOUT_SECONDS):
+    # Python signal handlers belong to the main thread. Reject unsupported callers
+    # before spawning rather than silently omitting cancellation forwarding.
+    if threading.current_thread() is not threading.main_thread():
+        raise RuntimeError('REVIEW_MAIN_THREAD_REQUIRED')
+    cancelled = False
+    def cancel(signum, frame):
+        nonlocal cancelled
+        cancelled = True
+    previous = {}
+    child = None
+    deadline = time.monotonic() + timeout
+    try:
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            previous[sig] = signal.signal(sig, cancel)
+        child = subprocess.Popen(argv)
+        while True:
+            if cancelled:
+                raise InterruptedError('REVIEW_CANCELLED')
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired(argv, timeout)
+            try:
+                code = child.wait(timeout=min(.1, remaining))
+            except subprocess.TimeoutExpired:
+                continue
+            # Cancellation is sticky, including when a terminating child exits zero.
+            if cancelled:
+                raise InterruptedError('REVIEW_CANCELLED')
+            if time.monotonic() >= deadline:
+                raise subprocess.TimeoutExpired(argv, timeout)
+            if check and code:
+                raise subprocess.CalledProcessError(code, argv)
+            return subprocess.CompletedProcess(argv, code)
+    finally:
+        try:
+            if child is not None and child.poll() is None:
+                # Do not kill Node immediately: it owns a separate Python process
+                # group and must finish its TERM/KILL escalation before exiting.
+                child.terminate()
+                try:
+                    child.wait(timeout=REVIEW_STOP_SECONDS)
+                except subprocess.TimeoutExpired:
+                    child.kill()
+                    child.wait()
+        finally:
+            for sig, handler in previous.items():
+                signal.signal(sig, handler)
 
 
 def validate_inventory(files, platform):
@@ -119,8 +174,9 @@ def run(job, content_control, font, output):
         with snapshot.open('xb') as target:
             target.write(body)
         snapshot.chmod(0o400)
-        subprocess.run(['node',str(root/'scripts/pod_review_cli.mjs'),str(snapshot),
-                        str(Path(font).resolve(strict=True)),str(output)],check=True,timeout=260)
+        run_review_child(['node',str(root/'scripts/pod_review_cli.mjs'),str(snapshot),
+                         str(Path(font).resolve(strict=True)),str(output)],
+                         check=True,timeout=REVIEW_TIMEOUT_SECONDS)
     result=output_json(output/'result.json')
     validate_result(result, platform)
     manifest=output_json(output/'package/manifest.json')

@@ -38,7 +38,7 @@ class ProductionScopeTests(unittest.TestCase):
                 if result_change: result_change(result)
                 (package/'manifest.json').write_text(json.dumps(manifest))
                 (out/'result.json').write_text(json.dumps(result))
-            with patch.object(agent.subprocess, 'run', side_effect=child):
+            with patch.object(agent, 'run_review_child', side_effect=child):
                 try:
                     result = agent.run(job, root, font, out)
                 except ValueError:
@@ -62,7 +62,7 @@ class ProductionScopeTests(unittest.TestCase):
                 root = Path(tmp); job = root/'job.json'
                 job.write_text(json.dumps({'publication_enabled': False,
                     'paid_generation_enabled': False, 'platform': platform}))
-                with patch.object(agent.subprocess, 'run') as child:
+                with patch.object(agent, 'run_review_child') as child:
                     with self.assertRaisesRegex(ValueError, '^PLATFORM_BLOCKED$'):
                         agent.run(job, root, root/'absent-font', root/'out')
                     child.assert_not_called()
