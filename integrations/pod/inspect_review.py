@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from production_agent import (capture_job, output_chunks, validate_result,
+from production_agent import (capture_job, output_chunks, validate_result, review_directories,
                               validate_review_output, MAX_OUTPUT_JSON_BYTES, PLATFORMS)
 
 
@@ -28,16 +28,18 @@ def inspect_review(job, output):
     if not isinstance(platform, str) or platform not in PLATFORMS:
         raise ValueError('PLATFORM_BLOCKED')
     root = Path(output).absolute()
-    receipt_body = b''.join(output_chunks(root/'money-factory-receipt.json', MAX_OUTPUT_JSON_BYTES))
-    receipt = json.loads(receipt_body.decode('utf-8', errors='strict'))
-    validate_result(receipt, platform)
-    input_hash = hashlib.sha256(body).hexdigest()
-    if receipt.get('input_sha256') != input_hash:
-        raise ValueError('RECEIPT_INPUT_MISMATCH')
-    result = validate_review_output(root, platform)
-    result['input_sha256'] = input_hash
-    if canonical(receipt) != canonical(result):
-        raise ValueError('RECEIPT_RESULT_MISMATCH')
+    with review_directories(root) as directories:
+        receipt_body = b''.join(output_chunks('money-factory-receipt.json', MAX_OUTPUT_JSON_BYTES,
+                                            dir_fd=directories[0]))
+        receipt = json.loads(receipt_body.decode('utf-8', errors='strict'))
+        validate_result(receipt, platform)
+        input_hash = hashlib.sha256(body).hexdigest()
+        if receipt.get('input_sha256') != input_hash:
+            raise ValueError('RECEIPT_INPUT_MISMATCH')
+        result = validate_review_output(root, platform, directories=directories)
+        result['input_sha256'] = input_hash
+        if canonical(receipt) != canonical(result):
+            raise ValueError('RECEIPT_RESULT_MISMATCH')
     return {'schema_version': 1, 'status': 'VERIFIED_REVIEW_FILES',
             'scope': 'local_files_only', 'review_status': 'REVIEW_REQUIRED',
             'input_sha256': input_hash, 'package_sha256': result['package_sha256'],

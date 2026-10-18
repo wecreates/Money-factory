@@ -771,3 +771,36 @@ inbox/HTTP/transaction tests pass. The disposable PostgreSQL test now saturates
 checks zero rows and retries the unchanged event ID. Hosted PostgreSQL validation
 is required before merging. Publication remains disabled; no live acceptance,
 production pool mounting, capacity target or recovery drill is established here.
+
+
+### Review directory binding (r91)
+
+Review validation now opens the output and package directories with O_DIRECTORY
+and O_NOFOLLOW before reading any output bytes. Result, manifest and artifacts
+are opened relative to those pinned directory descriptors. Recovery inspection
+uses the same root handle for the committed receipt and the shared validator.
+A symlink at either directory is rejected; final file components retain their
+existing no-follow, regular-file and byte-limit checks.
+
+Before successful validation/inspection, directory device/inode identities must
+still match their original entries. Replacement or redirection during the reads
+cannot cause validation to traverse the replacement directory; it rejects rather
+than reporting VERIFIED_REVIEW_FILES. All directory descriptors close on success,
+invalid content, cancellation and failed directory opens. No renderer, repair,
+receipt overwrite, external readback or publication is added to inspection.
+
+Six tests cover package/root symlinks, replacement of either directory during
+inspection, unchanged replacement files, descriptor cleanup on repeated success
+and validation failure, and missing/file/FIFO package entries. Four of the first
+five test methods failed against the baseline (five assertion failures including
+both package-validation paths). All 74 Python tests pass locally, including the
+existing real KDP rendering/inspection and signal/cancellation tests. Hosted CI
+against the pinned producer remains required before merge.
+
+The output must still be quiescent. Directory handles do not lock file contents
+against a same-user writer, prove origin, provide a retained backup, or make
+anything immutable after validation. Ancestors of the selected output directory
+are resolved by the OS; this is not a general filesystem sandbox. Concurrent
+modification after the final identity check remains outside this guarantee.
+Approval and durability remain unverified, all live acceptance areas remain open,
+and both publication flags remain false.

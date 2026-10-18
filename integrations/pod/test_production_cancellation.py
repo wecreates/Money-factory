@@ -33,13 +33,13 @@ class ReviewCancellationTests(unittest.TestCase):
                     snapshot.append(Path(argv[2]))
                     case.finish(argv, **kwargs)
                     if phase == 'child': cancel()
-                def read_json(path):
-                    value = real_json(path)
+                def read_json(path, **kwargs):
+                    value = real_json(path, **kwargs)
                     if phase == 'json': cancel()
                     return value
-                def chunks(path, limit):
-                    for chunk in real_chunks(path, limit):
-                        if phase == 'artifact' and path.name == 'art.bin': cancel()
+                def chunks(path, limit, **kwargs):
+                    for chunk in real_chunks(path, limit, **kwargs):
+                        if phase == 'artifact' and Path(path).name == 'art.bin': cancel()
                         yield chunk
                 def sync(fd):
                     real_sync(fd)
