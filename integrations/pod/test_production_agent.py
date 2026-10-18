@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from inspect_review import inspect_review
 
 module=importlib.util.spec_from_file_location('pod_agent',Path(__file__).with_name('production_agent.py'))
 agent=importlib.util.module_from_spec(module);module.loader.exec_module(agent)
@@ -40,6 +41,11 @@ class ProductionAgentTests(unittest.TestCase):
             for name in ('cover.pdf','interior.pdf','metadata.json','provenance.json','research.json'):
                 self.assertTrue((out/'package'/name).is_file())
             self.assertEqual(json.loads((out/'package/metadata.json').read_text()),spec['metadata'])
+            inspected = inspect_review(job, out)
+            self.assertEqual(inspected['status'], 'VERIFIED_REVIEW_FILES')
+            self.assertEqual(inspected['package_sha256'], r['package_sha256'])
+            self.assertFalse(inspected['approval_verified'])
+            self.assertFalse(inspected['durability_verified'])
             # Original art + PDFs and the final package are reproducible across attempts.
             again=agent.run(job,os.environ['CONTENT_CONTROL_ROOT'],'/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',Path(tmp)/'again')
             self.assertEqual(r['package_sha256'],again['package_sha256'])
