@@ -4,9 +4,10 @@ import {parsePodRequestJSON} from './request-json.mjs';
 // Mount on the existing internal Money Factory host, behind its TLS ingress.
 // The signed envelope authenticates the sender; the transport cannot promote
 // observations into verified revenue, rights, readiness, or publication authority.
-export function createPodEventHandler({pool,key,clock=Date.now,timeoutMs=5000}){
+export function createPodEventHandler({pool,key,clock=Date.now,timeoutMs=5000,connectionTimeoutMs=5000}){
  if(!pool||typeof pool.connect!=='function'||typeof key!=='string'||Buffer.byteLength(key)<32||
-    typeof clock!=='function'||!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>30000)throw Error('EVENT_HANDLER_CONFIG_INVALID');
+    typeof clock!=='function'||!Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>30000||
+    !Number.isInteger(connectionTimeoutMs)||connectionTimeoutMs<1||connectionTimeoutMs>30000)throw Error('EVENT_HANDLER_CONFIG_INVALID');
  return async function handle(req,res){
   let timer;
   const send=(status,value)=>{
@@ -36,7 +37,7 @@ export function createPodEventHandler({pool,key,clock=Date.now,timeoutMs=5000}){
    // late body proceed to signature verification or acquire an inbox client.
    if(performance.now()>=readDeadline)return send(408,{error:'REQUEST_TIMEOUT'});
    if(!envelope||Array.isArray(envelope)||Object.keys(envelope).sort().join(',')!=='payload,signature')throw Error('EVENT_ENVELOPE_INVALID');
-   const ack=await acceptPodEvent(pool,envelope,key,clock,{expectedEventId:id});
+   const ack=await acceptPodEvent(pool,envelope,key,clock,{expectedEventId:id,connectionTimeoutMs});
    return send(200,ack);
   }catch(error){
    const code=error?.message;

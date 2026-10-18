@@ -1,8 +1,34 @@
 import crypto from 'node:crypto';
 
+async function acquireClient(pool,timeoutMs){
+ const deadline=performance.now()+timeoutMs;
+ let timer,expired=false,handedOff=false,candidate;
+ // pg's promise API cannot remove a queued waiter. If it eventually receives
+ // a client after this caller has failed, return that unused client immediately.
+ // Promise.race installs rejection handling even when the timeout wins first.
+ const connecting=Promise.resolve().then(()=>pool.connect()).then(client=>{
+  candidate=client;
+  if(expired){candidate=undefined;client.release();throw Error('EVENT_CONNECTION_TIMEOUT');}
+  return client;
+ });
+ try{
+  const client=await Promise.race([connecting,new Promise((_,reject)=>{
+   timer=setTimeout(()=>{expired=true;reject(Error('EVENT_CONNECTION_TIMEOUT'));},timeoutMs);
+  })]);
+  // A synchronous/delayed pool callback can finish before its overdue timer.
+  if(expired||performance.now()>=deadline)throw Error('EVENT_CONNECTION_TIMEOUT');
+  handedOff=true;return client;
+ }finally{
+  clearTimeout(timer);expired=true;
+  if(!handedOff&&candidate){const client=candidate;candidate=undefined;client.release();}
+ }
+}
+
 // This inbox records downstream observations. It never upgrades readiness or
 // manufactures a core verified-revenue event. Wire the existing authority separately.
-export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedEventId}={}){
+export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedEventId,connectionTimeoutMs=5000}={}){
+ if(!Number.isInteger(connectionTimeoutMs)||connectionTimeoutMs<1||connectionTimeoutMs>30000)
+  throw Error('EVENT_CONNECTION_CONFIG_INVALID');
  if(typeof clock!=='function')throw Error('EVENT_CLOCK_INVALID');
  const now=clock();
  if(typeof key!=='string'||Buffer.byteLength(key)<32||typeof envelope?.payload!=='string'||Buffer.byteLength(envelope.payload)>262144||!/^[a-f0-9]{64}$/.test(envelope.signature||''))throw Error('EVENT_ENVELOPE_INVALID');
@@ -13,7 +39,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
   !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(e?.id||'')||typeof e.kind!=='string'||!e.kind.startsWith('pod.')||
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw Error('EVENT_SCOPE_INVALID');
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
- const c=await pool.connect();let discard=false;
+ const c=await acquireClient(pool,connectionTimeoutMs);let discard=false;
  try{
   await c.query('BEGIN');
   // Sender timeouts do not cancel PostgreSQL work. Bound lock and statement
