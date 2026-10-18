@@ -82,17 +82,21 @@ class ProductionAgentTests(unittest.TestCase):
             self.assertEqual(json.loads((retry_out/'money-factory-receipt.json').read_text()),recovered)
 
             # Actual rendered files and valid hashes cannot excuse a changed scope.
-            for corruption in ('production_ready', 'paid_generation_enabled', 'remaining_checks', 'manifest_platform'):
+            for corruption in ('production_ready', 'paid_generation_enabled', 'remaining_checks', 'manifest_platform', 'missing_interior'):
                 with self.subTest(corruption=corruption):
                     rejected=Path(tmp)/('rejected-'+corruption)
                     def render_then_change_scope(argv, **kwargs):
                         completed=subprocess_run(argv, **kwargs)
                         result_path=rejected/'result.json'
                         value=json.loads(result_path.read_text())
-                        if corruption=='manifest_platform':
+                        if corruption in ('manifest_platform','missing_interior'):
                             manifest_path=rejected/'package/manifest.json'
                             manifest=json.loads(manifest_path.read_text())
-                            manifest.pop('package_sha256');manifest['platform']='redbubble'
+                            manifest.pop('package_sha256')
+                            if corruption=='manifest_platform':manifest['platform']='redbubble'
+                            else:
+                                manifest['files'].pop('interior.pdf')
+                                (rejected/'package/interior.pdf').unlink()
                             encoded=json.dumps(manifest,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
                             manifest['package_sha256']=hashlib.sha256(encoded).hexdigest()
                             value['package_sha256']=manifest['package_sha256']
@@ -103,13 +107,15 @@ class ProductionAgentTests(unittest.TestCase):
                             value[corruption]=True
                         result_path.write_text(json.dumps(value))
                         return completed
-                    reason='MANIFEST_SCOPE_INVALID' if corruption=='manifest_platform' else 'RESULT_SCOPE_INVALID'
+                    reason=('MANIFEST_SCOPE_INVALID' if corruption=='manifest_platform' else
+                            'ARTIFACT_SET_INCOMPLETE' if corruption=='missing_interior' else 'RESULT_SCOPE_INVALID')
                     with patch.object(agent.subprocess,'run',side_effect=render_then_change_scope):
                         with self.assertRaisesRegex(ValueError,'^'+reason+'$'):
                             agent.run(retry_job,os.environ['CONTENT_CONTROL_ROOT'],
                                 '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',rejected)
                     self.assertFalse((rejected/'money-factory-receipt.json').exists())
-                    self.assertTrue((rejected/'package/interior.pdf').is_file())
+                    self.assertTrue((rejected/'package/cover.pdf').is_file())
+                    self.assertEqual((rejected/'package/interior.pdf').is_file(),corruption!='missing_interior')
 
 
 if __name__=='__main__':unittest.main()
