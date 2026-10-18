@@ -95,6 +95,26 @@ Nonblocking open rejects FIFOs without waiting for a writer. This is input bindi
 not an OS sandbox or protection from a malicious process running as the same user.
 Existing output directories remain protected from overwrite.
 
+After the child exits, result and manifest JSON are read only from regular files,
+with strict UTF-8 and a 4 MiB ceiling each. Artifact hashes are streamed in at most
+1 MiB chunks, with a 16 MiB per-artifact ceiling, at most 32 manifest entries and
+a 64 MiB aggregate artifact ceiling, matching the downstream QA limits. Both
+descriptor size and actual bytes read are checked so growth after stat cannot
+bypass a limit. Nonblocking descriptor opens reject named pipes before reading.
+The final receipt is created exclusively; an existing receipt file, symlink or
+FIFO is never overwritten or opened for writing. Verification failure produces
+no success receipt, and generated output remains available for investigation.
+These bounds do not provide an OS sandbox, prevent same-user directory races,
+or guarantee deadlines for stalled regular-file storage.
+
+Nine output-verification regressions cover JSON/object/package limits, FIFO
+results/manifests/artifacts/receipts, stale stat sizes, strict decoding, exact
+ceilings and hash rejection. All 18 Python tests pass locally, including real
+Node/Python review rendering using the prior pinned Content Control checkout.
+The workflow now pins current CC 37949ade5137f1a6184f3bcf602e47eb7be7d3d4;
+hosted cross-repository verification is required before merge. These tests do
+not establish real rights, editorial approval, deployment or live acceptance.
+
 Seven focused regressions cover mutation, deletion, child failure, size boundaries,
 UTF-8/object validation and FIFO rejection. The real cross-repository test also
 changes the original before Node/Python rendering and deletes it afterward,
