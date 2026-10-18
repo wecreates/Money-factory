@@ -710,3 +710,34 @@ All 68 Python tests passed locally against the existing cc-r81 checkout; the
 hosted gate retains the exact current producer pin and independently verifies the
 full bridge and production suite before merge. Publication remains disabled and
 all 24 live acceptance areas remain open.
+
+
+### Bounded event-inbox connection acquisition (r89)
+
+The event receiver now bounds `pool.connect()` separately from request-body reads
+and SQL lock/statement waits. `connectionTimeoutMs` defaults to 5000 and must be an
+integer from 1 through 30000; it is accepted by both `acceptPodEvent`'s options and
+`createPodEventHandler`. A timeout rejects with `EVENT_CONNECTION_TIMEOUT`; HTTP
+returns the existing redacted, retryable 503 `EVENT_RECEIVER_UNAVAILABLE`. No
+transaction starts and no event is acknowledged for a timed-out acquisition.
+Monotonic elapsed-time checks reject completion at or beyond the deadline even
+when a delayed event loop has not yet run the timeout callback.
+
+If the queued pool waiter eventually receives a client, that unused client is
+released exactly once without BEGIN or writes. Late connection rejection is
+handled, and on-time acquisition retains existing transaction, replay identity,
+expiry, rollback and commit-before-acknowledgment behavior. This does not remove
+a waiter from pg's internal queue or cancel a network handshake. Configure the
+existing deployment pool with bounded capacity and its own connection timeout;
+a pool that never settles can still retain its internal waiter. Nor does this
+make JavaScript preempt synchronous work or replace the SQL deadlines.
+
+Nine new tests cover stalled acquisition, late completion/rejection, exact
+monotonic boundaries, bad configuration, error propagation and the real HTTP
+response. Seven failed on the baseline; all 29 focused connection/HTTP/transaction
+tests passed locally. The disposable PostgreSQL roundtrip now also exhausts an
+actual one-connection pg pool, requires timeout before any inbox row is written,
+releases the blocker, proves the late waiter returns the only connection slot,
+and retries the unchanged event ID exactly once. Hosted verification remains
+required before merge; no production database or authority endpoint was accessed.
+Publication remains disabled and all 24 live acceptance areas remain open.

@@ -96,6 +96,23 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
 
   const sign=event=>{const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:Date.now(),event});
    return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};};
+  // Saturate a real pg pool: the receiver must reject without acquiring a
+  // transaction, release its late queued client, and allow an unchanged-ID retry.
+  const single=new Pool({connectionString,max:1,options:`-c search_path=${schema}`});
+  let held=await single.connect();
+  const poolWaitId=crypto.randomUUID(),poolWaitEnvelope=sign({id:poolWaitId,kind:'pod.test.pool_wait',payload:{}});
+  try{
+   await assert.rejects(acceptPodEvent(single,poolWaitEnvelope,key,Date.now,{connectionTimeoutMs:30}),/EVENT_CONNECTION_TIMEOUT/);
+   assert.equal(single.waitingCount,1);
+   held.release();held=null;
+   // Queued behind the timed-out receiver; completing this query proves that
+   // receiver returned its eventual client rather than stranding the only slot.
+   const rows=await single.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[poolWaitId]);
+   assert.equal(rows.rows[0].n,0);
+   assert.equal((await acceptPodEvent(single,poolWaitEnvelope,key)).accepted_event_id,poolWaitId);
+   assert.equal((await single.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[poolWaitId])).rows[0].n,1);
+  }finally{if(held)held.release();await single.end();}
+
   const duplicateId=crypto.randomUUID(),envelope=sign({id:duplicateId,kind:'pod.production.qa_failed',payload:{}});
   const acknowledgments=await Promise.all(Array.from({length:8},()=>acceptPodEvent(pool,envelope,key)));
   assert.ok(acknowledgments.every(a=>a.accepted_event_id===duplicateId));
