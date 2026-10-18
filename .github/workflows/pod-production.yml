@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: 37949ade5137f1a6184f3bcf602e47eb7be7d3d4
+          ref: f3dcddd9957378d92714616fdb1d7091fe79c3a6
           path: content-control-test
       - uses: actions/setup-node@v4
         with:

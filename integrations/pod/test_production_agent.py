@@ -65,4 +65,21 @@ class ProductionAgentTests(unittest.TestCase):
             self.assertEqual(len(snapshots),1)
             self.assertFalse(snapshots[0].parent.exists())
 
+            # A real late child failure must leave this destination retryable.
+            retry_job=Path(tmp)/'retry-job.json'; retry_out=Path(tmp)/'retry'
+            bad=dict(spec, text_layers=[{'font_path':'untrusted-font'}])
+            retry_job.write_text(json.dumps(bad))
+            with self.assertRaises(agent.subprocess.CalledProcessError):
+                agent.run(retry_job,os.environ['CONTENT_CONTROL_ROOT'],
+                    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',retry_out)
+            self.assertFalse(retry_out.exists())
+            retry_job.write_text(json.dumps(spec))
+            recovered=agent.run(retry_job,os.environ['CONTENT_CONTROL_ROOT'],
+                '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',retry_out)
+            self.assertEqual(recovered['package_sha256'],r['package_sha256'])
+            self.assertEqual(recovered['status'],'REVIEW_REQUIRED')
+            self.assertFalse(recovered['publication_enabled'])
+            self.assertEqual(json.loads((retry_out/'money-factory-receipt.json').read_text()),recovered)
+
+
 if __name__=='__main__':unittest.main()

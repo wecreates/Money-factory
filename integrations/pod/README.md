@@ -438,3 +438,21 @@ current strict verifier and sender. Both publication flags stay false. No live
 authority mounting, current approval, deployment, clock-health measurement or
 24-area acceptance is claimed by these disposable tests. See Content Control's
 POD_IMPLEMENTATION_STATUS.md for hosted results and remaining live evidence.
+
+
+## Local generation retry recovery — October 18, 2026
+
+The cross-repository workflow now pins Content Control f3dcddd9957378d92714616fdb1d7091fe79c3a6,
+which removes its owned partial review directory when a Python generation stage
+raises. The real MF → Node → Python test submits a forbidden worker-font override,
+requires child failure and an absent output directory, corrects the brief and
+retries the same destination. The retry must produce the original package hash,
+REVIEW_REQUIRED result, publication false and matching Money Factory receipt.
+
+This regression failed against the previous producer and passed locally against
+the repair. Hosted verification is required before merge. Preexisting destinations
+remain protected. Exceptions during downstream MF receipt verification still
+preserve generated output for investigation; this change does not delete it.
+Crashes, SIGKILL, default SIGTERM, denied cleanup and detected directory replacement
+can still require manual recovery. Synthetic tests establish neither live recovery
+nor authorizing approval; all production acceptance requirements remain open.
