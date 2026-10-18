@@ -44,7 +44,7 @@ export function createPodAuthorityHandler({loadSnapshot,authKey,signingKey,clock
    if(performance.now()>=deadline)controller.abort();
    controller.signal.throwIfAborted();
    if(snapshot?.job?.id!==request.job_id)throw Error('JOB_NOT_FOUND');
-   const now=clock();if(!Number.isFinite(now))throw Error('AUTHORITY_CLOCK_INVALID');
+   const now=clock();if(!Number.isSafeInteger(now)||now<0)throw Error('AUTHORITY_CLOCK_INVALID');
    const grant=issuePodGrant({...snapshot,key:signingKey,now});
    return send(200,grant);
   }catch{if(!res.destroyed)return send(409,{error:'GRANT_BLOCKED'});}

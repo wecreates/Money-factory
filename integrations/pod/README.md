@@ -371,3 +371,32 @@ Content Control PR #200 passed its full integration and production-image gates (
 https://github.com/wecreates/content-control/actions/runs/39020204979
 https://github.com/wecreates/content-control/actions/runs/39020204915
 This pin also includes cooperative independent-review cancellation and the stricter image startup probe. It does not establish production deployment, a live failover drill, current authority mounting or marketplace acceptance. All 24 live areas remain open and both publication flags remain false.
+
+
+## Exact millisecond authority and inbox clocks — October 18, 2026
+
+Grant issuance now requires nonnegative safe integer milliseconds for the
+authority clock and approval expiry, matching Content Control's signed-envelope
+contract. Invalid values cannot produce signed grants through either the direct
+issuer or HTTP authority. The existing five-minute grant cap and approval/economics
+expiry bounds remain unchanged. HTTP failures retain redacted 409 GRANT_BLOCKED.
+
+The event inbox applies the same timestamp domain to signed event issuance and
+to both clock reads: before acquiring a connection and after database waits,
+before COMMIT. An invalid late clock rolls back without acknowledging delivery.
+The existing inclusive five-minute event age and exact timestamp boundaries are
+preserved. Retry the original event ID/content after recovery; these observations
+never establish verified revenue.
+
+Six of eight new contract regressions failed before repair; all eight and the
+existing affected tests pass locally (59 Node tests total). HTTP regressions cover
+invalid authority clocks. The hosted PostgreSQL roundtrip additionally changes
+the fixture clock during a real unique-key wait, requires rollback and zero rows,
+then retries the unchanged ID exactly once. Hosted execution is pending.
+
+The cross-repository workflow pins Content Control
+1d9f84c44eaa25454ff42843c232441e2633275c to verify this producer repair against its
+current strict verifier and sender. Both publication flags stay false. No live
+authority mounting, current approval, deployment, clock-health measurement or
+24-area acceptance is claimed by these disposable tests. See Content Control's
+POD_IMPLEMENTATION_STATUS.md for hosted results and remaining live evidence.

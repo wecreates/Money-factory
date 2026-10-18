@@ -9,7 +9,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
  const expected=crypto.createHmac('sha256',key).update(envelope.payload).digest();
  if(!crypto.timingSafeEqual(expected,Buffer.from(envelope.signature,'hex')))throw Error('EVENT_SIGNATURE_INVALID');
  const p=JSON.parse(envelope.payload),e=p?.event;
- if(!Number.isFinite(now)||p?.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isFinite(p.issued_at_ms)||p.issued_at_ms>now||now-p.issued_at_ms>300000||
+ if(!Number.isSafeInteger(now)||now<0||p?.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isSafeInteger(p.issued_at_ms)||p.issued_at_ms<0||p.issued_at_ms>now||now-p.issued_at_ms>300000||
   !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(e?.id||'')||typeof e.kind!=='string'||!e.kind.startsWith('pod.')||
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw Error('EVENT_SCOPE_INVALID');
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
@@ -26,7 +26,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
   // A captured request timestamp is not authorization after connection, unique
   // index or row waits. Expiry must roll back rather than acknowledge delivery.
   const current=clock();
-  if(!Number.isFinite(current)||p.issued_at_ms>current||current-p.issued_at_ms>300000)throw Error('EVENT_SCOPE_INVALID');
+  if(!Number.isSafeInteger(current)||current<0||p.issued_at_ms>current||current-p.issued_at_ms>300000)throw Error('EVENT_SCOPE_INVALID');
   await c.query('COMMIT');return {accepted_event_id:e.id};
  }catch(err){
   try{await c.query('ROLLBACK');}catch{discard=true;}
