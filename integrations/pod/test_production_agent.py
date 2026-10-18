@@ -1,9 +1,11 @@
 import importlib.util
+import hashlib
 import json
 import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 module=importlib.util.spec_from_file_location('pod_agent',Path(__file__).with_name('production_agent.py'))
 agent=importlib.util.module_from_spec(module);module.loader.exec_module(agent)
@@ -43,5 +45,24 @@ class ProductionAgentTests(unittest.TestCase):
             self.assertEqual(r['package_sha256'],again['package_sha256'])
             with self.assertRaisesRegex(ValueError,'OUTPUT_EXISTS'):
                 agent.run(job,os.environ['CONTENT_CONTROL_ROOT'],'/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',out)
+            # Exercise the actual renderer after the caller changes its source.
+            original=job.read_bytes()
+            subprocess_run=agent.subprocess.run
+            snapshots=[]
+            def change_source_then_render(argv, **kwargs):
+                snapshots.append(Path(argv[2]))
+                changed=dict(spec, metadata=dict(spec['metadata'], title='Changed source'))
+                job.write_text(json.dumps(changed))
+                result=subprocess_run(argv, **kwargs)
+                job.unlink()
+                return result
+            captured=Path(tmp)/'captured'
+            with patch.object(agent.subprocess, 'run', side_effect=change_source_then_render):
+                receipt=agent.run(job,os.environ['CONTENT_CONTROL_ROOT'],'/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',captured)
+            self.assertEqual(json.loads((captured/'package/metadata.json').read_text()),spec['metadata'])
+            self.assertEqual(receipt['input_sha256'],hashlib.sha256(original).hexdigest())
+            self.assertEqual(receipt['package_sha256'],r['package_sha256'])
+            self.assertEqual(len(snapshots),1)
+            self.assertFalse(snapshots[0].parent.exists())
 
 if __name__=='__main__':unittest.main()

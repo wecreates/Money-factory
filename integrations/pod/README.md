@@ -86,6 +86,24 @@ live authorizing service, verified marketplace data, paid generation or publishi
 Cross-repository test:
 `CONTENT_CONTROL_ROOT=/path/to/content-control python3 -m unittest discover -s integrations/pod -p 'test_*.py'`.
 
+The review agent captures at most 4 MiB from a regular job file, strictly decodes
+UTF-8 and requires a JSON object before invoking the child. Validation, rendering
+and the receipt's `input_sha256` use that one captured byte version. The child
+reads a private temporary snapshot, removed on success or child failure; changing
+or deleting the caller's original path cannot change the rendered input or receipt.
+Nonblocking open rejects FIFOs without waiting for a writer. This is input binding,
+not an OS sandbox or protection from a malicious process running as the same user.
+Existing output directories remain protected from overwrite.
+
+Seven focused regressions cover mutation, deletion, child failure, size boundaries,
+UTF-8/object validation and FIFO rejection. The real cross-repository test also
+changes the original before Node/Python rendering and deletes it afterward,
+requiring unchanged metadata, package hash and input receipt. Nine Python tests
+pass locally against Content Control a033f8f2b3f411946ceb9fd1b93aaff75c5e73ca,
+now pinned by the workflow. Synthetic review fixtures are not official templates,
+rights evidence or live acceptance. Hosted results are recorded in Content Control's
+POD_IMPLEMENTATION_STATUS.md; publication remains disabled.
+
 Durable production inputs are now bound using `job.task_sha256`. When present,
 the authoritative approval must contain the identical task_sha256 before a grant
 can be issued. This prevents a client changing stored production inputs after
