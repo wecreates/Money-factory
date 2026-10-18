@@ -456,3 +456,25 @@ preserve generated output for investigation; this change does not delete it.
 Crashes, SIGKILL, default SIGTERM, denied cleanup and detected directory replacement
 can still require manual recovery. Synthetic tests establish neither live recovery
 nor authorizing approval; all production acceptance requirements remain open.
+
+
+## Supervised local review CLI — October 18, 2026
+
+Content Control a76d8cbf4c7ca8a316f24151f369ea346f97c0cb's pinned CLI now uses its existing Python-stage supervisor.
+SIGTERM/SIGINT cancellation stops its POSIX process group, with a five-second
+SIGKILL fallback, and cannot succeed merely because the child exits zero.
+A successful parent exit with remaining process-group descendants also fails.
+The four-minute deadline and disabled publication flags are retained; combined
+output is bounded to 1 MiB and errors are reported without forwarding child stderr.
+
+The cross-repository workflow runs the pinned CLI's seven subprocess regressions
+alongside the existing Money Factory Node/PostgreSQL and Python bridge tests.
+The actual MF → Node → Python generation/retry fixture passed locally against
+this repair. Hosted exact-pin verification is required before merge; results are
+recorded in Content Control's POD_IMPLEMENTATION_STATUS.md.
+
+This is CLI lifecycle evidence, not a live authority or recovery drill. Abrupt
+Node SIGKILL and escaped process groups are outside the guarantee, and default
+Python SIGTERM can still leave partial output for manual recovery. It does not
+add MF-parent signal forwarding or change Money Factory's timeout policy.
+All live acceptance requirements remain open and both publication flags stay false.
