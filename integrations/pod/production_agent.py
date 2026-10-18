@@ -13,6 +13,29 @@ MAX_JOB_BYTES = 4 * 1024 * 1024  # Matches Content Control's local JSON ceiling.
 MAX_OUTPUT_JSON_BYTES = 4 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 16 * 1024 * 1024
 MAX_PACKAGE_BYTES = 64 * 1024 * 1024
+PLATFORMS = {'kdp', 'redbubble', 'teepublic', 'zazzle', 'spreadshirt'}
+REVIEW_FLAGS = ('publication_enabled', 'production_ready', 'paid_generation_enabled', 'marketplace_ready')
+REVIEW_CHECKS = {'official_template', 'rights', 'editorial', 'independent_visual_review',
+                 'marketplace_account', 'platform_preview', 'release_approval'}
+
+
+def validate_result(result, platform):
+    if (not isinstance(result, dict) or type(result.get('schema_version')) is not int
+            or result['schema_version'] != 1 or result.get('platform') != platform
+            or result.get('status') != 'REVIEW_REQUIRED'
+            or any(result.get(flag) is not False for flag in REVIEW_FLAGS)):
+        raise ValueError('RESULT_SCOPE_INVALID')
+    checks = result.get('remaining_checks')
+    if (not isinstance(checks, list) or any(not isinstance(c, str) or not c for c in checks)
+            or len(set(checks)) != len(checks) or not REVIEW_CHECKS.issubset(checks)):
+        raise ValueError('RESULT_SCOPE_INVALID')
+
+
+def validate_manifest(manifest, platform):
+    if (not isinstance(manifest, dict) or type(manifest.get('schema_version')) is not int
+            or manifest['schema_version'] != 1 or manifest.get('platform') != platform
+            or manifest.get('publication_enabled') is not False):
+        raise ValueError('MANIFEST_SCOPE_INVALID')
 
 
 def output_chunks(path, limit):
@@ -68,6 +91,9 @@ def run(job, content_control, font, output):
         raise ValueError('JOB_INVALID')
     if spec.get('publication_enabled') is not False or spec.get('paid_generation_enabled') is not False:
         raise ValueError('REVIEW_ONLY_REQUIRED')
+    platform = spec.get('platform')
+    if not isinstance(platform, str) or platform not in PLATFORMS:
+        raise ValueError('PLATFORM_BLOCKED')
     output=Path(output).resolve()
     if output.exists():
         raise ValueError('OUTPUT_EXISTS')
@@ -81,16 +107,15 @@ def run(job, content_control, font, output):
         subprocess.run(['node',str(root/'scripts/pod_review_cli.mjs'),str(snapshot),
                         str(Path(font).resolve(strict=True)),str(output)],check=True,timeout=260)
     result=output_json(output/'result.json')
-    if (result.get('status')!='REVIEW_REQUIRED' or result.get('publication_enabled') is not False or
-        result.get('marketplace_ready') is not False):
-        raise ValueError('RESULT_SCOPE_INVALID')
+    validate_result(result, platform)
     manifest=output_json(output/'package/manifest.json')
+    validate_manifest(manifest, platform)
     expected=manifest.pop('package_sha256')
     encoded=json.dumps(manifest,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
     if hashlib.sha256(encoded).hexdigest()!=expected or result['package_sha256']!=expected:
         raise ValueError('MANIFEST_HASH_MISMATCH')
     files=manifest['files']
-    if not isinstance(files, dict) or len(files)>32:
+    if not isinstance(files, dict) or not 1 <= len(files) <= 32:
         raise ValueError('ARTIFACT_BATCH_INVALID')
     total=0
     for name,sha in files.items():

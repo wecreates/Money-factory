@@ -20,7 +20,7 @@ class ProductionSnapshotTests(unittest.TestCase):
         self.job = self.root/'job.json'; self.font = self.root/'font.ttf'
         self.font.write_bytes(b'fixture font')
         self.output = self.root/'out'
-        self.body = b'{"publication_enabled":false,"paid_generation_enabled":false,"title":"Original"}\n'
+        self.body = b'{"publication_enabled":false,"paid_generation_enabled":false,"platform":"kdp","title":"Original"}\n'
         self.job.write_bytes(self.body)
 
     def run_agent(self): return agent.run(self.job, self.root, self.font, self.output)
@@ -29,10 +29,15 @@ class ProductionSnapshotTests(unittest.TestCase):
         # A synthetic child isolates input binding; the existing real Node/Python
         # integration test independently checks genuine rendering and manifests.
         root = Path(argv[4]); (root/'package').mkdir(parents=True)
-        manifest = {'schema_version':1,'publication_enabled':False,'files':{}}
+        (root/'package/art.bin').write_bytes(b'fixture')
+        manifest = {'schema_version':1,'platform':'kdp','publication_enabled':False,
+                    'files':{'art.bin':hashlib.sha256(b'fixture').hexdigest()}}
         manifest['package_sha256'] = hashlib.sha256(json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()).hexdigest()
         (root/'package/manifest.json').write_text(json.dumps(manifest))
-        (root/'result.json').write_text(json.dumps({'status':'REVIEW_REQUIRED','publication_enabled':False,
+        (root/'result.json').write_text(json.dumps({'schema_version':1,'platform':'kdp','status':'REVIEW_REQUIRED','publication_enabled':False,
+            'production_ready':False,'paid_generation_enabled':False,
+            'remaining_checks':['official_template','rights','editorial','independent_visual_review',
+                                'marketplace_account','platform_preview','release_approval'],
             'marketplace_ready':False,'package_sha256':manifest['package_sha256']}))
 
     def test_mutation_cannot_change_executed_input_or_receipt(self):
