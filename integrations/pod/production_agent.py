@@ -9,6 +9,7 @@ import stat
 import tempfile
 import threading
 import time
+import uuid
 from pathlib import Path
 import subprocess
 
@@ -152,6 +153,60 @@ def capture_job(path):
         raise ValueError('JOB_TOO_LARGE')
     return body
 
+
+def write_receipt(output, result):
+    # The final path becomes visible only after complete bytes have been synced.
+    # A hard link commits without overwriting a concurrent/existing destination.
+    body = (json.dumps(result, indent=2, allow_nan=False)+'\n').encode('utf-8')
+    directory = os.open(output, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    name = '.mf-receipt-'+uuid.uuid4().hex+'.tmp'
+    staged = False
+    committed = False
+    identity = None
+    try:
+        fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                     0o600, dir_fd=directory)
+        staged = True
+        try:
+            info = os.fstat(fd)
+            identity = (info.st_dev, info.st_ino)
+            remaining = memoryview(body)
+            while remaining:
+                written = os.write(fd, remaining)
+                if written <= 0:
+                    raise OSError('RECEIPT_WRITE_INCOMPLETE')
+                remaining = remaining[written:]
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.link(name, 'money-factory-receipt.json', src_dir_fd=directory,
+                dst_dir_fd=directory, follow_symlinks=False)
+        committed = True
+        os.unlink(name, dir_fd=directory)
+        staged = False
+        os.fsync(directory)
+    except BaseException as error:
+        # A signal/error can arrive after link succeeds but before its return is
+        # recorded. Identify our inode instead of incorrectly claiming rollback.
+        if not committed and identity is not None:
+            try:
+                final = os.stat('money-factory-receipt.json', dir_fd=directory, follow_symlinks=False)
+                committed = (final.st_dev, final.st_ino) == identity
+            except OSError:
+                pass
+        if staged:
+            try:
+                os.unlink(name, dir_fd=directory)
+            except OSError:
+                error.add_note('RECEIPT_STAGING_CLEANUP_REQUIRED')
+        if committed:
+            # Never remove or rewrite a committed receipt to pretend rollback.
+            raise RuntimeError('RECEIPT_COMMITTED_RECOVERY_REQUIRED') from error
+        raise
+    finally:
+        os.close(directory)
+
+
 def run(job, content_control, font, output):
     job=Path(job).resolve(strict=True)
     root=Path(content_control).resolve(strict=True)
@@ -202,8 +257,7 @@ def run(job, content_control, font, output):
         if digest.hexdigest()!=sha:
             raise ValueError('ARTIFACT_HASH_MISMATCH')
     result['input_sha256']=hashlib.sha256(body).hexdigest()
-    with (output/'money-factory-receipt.json').open('x', encoding='utf-8') as receipt:
-        receipt.write(json.dumps(result,indent=2)+'\n')
+    write_receipt(output, result)
     return result
 
 

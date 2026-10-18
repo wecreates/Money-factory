@@ -572,3 +572,39 @@ fallback reaps the direct child; it cannot guarantee cleanup of detached process
 when the coordinator itself is unresponsive. Partial generated directories remain
 for investigation and require authorized recovery. This does not enable publication,
 mount the live authority or complete any of the 24 live acceptance areas.
+
+
+## Atomic local review receipt — October 18, 2026
+
+The final money-factory-receipt.json now appears only after its complete UTF-8
+JSON bytes have been written and fsynced in a private 0600 staging file in the
+same output directory. A hard link commits exclusively; existing files, symlinks,
+FIFOs, directories and concurrent receipt winners are never overwritten. Directory
+operations use an open directory descriptor. The staging name is removed and the
+directory fsynced before success returns. Short writes are completed; zero writes,
+nonfinite JSON and precommit storage/link failures fail closed without a final
+receipt. Filesystems without the required link/fsync support fail rather than
+falling back to a partial or overwriting write.
+
+A failure after the link commits raises RECEIPT_COMMITTED_RECOVERY_REQUIRED and
+retains the complete final receipt; it does not pretend to roll back. An interrupt
+immediately after a successful link is recognized by the recorded file identity.
+Failed staging cleanup adds RECEIPT_STAGING_CLEANUP_REQUIRED to the underlying
+exception. Inspect that attempt before recovery; the normal review command still
+rejects an existing output directory and does not automatically rerender/rewrite it.
+The receipt does not make its referenced package files durable or validate them
+again after commit.
+
+Ten new tests include a real subprocess file-size limit that made the old agent
+leave a partial final receipt. Fault injection covers write/sync/link failures,
+short/zero writes, commit ordering, competing destinations, postcommit directory
+sync and cleanup failures, interruption at commit and invalid JSON. All 46 Python
+tests pass locally, including genuine art/PDF rendering and prior lifecycle checks;
+the existing hosted cross-repository gate is required before merge.
+
+This is local filesystem persistence evidence, not a verified production crash
+or power-loss drill, independent backup retention, artifact recovery, marketplace
+approval or live acceptance. Abrupt process/host death can leave staging files or
+a complete receipt whose directory sync is unknown. Same-user malicious mutation
+and unreliable storage semantics remain outside this guarantee. All publication
+flags stay false and every live acceptance requirement remains open.
