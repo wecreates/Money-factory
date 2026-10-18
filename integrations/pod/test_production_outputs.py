@@ -19,7 +19,7 @@ class ProductionOutputTests(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory(); self.addCleanup(tmp.cleanup)
         self.root = Path(tmp.name); self.out = self.root/'out'
         self.job = self.root/'job.json'; self.font = self.root/'font.ttf'
-        self.job.write_text('{"publication_enabled":false,"paid_generation_enabled":false}')
+        self.job.write_text('{"publication_enabled":false,"paid_generation_enabled":false,"platform":"kdp"}')
         self.font.write_bytes(b'fixture')
 
     def finish(self, argv, **kwargs):
@@ -31,11 +31,14 @@ class ProductionOutputTests(unittest.TestCase):
         for name, body in files.items():
             (self.out/'package'/name).write_bytes(body)
             hashes[name] = hashlib.sha256(body).hexdigest()
-        manifest = {'schema_version': 1, 'publication_enabled': False, 'files': hashes}
+        manifest = {'schema_version': 1, 'platform': 'kdp', 'publication_enabled': False, 'files': hashes}
         digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         manifest['package_sha256'] = digest
         (self.out/'package/manifest.json').write_text(json.dumps(manifest))
-        (self.out/'result.json').write_text(json.dumps({'status': 'REVIEW_REQUIRED',
+        (self.out/'result.json').write_text(json.dumps({'schema_version': 1, 'platform': 'kdp', 'status': 'REVIEW_REQUIRED',
+            'production_ready': False, 'paid_generation_enabled': False,
+            'remaining_checks': ['official_template', 'rights', 'editorial', 'independent_visual_review',
+                                 'marketplace_account', 'platform_preview', 'release_approval'],
             'publication_enabled': False, 'marketplace_ready': False, 'package_sha256': digest}))
 
     def run_agent(self, child=None):

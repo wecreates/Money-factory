@@ -81,5 +81,35 @@ class ProductionAgentTests(unittest.TestCase):
             self.assertFalse(recovered['publication_enabled'])
             self.assertEqual(json.loads((retry_out/'money-factory-receipt.json').read_text()),recovered)
 
+            # Actual rendered files and valid hashes cannot excuse a changed scope.
+            for corruption in ('production_ready', 'paid_generation_enabled', 'remaining_checks', 'manifest_platform'):
+                with self.subTest(corruption=corruption):
+                    rejected=Path(tmp)/('rejected-'+corruption)
+                    def render_then_change_scope(argv, **kwargs):
+                        completed=subprocess_run(argv, **kwargs)
+                        result_path=rejected/'result.json'
+                        value=json.loads(result_path.read_text())
+                        if corruption=='manifest_platform':
+                            manifest_path=rejected/'package/manifest.json'
+                            manifest=json.loads(manifest_path.read_text())
+                            manifest.pop('package_sha256');manifest['platform']='redbubble'
+                            encoded=json.dumps(manifest,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
+                            manifest['package_sha256']=hashlib.sha256(encoded).hexdigest()
+                            value['package_sha256']=manifest['package_sha256']
+                            manifest_path.write_text(json.dumps(manifest))
+                        elif corruption=='remaining_checks':
+                            value['remaining_checks'].remove('release_approval')
+                        else:
+                            value[corruption]=True
+                        result_path.write_text(json.dumps(value))
+                        return completed
+                    reason='MANIFEST_SCOPE_INVALID' if corruption=='manifest_platform' else 'RESULT_SCOPE_INVALID'
+                    with patch.object(agent.subprocess,'run',side_effect=render_then_change_scope):
+                        with self.assertRaisesRegex(ValueError,'^'+reason+'$'):
+                            agent.run(retry_job,os.environ['CONTENT_CONTROL_ROOT'],
+                                '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',rejected)
+                    self.assertFalse((rejected/'money-factory-receipt.json').exists())
+                    self.assertTrue((rejected/'package/interior.pdf').is_file())
+
 
 if __name__=='__main__':unittest.main()

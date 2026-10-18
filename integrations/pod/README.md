@@ -478,3 +478,36 @@ Node SIGKILL and escaped process groups are outside the guarantee, and default
 Python SIGTERM can still leave partial output for manual recovery. It does not
 add MF-parent signal forwarding or change Money Factory's timeout policy.
 All live acceptance requirements remain open and both publication flags stay false.
+
+
+## Review receipt scope binding — October 18, 2026
+
+Before invoking Content Control, the review agent requires one of the five POD
+platforms: KDP, Redbubble, TeePublic, Zazzle or Spreadshirt (lowercase identifiers).
+Etsy remains outside this lane. The captured job's platform must match both the
+version-1 result and manifest. Boolean or floating-point schema versions do not
+count as integer version 1, and the manifest must explicitly disable publication.
+
+The result must retain REVIEW_REQUIRED with publication_enabled, production_ready,
+paid_generation_enabled and marketplace_ready all explicitly false. Its checklist
+must retain official_template, rights, editorial, independent_visual_review,
+marketplace_account, platform_preview and release_approval as unique nonempty
+strings. Additional unresolved check names are allowed. The manifest must contain
+1–32 artifact entries; existing byte limits, canonical manifest hashing and
+per-artifact hashes still apply. Scope failure writes no Money Factory receipt
+and preserves generated output for investigation.
+
+Seven new regression tests cover five supported platforms, rejected job scope,
+readiness flags, integer schema identity, mandatory review checks, correctly
+rehashed out-of-scope manifests and empty packages. The genuine MF → Node → Python
+test also changes production/paid flags, removes release approval and changes
+manifest platform after actual rendering, recomputing hashes where needed.
+Those four cases failed against the old verifier and now reject without receipts.
+All 25 Python tests pass locally against the existing pinned Content Control
+revision; hosted PostgreSQL/CLI/bridge verification is required before merge.
+
+A valid receipt remains a local integrity result, not complete semantic validation,
+independent QA, official-template acceptance, rights clearance, live authority,
+capacity or permission to publish. It cannot establish that every required
+product file or manuscript is fit for sale. All 24 live acceptance areas remain
+open in Content Control's registry; both publication flags remain false.
