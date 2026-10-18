@@ -67,8 +67,8 @@ test('client disconnect cancels lookup without issuing a grant',async t=>{
  });
  finish(snapshot('job'));await new Promise(r=>setImmediate(r));assert.equal(clockCalls,0);
 });
-test('nonfinite authority clock cannot sign a grant',async t=>{
- const post=await serve(t,{clock:()=>NaN,loadSnapshot:async id=>snapshot(id)});
+for(const clock of [NaN,-1,0.5,Date.now()+0.5,Number.MAX_SAFE_INTEGER+1])test(`invalid authority clock ${clock} cannot sign a grant`,async t=>{
+ const post=await serve(t,{clock:()=>clock,loadSnapshot:async id=>snapshot(id)});
  const response=await post();assert.equal(response.status,409);assert.deepEqual(await response.json(),{error:'GRANT_BLOCKED'});
 });
 test('elapsed lookup deadline rejects results even before its timer callback runs',async t=>{

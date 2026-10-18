@@ -104,8 +104,10 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal((await pool.query('SELECT event FROM pod_content_event_inbox WHERE event_id=$1',[duplicateId])).rows[0].event.kind,'pod.production.qa_failed');
 
   // Force the receiver to wait on an uncommitted duplicate event, then expire
-  // its envelope. Rolling back the blocker frees the insert; the receiver must
-  // roll back that new row instead of acknowledging an expired delivery.
+  // its envelope or invalidate its clock. Rolling back the blocker frees the
+  // insert; the receiver must roll back that row, then allow an unchanged-ID
+  // retry with a valid fixture clock. No live clock or expiry is changed.
+  for(const delayedClock of [issued=>issued+300001,issued=>issued+0.5,()=>NaN]){
   const expiryId=crypto.randomUUID(),expiryEvent={id:expiryId,kind:'pod.test.expiry',payload:{}};
   const expiryEnvelope=sign(expiryEvent),issued=JSON.parse(expiryEnvelope.payload).issued_at_ms;
   const expiryHash=crypto.createHash('sha256').update(JSON.stringify(expiryEvent)).digest('hex');
@@ -121,10 +123,13 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
     if(waiting)break;await new Promise(resolve=>setTimeout(resolve,10));
    }
    assert.equal(waiting,true,'receiver reached the held unique-key conflict');
-   clockNow=issued+300001;await blocker.query('ROLLBACK');
+   clockNow=delayedClock(issued);await blocker.query('ROLLBACK');
    assert.equal((await pending).error?.message,'EVENT_SCOPE_INVALID');
    assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[expiryId])).rows[0].n,0);
   }finally{await blocker.query('ROLLBACK');blocker.release();if(pending)await pending;}
+  assert.equal((await acceptPodEvent(pool,expiryEnvelope,key,()=>issued)).accepted_event_id,expiryId);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[expiryId])).rows[0].n,1);
+  }
 
   // A sender's HTTP timeout cannot release receiver-side database locks.
   // Verify the actual transaction-local lock deadline and retry after rollback.
