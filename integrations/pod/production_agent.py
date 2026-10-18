@@ -281,6 +281,16 @@ def _run_review(job, content_control, font, output, checkpoint):
                          str(Path(font).resolve(strict=True)),str(output)],
                          check=True,timeout=REVIEW_TIMEOUT_SECONDS,checkpoint=checkpoint)
     checkpoint()
+    result=validate_review_output(output, platform, checkpoint=checkpoint)
+    result['input_sha256']=hashlib.sha256(body).hexdigest()
+    write_receipt(output, result, checkpoint=checkpoint)
+    return result
+
+
+def validate_review_output(output, platform, *, checkpoint=lambda: None):
+    """Read/hash one existing review package without generating or writing files."""
+    output = Path(output)
+    checkpoint()
     result=output_json(output/'result.json')
     checkpoint()
     validate_result(result, platform)
@@ -309,8 +319,7 @@ def _run_review(job, content_control, font, output, checkpoint):
             digest.update(chunk)
         if digest.hexdigest()!=sha:
             raise ValueError('ARTIFACT_HASH_MISMATCH')
-    result['input_sha256']=hashlib.sha256(body).hexdigest()
-    write_receipt(output, result, checkpoint=checkpoint)
+    checkpoint()
     return result
 
 

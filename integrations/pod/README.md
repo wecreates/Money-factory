@@ -668,3 +668,45 @@ in-flight filesystem calls instantly cancellable, and a signal after a final
 check/handler restoration can race with return. A committed receipt still requires
 recovery inspection; rendered files are not production backup/restore evidence.
 Publication remains disabled and all 24 live acceptance areas remain open.
+
+
+### Read-only inspection after an uncertain receipt commit (r88)
+
+When a local review reports `RECEIPT_COMMITTED_RECOVERY_REQUIRED`, inspect the
+existing committed receipt and its referenced package with the original exact
+input bytes:
+
+```sh
+python3 integrations/pod/inspect_review.py --job /absolute/path/job.json --output /absolute/path/existing-review
+```
+
+This command does not need a Content Control checkout or font, launch a renderer,
+write/replace a receipt, remove staging files, grant authority, access a database
+or publish. It reuses the production agent's bounded result/manifest/inventory/
+artifact validation. The receipt must match the validated result (including JSON
+types), its input hash must match the supplied bytes exactly, and all referenced
+artifact hashes and required review holds must still pass. Missing, truncated,
+symlink/FIFO, oversized or mismatched receipts fail; absent/corrupt package files
+are never repaired automatically. A precommit attempt without a receipt cannot
+be reconciled by manufacturing one.
+
+Success returns `VERIFIED_REVIEW_FILES` with `scope: local_files_only`, the input,
+package and raw receipt hashes, `review_status: REVIEW_REQUIRED`, and the remaining
+review checks. All release/readiness flags remain false; `approval_verified` and
+`durability_verified` are explicitly false. This only confirms the presently read
+files agree. It does not prove which process created them, official templates,
+rights, editorial/independent QA, a successful past directory flush, independent
+retention, or live production acceptance. Keep the directory quiescent during
+inspection; the command does not lock against a concurrent/same-user writer or
+make future bytes immutable. Unreferenced leftovers remain untouched and are
+outside the verified manifest inventory.
+
+Twelve new tests cover read-only success, the actual CLI, exact input binding,
+receipt/result disagreement and JSON type distinctions, corrupt/missing artifacts,
+receipt truncation/UTF-8/absence/symlink/FIFO/size limits, invalid review scope,
+manifest scope and an actual injected postcommit directory-sync failure. The
+existing real Node/Python KDP rendering test now inspects its generated package.
+All 68 Python tests passed locally against the existing cc-r81 checkout; the
+hosted gate retains the exact current producer pin and independently verifies the
+full bridge and production suite before merge. Publication remains disabled and
+all 24 live acceptance areas remain open.
