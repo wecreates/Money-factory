@@ -670,6 +670,7 @@ recovery inspection; rendered files are not production backup/restore evidence.
 Publication remains disabled and all 24 live acceptance areas remain open.
 
 
+
 ### Read-only inspection after an uncertain receipt commit (r88)
 
 When a local review reports `RECEIPT_COMMITTED_RECOVERY_REQUIRED`, inspect the
@@ -741,3 +742,32 @@ releases the blocker, proves the late waiter returns the only connection slot,
 and retries the unchanged event ID exactly once. Hosted verification remains
 required before merge; no production database or authority endpoint was accessed.
 Publication remains disabled and all 24 live acceptance areas remain open.
+
+### Bounded pending inbox acquisitions (r90)
+
+The inbox admits at most 32 unresolved connection acquisitions per pool object in
+one module/process. This is a conservative safety cap, not a measured throughput
+target or a change to pg's active-connection limit. It is shared by direct inbox
+calls and every HTTP handler using the same pool. The 33rd request fails before
+calling pool.connect() with EVENT_CONNECTION_BUSY; HTTP returns the existing
+redacted, retryable 503 EVENT_RECEIVER_UNAVAILABLE.
+
+A caller timing out does not free its admission slot: the underlying pg waiter
+still exists. Only actual connection completion or rejection frees that slot,
+including synchronous connect errors. A late client still returns immediately
+without transaction or acknowledgment. This bounds abandoned queued acquisitions
+when a database/pool never responds; when all 32 remain unsettled, further inbox
+requests remain unavailable until the pool recovers or is replaced by the host.
+Independent pools are isolated. Constructing new pools per request defeats this
+bound; the host must reuse a bounded pool and retain its own connection deadlines.
+This does not bound active transactions, other pool consumers, other processes,
+request parsing or ingress traffic and does not replace host rate limits.
+
+Four regression tests exercise retained timed-out slots, one-slot recovery,
+late rejection, independent pools, repeated successful/failed acquisitions and
+real HTTP overload redaction. Three failed on the baseline; all 33 focused local
+inbox/HTTP/transaction tests pass. The disposable PostgreSQL test now saturates
+32 waiters, rejects overflow without growing pg's queue, drains late clients,
+checks zero rows and retries the unchanged event ID. Hosted PostgreSQL validation
+is required before merging. Publication remains disabled; no live acceptance,
+production pool mounting, capacity target or recovery drill is established here.

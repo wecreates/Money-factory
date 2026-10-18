@@ -102,8 +102,12 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   let held=await single.connect();
   const poolWaitId=crypto.randomUUID(),poolWaitEnvelope=sign({id:poolWaitId,kind:'pod.test.pool_wait',payload:{}});
   try{
-   await assert.rejects(acceptPodEvent(single,poolWaitEnvelope,key,Date.now,{connectionTimeoutMs:30}),/EVENT_CONNECTION_TIMEOUT/);
-   assert.equal(single.waitingCount,1);
+   const waits=await Promise.allSettled(Array.from({length:32},()=>
+    acceptPodEvent(single,poolWaitEnvelope,key,Date.now,{connectionTimeoutMs:30})));
+   assert.ok(waits.every(x=>x.status==='rejected'&&x.reason.message==='EVENT_CONNECTION_TIMEOUT'));
+   assert.equal(single.waitingCount,32);
+   await assert.rejects(acceptPodEvent(single,poolWaitEnvelope,key),/EVENT_CONNECTION_BUSY/);
+   assert.equal(single.waitingCount,32,'overload must not add a pg waiter');
    held.release();held=null;
    // Queued behind the timed-out receiver; completing this query proves that
    // receiver returned its eventual client rather than stranding the only slot.

@@ -1,12 +1,23 @@
 import crypto from 'node:crypto';
 
+// Shared across handlers using this pool. Timed-out callers still occupy a slot
+// until pg settles their underlying request; otherwise retries grow its queue.
+const pendingAcquisitions=new WeakMap();
+const MAX_PENDING_ACQUISITIONS=32;
+
 async function acquireClient(pool,timeoutMs){
+ const pending=pendingAcquisitions.get(pool)||0;
+ if(pending>=MAX_PENDING_ACQUISITIONS)throw Error('EVENT_CONNECTION_BUSY');
+ pendingAcquisitions.set(pool,pending+1);
  const deadline=performance.now()+timeoutMs;
  let timer,expired=false,handedOff=false,candidate;
  // pg's promise API cannot remove a queued waiter. If it eventually receives
  // a client after this caller has failed, return that unused client immediately.
  // Promise.race installs rejection handling even when the timeout wins first.
- const connecting=Promise.resolve().then(()=>pool.connect()).then(client=>{
+ const connecting=Promise.resolve().then(()=>pool.connect()).finally(()=>{
+  const remaining=pendingAcquisitions.get(pool)-1;
+  if(remaining)pendingAcquisitions.set(pool,remaining);else pendingAcquisitions.delete(pool);
+ }).then(client=>{
   candidate=client;
   if(expired){candidate=undefined;client.release();throw Error('EVENT_CONNECTION_TIMEOUT');}
   return client;
