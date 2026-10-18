@@ -10,6 +10,7 @@ import tempfile
 import threading
 import time
 import uuid
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 import subprocess
 
@@ -120,9 +121,9 @@ def validate_manifest(manifest, platform):
         raise ValueError('MANIFEST_SCOPE_INVALID')
 
 
-def output_chunks(path, limit):
+def output_chunks(path, limit, *, dir_fd=None):
     # Descriptor checks also cover replacement between path validation and open.
-    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW, dir_fd=dir_fd)
     try:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode):
@@ -145,8 +146,8 @@ def output_chunks(path, limit):
             yield chunk
 
 
-def output_json(path):
-    body = b''.join(output_chunks(path, MAX_OUTPUT_JSON_BYTES))
+def output_json(path, *, dir_fd=None):
+    body = b''.join(output_chunks(path, MAX_OUTPUT_JSON_BYTES, dir_fd=dir_fd))
     return json.loads(body.decode('utf-8', errors='strict'))
 
 def capture_job(path):
@@ -287,14 +288,38 @@ def _run_review(job, content_control, font, output, checkpoint):
     return result
 
 
-def validate_review_output(output, platform, *, checkpoint=lambda: None):
+@contextmanager
+def review_directories(output):
+    # Pin both directories before reading receipt/result/manifest/artifact bytes.
+    # O_NOFOLLOW on files alone does not stop a parent-directory symlink.
+    root = os.open(output, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    package = None
+    try:
+        package = os.open('package', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=root)
+        yield root, package
+        for current, opened, error in (
+                (os.stat(output, follow_symlinks=False), os.fstat(root), 'OUTPUT_DIRECTORY_CHANGED'),
+                (os.stat('package', dir_fd=root, follow_symlinks=False), os.fstat(package), 'PACKAGE_DIRECTORY_CHANGED')):
+            if (current.st_dev, current.st_ino) != (opened.st_dev, opened.st_ino):
+                raise ValueError(error)
+    finally:
+        if package is not None:
+            os.close(package)
+        os.close(root)
+
+
+def validate_review_output(output, platform, *, checkpoint=lambda: None, directories=None):
     """Read/hash one existing review package without generating or writing files."""
-    output = Path(output)
+    with review_directories(output) if directories is None else nullcontext(directories) as (root, package):
+        return _validate_review_files(root, package, platform, checkpoint)
+
+
+def _validate_review_files(root, package, platform, checkpoint):
     checkpoint()
-    result=output_json(output/'result.json')
+    result=output_json('result.json', dir_fd=root)
     checkpoint()
     validate_result(result, platform)
-    manifest=output_json(output/'package/manifest.json')
+    manifest=output_json('manifest.json', dir_fd=package)
     checkpoint()
     validate_manifest(manifest, platform)
     expected=manifest.pop('package_sha256')
@@ -306,12 +331,9 @@ def validate_review_output(output, platform, *, checkpoint=lambda: None):
     total=0
     for name,sha in files.items():
         checkpoint()
-        base=(output/'package').resolve()
-        # Inventory names are flat. Keep the final component unresolved so
-        # output_chunks' O_NOFOLLOW cannot be bypassed by a preexisting symlink.
-        path=base/name
+        # Flat names are opened relative to the pinned package directory.
         digest=hashlib.sha256()
-        for chunk in output_chunks(path, MAX_ARTIFACT_BYTES):
+        for chunk in output_chunks(name, MAX_ARTIFACT_BYTES, dir_fd=package):
             checkpoint()
             total+=len(chunk)
             if total>MAX_PACKAGE_BYTES:
