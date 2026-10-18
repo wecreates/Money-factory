@@ -44,7 +44,7 @@ class ProductionOutputTests(unittest.TestCase):
             'publication_enabled': False, 'marketplace_ready': False, 'package_sha256': digest}))
 
     def run_agent(self, child=None):
-        with patch.object(agent.subprocess, 'run', side_effect=child or self.finish):
+        with patch.object(agent, 'run_review_child', side_effect=child or self.finish):
             return agent.run(self.job, self.root, self.font, self.out)
 
     def reject(self, error, child):
@@ -121,7 +121,7 @@ from pathlib import Path
 s=importlib.util.spec_from_file_location('agent',sys.argv[1]);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 original=Path.exists
 def exists(p): return False if str(p)==sys.argv[5] else original(p)
-with patch.object(m.subprocess,'run'),patch.object(Path,'exists',exists):
+with patch.object(m,'run_review_child'),patch.object(Path,'exists',exists):
  try:m.run(sys.argv[2],sys.argv[3],sys.argv[4],sys.argv[5])
  except FileExistsError:assert Path(sys.argv[6]).name=='money-factory-receipt.json'
  except ValueError as e:assert str(e)=='OUTPUT_FILE_INVALID',str(e)

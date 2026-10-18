@@ -47,7 +47,7 @@ class ProductionAgentTests(unittest.TestCase):
                 agent.run(job,os.environ['CONTENT_CONTROL_ROOT'],'/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',out)
             # Exercise the actual renderer after the caller changes its source.
             original=job.read_bytes()
-            subprocess_run=agent.subprocess.run
+            subprocess_run=agent.run_review_child
             snapshots=[]
             def change_source_then_render(argv, **kwargs):
                 snapshots.append(Path(argv[2]))
@@ -57,7 +57,7 @@ class ProductionAgentTests(unittest.TestCase):
                 job.unlink()
                 return result
             captured=Path(tmp)/'captured'
-            with patch.object(agent.subprocess, 'run', side_effect=change_source_then_render):
+            with patch.object(agent, 'run_review_child', side_effect=change_source_then_render):
                 receipt=agent.run(job,os.environ['CONTENT_CONTROL_ROOT'],'/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',captured)
             self.assertEqual(json.loads((captured/'package/metadata.json').read_text()),spec['metadata'])
             self.assertEqual(receipt['input_sha256'],hashlib.sha256(original).hexdigest())
@@ -109,7 +109,7 @@ class ProductionAgentTests(unittest.TestCase):
                         return completed
                     reason=('MANIFEST_SCOPE_INVALID' if corruption=='manifest_platform' else
                             'ARTIFACT_SET_INCOMPLETE' if corruption=='missing_interior' else 'RESULT_SCOPE_INVALID')
-                    with patch.object(agent.subprocess,'run',side_effect=render_then_change_scope):
+                    with patch.object(agent,'run_review_child',side_effect=render_then_change_scope):
                         with self.assertRaisesRegex(ValueError,'^'+reason+'$'):
                             agent.run(retry_job,os.environ['CONTENT_CONTROL_ROOT'],
                                 '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',rejected)

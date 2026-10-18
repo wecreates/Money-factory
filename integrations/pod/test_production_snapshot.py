@@ -51,14 +51,14 @@ class ProductionSnapshotTests(unittest.TestCase):
             self.assertNotEqual(path, self.job)
             self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
             self.finish(argv, **kwargs)
-        with patch.object(agent.subprocess, 'run', side_effect=child): result = self.run_agent()
+        with patch.object(agent, 'run_review_child', side_effect=child): result = self.run_agent()
         self.assertEqual(result['input_sha256'], hashlib.sha256(self.body).hexdigest())
         self.assertFalse(captured[0].parent.exists())
 
     def test_source_deleted_after_render_does_not_break_valid_receipt(self):
         def child(argv, **kwargs):
             self.finish(argv, **kwargs); self.job.unlink()
-        with patch.object(agent.subprocess, 'run', side_effect=child): result = self.run_agent()
+        with patch.object(agent, 'run_review_child', side_effect=child): result = self.run_agent()
         self.assertEqual(result['input_sha256'], hashlib.sha256(self.body).hexdigest())
 
     def test_child_failure_removes_only_private_snapshot(self):
@@ -66,7 +66,7 @@ class ProductionSnapshotTests(unittest.TestCase):
         def child(argv, **kwargs):
             path = Path(argv[2]); captured.append(path)
             raise subprocess.CalledProcessError(1, argv)
-        with patch.object(agent.subprocess, 'run', side_effect=child):
+        with patch.object(agent, 'run_review_child', side_effect=child):
             with self.assertRaises(subprocess.CalledProcessError): self.run_agent()
         self.assertEqual(self.job.read_bytes(), self.body)
         self.assertFalse(captured[0].parent.exists())
@@ -74,7 +74,7 @@ class ProductionSnapshotTests(unittest.TestCase):
     def test_job_ceiling_checked_before_child(self):
         self.job.write_bytes(self.body+b' '*100)
         with patch.object(agent, 'MAX_JOB_BYTES', len(self.body), create=True), \
-             patch.object(agent.subprocess, 'run', side_effect=AssertionError('child reached')):
+             patch.object(agent, 'run_review_child', side_effect=AssertionError('child reached')):
             with self.assertRaisesRegex(ValueError, '^JOB_TOO_LARGE$'): self.run_agent()
         self.assertFalse(self.output.exists())
 
@@ -84,13 +84,13 @@ class ProductionSnapshotTests(unittest.TestCase):
         def child(argv, **kwargs):
             self.assertEqual(Path(argv[2]).read_bytes(),self.body); self.finish(argv, **kwargs)
         with patch.object(agent, 'MAX_JOB_BYTES', len(self.body), create=True), \
-             patch.object(agent.subprocess, 'run', side_effect=child): result = self.run_agent()
+             patch.object(agent, 'run_review_child', side_effect=child): result = self.run_agent()
         self.assertEqual(result['input_sha256'],hashlib.sha256(self.body).hexdigest())
 
     def test_invalid_utf8_and_nonobject_job_never_execute(self):
         for body in (b'{"publication_enabled":false,"paid_generation_enabled":false,"x":"\xff"}',b'[]',b'null'):
             self.job.write_bytes(body)
-            with patch.object(agent.subprocess, 'run', side_effect=AssertionError('child reached')):
+            with patch.object(agent, 'run_review_child', side_effect=AssertionError('child reached')):
                 with self.assertRaises((ValueError,UnicodeError)): self.run_agent()
 
     def test_fifo_rejected_without_waiting_for_writer(self):
