@@ -511,3 +511,36 @@ independent QA, official-template acceptance, rights clearance, live authority,
 capacity or permission to publish. It cannot establish that every required
 product file or manuscript is fit for sale. All 24 live acceptance areas remain
 open in Content Control's registry; both publication flags remain false.
+
+
+## Complete review artifact inventory — October 18, 2026
+
+A review receipt now requires hash-listed print.png, art-mask.png, text-mask.png,
+metadata.json, research.json and provenance.json for every supported platform.
+KDP additionally requires cover.pdf, interior.pdf and interior.receipt.json.
+Deleting a required file and its manifest entry cannot be hidden by recomputing
+the manifest and result hashes. Inventory validation runs before artifact reads;
+failure writes no receipt and retains the generated attempt for investigation.
+
+Manifest keys must be flat ASCII filenames, 1–128 characters, beginning with an
+alphanumeric character and continuing with alphanumerics, dots, underscores or
+hyphens. Absolute paths, slash/backslash paths and dot-segment aliases are rejected.
+Additional flat files remain allowed within the existing 32-entry and byte limits.
+The final artifact path component is not resolved before opening it, so the
+existing O_NOFOLLOW regular-file reader also rejects a preexisting file symlink.
+
+Four new tests cover every required-file omission across the five platforms,
+valid complete inventories with an extra file, four path aliases and a final
+symlink. The old verifier accepted all 38 invalid subcases. The real MF → Node →
+Python fixture additionally removes the generated KDP interior and its manifest
+entry, rehashes both receipts and requires rejection. That case failed against
+the old verifier and passes with the repair. All 29 Python tests pass locally;
+the existing hosted PostgreSQL/CLI/bridge gate is required before merge.
+
+Shared unit fixtures now include the complete filename inventory; their synthetic
+bytes are not valid print assets. This check establishes file presence and hash
+binding, not content validity, cover/interior compatibility, editorial quality,
+rights, official templates, independent QA or live acceptance. It is not an
+adversarial filesystem sandbox or an atomic directory snapshot; parent-directory
+replacement and same-user mutation remain outside this guarantee. All publication
+flags remain false and every live acceptance requirement remains open.

@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from production_test_fixtures import artifact_bodies
 
 module = importlib.util.spec_from_file_location('pod_agent_snapshot', Path(__file__).with_name('production_agent.py'))
 agent = importlib.util.module_from_spec(module); module.loader.exec_module(agent)
@@ -29,9 +30,10 @@ class ProductionSnapshotTests(unittest.TestCase):
         # A synthetic child isolates input binding; the existing real Node/Python
         # integration test independently checks genuine rendering and manifests.
         root = Path(argv[4]); (root/'package').mkdir(parents=True)
-        (root/'package/art.bin').write_bytes(b'fixture')
+        files = artifact_bodies(overrides={'art.bin':b'fixture'})
+        for name,body in files.items(): (root/'package'/name).write_bytes(body)
         manifest = {'schema_version':1,'platform':'kdp','publication_enabled':False,
-                    'files':{'art.bin':hashlib.sha256(b'fixture').hexdigest()}}
+                    'files':{name:hashlib.sha256(body).hexdigest() for name,body in files.items()}}
         manifest['package_sha256'] = hashlib.sha256(json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()).hexdigest()
         (root/'package/manifest.json').write_text(json.dumps(manifest))
         (root/'result.json').write_text(json.dumps({'schema_version':1,'platform':'kdp','status':'REVIEW_REQUIRED','publication_enabled':False,

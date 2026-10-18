@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from production_test_fixtures import artifact_bodies
 
 spec = importlib.util.spec_from_file_location('output_agent', Path(__file__).with_name('production_agent.py'))
 agent = importlib.util.module_from_spec(spec); spec.loader.exec_module(agent)
@@ -27,6 +28,7 @@ class ProductionOutputTests(unittest.TestCase):
         self.write_package({'art.bin': b'original bytes'})
 
     def write_package(self, files):
+        files = artifact_bodies(overrides=files)
         hashes = {}
         for name, body in files.items():
             (self.out/'package'/name).write_bytes(body)

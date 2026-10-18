@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import stat
 import tempfile
 from pathlib import Path
@@ -17,6 +18,20 @@ PLATFORMS = {'kdp', 'redbubble', 'teepublic', 'zazzle', 'spreadshirt'}
 REVIEW_FLAGS = ('publication_enabled', 'production_ready', 'paid_generation_enabled', 'marketplace_ready')
 REVIEW_CHECKS = {'official_template', 'rights', 'editorial', 'independent_visual_review',
                  'marketplace_account', 'platform_preview', 'release_approval'}
+COMMON_ARTIFACTS = {'print.png', 'art-mask.png', 'text-mask.png', 'metadata.json',
+                    'research.json', 'provenance.json'}
+KDP_ARTIFACTS = {'cover.pdf', 'interior.pdf', 'interior.receipt.json'}
+
+
+def validate_inventory(files, platform):
+    if not isinstance(files, dict) or not 1 <= len(files) <= 32:
+        raise ValueError('ARTIFACT_BATCH_INVALID')
+    if any(not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}', name)
+           for name in files):
+        raise ValueError('ARTIFACT_NAME_INVALID')
+    required = COMMON_ARTIFACTS | (KDP_ARTIFACTS if platform == 'kdp' else set())
+    if not required.issubset(files):
+        raise ValueError('ARTIFACT_SET_INCOMPLETE')
 
 
 def validate_result(result, platform):
@@ -115,14 +130,13 @@ def run(job, content_control, font, output):
     if hashlib.sha256(encoded).hexdigest()!=expected or result['package_sha256']!=expected:
         raise ValueError('MANIFEST_HASH_MISMATCH')
     files=manifest['files']
-    if not isinstance(files, dict) or not 1 <= len(files) <= 32:
-        raise ValueError('ARTIFACT_BATCH_INVALID')
+    validate_inventory(files, platform)
     total=0
     for name,sha in files.items():
         base=(output/'package').resolve()
-        path=(base/name).resolve(strict=True)
-        if not path.is_relative_to(base):
-            raise ValueError('ARTIFACT_HASH_MISMATCH')
+        # Inventory names are flat. Keep the final component unresolved so
+        # output_chunks' O_NOFOLLOW cannot be bypassed by a preexisting symlink.
+        path=base/name
         digest=hashlib.sha256()
         for chunk in output_chunks(path, MAX_ARTIFACT_BYTES):
             total+=len(chunk)

@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from production_test_fixtures import artifact_bodies
 
 module = importlib.util.spec_from_file_location('scope_agent', Path(__file__).with_name('production_agent.py'))
 agent = importlib.util.module_from_spec(module); module.loader.exec_module(agent)
@@ -22,9 +23,10 @@ class ProductionScopeTests(unittest.TestCase):
             font.write_bytes(b'fixture')
             def child(argv, **kwargs):
                 package = out/'package'; package.mkdir(parents=True)
-                body = 'Étoile fixture'.encode(); (package/'art.bin').write_bytes(body)
+                bodies = artifact_bodies(platform, {'art.bin': 'Étoile fixture'.encode()})
+                for name,body in bodies.items(): (package/name).write_bytes(body)
                 manifest = {'schema_version': 1, 'platform': platform, 'publication_enabled': False,
-                            'files': {} if empty else {'art.bin': hashlib.sha256(body).hexdigest()}}
+                            'files': {} if empty else {name:hashlib.sha256(body).hexdigest() for name,body in bodies.items()}}
                 if manifest_change: manifest_change(manifest)
                 digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':'),
                                                    ensure_ascii=False).encode()).hexdigest()
