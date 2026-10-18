@@ -608,3 +608,26 @@ approval or live acceptance. Abrupt process/host death can leave staging files o
 a complete receipt whose directory sync is unknown. Same-user malicious mutation
 and unreliable storage semantics remain outside this guarantee. All publication
 flags stay false and every live acceptance requirement remains open.
+
+
+## Exact downstream evidence-time checks — October 18, 2026
+
+The cross-repository gate now pins Content Control 4ed6d4fd9163c34f58dd80a4d0954524ffc190b3, whose
+market, financial and official-template validator compares complete microsecond
+timestamps against the current millisecond clock. Evidence one microsecond ahead
+cannot pass through Date.parse truncation. Exact boundaries and equivalent offsets
+remain valid; accepted signed timestamps are never rewritten. Invalid clocks fail
+closed. No collection rights, financial facts or official-source approvals are
+inferred from valid time syntax.
+
+The gate runs the pinned producer's eight evidence-time regressions alongside
+its seven review CLI lifecycle tests, the existing MF Node/PostgreSQL bridge and
+actual Python/Node rendering tests. Content Control PR #266 passed 503 Node tests,
+204 Python tests, durable E2E and production-image disabled-startup verification:
+https://github.com/wecreates/content-control/actions/runs/39149575313
+https://github.com/wecreates/content-control/actions/runs/39149575308
+
+Hosted verification of this consumer pin is required before merge. These are
+disposable integration results; live authority mounting, real current evidence,
+deployment and all 24 acceptance areas remain open. Both publication flags stay
+false, and Etsy remains outside this lane.
