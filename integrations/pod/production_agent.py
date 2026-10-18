@@ -29,7 +29,7 @@ REVIEW_TIMEOUT_SECONDS = 260
 REVIEW_STOP_SECONDS = 12  # Allow the pinned Node supervisor's five-second group cleanup.
 
 
-def run_review_child(argv, *, check=True, timeout=REVIEW_TIMEOUT_SECONDS):
+def run_review_child(argv, *, check=True, timeout=REVIEW_TIMEOUT_SECONDS, checkpoint=lambda: None):
     # Python signal handlers belong to the main thread. Reject unsupported callers
     # before spawning rather than silently omitting cancellation forwarding.
     if threading.current_thread() is not threading.main_thread():
@@ -44,8 +44,12 @@ def run_review_child(argv, *, check=True, timeout=REVIEW_TIMEOUT_SECONDS):
     try:
         for sig in (signal.SIGTERM, signal.SIGINT):
             previous[sig] = signal.signal(sig, cancel)
+        checkpoint()
+        if cancelled:
+            raise InterruptedError('REVIEW_CANCELLED')
         child = subprocess.Popen(argv)
         while True:
+            checkpoint()
             if cancelled:
                 raise InterruptedError('REVIEW_CANCELLED')
             remaining = deadline - time.monotonic()
@@ -62,7 +66,8 @@ def run_review_child(argv, *, check=True, timeout=REVIEW_TIMEOUT_SECONDS):
                 raise subprocess.TimeoutExpired(argv, timeout)
             if check and code:
                 raise subprocess.CalledProcessError(code, argv)
-            return subprocess.CompletedProcess(argv, code)
+            result = subprocess.CompletedProcess(argv, code)
+            break
     finally:
         try:
             if child is not None and child.poll() is None:
@@ -77,6 +82,12 @@ def run_review_child(argv, *, check=True, timeout=REVIEW_TIMEOUT_SECONDS):
         finally:
             for sig, handler in previous.items():
                 signal.signal(sig, handler)
+    # Signals received after wait succeeded but during handler restoration must
+    # not be lost to a return value already computed inside the try block.
+    if cancelled:
+        raise InterruptedError('REVIEW_CANCELLED')
+    checkpoint()
+    return result
 
 
 def validate_inventory(files, platform):
@@ -154,9 +165,10 @@ def capture_job(path):
     return body
 
 
-def write_receipt(output, result):
+def write_receipt(output, result, *, checkpoint=lambda: None):
     # The final path becomes visible only after complete bytes have been synced.
     # A hard link commits without overwriting a concurrent/existing destination.
+    checkpoint()
     body = (json.dumps(result, indent=2, allow_nan=False)+'\n').encode('utf-8')
     directory = os.open(output, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     name = '.mf-receipt-'+uuid.uuid4().hex+'.tmp'
@@ -172,6 +184,7 @@ def write_receipt(output, result):
             identity = (info.st_dev, info.st_ino)
             remaining = memoryview(body)
             while remaining:
+                checkpoint()
                 written = os.write(fd, remaining)
                 if written <= 0:
                     raise OSError('RECEIPT_WRITE_INCOMPLETE')
@@ -179,12 +192,16 @@ def write_receipt(output, result):
             os.fsync(fd)
         finally:
             os.close(fd)
+        checkpoint()
         os.link(name, 'money-factory-receipt.json', src_dir_fd=directory,
                 dst_dir_fd=directory, follow_symlinks=False)
         committed = True
         os.unlink(name, dir_fd=directory)
         staged = False
         os.fsync(directory)
+        # Cancellation after the exclusive link cannot undo that commit. The
+        # existing recovery path retains the complete receipt and rejects success.
+        checkpoint()
     except BaseException as error:
         # A signal/error can arrive after link succeeds but before its return is
         # recorded. Identify our inode instead of incorrectly claiming rollback.
@@ -208,9 +225,39 @@ def write_receipt(output, result):
 
 
 def run(job, content_control, font, output):
+    if threading.current_thread() is not threading.main_thread():
+        raise RuntimeError('REVIEW_MAIN_THREAD_REQUIRED')
+    cancelled = False
+    def cancel(signum, frame):
+        nonlocal cancelled
+        cancelled = True
+    def checkpoint():
+        if cancelled:
+            raise InterruptedError('REVIEW_CANCELLED')
+    previous = {}
+    result = None
+    try:
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            previous[sig] = signal.signal(sig, cancel)
+        result = _run_review(job, content_control, font, output, checkpoint)
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
+    # A late signal during restoration is still cancellation. The completed
+    # receipt must be reconciled, not deleted or reported as a rolled-back run.
+    try:
+        checkpoint()
+    except InterruptedError as error:
+        raise RuntimeError('RECEIPT_COMMITTED_RECOVERY_REQUIRED') from error
+    return result
+
+
+def _run_review(job, content_control, font, output, checkpoint):
+    checkpoint()
     job=Path(job).resolve(strict=True)
     root=Path(content_control).resolve(strict=True)
     body=capture_job(job)
+    checkpoint()
     spec=json.loads(body.decode('utf-8', errors='strict'))
     if not isinstance(spec, dict):
         raise ValueError('JOB_INVALID')
@@ -229,12 +276,16 @@ def run(job, content_control, font, output):
         with snapshot.open('xb') as target:
             target.write(body)
         snapshot.chmod(0o400)
+        checkpoint()
         run_review_child(['node',str(root/'scripts/pod_review_cli.mjs'),str(snapshot),
                          str(Path(font).resolve(strict=True)),str(output)],
-                         check=True,timeout=REVIEW_TIMEOUT_SECONDS)
+                         check=True,timeout=REVIEW_TIMEOUT_SECONDS,checkpoint=checkpoint)
+    checkpoint()
     result=output_json(output/'result.json')
+    checkpoint()
     validate_result(result, platform)
     manifest=output_json(output/'package/manifest.json')
+    checkpoint()
     validate_manifest(manifest, platform)
     expected=manifest.pop('package_sha256')
     encoded=json.dumps(manifest,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
@@ -244,12 +295,14 @@ def run(job, content_control, font, output):
     validate_inventory(files, platform)
     total=0
     for name,sha in files.items():
+        checkpoint()
         base=(output/'package').resolve()
         # Inventory names are flat. Keep the final component unresolved so
         # output_chunks' O_NOFOLLOW cannot be bypassed by a preexisting symlink.
         path=base/name
         digest=hashlib.sha256()
         for chunk in output_chunks(path, MAX_ARTIFACT_BYTES):
+            checkpoint()
             total+=len(chunk)
             if total>MAX_PACKAGE_BYTES:
                 raise ValueError('PACKAGE_TOO_LARGE')
@@ -257,7 +310,7 @@ def run(job, content_control, font, output):
         if digest.hexdigest()!=sha:
             raise ValueError('ARTIFACT_HASH_MISMATCH')
     result['input_sha256']=hashlib.sha256(body).hexdigest()
-    write_receipt(output, result)
+    write_receipt(output, result, checkpoint=checkpoint)
     return result
 
 

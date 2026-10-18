@@ -631,3 +631,40 @@ Hosted verification of this consumer pin is required before merge. These are
 disposable integration results; live authority mounting, real current evidence,
 deployment and all 24 acceptance areas remain open. Both publication flags stay
 false, and Etsy remains outside this lane.
+
+
+### Cancellation through validation and receipt commit (r87)
+
+The Money Factory review entry point now owns SIGTERM/SIGINT handling from input
+capture through package validation and receipt persistence. Cancellation is sticky
+even after the renderer exits successfully or a caller previously installed an
+ignoring/custom signal handler. Checkpoints prevent spawning after cancellation,
+stop further validation/hashing, and reject the receipt before its exclusive link
+when cancellation arrives during staging or file sync. The child supervisor also
+rechecks cancellation after restoring signal handlers, closing its late-success
+window. Previous handlers are restored on success and failure; non-main-thread
+calls fail before reading inputs or spawning work.
+
+If cancellation arrives after the receipt link commits (including directory sync
+or final handler restoration), the complete receipt is preserved and
+`RECEIPT_COMMITTED_RECOVERY_REQUIRED` is raised. Reconcile that existing receipt and
+its package; do not blindly rerun, overwrite it, or claim rollback. Precommit
+cancellation removes owned receipt staging files and the private input snapshot,
+but retains rendered review files for diagnosis. Cancellation does not grant any
+review, rights, account or publication permission.
+
+Ten new tests use real SIGTERM/SIGINT delivery with synthetic review output and
+exercise pre-spawn, child-exit, JSON validation, artifact hashing, file sync,
+postcommit directory sync and handler-restoration boundaries. The initial eight
+tests exposed seven failing methods (12 failing signal/subcases) on the previous
+implementation. Local verification passed the 54-test Python suite with the
+existing local Content Control checkout, then the final ten-test cancellation
+suite after two extra boundary cases were added. The hosted workflow retains its
+exact Content Control pin and supplies independent cross-repository verification.
+
+This is cooperative cancellation, not a guarantee against SIGKILL, host death,
+uninterruptible storage calls or escaped descendants. Checkpoints do not make
+in-flight filesystem calls instantly cancellable, and a signal after a final
+check/handler restoration can race with return. A committed receipt still requires
+recovery inspection; rendered files are not production backup/restore evidence.
+Publication remains disabled and all 24 live acceptance areas remain open.
