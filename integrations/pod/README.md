@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control bb0595d617fc27cd56328c7ae2833a1e12ea2160,
+The cross-repository workflow pins Content Control 420a94656abbaa355094bb81cf62df070b9df3e0,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -999,3 +999,25 @@ Tests simulate DOM and streams; they do not verify a real phone session,
 production availability or owner authentication. Existing economic/event recovery
 and Python review production run against the same consumer checkout. Both
 publication flags remain false and all live acceptance areas remain open.
+
+
+## Pinned bridge header deadlines
+
+The consumer pin includes Content Control PR #301. Grant and outbox clients now
+observe their existing request deadlines while acquiring headers, even when a
+custom transport ignores abort. Pre-aborted grants do not dispatch; responses
+arriving after a cancelled header wait are discarded with best-effort body
+cleanup. Late rejections cannot become unhandled or deliver an acknowledgement.
+
+A reused transport function shares at most 32 unresolved header acquisitions in
+one process. Cancellation retains admission until the underlying fetch settles;
+overflow fails before dispatch. This bounds abandoned header calls, not arbitrary
+transport internals, active body reads or distributed capacity. A permanently
+stalled transport needs repair or process recovery. There is no cached grant
+fallback or new retry path.
+
+The workflow explicitly runs the consumer's response and grant-client contracts,
+including outbox lifecycle shutdown, alongside existing economics/event recovery
+and Python review production against that same checkout. These controlled
+transport fixtures do not verify a deployed authority/inbox, actual network
+capacity or any live acceptance area. Both publication flags remain false.
