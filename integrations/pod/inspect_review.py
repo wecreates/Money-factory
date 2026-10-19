@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from production_agent import (capture_job, output_chunks, validate_result, review_directories,
+from production_agent import (capture_job, output_chunks, parse_review_json, validate_result, review_directories,
                               validate_review_output, MAX_OUTPUT_JSON_BYTES, PLATFORMS)
 
 
@@ -19,7 +19,7 @@ def inspect_review(job, output):
     # Keep final path components unresolved: the shared readers reject symlinks
     # and nonregular files without blocking on FIFOs. Never rerender or write.
     body = capture_job(Path(job).absolute())
-    spec = json.loads(body.decode('utf-8', errors='strict'))
+    spec = parse_review_json(body)
     if not isinstance(spec, dict):
         raise ValueError('JOB_INVALID')
     if spec.get('publication_enabled') is not False or spec.get('paid_generation_enabled') is not False:
@@ -31,7 +31,7 @@ def inspect_review(job, output):
     with review_directories(root) as directories:
         receipt_body = b''.join(output_chunks('money-factory-receipt.json', MAX_OUTPUT_JSON_BYTES,
                                             dir_fd=directories[0]))
-        receipt = json.loads(receipt_body.decode('utf-8', errors='strict'))
+        receipt = parse_review_json(receipt_body)
         validate_result(receipt, platform)
         input_hash = hashlib.sha256(body).hexdigest()
         if receipt.get('input_sha256') != input_hash:
