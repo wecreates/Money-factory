@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: 539e35827d9922f02c28837978901511dfc5e255
+          ref: 9ebba1f99d74683992a48d12640a24af6b93c85d
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -41,7 +41,7 @@ jobs:
       - run: npm ci --ignore-scripts
         working-directory: content-control-test
       - name: Verify pinned review cleanup and authority contracts
-        run: node --test tests/pod-review-cli.test.mjs tests/pod-evidence-time.test.mjs tests/pod-envelope-clock.test.mjs tests/pod-envelope-json.test.mjs tests/pod-mode-types.test.mjs tests/pod-task-json.test.mjs tests/pod-task-resolver.test.mjs
+        run: node --test tests/pod-review-cli.test.mjs tests/pod-evidence-time.test.mjs tests/pod-envelope-clock.test.mjs tests/pod-envelope-json.test.mjs tests/pod-mode-types.test.mjs tests/pod-task-json.test.mjs tests/pod-task-resolver.test.mjs tests/pod-claim-evidence.test.mjs
         working-directory: content-control-test
       - run: node --test integrations/pod/*.test.mjs
       - run: CONTENT_CONTROL_ROOT="$GITHUB_WORKSPACE/content-control-test" python3 -m unittest discover -s integrations/pod -p 'test_*.py'
