@@ -43,7 +43,7 @@ export function createPodEventHandler({pool,key,clock=Date.now,timeoutMs=5000,co
    const code=error?.message;
    const status=code==='REQUEST_TOO_LARGE'?413:code==='EVENT_SIGNATURE_INVALID'?401:
     code==='EVENT_REPLAY_CONFLICT'?409:
-    ['EVENT_ENVELOPE_INVALID','EVENT_SCOPE_INVALID'].includes(code)||error instanceof SyntaxError?400:503;
+    ['EVENT_ENVELOPE_INVALID','EVENT_SCOPE_INVALID','EVENT_STORAGE_TEXT_INVALID'].includes(code)||error instanceof SyntaxError?400:503;
    // Database errors can contain schema, connection, and event data. Never echo.
    return send(status,{error:status===503?'EVENT_RECEIVER_UNAVAILABLE':'EVENT_REJECTED'});
   }finally{clearTimeout(timer);}

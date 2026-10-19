@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import {parsePodJSON} from './request-json.mjs';
+import {assertEventStorageText} from './event-storage.mjs';
 
 // Shared across handlers using this pool. Timed-out callers still occupy a slot
 // until pg settles their underlying request; otherwise retries grow its queue.
@@ -50,6 +51,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
  if(!Number.isSafeInteger(now)||now<0||p?.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isSafeInteger(p.issued_at_ms)||p.issued_at_ms<0||p.issued_at_ms>now||now-p.issued_at_ms>300000||
   !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(e?.id||'')||typeof e.kind!=='string'||!e.kind.startsWith('pod.')||
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw Error('EVENT_SCOPE_INVALID');
+ assertEventStorageText(e);
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
  const c=await acquireClient(pool,connectionTimeoutMs);let discard=false;
  try{
