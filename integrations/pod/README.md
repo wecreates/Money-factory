@@ -881,3 +881,16 @@ are rejected rather than normalized; valid mode ceilings, publication permission
 launch readiness and economic checks are unchanged. Regression fixtures verify
 issuer, HTTP snapshot and signed-consumer rejection; they do not establish live
 authority mounting, approval, revocation, or publication acceptance.
+
+
+## Pinned consumer envelope verification
+
+The cross-repository workflow pins Content Control bc0a5c28d6494a3995b3da282b295df14c00cbb1,
+which rejects ambiguous signed JSON, nonfinite numeric results, malformed
+signature types and non-string readiness modes. Its producer verification step
+now runs the envelope clock/JSON and mode regressions alongside review cleanup
+and evidence-time tests. The existing real economic-grant round trip, local
+PostgreSQL outbox/inbox recovery, and Python review production tests run against
+that exact checkout. Node22, Python3.12, disposable PostgreSQL18 and both false
+publication flags are unchanged. This is compatibility evidence, not a deployed
+authority, production database verification or live marketplace acceptance.
