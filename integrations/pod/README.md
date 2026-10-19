@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 315cd01c41f0e6a6c056d590cd85035578946542,
+The cross-repository workflow pins Content Control ab8d65b80bb262f2e1b9c6006a1bbfcc217346c0,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -957,3 +957,17 @@ permitted collection and retained proof; readiness grants do not supply those
 permissions. Existing economic/event round trips and Python review production
 run against the same pin. Synthetic compatibility checks do not establish live
 intelligence, deployment or acceptance. Both publication flags remain false.
+
+## Pinned recovery clock
+
+The consumer pin includes Content Control PR #295. Its disposable PostgreSQL
+integration and image gates verify recovery after real lock waits: expired
+processing work is blocked, expired publishing work is ambiguous, future leases
+are untouched, and recovered rows receive a live transition timestamp. Attempts
+and fencing are preserved; recovery does not approve or automatically resubmit.
+
+This workflow additionally runs the consumer's production lease guards with its
+existing review, authority, claim and market contracts. Existing Money Factory
+economic/event round trips and Python review production use the same checkout.
+Both publication flags remain false. Hosted compatibility checks do not prove
+a live recovery drill, authority mounting or deployment acceptance.
