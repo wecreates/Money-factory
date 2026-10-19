@@ -2,6 +2,24 @@ import crypto from 'node:crypto';
 import {issuePodGrant} from './readiness-grant.mjs';
 import {parsePodRequestJSON} from './request-json.mjs';
 
+// Share capacity across handlers wired to the same server-owned loader. An
+// aborted HTTP request does not prove the loader stopped its backend work.
+const pendingSnapshots=new WeakMap();
+const MAX_PENDING_SNAPSHOTS=32;
+async function loadBoundedSnapshot(loadSnapshot,id,signal){
+ signal.throwIfAborted();
+ const pending=pendingSnapshots.get(loadSnapshot)||0;
+ if(pending>=MAX_PENDING_SNAPSHOTS)throw Error('SNAPSHOT_BUSY');
+ pendingSnapshots.set(loadSnapshot,pending+1);
+ return Promise.resolve().then(()=>{
+  signal.throwIfAborted();
+  return loadSnapshot(id,{signal});
+ }).finally(()=>{
+  const remaining=pendingSnapshots.get(loadSnapshot)-1;
+  if(remaining)pendingSnapshots.set(loadSnapshot,remaining);else pendingSnapshots.delete(loadSnapshot);
+ });
+}
+
 // Mount in the existing authoritative HTTP host, with a server-owned snapshot loader.
 // Never accept readiness, approval, facts or price from the request.
 export function createPodAuthorityHandler({loadSnapshot,authKey,signingKey,clock=Date.now,snapshotTimeoutMs=5000}){
@@ -35,10 +53,7 @@ export function createPodAuthorityHandler({loadSnapshot,authKey,signingKey,clock
    });
    const deadline=performance.now()+snapshotTimeoutMs;
    snapshotTimer=setTimeout(()=>controller.abort(),snapshotTimeoutMs);
-   const snapshot=await Promise.race([aborted,Promise.resolve().then(()=>{
-    controller.signal.throwIfAborted();
-    return loadSnapshot(request.job_id,{signal:controller.signal});
-   })]);
+   const snapshot=await Promise.race([aborted,loadBoundedSnapshot(loadSnapshot,request.job_id,controller.signal)]);
    // A synchronous loader can delay the timer callback. Elapsed monotonic time
    // still forbids signing its late result.
    if(performance.now()>=deadline)controller.abort();
