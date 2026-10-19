@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 539e35827d9922f02c28837978901511dfc5e255,
+The cross-repository workflow pins Content Control 9ebba1f99d74683992a48d12640a24af6b93c85d,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -927,3 +927,21 @@ production run against the same exact checkout. This preserves the distinction
 between byte-hash integrity, unambiguous parsing and actual task authorization.
 Hosted fixture success is not live database, authority or marketplace acceptance;
 both publication flags remain false.
+
+
+## Claim-reference consumer contract
+
+The pinned consumer omits signed facts whose evidence references are missing,
+malformed, duplicated or outside the existing 1–32 references / 256-character
+identifier bounds. Blank claims and array fact collections are omitted. Price
+metadata requires a nonblank primitive evidence ID and an exact uppercase
+three-letter currency. Valid IDs and text are preserved without normalization.
+Provider-verification and Money Factory event-verification flags remain required,
+and forbidden names/values remain excluded.
+
+The real issuer-to-consumer regression uses synthetic PRELAUNCH snapshots to
+verify omission, valid metadata preservation and denied publication permission.
+It does not assert that the synthetic sources exist or establish actual provider
+facts, revenue, rights or approvals. The authoritative host must supply authentic
+current source records; reference-shape checks cannot replace that responsibility.
+Both publication flags remain false and all live acceptance areas remain open.
