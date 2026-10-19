@@ -894,3 +894,23 @@ PostgreSQL outbox/inbox recovery, and Python review production tests run against
 that exact checkout. Node22, Python3.12, disposable PostgreSQL18 and both false
 publication flags are unchanged. This is compatibility evidence, not a deployed
 authority, production database verification or live marketplace acceptance.
+
+
+## Unambiguous authority snapshots
+
+Grant issuance requires nonblank primitive job, business and account ID strings
+of at most256 characters. Readiness must contain an array of identified business
+records and exactly one record matching the requested business. Duplicate target
+rows are rejected even when they agree, so an earlier ready row cannot conceal
+a later blocked row. Malformed records and missing targets also fail closed.
+Approval scope still must match exactly; its evidence event reference must be a
+nonblank primitive string of at most256 characters. IDs are not trimmed, coerced,
+normalized, repaired or invented. These bounds follow the existing economics
+identifier convention; they do not verify that an upstream event actually exists.
+
+The authoritative host must continue to load real, current records consistently
+from its own sources. HTTP failures retain the redacted409 GRANT_BLOCKED response;
+a later corrected snapshot can succeed normally. Synthetic tests cover both
+row orders, identical duplicates, malformed scope/evidence IDs, preserved exact
+IDs/readiness hash/permissions and HTTP recovery. They are not live approval,
+revocation, database or publication acceptance.
