@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 6d61fbddf48a9bc25275cb6274cea68977ac9442,
+The cross-repository workflow pins Content Control 19acf4c961b58867c818381532679580d9f10393,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1078,3 +1078,23 @@ Existing Money Factory economics/event recovery and Python production use the
 same consumer pin. These are controlled compatibility checks, not live concept
 authority, deployed availability, measured capacity or acceptance. All 24 live
 requirements remain open and both publication flags remain false.
+
+
+## State export completion safety
+
+The pinned consumer includes Content Control PR #309. State export rechecks both
+explicitly false publication flags after its read-only COMMIT and after final
+catalog/directory persistence. A late flag change cannot return EXPORTED. Changes
+during COMMIT prevent catalog creation; later rejection can leave authenticated
+ciphertext. Offline verification describes those bytes and does not establish
+successful completion of the rejected operation.
+
+The workflow explicitly runs the consumer's state archive suite alongside its
+existing review/intake/bridge/startup contracts. Real filesystem tests inject
+changes at COMMIT and catalog, archive-directory and parent-directory fsync,
+checking clean connection release, no database mutations and remaining bytes.
+
+Existing economics/event recovery and Python production use the same pinned
+checkout. These controlled fixtures are not a live retained backup, restoration
+drill, upstream authorization or capacity proof. All 24 live acceptance areas
+remain open; both publication flags remain false.
