@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control bc0a5c28d6494a3995b3da282b295df14c00cbb1,
+The cross-repository workflow pins Content Control 539e35827d9922f02c28837978901511dfc5e255,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -914,3 +914,16 @@ a later corrected snapshot can succeed normally. Synthetic tests cover both
 row orders, identical duplicates, malformed scope/evidence IDs, preserved exact
 IDs/readiness hash/permissions and HTTP recovery. They are not live approval,
 revocation, database or publication acceptance.
+
+
+## Pinned stored-task validation
+
+The pinned consumer also rejects invalid UTF-8, a leading BOM, duplicate decoded
+task-descriptor keys and numeric overflow before restoring input artifacts.
+The cross-repository workflow explicitly runs its descriptor parsing and task
+restoration tests in addition to envelope, mode, evidence-time and review cleanup
+contracts. Existing Money Factory economic/event round trips and Python review
+production run against the same exact checkout. This preserves the distinction
+between byte-hash integrity, unambiguous parsing and actual task authorization.
+Hosted fixture success is not live database, authority or marketplace acceptance;
+both publication flags remain false.
