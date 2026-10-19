@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 19acf4c961b58867c818381532679580d9f10393,
+The cross-repository workflow pins Content Control 95fed6f8b8fc9bdfad344f386d1eab9d484c1d45,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1098,3 +1098,22 @@ Existing economics/event recovery and Python production use the same pinned
 checkout. These controlled fixtures are not a live retained backup, restoration
 drill, upstream authorization or capacity proof. All 24 live acceptance areas
 remain open; both publication flags remain false.
+
+
+## Elapsed print-process completion deadlines
+
+The pinned consumer includes Content Control PR #311. Print stages share an
+absolute monotonic deadline from before launch through child/pipe closure and
+successful output decoding. At or beyond that budget, a zero exit cannot become
+a successful stage result, even when the timeout callback has not run. The
+termination timer uses the remaining budget; existing process-group reaping,
+cancellation, output bounds and fixed error reasons remain in force.
+
+The workflow explicitly runs the real-process stage suite alongside existing
+review/intake/bridge/startup/state-archive contracts. Controlled-clock cases
+check just-before/at/after completion and decoding crossing the deadline; they
+do not measure production capacity or confer QA or publication approval.
+
+Existing Money Factory economics/event recovery and Python production use the
+same pinned checkout. Both publication flags remain false and all 24 live
+acceptance areas remain open.
