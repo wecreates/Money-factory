@@ -804,3 +804,31 @@ are resolved by the OS; this is not a general filesystem sandbox. Concurrent
 modification after the final identity check remains outside this guarantee.
 Approval and durability remain unverified, all live acceptance areas remain open,
 and both publication flags remain false.
+
+
+### Unambiguous review JSON (r92)
+
+The Python generation wrapper and recovery inspector now share a strict parser
+for job, result, manifest and committed receipt JSON. Duplicate member names in
+any object are rejected with REVIEW_JSON_DUPLICATE_KEY, including identical
+values and names made equal by JSON escapes. A later false publication flag
+cannot conceal an earlier true flag. Repeated names in separate objects remain
+valid. NaN, Infinity, -Infinity and decimal exponents that overflow to infinity
+are rejected with REVIEW_JSON_NONFINITE. Errors do not echo keys or source data.
+
+Jobs fail before invoking the renderer. Invalid results/manifests cannot produce
+a new receipt; invalid existing receipts are rejected without rewriting them.
+Byte limits, strict UTF-8 decoding, directory binding and original-byte input
+hashes are unchanged. This is a parser gate, not proof of the facts in a valid
+JSON document or a change to arbitrary JSON artifact bytes that are hash-checked
+rather than parsed by this wrapper.
+
+Seven regression tests cover conflicting/identical/escaped/nested job duplicates,
+nonfinite job values, ambiguous result/manifest/receipt fields, recovery input
+ordering and valid finite Unicode inputs. Six methods failed on the baseline
+(15 assertions across subcases); all 81 Python tests pass locally, including
+genuine KDP rendering/inspection and cancellation/recovery checks. Hosted CI
+against the existing pinned producer is still required before merge.
+No credentials, rights, approvals, live deployment or acceptance are established
+by these synthetic inputs. Publication remains disabled and all 24 live
+acceptance areas remain open.

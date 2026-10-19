@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import signal
@@ -146,9 +147,31 @@ def output_chunks(path, limit, *, dir_fd=None):
             yield chunk
 
 
+def parse_review_json(body):
+    # Preserve one unambiguous meaning for permission/evidence fields. Python's
+    # default decoder otherwise silently keeps the last duplicate and accepts
+    # NaN/Infinity, including an overflowing JSON exponent such as 1e400.
+    def object_pairs(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError('REVIEW_JSON_DUPLICATE_KEY')
+            value[key] = item
+        return value
+    def nonfinite(_):
+        raise ValueError('REVIEW_JSON_NONFINITE')
+    def finite_float(token):
+        value = float(token)
+        if not math.isfinite(value):
+            nonfinite(token)
+        return value
+    return json.loads(body.decode('utf-8', errors='strict'), object_pairs_hook=object_pairs,
+                      parse_constant=nonfinite, parse_float=finite_float)
+
+
 def output_json(path, *, dir_fd=None):
     body = b''.join(output_chunks(path, MAX_OUTPUT_JSON_BYTES, dir_fd=dir_fd))
-    return json.loads(body.decode('utf-8', errors='strict'))
+    return parse_review_json(body)
 
 def capture_job(path):
     fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
@@ -259,7 +282,7 @@ def _run_review(job, content_control, font, output, checkpoint):
     root=Path(content_control).resolve(strict=True)
     body=capture_job(job)
     checkpoint()
-    spec=json.loads(body.decode('utf-8', errors='strict'))
+    spec=parse_review_json(body)
     if not isinstance(spec, dict):
         raise ValueError('JOB_INVALID')
     if spec.get('publication_enabled') is not False or spec.get('paid_generation_enabled') is not False:
