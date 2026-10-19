@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: bb0595d617fc27cd56328c7ae2833a1e12ea2160
+          ref: 57c014c3b20388634fc6ee8810ded1b54d7bc9c4
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -41,7 +41,7 @@ jobs:
       - run: npm ci --ignore-scripts
         working-directory: content-control-test
       - name: Verify pinned review and POD contracts
-        run: node --test tests/pod-review-cli.test.mjs tests/pod-evidence-time.test.mjs tests/pod-envelope-clock.test.mjs tests/pod-envelope-json.test.mjs tests/pod-mode-types.test.mjs tests/pod-task-json.test.mjs tests/pod-task-resolver.test.mjs tests/pod-claim-evidence.test.mjs tests/pod-market-evidence.test.mjs tests/pod-production-lease.test.mjs tests/pod-release-freshness.test.mjs tests/pod-dashboard.test.mjs
+        run: node --test tests/pod-review-cli.test.mjs tests/pod-evidence-time.test.mjs tests/pod-envelope-clock.test.mjs tests/pod-envelope-json.test.mjs tests/pod-mode-types.test.mjs tests/pod-task-json.test.mjs tests/pod-task-resolver.test.mjs tests/pod-claim-evidence.test.mjs tests/pod-market-evidence.test.mjs tests/pod-production-lease.test.mjs tests/pod-release-freshness.test.mjs tests/pod-dashboard.test.mjs tests/pod-http-response.test.mjs tests/pod-grant-client.test.mjs
         working-directory: content-control-test
       - run: node --test integrations/pod/*.test.mjs
       - run: CONTENT_CONTROL_ROOT="$GITHUB_WORKSPACE/content-control-test" python3 -m unittest discover -s integrations/pod -p 'test_*.py'
