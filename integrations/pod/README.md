@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control ab8d65b80bb262f2e1b9c6006a1bbfcc217346c0,
+The cross-repository workflow pins Content Control a539227d6803090eec8b3b069c57cdb2089bdf56,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -971,3 +971,17 @@ existing review, authority, claim and market contracts. Existing Money Factory
 economic/event round trips and Python review production use the same checkout.
 Both publication flags remain false. Hosted compatibility checks do not prove
 a live recovery drill, authority mounting or deployment acceptance.
+
+## Pinned submission receipt identity
+
+The consumer pin includes Content Control PR #297 and explicitly runs its release
+freshness/receipt tests. Submitted listing IDs must be primitive nonblank strings
+of at most 256 characters, matching the signed readback contract. Valid opaque
+IDs are preserved exactly. A malformed post-submit response leaves ambiguous
+work without a bad provider ID, allowing verified readback without resubmission;
+the direct database submitted transition enforces the same admission boundary.
+
+These regressions use fake adapters and synthetic signed observations only.
+Existing issuer/consumer economics, PostgreSQL event recovery and Python review
+production use the same exact checkout. Both publication flags remain false;
+actual adapter, listing readback and deployment acceptance remain open.
