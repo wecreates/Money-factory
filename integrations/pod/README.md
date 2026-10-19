@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control ec5fb1a113474efc68e11622d85e9dab4e4dac27,
+The cross-repository workflow pins Content Control 6d61fbddf48a9bc25275cb6274cea68977ac9442,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1058,3 +1058,23 @@ disposable PostgreSQL gates. These checks do not verify authentic concepts,
 regional clearance, actual demand or live capacity. Existing signed authority,
 rights, budget rules, all 24 live acceptance requirements and both false
 publication flags remain in force.
+
+
+## Exact Unicode fingerprints and standalone startup verification
+
+The pinned consumer includes Content Control PR #307. Intake rejects NUL and
+unpaired surrogates before transaction/lock acquisition, so pg's UTF-8 encoding
+cannot replace signed fingerprint text and select another concept for a rights
+update. Literal U+FFFD, paired Unicode and normalization forms remain exact text.
+Native PostgreSQL fixtures retain PASS rights, replay identity and budget counts.
+
+The consumer startup probe also owns a referenced attempt timer and shares its
+signal/monotonic deadline through bounded header and body reads. It cannot exit
+with unsettled top-level await while waiting for an unreferenced transport;
+best-effort cancellation cannot hold it open. The workflow explicitly runs its
+child-process regressions alongside intake/revocation, review and bridge suites.
+
+Existing Money Factory economics/event recovery and Python production use the
+same consumer pin. These are controlled compatibility checks, not live concept
+authority, deployed availability, measured capacity or acceptance. All 24 live
+requirements remain open and both publication flags remain false.
