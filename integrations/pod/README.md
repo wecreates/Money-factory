@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control b60205038628ca3aaad76d64cd5cf40187d4fdd0,
+The cross-repository workflow pins Content Control ec5fb1a113474efc68e11622d85e9dab4e4dac27,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1040,3 +1040,21 @@ These are controlled fixtures, not a live timeout drill, deployed authority or
 measured capacity. Network deadlines do not govern the following database
 transaction or undo remotely committed events. Existing idempotent retry rules,
 all 24 live acceptance requirements and both false publication flags remain.
+
+
+## Exact consumer fingerprint admission
+
+The pinned consumer includes Content Control PR #305. Signed concept fingerprints
+must be primitive nonblank strings before database admission. Numeric, boolean,
+array and object values cannot be coerced into existing PostgreSQL text identities
+for deduplication or adverse-rights updates. Authentication still precedes shape
+validation. Valid opaque strings are preserved exactly, including Unicode and
+leading/trailing spaces; no replacement identity is derived by the consumer.
+
+The workflow now explicitly runs intake/revocation contracts alongside existing
+review, authority, economics/event recovery and Python production checks against
+the same consumer pin. Native driver alias fixtures also run in Content Control's
+disposable PostgreSQL gates. These checks do not verify authentic concepts,
+regional clearance, actual demand or live capacity. Existing signed authority,
+rights, budget rules, all 24 live acceptance requirements and both false
+publication flags remain in force.
