@@ -9,6 +9,7 @@ export function issuePodGrant({readiness,job,approval,verifiedFacts={},forbidden
  if(!Number.isSafeInteger(now)||now<0)throw Error('AUTHORITY_CLOCK_INVALID');
  const business=readiness?.businesses?.find(b=>b.id===job.business_id);
  if(!business||business.content_production_ready!==true||!platforms.has(job.platform)||job.destination_platform!==job.platform||
+  typeof business.max_mode!=='string'||typeof job.mode!=='string'||
   !Object.hasOwn(modes,business.max_mode)||!Object.hasOwn(modes,job.mode)||modes[job.mode]>modes[business.max_mode])throw Error('READINESS_BLOCKED');
  if((approval?.production_permission!==true&&approval?.publication_permission!==true)||approval.revoked!==false||approval.business_id!==job.business_id||
   approval.job_id!==job.id||approval.account_id!==job.account_id||approval.platform!==job.platform||
