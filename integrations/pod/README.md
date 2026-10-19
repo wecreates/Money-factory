@@ -832,3 +832,10 @@ against the existing pinned producer is still required before merge.
 No credentials, rights, approvals, live deployment or acceptance are established
 by these synthetic inputs. Publication remains disabled and all 24 live
 acceptance areas remain open.
+
+
+### Strict POD JSON admission (2026-10-19)
+
+Authority request bodies, event envelopes, and authenticated event payloads reject duplicate decoded JSON member names at every nesting depth, including identical values and escaped spellings of a name. They also reject numeric literals that overflow JavaScript finite numbers, so an observation cannot silently change from Infinity to null during database serialization. The shared parser keeps native JSON grammar and walks tokens iteratively; finite JSON, Unicode, separate objects with the same member names, and deep arrays retain native parsing semantics. This does not add arbitrary-precision number support.
+
+Body byte/read-time limits and strict UTF-8 decoding still apply before HTTP parsing. The event payload's HMAC is checked over its original string before strict parsing; parsing never repairs or re-signs input. Invalid authority JSON returns the existing redacted 409 before snapshot lookup. Invalid envelope/payload JSON returns the existing redacted 400 before acquiring a database client, while an invalid signature still returns 401. These fixture tests establish input admission behavior, not live authority, account/rights approval, platform publication, revenue, or any completed acceptance area. Both publication flags remain false.

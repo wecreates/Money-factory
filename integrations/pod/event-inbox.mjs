@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import {parsePodJSON} from './request-json.mjs';
 
 // Shared across handlers using this pool. Timed-out callers still occupy a slot
 // until pg settles their underlying request; otherwise retries grow its queue.
@@ -45,7 +46,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
  if(typeof key!=='string'||Buffer.byteLength(key)<32||typeof envelope?.payload!=='string'||Buffer.byteLength(envelope.payload)>262144||!/^[a-f0-9]{64}$/.test(envelope.signature||''))throw Error('EVENT_ENVELOPE_INVALID');
  const expected=crypto.createHmac('sha256',key).update(envelope.payload).digest();
  if(!crypto.timingSafeEqual(expected,Buffer.from(envelope.signature,'hex')))throw Error('EVENT_SIGNATURE_INVALID');
- const p=JSON.parse(envelope.payload),e=p?.event;
+ const p=parsePodJSON(envelope.payload),e=p?.event;
  if(!Number.isSafeInteger(now)||now<0||p?.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isSafeInteger(p.issued_at_ms)||p.issued_at_ms<0||p.issued_at_ms>now||now-p.issued_at_ms>300000||
   !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(e?.id||'')||typeof e.kind!=='string'||!e.kind.startsWith('pod.')||
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw Error('EVENT_SCOPE_INVALID');
