@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 57c014c3b20388634fc6ee8810ded1b54d7bc9c4,
+The cross-repository workflow pins Content Control b60205038628ca3aaad76d64cd5cf40187d4fdd0,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1021,3 +1021,22 @@ including outbox lifecycle shutdown, alongside existing economics/event recovery
 and Python review production against that same checkout. These controlled
 transport fixtures do not verify a deployed authority/inbox, actual network
 capacity or any live acceptance area. Both publication flags remain false.
+
+
+## Pinned bridge completion deadlines
+
+The pinned consumer includes Content Control PR #303. Grant and outbox requests
+share one absolute monotonic deadline through header admission/completion, body
+reads and JSON completion. Grant validation rechecks the same deadline before
+returning an envelope; the outbox checks it before starting its delivered-marker
+transaction. A result at or beyond the existing 10-second/15-second limit is
+rejected even when its timeout callback is delayed. Timers still interrupt
+stalled asynchronous work; synchronous JavaScript cannot be preempted.
+
+The existing response/grant suites now exercise just-before/at/after boundaries,
+late validation, deferred dispatch, cleanup and no late delivered-marker writes.
+Economic/event recovery and Python review production use the same pinned checkout.
+These are controlled fixtures, not a live timeout drill, deployed authority or
+measured capacity. Network deadlines do not govern the following database
+transaction or undo remotely committed events. Existing idempotent retry rules,
+all 24 live acceptance requirements and both false publication flags remain.
