@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control a539227d6803090eec8b3b069c57cdb2089bdf56,
+The cross-repository workflow pins Content Control bb0595d617fc27cd56328c7ae2833a1e12ea2160,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -985,3 +985,17 @@ These regressions use fake adapters and synthetic signed observations only.
 Existing issuer/consumer economics, PostgreSQL event recovery and Python review
 production use the same exact checkout. Both publication flags remain false;
 actual adapter, listing readback and deployment acceptance remain open.
+
+## Pinned phone operations deadlines
+
+The consumer pin includes Content Control PR #299 and explicitly runs its
+read-only dashboard contract suite. Refreshes and previews share a 30-second
+asynchronous deadline, with monotonic completion checks even if a timer callback
+is delayed. Stalled fetch/body/cancel operations cannot hold the displayed result
+indefinitely; late results cannot restore a cleared view. Completed operations
+panels and valid previews are preserved where appropriate.
+
+Tests simulate DOM and streams; they do not verify a real phone session,
+production availability or owner authentication. Existing economic/event recovery
+and Python review production run against the same consumer checkout. Both
+publication flags remain false and all live acceptance areas remain open.
