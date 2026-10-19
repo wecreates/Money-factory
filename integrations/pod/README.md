@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 9ebba1f99d74683992a48d12640a24af6b93c85d,
+The cross-repository workflow pins Content Control 315cd01c41f0e6a6c056d590cd85035578946542,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -945,3 +945,15 @@ It does not assert that the synthetic sources exist or establish actual provider
 facts, revenue, rights or approvals. The authoritative host must supply authentic
 current source records; reference-shape checks cannot replace that responsibility.
 Both publication flags remain false and all live acceptance areas remain open.
+
+## Pinned market scalar admission
+
+The consumer pin includes Content Control PR #293 and runs its signed market
+evidence tests explicitly. Source URL, country, source digest and price currency
+must be primitive strings before transaction entry; arrays cannot pass through
+URL or regular-expression coercion. Valid source identity and immutable replay
+behavior remain unchanged. Market observations still require their own authority,
+permitted collection and retained proof; readiness grants do not supply those
+permissions. Existing economic/event round trips and Python review production
+run against the same pin. Synthetic compatibility checks do not establish live
+intelligence, deployment or acceptance. Both publication flags remain false.
