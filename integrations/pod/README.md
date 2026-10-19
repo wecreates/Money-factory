@@ -848,3 +848,14 @@ Authority handlers share a maximum of 32 unresolved snapshot calls per server-ow
 This limits outstanding calls, not backend connections, completed-request rate, distributed service capacity, or the internal work spawned by a loader. Loaders still must honor the abort signal and enforce database deadlines. Permanently unresolved calls intentionally retain capacity until settled or the process is recovered; the handler cannot safely pretend their backend work stopped. No automatic retry, queue, cached approval, publication permission, or live authority acceptance is added.
 
 Four regression tests cover concurrent admission, two real HTTP handlers sharing a timed-out loader, independent loaders, late fulfillment/rejection, disconnected clients, repeated synchronous/asynchronous failure and pre-aborted cleanup. Three tests failed on the baseline; all 37 focused authority/grant/clock tests pass locally after the repair. Hosted cross-repository verification remains required before merge. Both publication flags remain false and all 24 live acceptance areas remain open.
+
+
+### Event text storage compatibility (2026-10-19)
+
+Authenticated event objects now reject NUL and unpaired UTF-16 surrogate code units in every string value and object member name before hashing or acquiring a database client. JavaScript accepts their JSON escapes, but PostgreSQL jsonb cannot store them; previously a valid signature could reach the database and be reported as a retryable 503. These inputs now receive the existing redacted 400 EVENT_REJECTED response. HMAC verification still precedes this check, and signed bytes are never repaired or normalized.
+
+The iterative walk applies only to the event object being stored. Valid surrogate pairs, accented/combining text, other JSON control characters and literal backslash-u text retain their meaning and hash. This is a text compatibility check for the existing UTF-8 PostgreSQL storage contract, not arbitrary-precision validation, a change to replay identity, proof of sender claims, or authority to publish. Genuine database failures still return 503.
+
+Eight local regressions cover invalid string values/member names/nested containers, authentication ordering and HTTP rejection before database access, plus exact valid-text/hash preservation. Seven fail against the baseline; 48 focused Node tests pass after repair. The disposable PostgreSQL roundtrip additionally checks native jsonb rejection, no inbox client acquisition or inserted row for those signed inputs, and exact valid Unicode/hash readback. Hosted results are recorded in Content Control's implementation status; local tests do not establish live storage acceptance. All 24 acceptance areas remain open and both publication flags stay false.
+
+Source checked October 19, 2026: [PostgreSQL 18 JSON types](https://www.postgresql.org/docs/18/datatype-json.html), Unicode escape restrictions for jsonb.

@@ -96,6 +96,28 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
 
   const sign=event=>{const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:Date.now(),event});
    return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};};
+  // Confirm the actual jsonb storage boundary, then reject the same signed
+  // observations before acquiring a client rather than reporting a retryable
+  // database outage. Only the isolated disposable schema is touched.
+  let storageConnects=0;
+  assert.equal((await pool.query('SHOW server_encoding')).rows[0].server_encoding,'UTF8');
+  const storagePool={connect:()=>{storageConnects++;return pool.connect();}};
+  for(const invalid of [{note:'\u0000'},{'\u0000':'value'},{note:'\ud800'},{'\udfff':'value'},
+    {nested:[{note:'\udc00\ud800'}]}]){
+   await assert.rejects(pool.query('SELECT $1::jsonb',[JSON.stringify(invalid)]),error=>error.code?.startsWith('22'));
+   const badId=crypto.randomUUID();
+   await assert.rejects(acceptPodEvent(storagePool,sign({id:badId,kind:'pod.test.storage',payload:invalid}),key),/EVENT_STORAGE_TEXT_INVALID/);
+   assert.equal(storageConnects,0);
+   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[badId])).rows[0].n,0);
+  }
+  const unicodeId=crypto.randomUUID(),unicodeEvent={id:unicodeId,kind:'pod.test.storage',
+   payload:{'🖨️':'café e\u0301 😀 \u0001\t\n\r \\u0000',boundaries:['\ud800\udc00','\udbff\udfff']}};
+  assert.equal((await acceptPodEvent(storagePool,sign(unicodeEvent),key)).accepted_event_id,unicodeId);
+  assert.equal(storageConnects,1);
+  const saved=(await pool.query('SELECT event,event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[unicodeId])).rows[0];
+  assert.deepEqual(saved.event,unicodeEvent);
+  assert.equal(saved.event_sha256,crypto.createHash('sha256').update(JSON.stringify(unicodeEvent)).digest('hex'));
+
   // Saturate a real pg pool: the receiver must reject without acquiring a
   // transaction, release its late queued client, and allow an unchanged-ID retry.
   const single=new Pool({connectionString,max:1,options:`-c search_path=${schema}`});
