@@ -859,3 +859,12 @@ The iterative walk applies only to the event object being stored. Valid surrogat
 Eight local regressions cover invalid string values/member names/nested containers, authentication ordering and HTTP rejection before database access, plus exact valid-text/hash preservation. Seven fail against the baseline; 48 focused Node tests pass after repair. The disposable PostgreSQL roundtrip additionally checks native jsonb rejection, no inbox client acquisition or inserted row for those signed inputs, and exact valid Unicode/hash readback. Hosted results are recorded in Content Control's implementation status; local tests do not establish live storage acceptance. All 24 acceptance areas remain open and both publication flags stay false.
 
 Source checked October 19, 2026: [PostgreSQL 18 JSON types](https://www.postgresql.org/docs/18/datatype-json.html), Unicode escape restrictions for jsonb.
+
+
+### Exact event signature and identity types (2026-10-19)
+
+The inbox now requires a primitive signature string of exactly 64 lowercase hexadecimal characters before decoding and constant-time comparison. A single-element array could previously pass regex coercion, then be decoded as an array of bytes and cause a misleading receiver-unavailable 503. Trailing line terminators are rejected by the exact length check. Malformed signatures return the existing redacted 400; a well-formed but incorrect signature still returns 401. No payload is authenticated by coercion or repair.
+
+Signed event IDs must likewise be primitive strings of exactly 36 characters matching the UUID shape. Direct inbox callers cannot pass arrays or trailing line terminators to the database. Lower- and uppercase UUID strings remain accepted, and their original event content/hash/acknowledgment is preserved. Expected ID matching, timestamps, event text checks, transaction semantics and publication restrictions are unchanged.
+
+Four regressions cover malformed signature types/lengths, signed invalid identity types, HTTP error classification without database acquisition and valid UUID/hash preservation. Three failed on the baseline; all 60 focused event/clock/parser tests pass after repair. Hosted cross-repository verification remains required before merge. No production acceptance, credentials, permissions or revenue are established; all 24 live acceptance areas remain open and both publication flags remain false.

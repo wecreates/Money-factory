@@ -44,12 +44,16 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
   throw Error('EVENT_CONNECTION_CONFIG_INVALID');
  if(typeof clock!=='function')throw Error('EVENT_CLOCK_INVALID');
  const now=clock();
- if(typeof key!=='string'||Buffer.byteLength(key)<32||typeof envelope?.payload!=='string'||Buffer.byteLength(envelope.payload)>262144||!/^[a-f0-9]{64}$/.test(envelope.signature||''))throw Error('EVENT_ENVELOPE_INVALID');
+ // RegExp.test coerces arrays to strings, while Buffer.from treats them as
+ // bytes. Validate type and exact length before either operation. Exact length
+ // also excludes the final line terminator accepted by a JavaScript $ anchor.
+ if(typeof key!=='string'||Buffer.byteLength(key)<32||typeof envelope?.payload!=='string'||Buffer.byteLength(envelope.payload)>262144||
+  typeof envelope.signature!=='string'||envelope.signature.length!==64||!/^[a-f0-9]{64}$/.test(envelope.signature))throw Error('EVENT_ENVELOPE_INVALID');
  const expected=crypto.createHmac('sha256',key).update(envelope.payload).digest();
  if(!crypto.timingSafeEqual(expected,Buffer.from(envelope.signature,'hex')))throw Error('EVENT_SIGNATURE_INVALID');
  const p=parsePodJSON(envelope.payload),e=p?.event;
  if(!Number.isSafeInteger(now)||now<0||p?.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isSafeInteger(p.issued_at_ms)||p.issued_at_ms<0||p.issued_at_ms>now||now-p.issued_at_ms>300000||
-  !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(e?.id||'')||typeof e.kind!=='string'||!e.kind.startsWith('pod.')||
+  typeof e?.id!=='string'||e.id.length!==36||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(e.id)||typeof e.kind!=='string'||!e.kind.startsWith('pod.')||
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw Error('EVENT_SCOPE_INVALID');
  assertEventStorageText(e);
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
