@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 420a94656abbaa355094bb81cf62df070b9df3e0,
+The cross-repository workflow pins Content Control 57c014c3b20388634fc6ee8810ded1b54d7bc9c4,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
