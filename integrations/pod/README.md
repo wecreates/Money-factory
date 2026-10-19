@@ -868,3 +868,16 @@ The inbox now requires a primitive signature string of exactly 64 lowercase hexa
 Signed event IDs must likewise be primitive strings of exactly 36 characters matching the UUID shape. Direct inbox callers cannot pass arrays or trailing line terminators to the database. Lower- and uppercase UUID strings remain accepted, and their original event content/hash/acknowledgment is preserved. Expected ID matching, timestamps, event text checks, transaction semantics and publication restrictions are unchanged.
 
 Four regressions cover malformed signature types/lengths, signed invalid identity types, HTTP error classification without database acquisition and valid UUID/hash preservation. Three failed on the baseline; all 60 focused event/clock/parser tests pass after repair. Hosted cross-repository verification remains required before merge. No production acceptance, credentials, permissions or revenue are established; all 24 live acceptance areas remain open and both publication flags remain false.
+
+
+## Exact readiness mode types
+
+Both the authority and consumer require primitive, exact RESEARCH, PRELAUNCH or
+LAUNCH strings for the requested mode and readiness ceiling. Arrays and objects
+are rejected before a grant or accepted brief is returned. JavaScript property
+lookups otherwise coerce an array such as ["LAUNCH"] into a mode name while exact
+launch comparisons do not, which can skip launch-specific checks. Invalid inputs
+are rejected rather than normalized; valid mode ceilings, publication permission,
+launch readiness and economic checks are unchanged. Regression fixtures verify
+issuer, HTTP snapshot and signed-consumer rejection; they do not establish live
+authority mounting, approval, revocation, or publication acceptance.
