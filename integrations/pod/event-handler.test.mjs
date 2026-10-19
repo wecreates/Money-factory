@@ -5,6 +5,21 @@ import crypto from 'node:crypto';
 import {EventEmitter} from 'node:events';
 import {createPodEventHandler} from './event-handler.mjs';
 const key='e'.repeat(32),id='12b4c678-1234-4321-abcd-123456789abc',now=1800000000000;
+test('ambiguous envelope and signed event JSON return redacted rejection without database work',async()=>{
+ const pool=database(),valid=envelope();
+ const payloads=[valid.payload.replace('"schema_version":1','"schema_version":0,"schema_version":1'),
+  valid.payload.replace('"publication_enabled":false','"publication_enabled":true,"publication_enabled":false'),
+  valid.payload.replace('"publication_enabled":false','"amount":1e400')];
+ const bodies=[`{"payload":"ignored",${JSON.stringify(valid).slice(1)}`,
+  ...payloads.map(payload=>JSON.stringify({payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')}))];
+ await serverFor(pool,async post=>{
+  for(const body of bodies){
+   const response=await post(body);assert.equal(response.status,400);
+   assert.deepEqual(await response.json(),{error:'EVENT_REJECTED'});assert.equal(pool.stats().connects,0);
+  }
+  assert.equal((await post(valid)).status,200);assert.equal(pool.stats().commits,1);
+ });
+});
 for(const finishMs of [9,10,11])test(`body completion at ${finishMs}ms respects the 10ms read deadline before its timer runs`,async t=>{
  let elapsed=0,bodyFinished=false;
  t.mock.method(performance,'now',()=>elapsed);

@@ -4,6 +4,14 @@ import http from 'node:http';
 import {EventEmitter} from 'node:events';
 import {createPodAuthorityHandler} from './authority-handler.mjs';
 const authKey='a'.repeat(32),signingKey='s'.repeat(32);
+test('duplicate authority job fields cannot select a snapshot by last-value overwrite',async t=>{
+ let loads=0;const post=await serve(t,{loadSnapshot:async id=>{loads++;return snapshot(id);}});
+ for(const body of ['{"job_id":"other","job_id":"job"}','{"job_id":"job","job_id":"job"}','{"job_id":"other","job_\\u0069d":"job"}']){
+  const response=await post(undefined,body);assert.equal(response.status,409);
+  assert.deepEqual(await response.json(),{error:'GRANT_BLOCKED'});assert.equal(loads,0);
+ }
+ assert.equal((await post()).status,200);assert.equal(loads,1);
+});
 for(const finishMs of [4999,5000,5001])test(`body completion at ${finishMs}ms respects the authority read deadline`,async t=>{
  let elapsed=0,loads=0,bodyFinished=false;
  t.mock.method(performance,'now',()=>elapsed);
