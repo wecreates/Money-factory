@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 95fed6f8b8fc9bdfad344f386d1eab9d484c1d45,
+The cross-repository workflow pins Content Control 3283c891856655c8b2b8019bb540e844d560b276,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1117,3 +1117,21 @@ do not measure production capacity or confer QA or publication approval.
 Existing Money Factory economics/event recovery and Python production use the
 same pinned checkout. Both publication flags remain false and all 24 live
 acceptance areas remain open.
+
+
+## Original-art output preservation
+
+The pinned consumer includes Content Control PR #313. Its procedural generator
+prepares a private, synced and hash-checked file before installing it with an
+atomic hard link that cannot replace an existing output path. Concurrent files
+and dangling symlinks return OUTPUT_EXISTS. Encoder and pre-install sync failures
+leave no output; a failure after linking can leave complete bytes without a
+successful receipt. Inspect rather than overwrite those bytes.
+
+The workflow now runs the consumer's binary-IO/original-art suite explicitly.
+It covers collision/symlink preservation, 0600 output, deterministic hashes and
+encoder/file/directory-sync failures, in addition to existing economic/event
+recovery and Python review production against the same exact checkout. These
+filesystem fixtures are not a power-loss drill, retained backup, rights clearance
+or measured production capacity. All 24 live acceptance areas remain open;
+both publication flags remain false.
