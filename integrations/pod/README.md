@@ -1453,3 +1453,35 @@ This checks declared content in the supported Amazon-placed/LTR layout. It does
 not classify important art or barcode pixels hidden in backgrounds, scan an ISBN,
 prove provider placement, implement own/RTL barcode formats or establish CMYK/
 preview/print acceptance. Publication flags remain false; all 24 live areas open.
+
+
+## Original template evidence in independent KDP QA
+
+The pinned consumer includes Content Control PR #346. The production worker now
+passes the authenticated product/country and original signed cover/interior
+paths plus retained cover guide to independent QA. QA authenticates these inputs
+itself, compares the original templates exactly with the package, and hashes/
+inspects the actual retained guide against the signed paired profile. An earlier
+coordinator check, package declaration or cached inspection is insufficient.
+
+Original evidence uses bounded regular-file reads, strict UTF-8 and duplicate/
+nonfinite JSON rejection, existing HMAC/audience/current-time checks and exact
+scope binding. Captured original approvals are rechecked after review work; a
+passing QA receipt cannot outlive either template approval. Manual KDP QA must
+supply --product, --country, --cover-template, --interior-template and
+--template-source from the original authorized task. Other platforms retain
+their existing contract.
+
+The existing consumer coordinator and real-PDF/book suites exercise propagation,
+original input requirements, tampering/scope/expiry, actual retained bytes and
+producer-template mismatch. Content Control's own hosted full raster QA and
+container gates cover missing originals, the expiry cap and approval expiration
+during comparative review. All source/binary-IO/economics/events/review-production
+checks use the exact pin.
+
+Technical inspection still asserts no download-origin authority or production
+template approval. Provenance assertions require a configured trusted signer;
+tests use synthetic assertions and signing keys. Separate official interior
+source retention, current real approvals/rights/review calibration and live
+acceptance remain open. No descriptor/grant is silently changed. Both publication
+flags remain false and all 24 live acceptance areas remain open.
