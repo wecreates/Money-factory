@@ -1372,3 +1372,30 @@ approval, map barcode regions, establish CMYK output or prove preview/print
 acceptance. The offline guide inspector remains separate. Existing consumer,
 real-PDF, binary-IO, economics/events and review-production checks use the same
 exact checkout. Both publication flags remain false; all 24 live areas stay open.
+
+
+## KDP guide profile checked before production
+
+The pinned consumer includes Content Control PR #339. It now invokes the bounded
+retained-archive inspector before artwork using a profile derived from the
+authenticated paired templates. Binding, ink, paper, trim and page count come
+from the interior; signed cover.kdp supplies explicit left_to_right and en_US.
+The guide locale establishes neither regional rights nor marketplace availability.
+
+A matching source hash is insufficient when the archive belongs to another
+page count, paper or trim. The inspector re-reads/hashes the source, checks
+profile-derived members and PDF/PNG guide content, and rejects before generation.
+Current authority/lease is renewed before inspection and again before artwork.
+The child retains existing deadlines, cancellation, output caps and fixed reasons.
+
+The existing consumer template-production and real-PDF/book suites now exercise
+derived arguments, failed inspection, legacy profile rejection, revocation around
+inspection, bounded unambiguous inline-profile JSON and actual Node worker ->
+Python inspector behavior against the retained guide. Later generation sentinels,
+authority signatures and review holds in this bridge test are synthetic.
+
+Existing KDP inputs missing the signed profile or matching source need newly
+reviewed immutable descriptors and current grants. The example is never selected
+automatically; no approval is minted. Download-origin authority, interior-source
+retention, barcode mapping, CMYK handling and actual preview/print acceptance
+remain open. All 24 live areas remain open and both publication flags false.
