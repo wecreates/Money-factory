@@ -1,0 +1,24 @@
+name: Etsy Local Regression Tests
+
+on:
+  pull_request:
+    paths:
+      - 'automation/etsy-local/**'
+      - '.github/workflows/etsy-local-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run dependency-free offline regression tests
+        run: node --test automation/etsy-local/test/*.test.mjs
