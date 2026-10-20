@@ -83,3 +83,26 @@ live verification before using this runner for a real batch.
 ## Cost
 The software path is free: Playwright + your existing computer + the existing GitHub repo. Etsy's normal marketplace/listing/payment fees still apply. GitHub-hosted runner usage is subject to GitHub's plan/usage limits.
 
+
+
+## Shop and section save checks
+- Shop patches accept only `title` and `announcement`, with at least one field.
+  Titles must be nonempty strings. An explicitly empty announcement clears it;
+  it is not silently skipped. Both require unique visible exact labels (`Shop
+  title`, `Announcement`), successful fill and value readback.
+- Section creation requires a unique `Manage sections` button and dialog, an
+  accessible `Sections` list whose visible listitems contain only section names,
+  an `Add section` or `New section` button, and an exact `Section name` label.
+  Existing duplicate names, an already-present requested name, unknown controls
+  or an ambiguous inventory stop before Save. This is not an upsert operation.
+- Both actions require a unique visible enabled Save control and a fresh,
+  unambiguous accessible status reporting saved changes/shop or section creation.
+  Visible alerts or busy indicators block confirmation. After Save, reload must
+  retain the same URL. Shop values must match exactly; section creation reopens
+  Manage sections and requires exactly the prior inventory plus the new name.
+- `SHOP_READBACK_CONFIRMED` and `SECTION_READBACK_CONFIRMED` describe those editor
+  readbacks only. These selectors are a synthetic, unverified compatibility
+  contract, not a certification of current Etsy markup or a public-shop check.
+  Unknown markup fails closed. Action/readback waits are bounded. An attempted
+  save with uncertain outcome requires inspection before retrying, as it may
+  already have taken effect. No automatic save retry, deletion or rollback runs.
