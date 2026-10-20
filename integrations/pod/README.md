@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control cfc3f1ce16356051b00708c35b355018be86feee,
+The cross-repository workflow pins Content Control 534215a629bae135b984920cd6dc0596958eb4e5,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1252,4 +1252,26 @@ IO, economics/event recovery and Python review production use the same checkout.
 Passing metrics and synthetic receipts do not establish licensing, readable
 manuscripts, complex-script shaping, genuine templates, independent editorial
 approval or KDP preview/print acceptance. Both publication flags remain false;
+all24 live acceptance areas stay open.
+
+
+## Embedded KDP interior font programs
+
+The pinned consumer includes Content Control PR #327. Independent PDF QA requires
+every referenced interior font resource, including unused references, to contain
+a decodable TrueType program. It does not infer resource identity from display
+names or accept unembedded builtin fallbacks. The renderer initializes with its
+verified font and no longer inserts unused default Helvetica. The inspector does
+not rewrite a PDF or approve replacement bytes.
+
+The existing real-PDF suite checks native output, builtin/mixed/unused resources
+and a corrupt unused program whose page text and pixels remain unchanged.
+Resources are checked once per document, bounded to32 distinct objects,16MiB per
+extracted program and32MiB aggregate. These are post-parser admission bounds,
+not a general decompression sandbox or capacity proof. Existing consumer,
+economics/event recovery and Python review production use the same exact pin.
+
+Embedding cannot prove source-font identity/licensing, glyph quality, genuine
+templates, editorial approval or KDP preview/print acceptance. Unsupported font
+formats require a separate contract. Both publication flags remain false and
 all24 live acceptance areas stay open.
