@@ -1485,3 +1485,41 @@ tests use synthetic assertions and signing keys. Separate official interior
 source retention, current real approvals/rights/review calibration and live
 acceptance remain open. No descriptor/grant is silently changed. Both publication
 flags remain false and all 24 live acceptance areas remain open.
+
+
+## Original-art identity and independent layout QA
+
+The pinned consumer includes Content Control PR #348. All five supported POD
+platforms pass the original source and asset-rights paths to QA. The generator
+records the captured source SHA-256 in the package; QA authenticates original
+asset rights and decodes the same bounded source bytes used for identity.
+Producer metadata cannot replace the actual dimensions, placement or native PPI.
+
+Independent QA reconstructs the existing LANCZOS/RGBA source/background layout
+in 128-row strips. It checks the complete art alpha mask and all nontext output
+pixels; a text mask cannot hide original art. Original asset rights are checked
+again after review and cap a passing receipt. Existing OCR, geometry, package
+rights, independent comparative and KDP editorial/PDF/template checks remain.
+Manual QA must supply --source and --asset-rights from the authorized task;
+older packages need fresh generation and QA, with no upgraded stale receipt.
+
+The existing consumer verification now runs the pinned raster/source suite in
+addition to its coordinator, binary-IO, real-PDF/book, economics/events and
+review-production checks. Tests cover all-platform propagation, actual source
+identity and placement, altered masks/pixels, text outside art, captured-path
+replacement, signed original rights and expiry. Content Control's hosted full
+QA/container gates cover the inflated native-resolution claim, missing originals,
+receipt expiry and original rights expiring during review.
+
+This checks deterministic renderer consistency, not actual ownership/license
+authority, manipulations before source capture or independent artistic merit.
+Text pixels remain subject to separate text/font and review checks; decoded
+source/resized art remain under existing bounds, with no measured capacity claim.
+Tests use synthetic rights/reviewers. Both publication flags remain false;
+Etsy is excluded and all 24 live acceptance areas remain open.
+
+The shared backend gate also rejects signed PASS receipts that omit explicit
+original_source=true, and requires template_provenance=true with editorial
+approval for KDP (Content Control PR #349). These checks apply at production,
+review-acceptance and release boundaries. The consumer runs the focused QA-binding
+suite as well; positive test evidence remains synthetic, with no publication enabled.
