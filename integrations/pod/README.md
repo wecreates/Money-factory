@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control eca92a308645985070fc149278b0a19e1a4982d0,
+The cross-repository workflow pins Content Control e4b2bbecf667b3bb4e75f3cdb3a22845e643834e,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1308,3 +1308,21 @@ consumer, binary IO, economics/event recovery and review production use the same
 exact checkout. Low-level technical fixtures remain separate; this establishes
 no genuine template, editorial/rights approval or live KDP acceptance. Both
 publication flags remain false and all 24 live acceptance areas remain open.
+
+
+## KDP spine text and fold clearance
+
+The pinned consumer includes Content Control PR #333. Independent package QA
+checks the captured text mask after cover/interior pairing: spine text needs at
+least 80 even pages and 0.0625-inch inward clearance. The pipeline also reserves
+0.0625 inch outside either fold for binding variance. Text-mask pixels in the
+forbidden strips fail, including nonzero antialias pixels; allowed boundaries
+round inward from the paired physical measurements.
+
+The real-PDF/book-bound suite now covers the threshold, exact boundaries,
+one-pixel violations at three DPIs and malformed masks/specifications. Existing
+consumer, binary IO, economics/event recovery and review production use the same
+exact checkout. This gate does not discover unlabelled text in artwork, move
+typography, import a genuine template, approve barcode placement or establish
+live print registration. Both publication flags remain false; all 24 live
+acceptance areas remain open.
