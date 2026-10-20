@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: e2bf54af3cd4bb96925a206226d24b07c6219875
+          ref: 7c183aa7543464910e636c2ad9719bbff8fd6378
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -41,7 +41,7 @@ jobs:
       - run: npm ci --ignore-scripts
         working-directory: content-control-test
       - name: Verify pinned review and POD contracts
-        run: node --test tests/pod-review-cli.test.mjs tests/pod-evidence-time.test.mjs tests/pod-envelope-clock.test.mjs tests/pod-envelope-json.test.mjs tests/pod-mode-types.test.mjs tests/pod-task-json.test.mjs tests/pod-task-resolver.test.mjs tests/pod-claim-evidence.test.mjs tests/pod-market-evidence.test.mjs tests/pod-production-lease.test.mjs tests/pod-release-freshness.test.mjs tests/pod-dashboard.test.mjs tests/pod-http-response.test.mjs tests/pod-grant-client.test.mjs tests/pod-intake-revocation.test.mjs tests/pod-container-smoke.test.mjs tests/pod-state-archive.test.mjs tests/pod-python-stage.test.mjs tests/pod-deploy-commit-policy.test.mjs
+        run: node --test tests/pod-review-cli.test.mjs tests/pod-evidence-time.test.mjs tests/pod-envelope-clock.test.mjs tests/pod-envelope-json.test.mjs tests/pod-mode-types.test.mjs tests/pod-task-json.test.mjs tests/pod-task-resolver.test.mjs tests/pod-claim-evidence.test.mjs tests/pod-market-evidence.test.mjs tests/pod-production-lease.test.mjs tests/pod-release-freshness.test.mjs tests/pod-dashboard.test.mjs tests/pod-http-response.test.mjs tests/pod-grant-client.test.mjs tests/pod-intake-revocation.test.mjs tests/pod-container-smoke.test.mjs tests/pod-state-archive.test.mjs tests/pod-python-stage.test.mjs tests/pod-deploy-commit-policy.test.mjs tests/pod-template-production.test.mjs
         working-directory: content-control-test
       - name: Verify pinned original-art output and binary IO safety
         run: python -m unittest discover -s tests -p test_pod_binary_io.py
