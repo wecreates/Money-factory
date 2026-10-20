@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 3283c891856655c8b2b8019bb540e844d560b276,
+The cross-repository workflow pins Content Control e2bf54af3cd4bb96925a206226d24b07c6219875,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1135,3 +1135,21 @@ recovery and Python review production against the same exact checkout. These
 filesystem fixtures are not a power-loss drill, retained backup, rights clearance
 or measured production capacity. All 24 live acceptance areas remain open;
 both publication flags remain false.
+
+
+## Watchdog-only deployment commits
+
+The pinned consumer includes Content Control PR #315. The shared watchdog now
+uses its staged commit policy: only the exact observation report
+state/free-production-watchdog.json joins the existing report allowlist. Other
+staged health, completion and operations paths remain outside it, so mixed
+changes still deploy. Failure status, repair routing and publication gates remain
+unchanged. No broad service build filter or auto-deploy setting is changed.
+
+The cross-repository workflow explicitly runs the consumer's policy tests,
+including the actual watchdog shell commit expression in temporary Git repos
+for report-only, mixed, no-change and runtime-to-report rename cases. Existing
+economic/event recovery and Python review production use the same exact pin.
+These tests do not establish a skipped live event, replenish Render build quota,
+refresh the running container or verify any of the 24 live acceptance areas.
+Both publication flags remain false.
