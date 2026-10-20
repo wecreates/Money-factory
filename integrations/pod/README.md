@@ -1560,3 +1560,10 @@ Both publication flags remain false, Etsy is excluded and all 24 live areas open
 Hosted Content Control QA also includes a genuine KDP title/font/cover-PDF
 positive fixture under synthetic rights/reviews and an isolated OCR stub. It
 establishes deterministic preflight behavior, not live review or print approval.
+
+
+## 2026-10-20 r132 — Consume strict Python evidence parsing
+
+Pins Content Control 501f85e8e9b6f584e8f9bc1f92ff81caea60e1b7 ([CC #353](https://github.com/wecreates/content-control/pull/353)) and adds its strict-evidence/bounded-JSON suite to the existing consumer workflow. Duplicate decoded JSON keys and nonfinite/overflowing facts now fail shared Python file/payload boundaries; UTF-8 signed payload bytes enforce the existing 4 MiB ceiling and exact lowercase signature types. HMAC authentication still precedes payload parsing without canonicalizing or replacing signed evidence. Eight new methods include negative ambiguity/byte/type cases and positive authentication-order/valid Unicode cases. The prior-code hosted regression failed as expected; repaired CC integration 39459274901 and exact-image 39459274749 passed 620 Node and 287 Python tests, plus durable E2E and startup publication=false/production+outbox DISABLED. Both CC checks and fresh refs/clean mergeability were verified before merge; merged tree equals the tested tree. This consumer pin still needs its own automatic CI result before merge.
+
+Local execution transport closed during preparation; no local passing test is asserted. Real production DB role/migrations/recovery, deployed authority/current grants, original official interior source and template/rights/reviewer acceptance, authorized accounts/adapters, economics/reconciliation, monitoring/mobile/security/capacity and end-to-end/launch evidence remain open. Render quota is not bypassed. Both publication flags remain false, no approvals are rewritten, and Etsy remains excluded. All 24 live acceptance areas remain OPEN; these synthetic/CI results are not live acceptance.
