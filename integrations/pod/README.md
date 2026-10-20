@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 6207f5c8874d4c05f791890fb8243f6d089eaa90,
+The cross-repository workflow pins Content Control 0bad399e3a375fba48e707bfa7d1d0f70fb9ac56,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1196,3 +1196,22 @@ Matching calculator templates and independent QA remain required. Corrected
 inputs need a new immutable descriptor and fresh authority for its hash.
 Low-level review helpers remain separate. Both publication flags stay false,
 and all 24 live acceptance areas remain open.
+
+
+## Matching KDP cover options and even manuscript
+
+The pinned consumer includes Content Control PR #321. Before durable production
+starts child stages, its signed cover must match the signed interior's paperback
+binding, black ink, paper and page count. Spine and full cover dimensions must
+match the reviewed paper factor and trim, with 0.125-inch bleed. Mismatches fail
+COVER_INTERIOR_MISMATCH. KDP rounds odd manuscripts to even; the renderer does not
+insert that page, so KDP_PAGE_COUNT_REQUIRES_REVIEW requires an explicitly reviewed
+even manuscript and new immutable task with fresh authority for its hash.
+
+The existing template-production suite exercises missing/malformed/mismatched
+fields, odd-page rejection before rendering, and all three supported papers
+reaching review hold only. Economic/event recovery and Python review production
+use the same exact pin. These declared-specification checks do not import or
+approve a genuine calculator template or establish live KDP acceptance. Low-level
+technical review helpers remain separate. Both publication flags stay false and
+all 24 live acceptance areas remain open.
