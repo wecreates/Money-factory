@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 7c183aa7543464910e636c2ad9719bbff8fd6378,
+The cross-repository workflow pins Content Control 6207f5c8874d4c05f791890fb8243f6d089eaa90,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1176,3 +1176,23 @@ existing consumer contracts, economics/event recovery and Python review producti
 against the same pin. Synthetic signed fixtures and child stages are not real
 template authority, editorial approval or KDP acceptance. Both publication flags
 remain false and all 24 live acceptance areas remain open.
+
+
+## Declared KDP paper options and page ceilings
+
+The pinned consumer includes Content Control PR #319. Its durable-production
+interior gate requires explicit black ink and white, cream or groundwood paper.
+The signed target country selects the reviewed US/JP table, and only exact listed
+trims are supported. Page ceilings now follow the selected paper and trim.
+Unknown/custom/other-region/color options fail as KDP_PRINT_OPTIONS_UNSUPPORTED;
+paper-specific overflow uses KDP_PRINT_PAGE_LIMIT before child rendering.
+
+The existing template-production suite exercises representative ceiling families,
+exact limits, regional sizes, malformed choices and pre-render rejection.
+Economic/event recovery and Python review production use the same exact pin.
+Declared options do not prove actual provider configuration, worldwide
+availability, regional rights, cover spine agreement or print acceptance.
+Matching calculator templates and independent QA remain required. Corrected
+inputs need a new immutable descriptor and fresh authority for its hash.
+Low-level review helpers remain separate. Both publication flags stay false,
+and all 24 live acceptance areas remain open.
