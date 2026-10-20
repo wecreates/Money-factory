@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 0bad399e3a375fba48e707bfa7d1d0f70fb9ac56,
+The cross-repository workflow pins Content Control 8949410900ba402e403c902d41bb825858b144bc,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1215,3 +1215,22 @@ use the same exact pin. These declared-specification checks do not import or
 approve a genuine calculator template or establish live KDP acceptance. Low-level
 technical review helpers remain separate. Both publication flags stay false and
 all 24 live acceptance areas remain open.
+
+
+## Independent KDP pairing in consumer QA
+
+The pinned consumer includes Content Control PR #323. Its Python QA checks
+matching paperback binding, black ink and paper, even count in 24–828, basic
+trim bounds, exact bleed, paper-specific spine and full cover dimensions. It
+cannot rely on the earlier Node coordinator or a passing assembly receipt.
+Missing/mismatched paper profiles fail even with rebound artifact/receipt hashes.
+Low-level review renderers still permit technical fixtures; small pairs cannot
+satisfy independent KDP QA. Nothing pads manuscripts or creates new approvals.
+
+The workflow now runs the consumer's real PDF/book-bound suite explicitly,
+including 24-page interiors for all three supported papers, alongside existing
+consumer contracts, original-art binary IO, economics/event recovery and Python
+review production. Regional option-table admission, genuine official template
+import, safe zones/print marks, calibrated independent review and actual KDP
+preview/print acceptance remain separate. These test fixtures supply none of
+those live facts. All 24 live areas remain open and both publication flags false.
