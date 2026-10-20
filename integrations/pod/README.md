@@ -1347,3 +1347,28 @@ whole-point guide geometry; final production PDF checks are unchanged. No source
 authority or product approval is minted, no job selects this reference
 automatically, and no actual preview or print acceptance is claimed. Both
 publication flags remain false and all 24 live acceptance areas stay open.
+
+
+## Retained KDP cover-source identity before generation
+
+The pinned consumer includes Content Control PR #337. Durable KDP production now
+requires templateSource to reference a declared file in the hash-bound task. The
+worker authenticates cover/interior provenance and pairing, then hashes the
+retained nonempty regular cover-source file and compares it with source_sha256
+from the authenticated cover envelope before any Python stage. Missing, changed,
+oversized, symlink or nonregular sources block with fixed reasons. Actual reads
+are capped at 16 MiB plus one byte and cancellation releases the descriptor.
+
+Existing KDP tasks without this input need a new reviewed immutable descriptor
+and a fresh current grant for its hash. Do not rewrite queued approvals or select
+the example guide automatically. Other marketplaces can omit this role. The
+workflow explicitly runs the source-file suite alongside the existing production
+and stored-task tests, including the actual retained ZIP identity, malformed byte
+sources, FIFO/symlink rejection, size-growth bounds and cancellation/close.
+
+This binds retained bytes to signed provenance; it does not authenticate download
+origin, compare an archive profile to a job, inspect interior source bytes, mint
+approval, map barcode regions, establish CMYK output or prove preview/print
+acceptance. The offline guide inspector remains separate. Existing consumer,
+real-PDF, binary-IO, economics/events and review-production checks use the same
+exact checkout. Both publication flags remain false; all 24 live areas stay open.
