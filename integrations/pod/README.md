@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control e2bf54af3cd4bb96925a206226d24b07c6219875,
+The cross-repository workflow pins Content Control 7c183aa7543464910e636c2ad9719bbff8fd6378,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1153,3 +1153,26 @@ economic/event recovery and Python review production use the same exact pin.
 These tests do not establish a skipped live event, replenish Render build quota,
 refresh the running container or verify any of the 24 live acceptance areas.
 Both publication flags remain false.
+
+
+## KDP paperback baselines in durable production
+
+The pinned consumer includes Content Control PR #317. A signed interior for the
+stored-production coordinator now requires explicit paperback/no-bleed binding
+and finite physical specifications, including page-dependent gutter margins and
+the seven-point KDP font minimum. Invalid specifications produce the fixed
+KDP_PAPERBACK_SPEC_INVALID reason before cover generation. Corrected templates
+require a new immutable task descriptor and fresh authority for its hash.
+
+These are necessary paperback baselines. Selected ink, paper, trim and marketplace
+options still need their actual official calculator template and potentially
+stricter limits, followed by PDF/pairing checks and independent review. No print
+proof or official template is imported or approved by this change. Hardcover and
+bleed interiors need separate contracts. Low-level Python review/technical
+fixtures remain separate from the durable-production gate.
+
+The workflow explicitly runs the consumer's template-production suite alongside
+existing consumer contracts, economics/event recovery and Python review production
+against the same pin. Synthetic signed fixtures and child stages are not real
+template authority, editorial approval or KDP acceptance. Both publication flags
+remain false and all 24 live acceptance areas remain open.
