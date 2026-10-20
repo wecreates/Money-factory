@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: 006445e0e4229acf15bd8269004842a3959b1cd1
+          ref: f05712ebbf05aa6683a98cb950343e31cce788d2
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -46,7 +46,7 @@ jobs:
       - name: Verify strict Python evidence and bounded JSON
         run: python -m unittest discover -s tests -p test_pod_evidence.py
         working-directory: content-control-test
-      - name: Verify review and direct asset failure recovery
+      - name: Verify review, asset and KDP book assembly recovery
         run: python -m unittest discover -s tests -p test_pod_review_recovery.py
         working-directory: content-control-test
       - name: Verify pinned art and KDP interior output safety
