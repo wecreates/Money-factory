@@ -1523,3 +1523,40 @@ original_source=true, and requires template_provenance=true with editorial
 approval for KDP (Content Control PR #349). These checks apply at production,
 review-acceptance and release boundaries. The consumer runs the focused QA-binding
 suite as well; positive test evidence remains synthetic, with no publication enabled.
+
+
+## Original text and font provenance in QA
+
+The pinned consumer includes Content Control PR #351. Independent QA now captures
+the original text layers and matches their canonical SHA-256 to signed asset
+rights, then captures/hash-verifies the original fonts before decoding. The
+worker supplies --text-layers and the configured --asset-root for every platform.
+Expected strings, font identities and boxes come from the originals; text masks
+and colored glyphs are reconstructed in the existing strips. Every output pixel
+is compared, with no producer text-mask exemption. A modified background or
+glyph cannot hide behind an unapproved text mask.
+
+The shared backend requires text_provenance=true at production completion,
+review acceptance and release validation. Existing source/layout, OCR, geometry,
+rights, KDP template/PDF/editorial and independent comparative checks remain
+mandatory. Original asset rights still cap a receipt and are rechecked after
+review; no existing approval, descriptor or receipt is upgraded.
+
+Existing consumer source/raster, coordinator and QA-binding suites cover original
+text identity, expected-text substitution, multiline glyphs across strip edges,
+changed glyph pixels, font-path replacement, root confinement/FIFO/symlink and
+input/decoder budgets, plus all-platform propagation and acceptance checks.
+Content Control's full hosted QA also checks forged text masks despite rebound
+artifact/package identities and passing geometry/OCR fixture checks.
+
+Supported limits are 32 layers, 4096 characters per layer/16384 total, font sizes
+1–4096 pixels, 16 MiB per font, 32 MiB aggregate captures and 32 MiB unique decoded
+font/size inputs. Identical instances reuse captured bytes/decoders. These are
+safety bounds, not measured capacity. Private task-path checks are not an
+adversarial filesystem sandbox. Synthetic signatures and fixture fonts establish
+neither legal authority, editorial merit, calibrated review nor print acceptance.
+Both publication flags remain false, Etsy is excluded and all 24 live areas open.
+
+Hosted Content Control QA also includes a genuine KDP title/font/cover-PDF
+positive fixture under synthetic rights/reviews and an isolated OCR stub. It
+establishes deterministic preflight behavior, not live review or print approval.
