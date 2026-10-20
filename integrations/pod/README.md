@@ -1399,3 +1399,29 @@ reviewed immutable descriptors and current grants. The example is never selected
 automatically; no approval is minted. Download-origin authority, interior-source
 retention, barcode mapping, CMYK handling and actual preview/print acceptance
 remain open. All 24 live areas remain open and both publication flags false.
+
+
+## Independent paperback options in consumer QA
+
+The pinned consumer includes Content Control PR #341. Independent Python KDP QA
+now enforces the reviewed US/JP black-ink paper/trim/page limits, separately from
+Node production admission. The worker supplies --country from the authenticated
+hash-bound task scope; standalone KDP QA requires an explicit authorized target.
+Package country fields, guide locale and defaults cannot select that target.
+Unsupported options or paper-specific page overflow fail before PDF inspection.
+Passing KDP QA records target_country in its signed report.
+
+The existing real-PDF/book-bound suite now exercises all ceiling families,
+malformed choices, regional selection and 340 comparisons with Node over all
+28 reviewed rows and page boundaries. The consumer coordinator test verifies
+US/JP target propagation and omission for other platforms. Consumer source,
+binary-IO, economics/events and review-production checks use the same exact pin.
+Content Control's own integration/container gates cover actual independent QA,
+including rejection when rebound package fields claim a convenient country.
+
+These are necessary technical limits from KDP G201857950, checked October 20,
+2026. They do not establish rights, account availability, official source
+approval, barcode/CMYK handling or preview/print acceptance. Manual QA hosts
+must obtain the target from the original authorized task. No grant, approval,
+country, paper or page count is silently changed. Both publication flags remain
+false and all 24 live acceptance areas remain open.
