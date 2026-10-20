@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 5c75379b3229939a9baa034c5424fb043da139e5,
+The cross-repository workflow pins Content Control eca92a308645985070fc149278b0a19e1a4982d0,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1291,3 +1291,20 @@ The existing template-production suite now checks exact inward boundaries at
 rejection. These synthetic fixtures do not approve a genuine calculator template,
 spine clearance, barcode/print marks, rights, independent review or a live KDP
 preview/print. Both publication flags remain false and all24 live areas open.
+
+
+## Independent KDP no-bleed margin floors
+
+The pinned consumer includes Content Control PR #331. Independent package QA
+requires the supported no-bleed interior's declared gutter to meet the minimum
+for its page-count band, and outside/top/bottom margins to be at least 0.25 inch.
+All margins must be finite primitive numbers and leave usable page area. Actual
+PDF inspection then checks every page against those declared mirrored bounds.
+Rebinding a receipt and package hash cannot lower these requirements.
+
+The existing real-PDF/book-bound suite now tests every band boundary, exact
+minima, undersized/malformed values and margins that consume the page. Existing
+consumer, binary IO, economics/event recovery and review production use the same
+exact checkout. Low-level technical fixtures remain separate; this establishes
+no genuine template, editorial/rights approval or live KDP acceptance. Both
+publication flags remain false and all 24 live acceptance areas remain open.
