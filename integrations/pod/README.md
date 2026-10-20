@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control e4b2bbecf667b3bb4e75f3cdb3a22845e643834e,
+The cross-repository workflow pins Content Control db0f5c33abb081dbe15883f7e4d9941348a3fd23,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1326,3 +1326,24 @@ exact checkout. This gate does not discover unlabelled text in artwork, move
 typography, import a genuine template, approve barcode placement or establish
 live print registration. Both publication flags remain false; all 24 live
 acceptance areas remain open.
+
+
+## Retained official KDP calculator reference
+
+The pinned consumer includes Content Control PR #335: an actual original guide
+archive retrieved from KDP's public calculator on October 20, 2026 for a 24-page,
+6x9-inch, black-ink/white-paper paperback reference. Its acquisition record,
+calculator screenshot, original ZIP, explicit profile and deterministic member
+inspection are retained under integrations/pod/templates/kdp/2026-10-20.
+
+The existing real-PDF/book-bound suite now exercises the retained bytes and a
+bounded offline verifier, including malformed archives with rebound hashes,
+profile mismatch, duplicate/path/link entries, expansion bounds, wrong PDF/PNG
+geometry, CRC errors and CLI output. Existing consumer, binary IO, economics/event
+recovery and review-production checks use the same exact checkout.
+
+The guide is not finished artwork or a signed production template. Its PDF uses
+whole-point guide geometry; final production PDF checks are unchanged. No source
+authority or product approval is minted, no job selects this reference
+automatically, and no actual preview or print acceptance is claimed. Both
+publication flags remain false and all 24 live acceptance areas stay open.
