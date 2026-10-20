@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 8949410900ba402e403c902d41bb825858b144bc,
+The cross-repository workflow pins Content Control cfc3f1ce16356051b00708c35b355018be86feee,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1234,3 +1234,22 @@ review production. Regional option-table admission, genuine official template
 import, safe zones/print marks, calibrated independent review and actual KDP
 preview/print acceptance remain separate. These test fixtures supply none of
 those live facts. All 24 live areas remain open and both publication flags false.
+
+
+## Delivered KDP font size in independent QA
+
+The pinned consumer includes Content Control PR #325. Its independent PDF QA
+checks every delivered text run/span for the seven-point minimum, including
+small text on later pages or beside readable runs. Horizontal span metrics also
+expose vertical compression that can leave a trace's reported size unchanged.
+Reconstructed vertical em scale allows0.0001 point for numeric error; reported
+trace/span sizes still require at least seven. Nonhorizontal/vertical writing
+requires a separate supported contract. No text is resized or approved.
+
+The existing real PDF/book-bound suite runs the boundary, transformed and mixed
+text regressions against this exact pin. Consumer contracts, original-art binary
+IO, economics/event recovery and Python review production use the same checkout.
+Passing metrics and synthetic receipts do not establish licensing, readable
+manuscripts, complex-script shaping, genuine templates, independent editorial
+approval or KDP preview/print acceptance. Both publication flags remain false;
+all24 live acceptance areas stay open.
