@@ -28,7 +28,7 @@ async function runFixture(scenario){
   }finally{await fs.rm(temporary,{recursive:true,force:true});}
 }
 
-for(const scenario of ['missing-file','missing-digital-input','missing-save','missing-confirmation','stale-confirmation']){
+for(const scenario of ['missing-file','missing-digital-input','missing-save','missing-confirmation','stale-confirmation','missing-type','type-not-selected','rejected-upload','login-redirect']){
   test(`blocks ${scenario} instead of reporting success`,async()=>{
     const result=await runFixture(scenario);
     assert.notEqual(result.status,0,`runner falsely passed: ${result.stdout}`);
@@ -42,5 +42,8 @@ test('reports success only after requested file upload and fresh save confirmati
   const result=await runFixture('success');
   assert.equal(result.status,0,result.stderr+result.stdout);
   assert.match(result.stdout,/"success": true/);
-  assert.equal(result.trace,'launch\nupload\nsave\n');
+  assert.match(result.stdout,/"verification": "EDITOR_READBACK_CONFIRMED"/);
+  assert.match(result.stdout,/"bytesVerified": false/);
+  assert.equal(result.trace,'launch\nupload\nsave\nreload\n');
 });
+

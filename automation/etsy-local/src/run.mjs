@@ -4,11 +4,13 @@ import path from 'node:path';
 import {chromium} from 'playwright';
 import {validateTask} from './task.mjs';
 import {validateListingUploads,uploadAndSaveListing} from './listing-actions.mjs';
+import {validateListingPatch,applyListingMetadata,verifyListingMetadata} from './listing-metadata.mjs';
 
 const taskPath=process.argv[2];
 if(!taskPath) throw new Error('Usage: node src/run.mjs <task.json>');
 const task=validateTask(JSON.parse(await fs.readFile(taskPath,'utf8')));
 // Validate the whole requested batch before launching Chrome or editing a listing.
+if(task.type==='update_listing')validateListingPatch(task.patch);
 const uploads=await validateListingUploads(task);
 
 const profile=process.env.ETSY_CHROME_PROFILE || path.resolve('.etsy-profile');
@@ -58,26 +60,11 @@ try{
     if(task.type==='update_listing'){
       await page.goto(`https://www.etsy.com/your/shops/me/listing-editor/edit/${task.listing_id}`,{waitUntil:'domcontentloaded'});
       const p=task.patch;
-      if(p.title) await fillByLabel(['Title'],p.title);
-      if(p.description) await fillByLabel(['Description'],p.description);
-      if(p.price!=null) await fillByLabel(['Price'],p.price);
-
-      if(p.type==='download'){
-        await clickText(['Digital files','Digital']);
-      }
-
-      if(Array.isArray(p.tags)){
-        const tagInput=page.getByLabel(/tag/i).first();
-        if(await tagInput.count()){
-          const existing=page.locator('[data-tag], .wt-tag, [class*="tag"] button');
-          const n=await existing.count();
-          for(let i=n-1;i>=0;i--){ try{await existing.nth(i).click();}catch{} }
-          for(const tag of p.tags){ try{await tagInput.fill(tag);await tagInput.press('Enter');}catch{} }
-        }
-      }
-
-      await uploadAndSaveListing(page,uploads);
-      result={...result,success:true,verification:'SAVE_CONFIRMED',listing_id:task.listing_id,url:page.url()};
+      await applyListingMetadata(page,p);
+      const evidence=await uploadAndSaveListing(page,uploads,{
+        verifyMetadata:()=>verifyListingMetadata(page,p),
+      });
+      result={...result,success:true,verification:'EDITOR_READBACK_CONFIRMED',evidence,listing_id:task.listing_id,url:page.url()};
     }
 
     if(task.type==='update_shop'){
@@ -103,3 +90,4 @@ try{
 console.log(JSON.stringify(result,null,2));
 await browser.close();
 if(!result.success && process.exitCode!==10) process.exitCode=1;
+
