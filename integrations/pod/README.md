@@ -885,7 +885,7 @@ authority mounting, approval, revocation, or publication acceptance.
 
 ## Pinned consumer envelope verification
 
-The cross-repository workflow pins Content Control 534215a629bae135b984920cd6dc0596958eb4e5,
+The cross-repository workflow pins Content Control 5c75379b3229939a9baa034c5424fb043da139e5,
 which rejects ambiguous signed JSON, nonfinite numeric results, malformed
 signature types and non-string readiness modes. Its producer verification step
 now runs the envelope clock/JSON and mode regressions alongside review cleanup
@@ -1275,3 +1275,19 @@ Embedding cannot prove source-font identity/licensing, glyph quality, genuine
 templates, editorial approval or KDP preview/print acceptance. Unsupported font
 formats require a separate contract. Both publication flags remain false and
 all24 live acceptance areas stay open.
+
+
+## KDP cover outer-edge safety
+
+The pinned consumer includes Content Control PR #329. The Node production gate
+and independent Python QA require the critical-content safe box to remain at
+least0.25inch inside every outer cover edge. Left/top bounds round inward with
+ceil; right/bottom bounds use the declared physical inches and floor, so a
+rounded raster cannot grant an extra pixel. Malformed critical-art flags fail.
+Explicit noncritical background art may bleed; text always stays in the safe box.
+
+The existing template-production suite now checks exact inward boundaries at
+300/600/1200DPI, one-pixel violations on each side and pre-child coordinator
+rejection. These synthetic fixtures do not approve a genuine calculator template,
+spine clearance, barcode/print marks, rights, independent review or a live KDP
+preview/print. Both publication flags remain false and all24 live areas open.
