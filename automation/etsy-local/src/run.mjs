@@ -3,10 +3,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {chromium} from 'playwright';
 import {validateTask} from './task.mjs';
+import {validateListingUploads,uploadAndSaveListing} from './listing-actions.mjs';
 
 const taskPath=process.argv[2];
 if(!taskPath) throw new Error('Usage: node src/run.mjs <task.json>');
 const task=validateTask(JSON.parse(await fs.readFile(taskPath,'utf8')));
+// Validate the whole requested batch before launching Chrome or editing a listing.
+const uploads=await validateListingUploads(task);
 
 const profile=process.env.ETSY_CHROME_PROFILE || path.resolve('.etsy-profile');
 const browser=await chromium.launchPersistentContext(profile,{
@@ -73,20 +76,8 @@ try{
         }
       }
 
-      // Optional uploads: local paths supplied in patch.images / patch.files.
-      if(Array.isArray(p.images) && p.images.length){
-        const imgs=page.locator('input[type=file]').first();
-        if(await imgs.count()) await imgs.setInputFiles(p.images);
-      }
-      if(Array.isArray(p.files) && p.files.length){
-        const inputs=page.locator('input[type=file]');
-        const c=await inputs.count();
-        if(c>1) await inputs.nth(c-1).setInputFiles(p.files);
-      }
-
-      await clickText(['Save changes','Publish changes','Save']);
-      await page.waitForTimeout(1200);
-      result={...result,success:true,listing_id:task.listing_id,url:page.url()};
+      await uploadAndSaveListing(page,uploads);
+      result={...result,success:true,verification:'SAVE_CONFIRMED',listing_id:task.listing_id,url:page.url()};
     }
 
     if(task.type==='update_shop'){

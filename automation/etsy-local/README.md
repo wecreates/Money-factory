@@ -37,6 +37,17 @@ Etsy rejected the seller's API app twice. Browser automation can still perform t
 - Etsy page markup changes over time; selectors may need maintenance.
 - Use the prepared digital-only manifest as the source of truth.
 - Keep publication/replacement actions reversible until public verification passes.
+- When `patch.files` or `patch.images` is supplied, every requested path must be
+  a nonempty local regular file. Validation happens before Chrome launches;
+  empty lists and missing files are errors, rather than skipped uploads.
+- Listing updates require an unambiguous digital/image upload control for the
+  requested files, an enabled save button, and a fresh save confirmation.
+  Missing or changed Etsy markup fails the task instead of reporting success.
+  After an unconfirmed save, inspect the listing before retrying: some changes
+  may already have reached Etsy. There is no automatic retry or rollback.
+- `SAVE_CONFIRMED` describes the observed editor confirmation only. It does not
+  approve product quality, verify the final attachment bytes or buyer download,
+  or prove a sale. The browser selectors still need authorized live validation.
 
 ## Cost
 The software path is free: Playwright + your existing computer + the existing GitHub repo. Etsy's normal marketplace/listing/payment fees still apply. GitHub-hosted runner usage is subject to GitHub's plan/usage limits.
