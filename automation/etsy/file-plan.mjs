@@ -71,16 +71,26 @@ export async function uploadFilePlan({plan,listing,existingFiles,upload,verify})
   if(!Array.isArray(plan.files) || !plan.files.length || plan.files.some(file=>!(file.bytes instanceof Uint8Array) || !file.bytes.length || sha256(file.bytes)!==file.sha256)) throw new Error('File plan bytes no longer match the verified hashes');
   if(!existingFiles || existingFiles.count!==0 || !Array.isArray(existingFiles.results) || existingFiles.results.length!==0) throw new Error('Existing or ambiguous listing attachments require seller reconciliation before any upload');
   const uploaded=[];
-  for(const file of plan.files){
-    const response=await upload(file);
-    if(!response?.listing_file_id) throw new Error('Upload response missing listing_file_id; reconcile seller state before retrying');
-    const id=String(response.listing_file_id);
-    if(uploaded.includes(id)) throw new Error('Upload returned duplicate file IDs; reconcile seller state before retrying');
-    uploaded.push(id);
+  try{
+    for(const file of plan.files){
+      const response=await upload(file);
+      if(!response?.listing_file_id) throw new Error('Upload response missing listing_file_id');
+      const id=String(response.listing_file_id);
+      if(uploaded.includes(id)) throw new Error('Upload returned duplicate file IDs');
+      uploaded.push(id);
+    }
+    const listingFiles=await verify();
+    if(!Array.isArray(listingFiles?.results) || listingFiles.count!==listingFiles.results.length) throw new Error('Invalid listing-file verification response');
+    const present=new Set(listingFiles.results.map(file=>String(file.listing_file_id)));
+    if(present.size!==uploaded.length || listingFiles.count!==uploaded.length || uploaded.some(id=>!present.has(id))) throw new Error('Uploaded file missing from seller read-back');
+  }catch(cause){
+    // A failed request may have reached Etsy even when no response was received.
+    // These IDs are only the confirmed responses, not an inventory of seller state.
+    const error=new Error(`${cause?.message || 'Attachment upload or verification failed'}; seller state is uncertain; known uploaded file IDs: ${JSON.stringify(uploaded)}; reconcile seller state before retrying`,{cause});
+    error.uploaded_file_ids=[...uploaded];
+    error.seller_state_uncertain=true;
+    error.reconciliation_required=true;
+    throw error;
   }
-  const listingFiles=await verify();
-  if(!Array.isArray(listingFiles?.results) || listingFiles.count!==listingFiles.results.length) throw new Error('Invalid listing-file verification response; reconcile seller state before retrying');
-  const present=new Set(listingFiles.results.map(file=>String(file.listing_file_id)));
-  if(present.size!==uploaded.length || listingFiles.count!==uploaded.length || uploaded.some(id=>!present.has(id))) throw new Error('Uploaded file missing from seller read-back; reconcile seller state before retrying');
   return {uploaded_file_ids:uploaded,attachment_readback_verified:true,live_listing_type_verified:true,buyer_download_verified:false};
 }

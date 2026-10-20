@@ -249,3 +249,34 @@ test('ZIP entries and archive hash are bound to the QA manifest',async t=>{
   review(f.manifest);
   await assert.rejects(planListingFiles(f),/ZIP entry hash mismatch/);
 });
+
+for(const phase of ['first upload','second upload','verification']){
+  test(`${phase} exception preserves cause and known IDs and requires reconciliation`,async t=>{
+    const plan=await planListingFiles(await fixture(t,{extra:true}));
+    const cause=new Error('synthetic network/HTTP failure');
+    cause.status=503;
+    let uploads=0,verifications=0;
+    await assert.rejects(uploadFilePlan({
+      plan,listing:{listing_id:listingId,shop_id:shopId,type:'download'},existingFiles:{count:0,results:[]},
+      upload:async()=>{
+        uploads++;
+        if((phase==='first upload' && uploads===1)||(phase==='second upload' && uploads===2)) throw cause;
+        return {listing_file_id:uploads};
+      },
+      verify:async()=>{verifications++;throw cause;}
+    }),error=>{
+      const knownIds=phase==='first upload'?[]:phase==='second upload'?['1']:['1','2','3','4'];
+      assert.equal(error.cause,cause);
+      assert.equal(error.cause.status,503);
+      assert.deepEqual(error.uploaded_file_ids,knownIds);
+      assert.equal(error.seller_state_uncertain,true);
+      assert.equal(error.reconciliation_required,true);
+      assert.match(error.message,/seller state is uncertain/);
+      assert.match(error.message,/reconcile seller state before retrying/);
+      assert.ok(error.message.includes(JSON.stringify(knownIds)),'CLI-visible message must include known IDs');
+      return true;
+    });
+    assert.equal(uploads,phase==='first upload'?1:phase==='second upload'?2:4,'must stop without retrying or attempting remaining uploads');
+    assert.equal(verifications,phase==='verification'?1:0);
+  });
+}
