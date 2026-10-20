@@ -1425,3 +1425,31 @@ approval, barcode/CMYK handling or preview/print acceptance. Manual QA hosts
 must obtain the target from the original authorized task. No grant, approval,
 country, paper or page count is silently changed. Both publication flags remain
 false and all 24 live acceptance areas remain open.
+
+
+## KDP Amazon-placed barcode reservation
+
+The pinned consumer includes Content Control PR #343. Durable KDP production
+requires signed cover.kdp.barcode_mode=amazon_placed; missing or own-barcode modes
+fail before guide inspection/generation. Existing inputs need newly reviewed
+immutable descriptors and current grants. No barcode/ISBN is generated, no
+publication is enabled and no template approval is invented.
+
+The retained guide inspector now checks the single opaque yellow 2×1.2-inch
+region against the requested LTR profile and records its observed physical/PDF
+coordinates. Original archive/member hashes remain unchanged. Independent QA
+protects the derived region with outward pixel rounding: no text or critical-art
+mask pixel may overlap it. Explicit noncritical background art may fill it, as
+the guide instructs. Signed arbitrary region coordinates are not trusted.
+
+The existing consumer and real-PDF/book-bound suites now test explicit mode,
+actual retained-guide geometry, missing/duplicate/moved yellow regions despite
+rebound hashes, DPI boundaries, mask edge pixels and background allowance.
+Content Control's own hosted QA suite checks rebound full packages while their
+outer safe-box geometry still passes. Existing source, binary-IO, economics/events
+and review-production checks use the same exact pin.
+
+This checks declared content in the supported Amazon-placed/LTR layout. It does
+not classify important art or barcode pixels hidden in backgrounds, scan an ISBN,
+prove provider placement, implement own/RTL barcode formats or establish CMYK/
+preview/print acceptance. Publication flags remain false; all 24 live areas open.
