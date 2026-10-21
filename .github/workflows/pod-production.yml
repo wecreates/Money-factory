@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: f32b9c7556fefc5f80fa7b6e18f57492dab4553f
+          ref: 0da7fd1a7c83cabbcc999b3d8adf7cbb2a89176d
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -65,7 +65,7 @@ jobs:
         run: python -m unittest discover -s tests -p test_pod_kdp_interior_template_import.py
         working-directory: content-control-test
       - name: Verify KDP metadata, original manuscript/font rights, template source, CMYK cover and editorial-bound QA
-        run: PYTHONPATH=tests python -m unittest test_pod.PODTests.test_kdp_original_manuscript_is_required_and_editorial_hash_must_match test_pod.PODTests.test_kdp_original_font_source_is_required_and_reported test_pod.PODTests.test_kdp_current_scoped_font_rights_and_retained_license_are_required test_pod.PODTests.test_rebound_substituted_interior_text_does_not_match_original_manuscript test_pod.PODTests.test_kdp_qa_requires_declared_device_cmyk_cover test_pod.PODTests.test_kdp_original_title_fonts_and_all_rendered_pixels_pass_independent_preflight test_pod.PODTests.test_kdp_requires_book_details_matching_front_cover_and_title_page test_pod.PODTests.test_kdp_book_details_reject_template_placeholder test_pod.PODTests.test_kdp_book_details_require_distinct_cover_fields test_pod.PODTests.test_kdp_book_details_reject_prohibited_metadata
+        run: PYTHONPATH=tests python -m unittest test_pod.PODTests.test_kdp_original_manuscript_is_required_and_editorial_hash_must_match test_pod.PODTests.test_kdp_original_font_source_is_required_and_reported test_pod.PODTests.test_kdp_current_scoped_font_rights_and_retained_license_are_required test_pod.PODTests.test_rebound_substituted_interior_text_does_not_match_original_manuscript test_pod.PODTests.test_kdp_qa_requires_declared_device_cmyk_cover test_pod.PODTests.test_kdp_original_title_fonts_and_all_rendered_pixels_pass_independent_preflight test_pod.PODTests.test_kdp_requires_book_details_matching_front_cover_and_title_page test_pod.PODTests.test_kdp_book_details_reject_template_placeholder test_pod.PODTests.test_kdp_book_details_require_distinct_cover_fields test_pod.PODTests.test_kdp_book_details_reject_prohibited_metadata test_pod.PODTests.test_kdp_book_details_bind_edition_series_and_contributors
         working-directory: content-control-test
       - run: node --test integrations/pod/*.test.mjs
       - run: CONTENT_CONTROL_ROOT="$GITHUB_WORKSPACE/content-control-test" python3 -m unittest discover -s integrations/pod -p 'test_*.py'
