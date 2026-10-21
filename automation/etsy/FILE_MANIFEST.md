@@ -66,6 +66,23 @@ Every returned upload ID must appear in the final exact attachment set. Unknown 
 
 The dependency-free ZIP verifier deliberately accepts only ordinary single-disk stored/deflated archives with explicit local sizes, up to 512 entries and 100,000,000 uncompressed bytes. Encrypted, ZIP64, data-descriptor, unsupported, inconsistent, oversized, duplicate, missing, or unsafe archives fail closed. It never extracts to disk. This is an integrity check, not malware scanning or spreadsheet formula/functionality QA.
 
+Manifest paths and ZIP entries also reject Windows-reserved characters, control
+characters, trailing spaces/periods, and reserved device names in any component.
+Device names remain reserved with extensions, including COM/LPT suffixes 1–9
+and the three documented superscript digits. Ordinary names such as COMÂ.txt
+and LPTÂ.txt remain valid ZIP entry names. Direct-upload filenames retain the
+separate existing ASCII filename restriction.
+
+The reviewed entry list and the archive each require an unambiguous
+case-insensitive file/directory tree. Case-only collisions, inconsistent casing
+of shared parent directories, and file/directory conflicts fail in either entry
+order. Valid nested paths may include explicit directory records before or after
+their children, using consistent spelling. These are conservative portable-path
+checks. Unicode upper/lower folding deliberately rejects ambiguous case variants
+and can be stricter than a particular filesystem. It is not proof of extraction
+compatibility with every filesystem or ZIP tool.
+See [Microsoft's file naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file).
+
 [Etsy's listing tutorial](https://developers.etsy.com/documentation/tutorials/listings/) and [API reference](https://developers.etsy.com/documentation/reference/) describe digital attachments and seller metadata. Actual API behavior remains untested here.
 
 ## Remaining release checks
