@@ -8,7 +8,7 @@ permissions:
 jobs:
   review-production:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:18
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: b3eb9d1aacf7d20ec5738bcf33a5263d99d963f3
+          ref: 1a5ef2bec2f44b724b789e8f99b200f9e500827f
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
