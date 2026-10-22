@@ -17,7 +17,7 @@ function fixture(){
  const pool={connect:()=>new Promise((resolve,reject)=>pending.push({resolve:()=>resolve(client),reject}))};
  return {pool,pending,queries,releases,resolveAll:()=>pending.forEach(p=>p.resolve())};
 }
-const accept=pool=>acceptPodEvent(pool,envelope,key,()=>now,{connectionTimeoutMs:10});
+const accept=(pool,connectionTimeoutMs=10)=>acceptPodEvent(pool,envelope,key,()=>now,{connectionTimeoutMs});
 async function fill(f){
  const settled=await Promise.allSettled(Array.from({length:32},()=>accept(f.pool)));
  assert.ok(settled.every(x=>x.status==='rejected'&&x.reason.message==='EVENT_CONNECTION_TIMEOUT'));
@@ -55,9 +55,9 @@ test('a late rejection frees admission and independent pools do not share the ca
 
 test('on-time success and synchronous connection errors never leak admission',async()=>{
  const pool={connect:async()=>({query:async()=>({rows:[{event_sha256:hash}]}),release(){}})};
- for(let i=0;i<70;i++)assert.deepEqual(await accept(pool),{accepted_event_id:event.id});
+ for(let i=0;i<70;i++)assert.deepEqual(await accept(pool,1000),{accepted_event_id:event.id});
  const error=Error('private early error'),bad={connect(){throw error;}};
- for(let i=0;i<70;i++)await assert.rejects(accept(bad),e=>e===error);
+ for(let i=0;i<70;i++)await assert.rejects(accept(bad,1000),e=>e===error);
 });
 
 test('HTTP overload shares the pool limit and returns only the retryable public error',async()=>{
