@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: bc14163bb0e858cfbc248f6184c543596b23b09c
+          ref: bb499b914b74dc017c1976eb2f7ac366f47cfc16
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -41,7 +41,7 @@ jobs:
       - run: npm ci --ignore-scripts
         working-directory: content-control-test
       - name: Verify pinned review and POD contracts
-        run: node --test tests/pod-review-cli.test.mjs tests/pod-qa-binding.test.mjs tests/pod-evidence-time.test.mjs tests/pod-envelope-clock.test.mjs tests/pod-envelope-json.test.mjs tests/pod-mode-types.test.mjs tests/pod-task-json.test.mjs tests/pod-task-resolver.test.mjs tests/pod-claim-evidence.test.mjs tests/pod-market-evidence.test.mjs tests/pod-production-lease.test.mjs tests/pod-release-freshness.test.mjs tests/pod-kdp-weekly-submission.test.mjs tests/pod-account-platform-claim.test.mjs tests/pod-dashboard.test.mjs tests/pod-http-response.test.mjs tests/pod-grant-client.test.mjs tests/pod-intake-revocation.test.mjs tests/pod-container-smoke.test.mjs tests/pod-artifact-batch.test.mjs tests/pod-artifact-archive.test.mjs tests/pod-state-archive.test.mjs tests/pod-python-stage.test.mjs tests/pod-deploy-commit-policy.test.mjs tests/pod-template-production.test.mjs tests/pod-template-source.test.mjs tests/pod-preflight.test.mjs
+        run: node --test tests/pod-review-cli.test.mjs tests/pod-qa-binding.test.mjs tests/pod-qa-process.test.mjs tests/pod-evidence-time.test.mjs tests/pod-envelope-clock.test.mjs tests/pod-envelope-json.test.mjs tests/pod-mode-types.test.mjs tests/pod-task-json.test.mjs tests/pod-task-resolver.test.mjs tests/pod-claim-evidence.test.mjs tests/pod-market-evidence.test.mjs tests/pod-production-lease.test.mjs tests/pod-release-freshness.test.mjs tests/pod-kdp-weekly-submission.test.mjs tests/pod-account-platform-claim.test.mjs tests/pod-dashboard.test.mjs tests/pod-http-response.test.mjs tests/pod-grant-client.test.mjs tests/pod-intake-revocation.test.mjs tests/pod-container-smoke.test.mjs tests/pod-artifact-batch.test.mjs tests/pod-artifact-archive.test.mjs tests/pod-state-archive.test.mjs tests/pod-python-stage.test.mjs tests/pod-deploy-commit-policy.test.mjs tests/pod-template-production.test.mjs tests/pod-template-source.test.mjs tests/pod-preflight.test.mjs
         working-directory: content-control-test
       - name: Verify strict Python evidence and bounded JSON
         run: python -m unittest discover -s tests -p test_pod_evidence.py
