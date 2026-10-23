@@ -1,0 +1,7 @@
+{
+  "tool": "openwhispr",
+  "operation": "readiness",
+  "output": "runtime/repository-interop/openwhispr-readiness.json",
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}

@@ -1,0 +1,26 @@
+{
+  "queue_kind": "content-control",
+  "queue": {
+    "version": 1,
+    "queue": [
+      {
+        "id": "content-review",
+        "title": "Review content",
+        "status": "BLOCKED",
+        "instruction": "Verify the source claims.",
+        "publication_enabled": false
+      },
+      {
+        "id": "other-task",
+        "title": "Keep private",
+        "status": "READY",
+        "secret": "never-export"
+      }
+    ]
+  },
+  "selected_ids": [
+    "content-review"
+  ],
+  "project_id": 7,
+  "type_id": 1
+}

@@ -1,0 +1,8 @@
+{
+  "knowledge_base_id":"kb-fixture",
+  "query":"Synthetic brand style",
+  "response":{"success":true,"data":[{
+    "id":"chunk-fixture","knowledge_id":"doc-fixture","knowledge_base_id":"kb-fixture",
+    "knowledge_title":"Synthetic style fixture","content":"Use clear sentences.","score":0.8,"match_type":1
+  }]}
+}

@@ -1,0 +1,8 @@
+{
+  "name": "cyzor-hypit-cyzor-hypit-smoke",
+  "version": "0.0.0",
+  "private": true,
+  "hypit": {
+    "project": true
+  }
+}

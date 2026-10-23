@@ -119,6 +119,11 @@ def run(job, runtime):
 def _run(job, runtime):
     if job.get('publication_enabled') or job.get('paid_generation_enabled'):
         raise ValueError('This worker does not support publication or paid generation')
+    # Narrow project-owned bridges do not execute downloaded upstream code. Their
+    # explicit allowlist is independent of the existing installed-source routes.
+    from reel_bridges import handles, run_bridge
+    if handles(job):
+        return run_bridge(job, REGISTRY)
     tool, operation = job['tool'], job['operation']
     upstream = source(tool)
     output = Path(job['output']).resolve()
@@ -257,7 +262,10 @@ if __name__ == '__main__':
     parser.add_argument('--runtime', type=Path, required=True)
     args = parser.parse_args()
     try:
-        print(json.dumps(run(json.loads(args.job.read_text()), args.runtime.resolve()), indent=2))
+        result = run(json.loads(args.job.read_text()), args.runtime.resolve())
+        print(json.dumps(result, indent=2))
+        if result.get('execution_kind') == 'project_owned_offline_adapter' and result.get('status') == 'BLOCKED':
+            sys.exit(2)
     except Exception as error:
         print(json.dumps({'status': 'FAIL', 'error': str(error), 'publication_enabled': False}), file=sys.stderr)
         sys.exit(1)

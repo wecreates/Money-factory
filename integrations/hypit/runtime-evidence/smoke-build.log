@@ -1,0 +1,23 @@
++ Build submitted
+
+  Build   bld_20261023T194055870Z_F831B5231E
+  Target  final.video
+  Work    3 requests
+
+Following accepted work. Ctrl-C stops watching; the Build continues.
+  · Working · 0/3 steps complete · 1s
+x Build failed
+
+  Build  bld_20261023T194055870Z_F831B5231E
+
+Reason   Command need:need:author%3A%2Fworkspace%2Fscratch%2F2308b2d79b84%2Fhypit-integration-20261023%2Fsmoke-project%2Fmain.svml%3A%3Acomponent%3A%3Afinal:request-visual ended without a stored result: Endpoint html.local failed rasterize-visual: Failed to launch the browser process:  Code: null
+
+stderr:
+[124:124:1023/124100.700113:ERROR:third_party/crashpad/crashpad/util/file/filesystem_posix.cc:63] mkdir : No such file or directory (2)
+chrome_crashpad_handler: --database is required
+Try 'chrome_crashpad_handler --help' for more information.
+[124:124:1023/124100.704159:FATAL:chrome/browser/process_singleton_posix.cc:297] Check failed: . socket() failed: Operation not permitted (1)
+
+TROUBLESHOOTING: https://pptr.dev/troubleshooting
+
+Inspect  hypit inspect bld_20261023T194055870Z_F831B5231E --project /workspace/scratch/2308b2d79b84/hypit-integration-20261023/smoke-project

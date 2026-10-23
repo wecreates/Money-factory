@@ -1,0 +1,40 @@
+{
+  "upstream_repository": "https://github.com/OpenWhispr/openwhispr",
+  "upstream_revision": "7a6ae826de9ec1caf65f3a6e769475dab2ae829f",
+  "archive_sha256": "cd4a16ab7b095c146a28ae343785029b5c6f01c289cdd1f7c5fddbb325350917",
+  "inspection": "Static source and documented export/API contracts only; upstream code, installers and dependencies not executed.",
+  "upstream_license": "MIT",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "3a29d8a15f4e0d242bfbcf071f0ba7f8f9c3b702f2afd162e5ebfa7fadb4019e",
+      "url": "https://github.com/OpenWhispr/openwhispr/blob/7a6ae826de9ec1caf65f3a6e769475dab2ae829f/README.md"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "ecf1a12d3dc51085d2f3a720dc177c7da3cd075ea3fadcc6a1b719fb44ed30e0",
+      "url": "https://github.com/OpenWhispr/openwhispr/blob/7a6ae826de9ec1caf65f3a6e769475dab2ae829f/LICENSE"
+    },
+    {
+      "path": "SECURITY.md",
+      "sha256": "3137570d413beb004d67edb1c01fec9d19c1e301b8afa9081d7bbbc57d95174f",
+      "url": "https://github.com/OpenWhispr/openwhispr/blob/7a6ae826de9ec1caf65f3a6e769475dab2ae829f/SECURITY.md"
+    },
+    {
+      "path": "package.json",
+      "sha256": "1d1d539beb24d90e61ac448925c4da26947628456d975747e816dbf56755bdd9",
+      "url": "https://github.com/OpenWhispr/openwhispr/blob/7a6ae826de9ec1caf65f3a6e769475dab2ae829f/package.json"
+    },
+    {
+      "path": "src/helpers/transcriptFormatter.js",
+      "sha256": "ba4fcfb5c1e3ad8b0de6245060db0e2e97416882119e0263ce0a8df94156f4f9",
+      "url": "https://github.com/OpenWhispr/openwhispr/blob/7a6ae826de9ec1caf65f3a6e769475dab2ae829f/src/helpers/transcriptFormatter.js"
+    },
+    {
+      "path": "test/helpers/exportDialog.test.js",
+      "sha256": "8a0e0bef28708358039e0c0f8bc0b3668b4a64c8cab4ab84763bc2eff174dfc5",
+      "url": "https://github.com/OpenWhispr/openwhispr/blob/7a6ae826de9ec1caf65f3a6e769475dab2ae829f/test/helpers/exportDialog.test.js"
+    }
+  ],
+  "implementation": "New independent file-format/API adapter; no upstream implementation vendored."
+}
