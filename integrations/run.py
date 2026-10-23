@@ -151,7 +151,9 @@ def _run(job, runtime):
         result = dispatch(job, runtime / 'rea')
         if not isinstance(result, dict) or result.get('status') not in ('PASS', 'BLOCKED'):
             raise ValueError('Invalid REA adapter result')
-        output.write_text(json.dumps(result, indent=2) + '\n')
+        # Preserve every evidence field without whitespace inflation beyond the
+        # persistence layer's unchanged 1 MiB evidence limit.
+        output.write_text(json.dumps(result, separators=(',', ':')) + '\n')
         if result['status'] != 'PASS':
             return result
     elif (tool, operation) == ('youtube-clipper-skill', 'clip'):
