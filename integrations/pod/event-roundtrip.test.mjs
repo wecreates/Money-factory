@@ -94,7 +94,8 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_events WHERE id=ANY($1::uuid[]) AND delivered_at IS NOT NULL',[cutoffIds])).rows[0].n,2);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=ANY($1::uuid[])',[cutoffIds])).rows[0].n,2);
 
-  const sign=event=>{event={job_id:null,created_at:new Date().toISOString(),...event};
+  const eventRecord=event=>({job_id:null,created_at:new Date().toISOString(),...event});
+  const sign=event=>{event=eventRecord(event);
    const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:Date.now(),event});
    return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};};
   // Confirm the actual jsonb storage boundary, then reject the same signed
@@ -111,8 +112,8 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
    assert.equal(storageConnects,0);
    assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[badId])).rows[0].n,0);
   }
-  const unicodeId=crypto.randomUUID(),unicodeEvent={id:unicodeId,kind:'pod.test.storage',
-   payload:{'🖨️':'café e\u0301 😀 \u0001\t\n\r \\u0000',boundaries:['\ud800\udc00','\udbff\udfff']}};
+  const unicodeId=crypto.randomUUID(),unicodeEvent=eventRecord({id:unicodeId,kind:'pod.test.storage',
+   payload:{'🖨️':'café e\u0301 😀 \u0001\t\n\r \\u0000',boundaries:['\ud800\udc00','\udbff\udfff']}});
   assert.equal((await acceptPodEvent(storagePool,sign(unicodeEvent),key)).accepted_event_id,unicodeId);
   assert.equal(storageConnects,1);
   const saved=(await pool.query('SELECT event,event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[unicodeId])).rows[0];
@@ -152,7 +153,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   // insert; the receiver must roll back that row, then allow an unchanged-ID
   // retry with a valid fixture clock. No live clock or expiry is changed.
   for(const delayedClock of [issued=>issued+300001,issued=>issued+0.5,()=>NaN]){
-  const expiryId=crypto.randomUUID(),expiryEvent={id:expiryId,kind:'pod.test.expiry',payload:{}};
+  const expiryId=crypto.randomUUID(),expiryEvent=eventRecord({id:expiryId,kind:'pod.test.expiry',payload:{}});
   const expiryEnvelope=sign(expiryEvent),issued=JSON.parse(expiryEnvelope.payload).issued_at_ms;
   const expiryHash=crypto.createHash('sha256').update(JSON.stringify(expiryEvent)).digest('hex');
   const blocker=await pool.connect();let clockNow=issued,pending,workerPid;
