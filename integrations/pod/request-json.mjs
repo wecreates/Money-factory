@@ -10,7 +10,8 @@ export function parsePodRequestJSON(bytes){
 
 // Native parsing owns JSON grammar. The iterative token walk additionally rejects
 // duplicate decoded member names and numbers that native parsing turns into
-// Infinity (JSON.stringify would silently store those as null). Do not normalize
+// Infinity (JSON.stringify would silently store those as null), unsafe integers,
+// and noncanonical number spellings that would change on storage. Do not normalize
 // signed bytes: event authentication must happen before calling this function.
 export function parsePodJSON(text){
  const value=JSON.parse(text),stack=[];
@@ -35,9 +36,10 @@ export function parsePodJSON(text){
    const start=i++;
    while(i<text.length&&!/[\s,}\]]/.test(text[i]))i++;
    if(ch==='-'||(ch>='0'&&ch<='9')){
-    const number=Number(text.slice(start,i));
+    const token=text.slice(start,i),number=Number(token);
     if(!Number.isFinite(number))throw new SyntaxError('REQUEST_JSON_NONFINITE');
     if(Number.isInteger(number)&&!Number.isSafeInteger(number))throw new SyntaxError('REQUEST_JSON_UNSAFE_INTEGER');
+    if(JSON.stringify(number)!==token)throw new SyntaxError('REQUEST_JSON_NONCANONICAL_NUMBER');
    }
   }
  }
