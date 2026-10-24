@@ -6,6 +6,7 @@ import {parsePodRequestJSON} from './request-json.mjs';
 // aborted HTTP request does not prove the loader stopped its backend work.
 const pendingSnapshots=new WeakMap();
 const MAX_PENDING_SNAPSHOTS=32;
+const MAX_GRANT_RESPONSE_BYTES=262144;
 async function loadBoundedSnapshot(loadSnapshot,id,signal){
  signal.throwIfAborted();
  const pending=pendingSnapshots.get(loadSnapshot)||0;
@@ -27,8 +28,9 @@ export function createPodAuthorityHandler({loadSnapshot,authKey,signingKey,clock
   [authKey,signingKey].some(k=>typeof k!=='string'||Buffer.byteLength(k)<32)||
   Buffer.from(authKey).equals(Buffer.from(signingKey)))throw Error('AUTHORITY_CONFIG_INVALID');
  return async function handle(req,res){
-  const send=(status,value)=>{if(res.destroyed||res.writableEnded)return;
-   res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(value));};
+  const sendBody=(status,body)=>{if(res.destroyed||res.writableEnded)return;
+   res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(body);};
+  const send=(status,value)=>sendBody(status,JSON.stringify(value));
   if(req.method!=='POST')return send(405,{error:'METHOD_NOT_ALLOWED'});
   const expected=Buffer.from('Bearer '+authKey),actual=Buffer.from(req.headers.authorization||'');
   if(actual.length!==expected.length||!crypto.timingSafeEqual(actual,expected))return send(401,{error:'AUTHORITY_AUTH_REQUIRED'});
@@ -62,7 +64,9 @@ export function createPodAuthorityHandler({loadSnapshot,authKey,signingKey,clock
    if(snapshot?.job?.id!==request.job_id)throw Error('JOB_NOT_FOUND');
    const now=clock();if(!Number.isSafeInteger(now)||now<0)throw Error('AUTHORITY_CLOCK_INVALID');
    const grant=issuePodGrant({...snapshot,key:signingKey,now});
-   return send(200,grant);
+   const body=JSON.stringify(grant);
+   if(Buffer.byteLength(body)>MAX_GRANT_RESPONSE_BYTES)throw Error('GRANT_RESPONSE_TOO_LARGE');
+   return sendBody(200,body);
   }catch{if(!res.destroyed)return send(409,{error:'GRANT_BLOCKED'});}
   finally{clearTimeout(timer);clearTimeout(snapshotTimer);res.removeListener('close',onClose);
    if(onAbort)controller.signal.removeEventListener('abort',onAbort);}
