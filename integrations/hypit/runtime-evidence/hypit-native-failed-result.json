@@ -1,0 +1,80 @@
+{
+  "format": "hypit.build-result@1",
+  "source": {
+    "id": "main.svml"
+  },
+  "run": {
+    "id": "build.svrun"
+  },
+  "targets": [
+    "final.video"
+  ],
+  "outputs": {
+    "program.timeline": {
+      "displayName": "program",
+      "type": {
+        "module": {
+          "name": "@hypit/timeline",
+          "version": "1"
+        },
+        "name": "Timeline"
+      },
+      "value": {
+        "kind": "value",
+        "path": "values/value-0001.json"
+      }
+    },
+    "program.scene-0": {
+      "displayName": "program",
+      "type": {
+        "module": {
+          "name": "@hypit/temporal",
+          "version": "1"
+        },
+        "name": "TemporalWindow"
+      },
+      "value": {
+        "kind": "value",
+        "path": "values/value-0002.json"
+      }
+    },
+    "pictures.visual": {
+      "displayName": "pictures",
+      "type": {
+        "module": {
+          "name": "@hypit/composition",
+          "version": "1"
+        },
+        "name": "VisualTrack"
+      },
+      "value": {
+        "kind": "value",
+        "path": "values/value-0003.json"
+      }
+    },
+    "main.composition": {
+      "displayName": "main",
+      "type": {
+        "module": {
+          "name": "@hypit/composition",
+          "version": "1"
+        },
+        "name": "Composition"
+      },
+      "value": {
+        "kind": "value",
+        "path": "values/value-0004.json"
+      }
+    }
+  },
+  "outcome": "failed",
+  "executionLog": {
+    "kind": "build-file",
+    "path": "execution.jsonl",
+    "size": 3743,
+    "mediaType": "application/x-ndjson"
+  },
+  "operations": [],
+  "finishedAt": 1792784460758,
+  "failure": "Command need:need:author%3A%2Fworkspace%2Fscratch%2F2308b2d79b84%2Fhypit-integration-20261023%2Fsmoke-project%2Fmain.svml%3A%3Acomponent%3A%3Afinal:request-visual ended without a stored result: Endpoint html.local failed rasterize-visual: Failed to launch the browser process:  Code: null\n\nstderr:\n[124:124:1023/124100.700113:ERROR:third_party/crashpad/crashpad/util/file/filesystem_posix.cc:63] mkdir : No such file or directory (2)\nchrome_crashpad_handler: --database is required\nTry 'chrome_crashpad_handler --help' for more information.\n[124:124:1023/124100.704159:FATAL:chrome/browser/process_singleton_posix.cc:297] Check failed: . socket() failed: Operation not permitted (1)\n\nTROUBLESHOOTING: https://pptr.dev/troubleshooting\n"
+}

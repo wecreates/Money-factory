@@ -1,0 +1,27 @@
+test_activation_credential_and_execution_options_rejected (test_reel_hypit.HypitBridgeTests.test_activation_credential_and_execution_options_rejected) ... ok
+test_bad_numbers_and_ids_rejected (test_reel_hypit.HypitBridgeTests.test_bad_numbers_and_ids_rejected) ... ok
+test_canonical_content_control_route_for_all_operations (test_reel_hypit.HypitBridgeTests.test_canonical_content_control_route_for_all_operations) ... ok
+test_changed_project_or_asset_changes_binding (test_reel_hypit.HypitBridgeTests.test_changed_project_or_asset_changes_binding) ... ok
+test_dispatch_json_duplicate_and_nonfinite_keys_rejected (test_reel_hypit.HypitBridgeTests.test_dispatch_json_duplicate_and_nonfinite_keys_rejected) ... ok
+test_duplicate_scene_and_overlong_project_rejected (test_reel_hypit.HypitBridgeTests.test_duplicate_scene_and_overlong_project_rejected) ... ok
+test_export_matches_native_bytes_preserves_report_and_keeps_quality_blocked (test_reel_hypit.HypitBridgeTests.test_export_matches_native_bytes_preserves_report_and_keeps_quality_blocked) ... ok
+test_external_forwarded_traversal_and_mismatch_results_rejected (test_reel_hypit.HypitBridgeTests.test_external_forwarded_traversal_and_mismatch_results_rejected) ... ok
+test_invalid_png_and_oversized_dimensions_rejected (test_reel_hypit.HypitBridgeTests.test_invalid_png_and_oversized_dimensions_rejected) ... ok
+test_missing_explicit_disabled_flags_rejected (test_reel_hypit.HypitBridgeTests.test_missing_explicit_disabled_flags_rejected) ... ok
+test_multiple_scene_timing_and_no_markup_injection (test_reel_hypit.HypitBridgeTests.test_multiple_scene_timing_and_no_markup_injection) ... ok
+test_multitenant_and_redistribution_fail_closed (test_reel_hypit.HypitBridgeTests.test_multitenant_and_redistribution_fail_closed) ... ok
+test_native_export_must_match_declared_file_not_just_report (test_reel_hypit.HypitBridgeTests.test_native_export_must_match_declared_file_not_just_report) ... ok
+test_non_complete_native_results_rejected (test_reel_hypit.HypitBridgeTests.test_non_complete_native_results_rejected) ... ok
+test_prepare_and_validate_use_no_process_or_network (test_reel_hypit.HypitBridgeTests.test_prepare_and_validate_use_no_process_or_network) ... ok
+test_prepare_project_emits_source_run_recipe_and_boundary (test_reel_hypit.HypitBridgeTests.test_prepare_project_emits_source_run_recipe_and_boundary) ... ok
+test_raw_parent_paths_rejected_for_inputs_and_exports (test_reel_hypit.HypitBridgeTests.test_raw_parent_paths_rejected_for_inputs_and_exports) ... ok
+test_remote_asset_and_digest_mismatch_rejected (test_reel_hypit.HypitBridgeTests.test_remote_asset_and_digest_mismatch_rejected) ... ok
+test_request_and_result_digest_mismatch_rejected (test_reel_hypit.HypitBridgeTests.test_request_and_result_digest_mismatch_rejected) ... ok
+test_rights_missing_false_or_third_party_fail (test_reel_hypit.HypitBridgeTests.test_rights_missing_false_or_third_party_fail) ... ok
+test_status_has_truthful_blocked_runtime (test_reel_hypit.HypitBridgeTests.test_status_has_truthful_blocked_runtime) ... ok
+test_symlink_and_parent_symlink_rejected (test_reel_hypit.HypitBridgeTests.test_symlink_and_parent_symlink_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.225s
+
+OK

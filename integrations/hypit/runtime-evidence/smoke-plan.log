@@ -1,0 +1,18 @@
++ Build plan is valid
+
+  Run             build.svrun
+  Targets         final.video
+  Requests        3
+  Local requests  3
+  Preflight       ready
+
+Providers and price pages
+  @hypit/media-operations#render-timeline-audio
+    media.local (@hypit/media-local)  ·  local, no Provider charge
+      ×1  startFrame 0 · endFrameExclusive 24 · frameRate 24/1 · sampleRate 48000  final:request-audio-render
+  @hypit/media-operations#mux-program-media
+    media.local (@hypit/media-local)  ·  local, no Provider charge
+      ×1  1 audio + 1 video references · 2 inputs produced during Build  final:request-mux
+  @hypit/html-program#rasterize-visual
+    html.local (@hypit/provider-html-local)  ·  local, no Provider charge
+      ×1  width 160 · height 160 · startFrame 0 · endFrameExclusive 24 · frameRate 24/1  final:request-visual
