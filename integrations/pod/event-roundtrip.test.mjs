@@ -94,7 +94,8 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_events WHERE id=ANY($1::uuid[]) AND delivered_at IS NOT NULL',[cutoffIds])).rows[0].n,2);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=ANY($1::uuid[])',[cutoffIds])).rows[0].n,2);
 
-  const sign=event=>{const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:Date.now(),event});
+  const sign=event=>{event={job_id:null,created_at:new Date().toISOString(),...event};
+   const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:Date.now(),event});
    return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};};
   // Confirm the actual jsonb storage boundary, then reject the same signed
   // observations before acquiring a client rather than reporting a retryable

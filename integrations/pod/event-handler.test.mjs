@@ -33,6 +33,7 @@ for(const finishMs of [9,10,11])test(`body completion at ${finishMs}ms respects 
  else{assert.equal(res.status,408);assert.deepEqual(res.body,{error:'REQUEST_TIMEOUT'});assert.equal(pool.stats().connects,0);}
 });
 function envelope(event={id,kind:'pod.production.review_required',payload:{publication_enabled:false}},issued=now){
+ event={job_id:null,created_at:new Date(now).toISOString(),...event};
  const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:issued,event});
  return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};
 }

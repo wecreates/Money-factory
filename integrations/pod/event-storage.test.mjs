@@ -5,7 +5,7 @@ import http from 'node:http';
 import {acceptPodEvent} from './event-inbox.mjs';
 import {createPodEventHandler} from './event-handler.mjs';
 const key='u'.repeat(32),now=1800000000000,id='12b4c678-1234-4321-abcd-123456789abc';
-const event=payload=>({id,kind:'pod.test.storage',payload});
+const event=payload=>({id,job_id:null,kind:'pod.test.storage',payload,created_at:new Date(now).toISOString()});
 const sign=event=>{const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:now,event});
  return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};};
 

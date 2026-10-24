@@ -6,6 +6,13 @@ import {assertEventStorageText} from './event-storage.mjs';
 // until pg settles their underlying request; otherwise retries grow its queue.
 const pendingAcquisitions=new WeakMap();
 const MAX_PENDING_ACQUISITIONS=32;
+const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+const EVENT_KIND=/^pod\.[a-z0-9]+(?:[._][a-z0-9]+)*$/;
+const ENVELOPE_FIELDS=['audience','event','issued_at_ms','schema_version'];
+const EVENT_FIELDS=['created_at','id','job_id','kind','payload'];
+
+const plainObject=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.getPrototypeOf(value)===Object.prototype;
+function exactPlainObject(value,fields){return plainObject(value)&&Object.keys(value).sort().join('\0')===fields.join('\0');}
 
 async function acquireClient(pool,timeoutMs){
  const pending=pendingAcquisitions.get(pool)||0;
@@ -52,8 +59,12 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
  const expected=crypto.createHmac('sha256',key).update(envelope.payload).digest();
  if(!crypto.timingSafeEqual(expected,Buffer.from(envelope.signature,'hex')))throw Error('EVENT_SIGNATURE_INVALID');
  const p=parsePodJSON(envelope.payload),e=p?.event;
- if(!Number.isSafeInteger(now)||now<0||p?.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isSafeInteger(p.issued_at_ms)||p.issued_at_ms<0||p.issued_at_ms>now||now-p.issued_at_ms>300000||
-  typeof e?.id!=='string'||e.id.length!==36||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(e.id)||typeof e.kind!=='string'||!e.kind.startsWith('pod.')||
+ if(!Number.isSafeInteger(now)||now<0||!exactPlainObject(p,ENVELOPE_FIELDS)||p.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isSafeInteger(p.issued_at_ms)||p.issued_at_ms<0||p.issued_at_ms>now||now-p.issued_at_ms>300000||
+  !exactPlainObject(e,EVENT_FIELDS)||typeof e.id!=='string'||e.id.length!==36||!UUID.test(e.id)||
+  !(e.job_id===null||typeof e.job_id==='string'&&e.job_id.length===36&&UUID.test(e.job_id))||
+  typeof e.kind!=='string'||e.kind.length<5||e.kind.length>128||!EVENT_KIND.test(e.kind)||
+  !plainObject(e.payload)||typeof e.created_at!=='string'||
+  !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(e.created_at)||!Number.isFinite(Date.parse(e.created_at))||new Date(e.created_at).toISOString()!==e.created_at||
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw Error('EVENT_SCOPE_INVALID');
  assertEventStorageText(e);
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');

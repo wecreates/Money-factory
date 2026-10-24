@@ -28,7 +28,7 @@ test('grant timestamps preserve exact valid boundaries and the five-minute cap',
  }
 });
 
-const event={id:'12b4c678-1234-4321-abcd-123456789abc',kind:'pod.test.clock',payload:{}};
+const event={id:'12b4c678-1234-4321-abcd-123456789abc',job_id:null,kind:'pod.test.clock',payload:{},created_at:new Date(now).toISOString()};
 const hash=crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex');
 function signed(issued){
  const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:issued,event});
