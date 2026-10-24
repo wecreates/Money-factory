@@ -16,6 +16,10 @@ export function validateTask(raw){
     return {id,type,listing_id:listingId,patch};
   }
   if(type==='update_shop') return {id,type,patch:raw.patch||{}};
-  if(type==='create_section') return {id,type,title:String(raw.title||'').trim()};
+  if(type==='create_section'){
+    if(typeof raw.title!=='string'||!raw.title.trim())throw new Error('section title must be nonempty text');
+    return {id,type,title:raw.title.trim()};
+  }
   if(type==='verify_public') return {id,type,url:String(raw.url||'')};
 }
+
