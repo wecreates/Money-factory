@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: ca68e235df8426caf459a568503fffd76633489c
+          ref: 1a0b8b4dd03452240a4b10ff523e91fd62355e91
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -72,3 +72,4 @@ jobs:
         working-directory: content-control-test
       - run: node --test integrations/pod/*.test.mjs
       - run: CONTENT_CONTROL_ROOT="$GITHUB_WORKSPACE/content-control-test" python3 -m unittest discover -s integrations/pod -p 'test_*.py'
+ÝÞxwnµíÞ÷wiízó×»ãO6qçáÎ÷wÝ}

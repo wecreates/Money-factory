@@ -1,7 +1,0 @@
-{
-  "tool": "rea",
-  "operation": "analyze-javascript-application",
-  "input": "rea-project",
-  "publication_enabled": false,
-  "paid_generation_enabled": false
-}

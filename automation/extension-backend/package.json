@@ -1,9 +1,0 @@
-{
-  "name": "cyzor-backend-smoke",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "node --test test/*.test.mjs",
-    "smoke": "node smoke.mjs"
-  }
-}

@@ -1,7 +1,0 @@
-{
-  "tool": "voicestudio",
-  "operation": "synthesize",
-  "input": "voicestudio-narration.input.json",
-  "publication_enabled": false,
-  "paid_generation_enabled": false
-}

@@ -1,7 +1,0 @@
-{
-  "tool": "rea",
-  "operation": "inspect-artifact",
-  "input": "rea-fixtures/native.bin",
-  "publication_enabled": false,
-  "paid_generation_enabled": false
-}

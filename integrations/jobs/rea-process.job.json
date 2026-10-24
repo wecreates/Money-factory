@@ -1,7 +1,0 @@
-{
-  "tool": "rea",
-  "operation": "capture-owned-process",
-  "input": "rea-fixtures/process.js",
-  "publication_enabled": false,
-  "paid_generation_enabled": false
-}

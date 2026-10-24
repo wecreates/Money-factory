@@ -1,9 +1,0 @@
-{
-  "checked_at": "2026-10-06T17:32:22.473Z",
-  "endpoint": "https://api.grants.gov/v1/api/search2",
-  "status": 200,
-  "ok": true,
-  "has_oppHits": true,
-  "hit_count": 0,
-  "sample": []
-}
