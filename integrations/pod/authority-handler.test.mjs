@@ -101,6 +101,15 @@ test('snapshot failure is redacted and following lookup can succeed',async t=>{
  const failed=await post();assert.equal(failed.status,409);assert.deepEqual(await failed.json(),{error:'GRANT_BLOCKED'});
  const success=await post();assert.equal(success.status,200);assert.equal(JSON.parse((await success.json()).payload).publication_permission,false);
 });
+test('authority rejects a signed response larger than the downstream transport limit',async t=>{
+ const post=await serve(t,{loadSnapshot:async id=>({
+  ...snapshot(id),
+  verifiedFacts:{title:{verified:true,value:'\\'.repeat(100000),evidence_ids:['fixture-source']}}
+ })});
+ const response=await post();
+ assert.equal(response.status,409);
+ assert.deepEqual(await response.json(),{error:'GRANT_BLOCKED'});
+});
 test('HTTP authority reloads approval and rejects injected authority data',async()=>{
  let revoked=false,loads=0;
  const handler=createPodAuthorityHandler({authKey,signingKey,loadSnapshot:async id=>{loads++;return {
