@@ -6,7 +6,7 @@ import {acceptPodEvent} from './event-inbox.mjs';
 import {createPodEventHandler} from './event-handler.mjs';
 
 const key='test-only-pool-wait-key-'.repeat(2),now=1800000000000;
-const event={id:'12b4c678-1234-4321-abcd-123456789abc',kind:'pod.test.pool_wait',payload:{}};
+const event={id:'12b4c678-1234-4321-abcd-123456789abc',job_id:null,kind:'pod.test.pool_wait',payload:{},created_at:new Date(now).toISOString()};
 const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:now,event});
 const envelope={payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};
 const hash=crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex');

@@ -7,7 +7,7 @@ import {createPodEventHandler} from './event-handler.mjs';
 const key='s'.repeat(32),now=1800000000000,id='12b4c678-1234-4321-abcd-123456789abc';
 function sign(eventId=id){
  const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:now,
-  event:{id:eventId,kind:'pod.test.envelope',payload:{publication_enabled:false}}});
+  event:{id:eventId,job_id:null,kind:'pod.test.envelope',payload:{publication_enabled:false},created_at:new Date(now).toISOString()}});
  return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};
 }
 test('event signatures require a primitive string with exactly 64 lowercase hex characters',async()=>{
