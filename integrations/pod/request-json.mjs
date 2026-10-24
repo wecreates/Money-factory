@@ -34,8 +34,11 @@ export function parsePodJSON(text){
   else{
    const start=i++;
    while(i<text.length&&!/[\s,}\]]/.test(text[i]))i++;
-   if((ch==='-'||(ch>='0'&&ch<='9'))&&!Number.isFinite(Number(text.slice(start,i))))
-    throw new SyntaxError('REQUEST_JSON_NONFINITE');
+   if(ch==='-'||(ch>='0'&&ch<='9')){
+    const number=Number(text.slice(start,i));
+    if(!Number.isFinite(number))throw new SyntaxError('REQUEST_JSON_NONFINITE');
+    if(Number.isInteger(number)&&!Number.isSafeInteger(number))throw new SyntaxError('REQUEST_JSON_UNSAFE_INTEGER');
+   }
   }
  }
  return value;
