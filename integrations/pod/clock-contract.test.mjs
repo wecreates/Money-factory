@@ -45,10 +45,13 @@ test('invalid inbox clocks cannot acquire a connection',async()=>{
  for(const clock of invalid){const f=database();await assert.rejects(acceptPodEvent(f.pool,signed(now),key,()=>clock),/EVENT_SCOPE_INVALID/);assert.equal(f.connections,0);}
 });
 test('signed invalid event timestamps cannot acquire a connection',async()=>{
- for(const issued of invalid){const f=database();await assert.rejects(acceptPodEvent(f.pool,signed(issued),key,()=>now),/EVENT_SCOPE_INVALID/);assert.equal(f.connections,0);}
+ for(const issued of invalid){const f=database();
+  const error=typeof issued==='number'&&Number.isInteger(issued)&&!Number.isSafeInteger(issued)?/REQUEST_JSON_UNSAFE_INTEGER/:/EVENT_SCOPE_INVALID/;
+  await assert.rejects(acceptPodEvent(f.pool,signed(issued),key,()=>now),error);assert.equal(f.connections,0);}
  // Negative times used to pass with a negative clock; fractional times with a fractional clock.
  for(const issued of [-1,now+0.5,Number.MAX_SAFE_INTEGER+1]){const f=database();
-  await assert.rejects(acceptPodEvent(f.pool,signed(issued),key,()=>issued),/EVENT_SCOPE_INVALID/);assert.equal(f.connections,0);}
+  const error=Number.isInteger(issued)&&!Number.isSafeInteger(issued)?/REQUEST_JSON_UNSAFE_INTEGER/:/EVENT_SCOPE_INVALID/;
+  await assert.rejects(acceptPodEvent(f.pool,signed(issued),key,()=>issued),error);assert.equal(f.connections,0);}
 });
 test('clock becoming invalid during database waits rolls back and sends no acknowledgement',async()=>{
  for(const clock of invalid){const f=database();let calls=0;
