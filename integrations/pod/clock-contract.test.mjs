@@ -29,15 +29,16 @@ test('grant timestamps preserve exact valid boundaries and the five-minute cap',
 });
 
 const event={id:'12b4c678-1234-4321-abcd-123456789abc',job_id:null,kind:'pod.test.clock',payload:{},created_at:new Date(now).toISOString()};
-const hash=crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex');
 function signed(issued){
- const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:issued,event});
+ const created=Number.isSafeInteger(issued)&&issued>=0&&issued<=now?issued:now;
+ const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:issued,
+  event:{...event,created_at:new Date(created).toISOString()}});
  return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};
 }
 function database(){
- const queries=[],releases=[];let connections=0;
+ const queries=[],releases=[];let connections=0,hash;
  return {queries,releases,get connections(){return connections;},pool:{connect:async()=>{
-  connections++;return {query:async sql=>{queries.push(sql);return {rows:[{event_sha256:hash}]};},release:bad=>releases.push(bad)};
+  connections++;return {query:async(sql,args)=>{queries.push(sql);if(sql.startsWith('INSERT'))hash=args[1];return {rows:[{event_sha256:hash}]};},release:bad=>releases.push(bad)};
  }}};
 }
 test('invalid inbox clocks cannot acquire a connection',async()=>{

@@ -26,3 +26,16 @@ test('signed envelopes and events must match the bounded Content Control outbox 
   assert.equal(connects,0);
  }
 });
+
+test('event creation time cannot lead signed envelope issuance beyond clock-skew tolerance',async()=>{
+ const boundary={...event,created_at:new Date(now+300000).toISOString()};let hash;
+ const boundaryPool={connect:async()=>({release(){},async query(sql,args){
+  if(sql.startsWith('INSERT'))hash=args[1];
+  return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:{};
+ }})};
+ assert.deepEqual(await acceptPodEvent(boundaryPool,signed(envelope(boundary)),key,()=>now),{accepted_event_id:id});
+ let connects=0;const pool={connect:async()=>{connects++;throw Error('UNEXPECTED_DATABASE_ACCESS');}};
+ const future={...event,created_at:new Date(now+300001).toISOString()};
+ await assert.rejects(acceptPodEvent(pool,signed(envelope(future)),key,()=>now),/EVENT_SCOPE_INVALID/);
+ assert.equal(connects,0);
+});
