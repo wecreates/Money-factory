@@ -24,7 +24,8 @@ async function loadBoundedSnapshot(loadSnapshot,id,signal){
 // Never accept readiness, approval, facts or price from the request.
 export function createPodAuthorityHandler({loadSnapshot,authKey,signingKey,clock=Date.now,snapshotTimeoutMs=5000}){
  if(typeof loadSnapshot!=='function'||typeof clock!=='function'||!Number.isInteger(snapshotTimeoutMs)||snapshotTimeoutMs<1||snapshotTimeoutMs>10000||
-  [authKey,signingKey].some(k=>typeof k!=='string'||Buffer.byteLength(k)<32)||authKey===signingKey)throw Error('AUTHORITY_CONFIG_INVALID');
+  [authKey,signingKey].some(k=>typeof k!=='string'||Buffer.byteLength(k)<32)||
+  Buffer.from(authKey).equals(Buffer.from(signingKey)))throw Error('AUTHORITY_CONFIG_INVALID');
  return async function handle(req,res){
   const send=(status,value)=>{if(res.destroyed||res.writableEnded)return;
    res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(value));};

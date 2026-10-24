@@ -50,6 +50,14 @@ test('authority validates lookup deadline and clock before serving',()=>{
   authKey,signingKey,loadSnapshot:async()=>{},snapshotTimeoutMs}),/AUTHORITY_CONFIG_INVALID/);
  assert.throws(()=>createPodAuthorityHandler({authKey,signingKey,loadSnapshot:async()=>{},clock:0}),/AUTHORITY_CONFIG_INVALID/);
 });
+test('authority transport and signing keys must differ as encoded bytes',()=>{
+ const encodedAuthKey='\ud800'.repeat(11),encodedSigningKey='\ud801'.repeat(11);
+ assert.notEqual(encodedAuthKey,encodedSigningKey);
+ assert.ok(Buffer.from(encodedAuthKey).equals(Buffer.from(encodedSigningKey)));
+ assert.throws(()=>createPodAuthorityHandler({
+  authKey:encodedAuthKey,signingKey:encodedSigningKey,loadSnapshot:async()=>{}
+ }),/AUTHORITY_CONFIG_INVALID/);
+});
 test('lookup timeout aborts work and late valid snapshots cannot issue grants',async t=>{
  let finish,lookupSignal,clockCalls=0;
  const pending=new Promise(resolve=>finish=resolve);t.after(()=>finish(snapshot('job')));
