@@ -34,6 +34,26 @@ test('unknown, incomplete, inconsistent and malformed economic evidence is rejec
  edits.push(f=>f.economics.minimum_margin_bps=10001);
  for(const edit of edits){const f=economicsFixture(job,now);edit(f);assert.throws(()=>run(f),/ECONOMICS_EVIDENCE_REQUIRED/);}
 });
+test('economic evidence identities reject NUL and lossy UTF-16',()=>{
+ for(const value of ['identity\0suffix','\ud800','\ud801'])
+  for(const edit of [
+   f=>{f.price.evidence_id=value;f.economics.source_evidence_ids[0]=value;},
+   f=>{f.economics.evidence_event_id=value;},
+   f=>{f.economics.source_evidence_ids[1]=value;}
+  ]){
+   const f=economicsFixture(job,now);edit(f);
+   assert.throws(()=>run(f),/ECONOMICS_EVIDENCE_REQUIRED/);
+  }
+});
+test('valid opaque economic identities retain exact case, spacing and Unicode',()=>{
+ const f=economicsFixture(job,now);
+ f.price.evidence_id=' Price-É😀 ';
+ f.economics.evidence_event_id=' Event-ß😀 ';
+ f.economics.source_evidence_ids=[' Price-É😀 ',' Royalty-É😀 ',' Cost-É😀 '];
+ const result=run(f);
+ assert.equal(result.evidence_event_id,f.economics.evidence_event_id);
+ assert.deepEqual(result.source_evidence_ids,f.economics.source_evidence_ids);
+});
 test('economic evidence is tied to the exact business, account, platform, job and package',()=>{
  for(const key of ['job_id','business_id','account_id','platform','package_sha256']){
   const f=economicsFixture(job,now);f.economics[key]='wrong';assert.throws(()=>run(f),/ECONOMICS_SCOPE_MISMATCH/);
