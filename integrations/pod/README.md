@@ -53,6 +53,13 @@ Content Control tracks all 24 live acceptance areas in POD_COMPLETION_CHECKLIST.
 and implementation/test evidence in POD_IMPLEMENTATION_STATUS.md. Publishing stays disabled. Etsy pipelines are
 outside this lane; their independent workflows are preserved.
 
+Grant job, business, account and approval-event identities must round-trip
+through UTF-8 exactly and cannot contain NUL. This matches the durable
+PostgreSQL/JSON boundary and prevents a signed identity from being replaced or
+rejected after authorization. Valid case, spacing and Unicode are preserved;
+identifiers are never normalized or repaired. These checks do not prove that an
+approval event exists or that the authority is mounted in production.
+
 Production-only approvals may now set `production_permission: true` and
 `publication_permission: false`. Scope, expiry, evidence event and readiness
 checks still apply. These grants authorize internal RESEARCH/PRELAUNCH work only;

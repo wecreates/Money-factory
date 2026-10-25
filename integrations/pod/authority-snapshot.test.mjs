@@ -25,14 +25,14 @@ test('readiness requires an array containing exactly one target business',()=>{
  }
 });
 test('matching malformed job and approval scope IDs cannot create a grant',()=>{
- for(const field of ['id','business_id','account_id'])for(const value of [undefined,null,'',' \t\n',0,true,[],{},'a'.repeat(257)]){
+ for(const field of ['id','business_id','account_id'])for(const value of [undefined,null,'',' \t\n','identity\0suffix','\ud800','\ud801',0,true,[],{},'a'.repeat(257)]){
   const s=fixture();s.job[field]=value;s.approval[field==='id'?'job_id':field]=value;
   if(field==='business_id')s.readiness.businesses[0].id=value;
   assert.throws(()=>issuePodGrant(s),/READINESS_BLOCKED/);
  }
 });
 test('approval evidence reference must be a nonblank bounded primitive string',()=>{
- for(const value of [undefined,null,'',' \t\n',0,true,[],{},['event'],new String('event'),'a'.repeat(257)]){
+ for(const value of [undefined,null,'',' \t\n','identity\0suffix','\ud800','\ud801',0,true,[],{},['event'],new String('event'),'a'.repeat(257)]){
   const s=fixture();s.approval.evidence_event_id=value;
   assert.throws(()=>issuePodGrant(s),/APPROVAL_REQUIRED/);
  }

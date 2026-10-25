@@ -1,9 +1,10 @@
 import crypto from 'node:crypto';
 import {signPodGrant} from './sign-grant.mjs';
 import {enforceReleaseEconomics} from './economics.mjs';
+import {validOpaqueText} from './text-identity.mjs';
 const platforms=new Set(['kdp','redbubble','teepublic','zazzle','spreadshirt']);
 const modes={RESEARCH:0,PRELAUNCH:1,LAUNCH:2};
-const id=value=>typeof value==='string'&&value.trim().length>0&&value.length<=256;
+const id=validOpaqueText;
 
 // Call from the authoritative MF process with server-loaded snapshots, never request-supplied approval data.
 export function issuePodGrant({readiness,job,approval,verifiedFacts={},forbiddenClaims=[],price=null,economics=null,key,now=Date.now()}){
