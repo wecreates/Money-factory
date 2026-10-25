@@ -60,6 +60,13 @@ rejected after authorization. Valid case, spacing and Unicode are preserved;
 identifiers are never normalized or repaired. These checks do not prove that an
 approval event exists or that the authority is mounted in production.
 
+The pinned Content Control consumer also admits a server-loaded verified fact
+only when its claim value round-trips through UTF-8 exactly and contains no NUL.
+Valid long-form Unicode remains governed by the signed-envelope byte ceiling,
+not the shorter identity ceiling. The issuer/consumer round-trip regression
+proves omission of malformed values; it does not make a fact true or prove a
+live authority source.
+
 Production-only approvals may now set `production_permission: true` and
 `publication_permission: false`. Scope, expiry, evidence event and readiness
 checks still apply. These grants authorize internal RESEARCH/PRELAUNCH work only;

@@ -19,8 +19,8 @@ function input(){
 test('consumer omits malformed signed claim and price references from actual issuer output',async()=>{
  const {verifyEnvelope,enforceBrief}=await consumer(),f=input();
  f.verifiedFacts={title:{verified:true,value:'Fixture title',evidence_ids:['fixture-source']},
-  shipping:{verified:true,provider_verified:true,value:'Fixture shipping',evidence_ids:['provider\0source']},
-  profit:{verified:true,money_factory_event_verified:true,value:'Fixture profit',evidence_ids:['\ud800']}};
+  shipping:{verified:true,provider_verified:true,value:'Fixture\0shipping',evidence_ids:['fixture-provider']},
+  profit:{verified:true,money_factory_event_verified:true,value:'\ud800',evidence_ids:['fixture-ledger']}};
  f.price={verified:true,amount_minor:100,currency:'USD',evidence_id:'price\0source'};
  const grant=verifyEnvelope(issuePodGrant(f),f.key,'content-control:pod',f.now);
  assert.equal(grant.publication_permission,false);
