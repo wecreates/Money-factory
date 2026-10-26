@@ -37,7 +37,9 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   // Only sender event storage is a fixture; delivery and receipt are production modules.
   await pool.query(`CREATE TABLE pod_events(id uuid PRIMARY KEY,job_id uuid,kind text NOT NULL,
    payload jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),delivered_at timestamptz)`);
-  const db={active(){},pool,async tx(fn){const c=await pool.connect();try{
+  const db={active(){},pool,async read(sql,args){this.active();const c=await pool.connect();try{
+   this.active();const result=await c.query(sql,args);this.active();return result;
+  }finally{c.release();}},async tx(fn){const c=await pool.connect();try{
    await c.query('BEGIN');const result=await fn(c);await c.query('COMMIT');return result;
   }catch(error){await c.query('ROLLBACK');throw error;}finally{c.release();}}};
   server=http.createServer(createPodEventHandler({pool,key}));
