@@ -5,9 +5,9 @@
     "targetUrl": "https://cyzorcreations.com/",
     "label": "CYZOR Creations website",
     "status": "active",
-    "last_value": "714bed27c169dcabaf7b8a6b20242ac57f17d1fe2878ce69c58443d16e7b3df8",
-    "last_checked_at": 1792995831567,
-    "last_change_at": 1792962949927,
+    "last_value": "1b6a246850033b95a20fb0169f5b2e4ffb697a70340e3a15a8651b962acf8086",
+    "last_checked_at": 1793020887485,
+    "last_change_at": 1793020887485,
     "last_status": 200,
     "last_error": null
   },
@@ -17,9 +17,9 @@
     "targetUrl": "https://github.com/wecreates/Money-factory",
     "label": "Money Factory GitHub repository",
     "status": "active",
-    "last_value": "1330357a4b960892903e345db9522601beb965bc0a875e782fd4abd7e0b96fe7",
-    "last_checked_at": 1792995832270,
-    "last_change_at": 1792995832270,
+    "last_value": "4f55ad5c8f2940cadbd0e5d9d9c62eeb9e6778078e44e37eeeaa0134c3dde00d",
+    "last_checked_at": 1793020888101,
+    "last_change_at": 1793020888101,
     "last_status": 200,
     "last_error": null
   }
