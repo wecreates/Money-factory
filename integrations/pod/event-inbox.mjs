@@ -69,7 +69,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw Error('EVENT_SCOPE_INVALID');
  assertEventStorageText(e);
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
- const c=await acquireClient(pool,connectionTimeoutMs);let discard=false,began=false,beginAttempted=false;
+ const c=await acquireClient(pool,connectionTimeoutMs);let discard=false,began=false,beginAttempted=false,commitAttempted=false;
  try{
   beginAttempted=true;await c.query('BEGIN');began=true;
   // Sender timeouts do not cancel PostgreSQL work. Bound lock and statement
@@ -83,13 +83,15 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
   // index or row waits. Expiry must roll back rather than acknowledge delivery.
   const current=clock();
   if(!Number.isSafeInteger(current)||current<0||p.issued_at_ms>current||current-p.issued_at_ms>300000)throw Error('EVENT_SCOPE_INVALID');
-  await c.query('COMMIT');return {accepted_event_id:e.id};
+  commitAttempted=true;await c.query('COMMIT');return {accepted_event_id:e.id};
  }catch(err){
-  // A rejected BEGIN leaves protocol state uncertain. Do not send more SQL on
-  // that client; destroy it. Once BEGIN succeeds, rollback remains the normal
-  // cleanup path and a failed rollback also destroys the client.
-  if(began)try{await c.query('ROLLBACK');}catch{discard=true;}
+  // Rejected transaction boundaries leave protocol or commit state uncertain.
+  // Do not send more SQL on that client; destroy it. Between confirmed BEGIN
+  // and attempted COMMIT, rollback remains the normal cleanup path.
+  if(commitAttempted)discard=true;
+  else if(began)try{await c.query('ROLLBACK');}catch{discard=true;}
   else if(beginAttempted)discard=true;
   throw err;
  }finally{c.release(discard);}
 }
+

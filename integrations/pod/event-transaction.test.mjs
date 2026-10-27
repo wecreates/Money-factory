@@ -47,3 +47,11 @@ for(const rollbackFails of [false,true])test(`failed inbox transaction open disc
  assert.deepEqual(f.queries,['BEGIN']);
  assert.deepEqual(f.releases,[true]);
 });
+for(const rollbackFails of [false,true])test(`failed inbox commit discards without rollback: ${rollbackFails}`,async()=>{
+ const f=fixture({failAt:'COMMIT',rollbackFails});
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),error=>error===f.failure);
+ assert.equal(f.queries.at(-1),'COMMIT');
+ assert.equal(f.queries.includes('ROLLBACK'),false);
+ assert.deepEqual(f.releases,[true]);
+});
+
