@@ -41,3 +41,9 @@ test('deadline setup failure rolls back before writing any inbox row',async()=>{
  assert.equal(f.queries.some(sql=>sql.startsWith('INSERT')),false);
  assert.equal(f.queries.at(-1),'ROLLBACK');assert.deepEqual(f.releases,[false]);
 });
+for(const rollbackFails of [false,true])test(`failed inbox transaction open discards without rollback: ${rollbackFails}`,async()=>{
+ const f=fixture({failAt:'BEGIN',rollbackFails});
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),error=>error===f.failure);
+ assert.deepEqual(f.queries,['BEGIN']);
+ assert.deepEqual(f.releases,[true]);
+});
