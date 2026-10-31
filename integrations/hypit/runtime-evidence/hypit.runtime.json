@@ -1,0 +1,28 @@
+{
+  "format": "hypit.runtime-local@1",
+  "dataRoot": ".hypit/runtimes/local",
+  "credentials": {},
+  "endpoints": {
+    "media.local": {
+      "use": "@hypit/media-local",
+      "config": {
+        "defaultConcurrency": 1,
+        "ffmpegPath": "/usr/bin/ffmpeg",
+        "ffprobePath": "/usr/bin/ffprobe"
+      }
+    },
+    "html.local": {
+      "use": "@hypit/provider-html-local",
+      "config": {
+        "workers": 1,
+        "defaultConcurrency": 1,
+        "chromePath": "/usr/bin/chromium",
+        "ffmpegPath": "/usr/bin/ffmpeg",
+        "ffprobePath": "/usr/bin/ffprobe",
+        "processTimeoutMs": 30000,
+        "initializationTimeoutMs": 15000
+      }
+    }
+  },
+  "bindings": {}
+}

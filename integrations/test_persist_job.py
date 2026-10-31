@@ -4,7 +4,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from persist_job import persist
+from persist_job import LIMIT, persist
 
 
 class PersistenceTests(unittest.TestCase):
@@ -134,6 +134,20 @@ class PersistenceTests(unittest.TestCase):
         (self.artifact/'result.json').unlink()
         (self.artifact/'result.json').symlink_to(self.root/'integrations/jobs/audit.job.json')
         with self.assertRaises(ValueError):self.run_persist()
+
+    def test_missing_result_rejected_before_any_write(self):
+        (self.artifact/'result.json').unlink()
+        with self.assertRaisesRegex(ValueError, 'Missing, oversized or linked evidence'):
+            self.run_persist()
+        self.assertFalse((self.root/'integrations/results').exists())
+
+    def test_oversized_valid_json_rejected_before_any_write(self):
+        self.data=(json.dumps({'evidence':'x'*LIMIT},separators=(',',':'))+'\n').encode()
+        self.receipt['output_sha256']=hashlib.sha256(self.data).hexdigest()
+        self.write()
+        with self.assertRaisesRegex(ValueError, 'Missing, oversized or linked evidence'):
+            self.run_persist()
+        self.assertFalse((self.root/'integrations/results').exists())
 
 
 if __name__=='__main__':unittest.main()

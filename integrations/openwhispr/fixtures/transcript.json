@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "title": "Content idea",
+    "date": "October 23, 2026",
+    "duration_seconds": 3,
+    "speaker_count": 2,
+    "segment_count": 2
+  },
+  "speakers": [
+    "You",
+    "Guest"
+  ],
+  "segments": [
+    {
+      "speaker": "You",
+      "timestamp": 0,
+      "text": "A practical content idea."
+    },
+    {
+      "speaker": "Guest",
+      "timestamp": 2.7,
+      "text": "Verify the claims before production."
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+name: Offline adapter tests
+
+on:
+  pull_request:
+    paths:
+      - 'integrations/**'
+      - '.github/workflows/offline-adapter-tests.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: offline-adapter-tests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  offline-adapters:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PUBLICATION_ENABLED: 'false'
+      PAID_GENERATION_ENABLED: 'false'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: false
+      - name: Test project-owned offline adapters with the runner Python
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s integrations -p 'test_reel*.py' -v
+          python3 -m unittest discover -s integrations -p 'test_search_knowledge.py' -v
+          python3 -m unittest discover -s integrations/openwhispr -p 'test_*.py' -v
+          python3 -m unittest discover -s integrations/openproject -p 'test_*.py' -v

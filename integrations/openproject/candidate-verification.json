@@ -1,0 +1,78 @@
+{
+  "checked_at": "2026-10-23T19:46:40.426090+00:00",
+  "verification_scope": "Offline adapters through the existing ContentControl-to-MoneyFactory entrypoint with synthetic fixtures. No upstream app/server execution.",
+  "focused_test_command": "python -m unittest -v integrations/openproject/test_adapter.py",
+  "focused_tests_passed": 19,
+  "entrypoint": "content-control/scripts/repository_tools.py",
+  "MONEY_FACTORY_ROOT": "existing candidate Money-factory checkout",
+  "operations": [
+    {
+      "operation": "export-work-packages",
+      "status": "PASS",
+      "output_sha256": "6fcb5586c389b971e17557a2b288aecf0a5fb008c0f71e7756fb6c075c5f65b2",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "openproject",
+        "operation": "export-work-packages",
+        "revision": "b2f981098776c3c1522833273bc77158d71d5ccb",
+        "status": "PASS",
+        "execution_kind": "project_owned_offline_adapter",
+        "verified_at": "2026-10-23T19:46:40Z",
+        "output_sha256": "6fcb5586c389b971e17557a2b288aecf0a5fb008c0f71e7756fb6c075c5f65b2",
+        "publication_enabled": false,
+        "paid_generation_enabled": false,
+        "paid_services_enabled": false,
+        "network_executed": false,
+        "upstream_runtime_verified": false,
+        "production_ready": false,
+        "scope": "Only the named offline import/export/preparation/status operation; no upstream service execution"
+      }
+    },
+    {
+      "operation": "import-work-packages",
+      "status": "PASS",
+      "output_sha256": "819579590ea5bb2e2b35b43a340997634f9d7fc25ad15bb4e1346509231e1d60",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "openproject",
+        "operation": "import-work-packages",
+        "revision": "b2f981098776c3c1522833273bc77158d71d5ccb",
+        "status": "PASS",
+        "execution_kind": "project_owned_offline_adapter",
+        "verified_at": "2026-10-23T19:46:40Z",
+        "output_sha256": "819579590ea5bb2e2b35b43a340997634f9d7fc25ad15bb4e1346509231e1d60",
+        "publication_enabled": false,
+        "paid_generation_enabled": false,
+        "paid_services_enabled": false,
+        "network_executed": false,
+        "upstream_runtime_verified": false,
+        "production_ready": false,
+        "scope": "Only the named offline import/export/preparation/status operation; no upstream service execution"
+      }
+    },
+    {
+      "operation": "readiness",
+      "status": "BLOCKED",
+      "output_sha256": "4019d151870ccccae250bda0cb360cd865809014883e6ade67282c39535a9694",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "openproject",
+        "operation": "readiness",
+        "revision": "b2f981098776c3c1522833273bc77158d71d5ccb",
+        "status": "BLOCKED",
+        "execution_kind": "project_owned_offline_adapter",
+        "verified_at": "2026-10-23T19:46:40Z",
+        "output_sha256": "4019d151870ccccae250bda0cb360cd865809014883e6ade67282c39535a9694",
+        "publication_enabled": false,
+        "paid_generation_enabled": false,
+        "paid_services_enabled": false,
+        "network_executed": false,
+        "upstream_runtime_verified": false,
+        "production_ready": false,
+        "scope": "Only the named offline import/export/preparation/status operation; no upstream service execution"
+      }
+    }
+  ],
+  "adapter_sha256": "59f8d78befbda38bf1b93c842b9db247910c98d789fb2c77d470a56abe4be602",
+  "security_regression": "Symlink ancestor and raw parent traversal rejected; descriptor-anchored read resists ancestor rename-to-symlink races. Focused suite rerun after fix."
+}

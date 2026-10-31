@@ -1,0 +1,8 @@
+{
+  "tool": "openproject",
+  "operation": "export-work-packages",
+  "input": "integrations/openproject/fixtures/export.json",
+  "output": "runtime/repository-interop/openproject-export-work-packages.json",
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}
