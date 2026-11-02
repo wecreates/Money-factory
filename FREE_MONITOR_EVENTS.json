@@ -1222,5 +1222,13 @@
     "type": "change",
     "label": "Money Factory GitHub repository",
     "target_url": "https://github.com/wecreates/Money-factory"
+  },
+  {
+    "id": "a17428fb-9ac6-4fc5-9985-114e7293616b",
+    "watch_id": "money-factory-repository",
+    "at": 1793580248735,
+    "type": "change",
+    "label": "Money Factory GitHub repository",
+    "target_url": "https://github.com/wecreates/Money-factory"
   }
 ]
