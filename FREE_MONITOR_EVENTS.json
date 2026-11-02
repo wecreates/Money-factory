@@ -1238,5 +1238,21 @@
     "type": "change",
     "label": "Money Factory GitHub repository",
     "target_url": "https://github.com/wecreates/Money-factory"
+  },
+  {
+    "id": "fe9b0d70-0342-46b7-b68b-8686da541c84",
+    "watch_id": "cyzor-website",
+    "at": 1793637505283,
+    "type": "change",
+    "label": "CYZOR Creations website",
+    "target_url": "https://cyzorcreations.com/"
+  },
+  {
+    "id": "d5d5989b-43a9-4079-9b4f-f7399c3a75a9",
+    "watch_id": "money-factory-repository",
+    "at": 1793637505862,
+    "type": "change",
+    "label": "Money Factory GitHub repository",
+    "target_url": "https://github.com/wecreates/Money-factory"
   }
 ]
