@@ -16,6 +16,34 @@ const EVENT_FIELDS=['created_at','id','job_id','kind','payload'];
 const plainObject=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.getPrototypeOf(value)===Object.prototype;
 function exactPlainObject(value,fields){return plainObject(value)&&Object.keys(value).sort().join('\0')===fields.join('\0');}
 
+function exactInputEnvelope(value){
+ const fail=()=>{throw Error('EVENT_ENVELOPE_INVALID');};
+ if(!value||typeof value!=='object'||utilTypes.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)fail();
+ const keys=Reflect.ownKeys(value),fields=['payload','signature'];
+ if(keys.length!==fields.length||keys.some(key=>typeof key!=='string'||!fields.includes(key)))fail();
+ const snapshot=Object.create(null);
+ for(const field of fields){
+  const descriptor=Object.getOwnPropertyDescriptor(value,field);
+  if(!descriptor||!descriptor.enumerable||!Object.hasOwn(descriptor,'value'))fail();
+  snapshot[field]=descriptor.value;
+ }
+ return snapshot;
+}
+
+function exactAcceptOptions(value){
+ const fail=()=>{throw Error('EVENT_CONNECTION_CONFIG_INVALID');};
+ if(!value||typeof value!=='object'||utilTypes.isProxy(value))fail();
+ const prototype=Object.getPrototypeOf(value);
+ if(prototype!==Object.prototype&&prototype!==null)fail();
+ const read=(name,fallback)=>{
+  const descriptor=Object.getOwnPropertyDescriptor(value,name);
+  if(!descriptor)return fallback;
+  if(!Object.hasOwn(descriptor,'value'))fail();
+  return descriptor.value;
+ };
+ return {expectedEventId:read('expectedEventId',undefined),connectionTimeoutMs:read('connectionTimeoutMs',5000)};
+}
+
 function exactQueryRow(result,fields){
  const fail=()=>{throw Error('EVENT_QUERY_UNVERIFIED');};
  if(!result||typeof result!=='object'||utilTypes.isProxy(result))fail();
@@ -92,11 +120,13 @@ async function acquireClient(pool,timeoutMs){
 
 // This inbox records downstream observations. It never upgrades readiness or
 // manufactures a core verified-revenue event. Wire the existing authority separately.
-export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedEventId,connectionTimeoutMs=5000}={}){
+export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}){
+ const {expectedEventId,connectionTimeoutMs}=exactAcceptOptions(options);
  if(!Number.isInteger(connectionTimeoutMs)||connectionTimeoutMs<1||connectionTimeoutMs>30000)
   throw Error('EVENT_CONNECTION_CONFIG_INVALID');
  if(typeof clock!=='function')throw Error('EVENT_CLOCK_INVALID');
  const now=clock();
+ envelope=exactInputEnvelope(envelope);
  // RegExp.test coerces arrays to strings, while Buffer.from treats them as
  // bytes. Validate type and exact length before either operation. Exact length
  // also excludes the final line terminator accepted by a JavaScript $ anchor.
