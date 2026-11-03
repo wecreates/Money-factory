@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
-import {copyAuthoritySnapshot,issuePodGrant} from './readiness-grant.mjs';
+import {copyAuthoritySnapshot} from './authority-evidence.mjs';
+import {issuePodGrant} from './readiness-grant.mjs';
 import {parsePodRequestJSON} from './request-json.mjs';
 
 // Share capacity across handlers wired to the same server-owned loader. An
