@@ -6,6 +6,7 @@ import {assertEventStorageText} from './event-storage.mjs';
 // Shared across handlers using this pool. Timed-out callers still occupy a slot
 // until pg settles their underlying request; otherwise retries grow its queue.
 const pendingAcquisitions=new WeakMap();
+const verifiedPoolConnections=new WeakMap();
 const MAX_PENDING_ACQUISITIONS=32;
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const EVENT_KIND=/^pod\.[a-z0-9]+(?:[._][a-z0-9]+)*$/;
@@ -39,7 +40,26 @@ function exactQueryRow(result,fields){
  return snapshot;
 }
 
+function exactCapability(target,name){
+ const fail=()=>{throw Error('EVENT_DATABASE_CAPABILITY_UNVERIFIED');};
+ if(!target||typeof target!=='object'||utilTypes.isProxy(target))fail();
+ for(let cursor=target;cursor!==null;cursor=Object.getPrototypeOf(cursor)){
+  if(utilTypes.isProxy(cursor))fail();
+  const descriptor=Object.getOwnPropertyDescriptor(cursor,name);
+  if(!descriptor)continue;
+  if(!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')fail();
+  return descriptor.value.bind(target);
+ }
+ fail();
+}
+
+export function verifyPodEventPool(pool){
+ if(!verifiedPoolConnections.has(pool))verifiedPoolConnections.set(pool,exactCapability(pool,'connect'));
+ return pool;
+}
+
 async function acquireClient(pool,timeoutMs){
+ const connect=verifiedPoolConnections.get(verifyPodEventPool(pool));
  const pending=pendingAcquisitions.get(pool)||0;
  if(pending>=MAX_PENDING_ACQUISITIONS)throw Error('EVENT_CONNECTION_BUSY');
  pendingAcquisitions.set(pool,pending+1);
@@ -48,13 +68,14 @@ async function acquireClient(pool,timeoutMs){
  // pg's promise API cannot remove a queued waiter. If it eventually receives
  // a client after this caller has failed, return that unused client immediately.
  // Promise.race installs rejection handling even when the timeout wins first.
- const connecting=Promise.resolve().then(()=>pool.connect()).finally(()=>{
+ const connecting=Promise.resolve().then(connect).finally(()=>{
   const remaining=pendingAcquisitions.get(pool)-1;
   if(remaining)pendingAcquisitions.set(pool,remaining);else pendingAcquisitions.delete(pool);
  }).then(client=>{
-  candidate=client;
-  if(expired){candidate=undefined;client.release();throw Error('EVENT_CONNECTION_TIMEOUT');}
-  return client;
+  const verified={query:exactCapability(client,'query'),release:exactCapability(client,'release')};
+  candidate=verified;
+  if(expired){candidate=undefined;verified.release();throw Error('EVENT_CONNECTION_TIMEOUT');}
+  return verified;
  });
  try{
   const client=await Promise.race([connecting,new Promise((_,reject)=>{
