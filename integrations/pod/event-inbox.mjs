@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import {types as utilTypes} from 'node:util';
 import {parsePodJSON} from './request-json.mjs';
 import {assertEventStorageText} from './event-storage.mjs';
 
@@ -13,6 +14,30 @@ const EVENT_FIELDS=['created_at','id','job_id','kind','payload'];
 
 const plainObject=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.getPrototypeOf(value)===Object.prototype;
 function exactPlainObject(value,fields){return plainObject(value)&&Object.keys(value).sort().join('\0')===fields.join('\0');}
+
+function exactQueryRow(result,fields){
+ const fail=()=>{throw Error('EVENT_QUERY_UNVERIFIED');};
+ if(!result||typeof result!=='object'||utilTypes.isProxy(result))fail();
+ const rowsDescriptor=Object.getOwnPropertyDescriptor(result,'rows');
+ if(!rowsDescriptor||!Object.hasOwn(rowsDescriptor,'value'))fail();
+ const rows=rowsDescriptor.value;
+ if(!Array.isArray(rows)||utilTypes.isProxy(rows)||rows.length!==1)fail();
+ const element=Object.getOwnPropertyDescriptor(rows,'0');
+ if(!element||!Object.hasOwn(element,'value'))fail();
+ const row=element.value;
+ if(!row||typeof row!=='object'||utilTypes.isProxy(row))fail();
+ const prototype=Object.getPrototypeOf(row);
+ if(prototype!==Object.prototype&&prototype!==null)fail();
+ const keys=Reflect.ownKeys(row);
+ if(keys.length!==fields.length||fields.some(field=>!keys.includes(field))||keys.some(key=>typeof key!=='string'||!fields.includes(key)))fail();
+ const snapshot=Object.create(null);
+ for(const field of fields){
+  const descriptor=Object.getOwnPropertyDescriptor(row,field);
+  if(!descriptor||!descriptor.enumerable||!Object.hasOwn(descriptor,'value'))fail();
+  snapshot[field]=descriptor.value;
+ }
+ return snapshot;
+}
 
 async function acquireClient(pool,timeoutMs){
  const pending=pendingAcquisitions.get(pool)||0;
@@ -77,7 +102,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,{expectedE
   await c.query("SET LOCAL lock_timeout='2s'");
   await c.query("SET LOCAL statement_timeout='10s'");
   await c.query('INSERT INTO pod_content_event_inbox(event_id,event_sha256,event) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[e.id,hash,e]);
-  const previous=(await c.query('SELECT event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[e.id])).rows[0];
+  const previous=exactQueryRow(await c.query('SELECT event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[e.id]),['event_sha256']);
   if(previous.event_sha256!==hash)throw Error('EVENT_REPLAY_CONFLICT');
   // A captured request timestamp is not authorization after connection, unique
   // index or row waits. Expiry must roll back rather than acknowledge delivery.
