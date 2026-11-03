@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
+import {copyAuthoritySnapshot} from './authority-evidence.mjs';
 export function signPodGrant(payload,key){
  if(typeof key!=='string'||Buffer.byteLength(key)<32)throw Error('KEY_REQUIRED');
+ payload=copyAuthoritySnapshot(payload);
  if(payload?.schema_version!==1||payload.audience!=='content-control:pod')throw Error('GRANT_SCHEMA_INVALID');
  const body=JSON.stringify(payload);
  return {payload:body,signature:crypto.createHmac('sha256',key).update(body).digest('hex')};
