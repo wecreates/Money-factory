@@ -1,9 +1,12 @@
 // Versioned with Money Factory integrations/pod/economics.mjs. No forecasts
 // enter the financial ledger here; this is a signed per-unit release budget.
 import {validOpaqueText} from './text-identity.mjs';
+import {copyAuthoritySnapshot} from './authority-evidence.mjs';
 const id=validOpaqueText;
 const minor=value=>Number.isSafeInteger(value)&&value>=0;
-export function enforceReleaseEconomics({price,economics:e},job,now=Date.now()){
+export function enforceReleaseEconomics(input,job,now=Date.now()){
+ ({input,job,now}=copyAuthoritySnapshot({input,job,now},false));
+ const {price,economics:e}=input;
  if(!e||e.schema_version!==1||e.verified!==true||e.all_variable_costs_included!==true||
   !id(e.evidence_event_id)||!Array.isArray(e.source_evidence_ids)||e.source_evidence_ids.length<1||
   e.source_evidence_ids.length>32||!e.source_evidence_ids.every(id)||new Set(e.source_evidence_ids).size!==e.source_evidence_ids.length||
