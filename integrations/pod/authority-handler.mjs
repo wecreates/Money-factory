@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
-import {types as utilTypes} from 'node:util';
-import {issuePodGrant} from './readiness-grant.mjs';
+import {copyAuthoritySnapshot,issuePodGrant} from './readiness-grant.mjs';
 import {parsePodRequestJSON} from './request-json.mjs';
 
 // Share capacity across handlers wired to the same server-owned loader. An
@@ -8,49 +7,6 @@ import {parsePodRequestJSON} from './request-json.mjs';
 const pendingSnapshots=new WeakMap();
 const MAX_PENDING_SNAPSHOTS=32;
 const MAX_GRANT_RESPONSE_BYTES=262144;
-const MAX_SNAPSHOT_DEPTH=64;
-const MAX_SNAPSHOT_OBJECTS=8192;
-
-function copyAuthorityValue(value,state,depth){
- const fail=()=>{throw Error('AUTHORITY_SNAPSHOT_UNVERIFIED');};
- if(value===null||typeof value==='string'||typeof value==='boolean')return value;
- if(typeof value==='number'){if(Number.isFinite(value))return value;fail();}
- if(!value||typeof value!=='object'||utilTypes.isProxy(value)||depth>MAX_SNAPSHOT_DEPTH)fail();
- if(state.active.has(value))fail();
- if(state.copies.has(value))return state.copies.get(value);
- if(++state.objects>MAX_SNAPSHOT_OBJECTS)fail();
- state.active.add(value);
- let copy;
- if(Array.isArray(value)){
-  if(Object.getPrototypeOf(value)!==Array.prototype)fail();
-  const lengthDescriptor=Object.getOwnPropertyDescriptor(value,'length');
-  if(!lengthDescriptor||!Object.hasOwn(lengthDescriptor,'value')||!Number.isSafeInteger(lengthDescriptor.value)||lengthDescriptor.value<0)fail();
-  const length=lengthDescriptor.value,keys=Reflect.ownKeys(value);
-  if(keys.length!==length+1||!keys.includes('length')||keys.some(key=>key!=='length'&&(typeof key!=='string'||!/^0$|^[1-9]\d*$/.test(key)||Number(key)>=length)))fail();
-  copy=[];state.copies.set(value,copy);
-  for(let index=0;index<length;index++){
-   const descriptor=Object.getOwnPropertyDescriptor(value,String(index));
-   if(!descriptor||!descriptor.enumerable||!Object.hasOwn(descriptor,'value'))fail();
-   copy[index]=copyAuthorityValue(descriptor.value,state,depth+1);
-  }
- }else{
-  const prototype=Object.getPrototypeOf(value);
-  if(prototype!==Object.prototype&&prototype!==null)fail();
-  copy=Object.create(null);state.copies.set(value,copy);
-  for(const key of Reflect.ownKeys(value)){
-   if(typeof key!=='string')fail();
-   const descriptor=Object.getOwnPropertyDescriptor(value,key);
-   if(!descriptor||!descriptor.enumerable||!Object.hasOwn(descriptor,'value'))fail();
-   copy[key]=copyAuthorityValue(descriptor.value,state,depth+1);
-  }
- }
- state.active.delete(value);
- return copy;
-}
-
-function copyAuthoritySnapshot(value){
- return copyAuthorityValue(value,{active:new WeakSet(),copies:new WeakMap(),objects:0},0);
-}
 
 async function loadBoundedSnapshot(loadSnapshot,id,signal){
  signal.throwIfAborted();
