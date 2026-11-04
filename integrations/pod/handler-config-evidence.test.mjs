@@ -16,6 +16,10 @@ const accessor=(value,name,reads)=>{
  return result;
 };
 const inherited=value=>Object.assign(Object.create(value),{});
+const callableProxy=(value,calls)=>new Proxy(value,{
+ get(target,name,receiver){calls.get++;return Reflect.get(target,name,receiver);},
+ apply(target,thisArg,args){calls.apply++;return Reflect.apply(target,thisArg,args);},
+});
 
 for(const variant of [
  {name:'configuration Proxy',make:proxy},
@@ -25,6 +29,13 @@ for(const variant of [
  const reads={count:0};
  assert.throws(()=>createPodAuthorityHandler(variant.make(authorityConfig(),reads)),/AUTHORITY_CONFIG_INVALID/);
  assert.equal(reads.count,0);
+});
+
+for(const field of ['loadSnapshot','clock'])test(`authority handler rejects proxied ${field} capability without invocation`,()=>{
+ const calls={get:0,apply:0},config=authorityConfig();
+ config[field]=callableProxy(config[field],calls);
+ assert.throws(()=>createPodAuthorityHandler(config),/AUTHORITY_CONFIG_INVALID/);
+ assert.deepEqual(calls,{get:0,apply:0});
 });
 
 test('handlers preserve default timing for inert null-prototype configuration',()=>{
@@ -44,4 +55,11 @@ for(const variant of [
  const reads={count:0};
  assert.throws(()=>createPodEventHandler(variant.make(eventConfig(),reads)),/EVENT_HANDLER_CONFIG_INVALID/);
  assert.equal(reads.count,0);
+});
+
+test('event handler rejects proxied clock capability without invocation',()=>{
+ const calls={get:0,apply:0},config=eventConfig();
+ config.clock=callableProxy(config.clock,calls);
+ assert.throws(()=>createPodEventHandler(config),/EVENT_HANDLER_CONFIG_INVALID/);
+ assert.deepEqual(calls,{get:0,apply:0});
 });
