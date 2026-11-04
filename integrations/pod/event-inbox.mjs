@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import {types as utilTypes} from 'node:util';
 import {parsePodJSON} from './request-json.mjs';
 import {assertEventStorageText} from './event-storage.mjs';
+import {validPodSharedKey} from './key-contract.mjs';
 
 // Shared across handlers using this pool. Timed-out callers still occupy a slot
 // until pg settles their underlying request; otherwise retries grow its queue.
@@ -153,7 +154,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
  // RegExp.test coerces arrays to strings, while Buffer.from treats them as
  // bytes. Validate type and exact length before either operation. Exact length
  // also excludes the final line terminator accepted by a JavaScript $ anchor.
- if(typeof key!=='string'||Buffer.byteLength(key)<32||typeof envelope?.payload!=='string'||Buffer.byteLength(envelope.payload)>262144||
+ if(!validPodSharedKey(key)||typeof envelope?.payload!=='string'||Buffer.byteLength(envelope.payload)>262144||
   typeof envelope.signature!=='string'||envelope.signature.length!==64||!/^[a-f0-9]{64}$/.test(envelope.signature))throw Error('EVENT_ENVELOPE_INVALID');
  const expected=crypto.createHmac('sha256',key).update(envelope.payload).digest();
  if(!crypto.timingSafeEqual(expected,Buffer.from(envelope.signature,'hex')))throw Error('EVENT_SIGNATURE_INVALID');
