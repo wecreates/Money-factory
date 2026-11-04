@@ -1,12 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import {parsePodRequestJSON} from './request-json.mjs';
+import {parsePodJSON,parsePodRequestJSON} from './request-json.mjs';
 import {acceptPodEvent} from './event-inbox.mjs';
 const parse=text=>parsePodRequestJSON(Buffer.from(text));
 const key='j'.repeat(32),now=1800000000000,id='12b4c678-1234-4321-abcd-123456789abc';
 const signed=payload=>({payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')});
 const payload=fields=>`{"schema_version":1,"audience":"money-factory:pod:event","issued_at_ms":${now},"event":{"id":"${id}","kind":"pod.test.json","payload":{${fields}}}}`;
+
+test('exported JSON parser rejects executable text inputs without observing them',()=>{
+ let reads=0,calls=0;
+ const text=new Proxy({}, {get(target,name,receiver){
+  reads++;
+  if(name==='toString')return ()=>{calls++;return '{"approved":true}';};
+  return Reflect.get(target,name,receiver);
+ }});
+ assert.throws(()=>parsePodJSON(text),{name:'TypeError',message:'REQUEST_JSON_TEXT_INVALID'});
+ assert.deepEqual({reads,calls},{reads:0,calls:0});
+});
 
 test('duplicate JSON member names are rejected at every object depth after escape decoding',()=>{
  for(const text of [
