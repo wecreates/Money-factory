@@ -39,7 +39,8 @@ function copyAuthorityValue(value,state,depth){
  }
  if(!value||typeof value!=='object'||utilTypes.isProxy(value)||depth>MAX_SNAPSHOT_DEPTH)fail();
  if(state.active.has(value))fail();
- if(state.copies.has(value))return state.copies.get(value);
+ // JSON serialization expands every alias occurrence. Re-copy shared values so
+ // the object, value and text budgets measure that same expanded evidence tree.
  if(++state.objects>MAX_SNAPSHOT_OBJECTS)fail();
  state.active.add(value);
  let copy;
@@ -51,7 +52,7 @@ function copyAuthorityValue(value,state,depth){
   if(length>MAX_SNAPSHOT_VALUES-state.values)fail();
   const keys=Reflect.ownKeys(value);
   if(keys.length!==length+1||!keys.includes('length')||keys.some(key=>key!=='length'&&(typeof key!=='string'||!/^0$|^[1-9]\d*$/.test(key)||Number(key)>=length)))fail();
-  copy=[];state.copies.set(value,copy);
+  copy=[];
   for(let index=0;index<length;index++){
    const descriptor=Object.getOwnPropertyDescriptor(value,String(index));
    if(!descriptor||!descriptor.enumerable||!Object.hasOwn(descriptor,'value'))fail();
@@ -82,14 +83,13 @@ function copyAuthorityValue(value,state,depth){
      descriptor.enumerable!==cleanDescriptor.enumerable||descriptor.configurable!==cleanDescriptor.configurable||
      descriptor.writable!==cleanDescriptor.writable)fail();
    }
-   state.copies.set(value,clean);
    state.active.delete(value);
    return clean;
   }
   if(prototype!==Object.prototype&&prototype!==null)fail();
   const keys=Reflect.ownKeys(value);
   if(keys.length>MAX_SNAPSHOT_VALUES-state.values)fail();
-  copy=Object.create(null);state.copies.set(value,copy);
+  copy=Object.create(null);
   for(const key of keys){
    if(typeof key!=='string')fail();
    addText(key);
@@ -107,5 +107,5 @@ function copyAuthorityValue(value,state,depth){
 }
 
 export function copyAuthoritySnapshot(value,strict=true){
- return copyAuthorityValue(value,{active:new WeakSet(),copies:new WeakMap(),objects:0,values:0,textBytes:0,strict},0);
+ return copyAuthorityValue(value,{active:new WeakSet(),objects:0,values:0,textBytes:0,strict},0);
 }
