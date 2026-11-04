@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPodAuthorityHandler} from './authority-handler.mjs';
 import {createPodEventHandler} from './event-handler.mjs';
+import {exactHandlerConfig} from './handler-config.mjs';
 
 const authKey='authority-config-auth-key-'.repeat(2);
 const signingKey='authority-config-signing-key-'.repeat(2);
@@ -19,6 +20,23 @@ const inherited=value=>Object.assign(Object.create(value),{});
 const callableProxy=(value,calls)=>new Proxy(value,{
  get(target,name,receiver){calls.get++;return Reflect.get(target,name,receiver);},
  apply(target,thisArg,args){calls.apply++;return Reflect.apply(target,thisArg,args);},
+});
+
+for(const variant of [
+ ['fields Proxy',reads=>({fields:new Proxy(['key'],{get(target,name,receiver){reads.count++;return Reflect.get(target,name,receiver);}}),defaults:{},errorCode:'CONFIG_INVALID'})],
+ ['field accessor',reads=>{const fields=['key'];Object.defineProperty(fields,'0',{get(){reads.count++;return 'key';}});return {fields,defaults:{},errorCode:'CONFIG_INVALID'};}],
+ ['defaults Proxy',reads=>({fields:['key'],defaults:new Proxy({key:'default'},{
+  getOwnPropertyDescriptor(target,name){reads.count++;return Reflect.getOwnPropertyDescriptor(target,name);},
+  get(target,name,receiver){reads.count++;return Reflect.get(target,name,receiver);}
+ }),errorCode:'CONFIG_INVALID'})],
+ ['default accessor',reads=>{const defaults={};Object.defineProperty(defaults,'key',{get(){reads.count++;return 'default';}});return {fields:['key'],defaults,errorCode:'CONFIG_INVALID'};}],
+ ['error-code coercion',reads=>({fields:['key'],defaults:{},errorCode:{toString(){reads.count++;return 'CONFIG_INVALID';}},config:null})],
+])test(`shared handler config boundary rejects executable ${variant[0]} without invocation`,()=>{
+ const reads={count:0},args=variant[1](reads);
+ const config=Object.hasOwn(args,'config')?args.config:{};
+ assert.throws(()=>exactHandlerConfig(config,args.fields,args.defaults,args.errorCode),
+  {message:'HANDLER_CONFIG_ARGUMENTS_INVALID'});
+ assert.equal(reads.count,0);
 });
 
 for(const variant of [
