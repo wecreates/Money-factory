@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import {copyAuthoritySnapshot} from './authority-evidence.mjs';
+import {exactHandlerConfig} from './handler-config.mjs';
 import {issuePodGrant} from './readiness-grant.mjs';
 import {parsePodRequestJSON} from './request-json.mjs';
 
@@ -25,7 +26,9 @@ async function loadBoundedSnapshot(loadSnapshot,id,signal){
 
 // Mount in the existing authoritative HTTP host, with a server-owned snapshot loader.
 // Never accept readiness, approval, facts or price from the request.
-export function createPodAuthorityHandler({loadSnapshot,authKey,signingKey,clock=Date.now,snapshotTimeoutMs=5000}){
+export function createPodAuthorityHandler(config){
+ const {loadSnapshot,authKey,signingKey,clock,snapshotTimeoutMs}=exactHandlerConfig(config,
+  ['loadSnapshot','authKey','signingKey','clock','snapshotTimeoutMs'],{clock:Date.now,snapshotTimeoutMs:5000},'AUTHORITY_CONFIG_INVALID');
  if(typeof loadSnapshot!=='function'||typeof clock!=='function'||!Number.isInteger(snapshotTimeoutMs)||snapshotTimeoutMs<1||snapshotTimeoutMs>10000||
   [authKey,signingKey].some(k=>typeof k!=='string'||Buffer.byteLength(k)<32)||
   Buffer.from(authKey).equals(Buffer.from(signingKey)))throw Error('AUTHORITY_CONFIG_INVALID');
