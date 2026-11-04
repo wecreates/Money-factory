@@ -26,11 +26,15 @@ export function issuePodGrant(input){
  if(job.task_sha256!==undefined&&(!/^[a-f0-9]{64}$/.test(job.task_sha256)||approval.task_sha256!==job.task_sha256))throw Error('TASK_APPROVAL_REQUIRED');
  const budget=job.mode==='LAUNCH'?enforceReleaseEconomics({price,economics},job,now):null;
  if(budget&&approval.economics_event_id!==budget.evidence_event_id)throw Error('ECONOMICS_APPROVAL_REQUIRED');
+ // The permissive authority copy above preserves precise domain errors for
+ // invalid required fields. Hash only a strict JSON-representable copy after
+ // those checks so omitted or normalized extras cannot collide with evidence.
+ const readinessEvidence=copyAuthoritySnapshot(readiness);
  const payload={schema_version:1,audience:'content-control:pod',issued_at_ms:now,expires_at_ms:Math.min(now+300000,approval.expires_at_ms,budget?.valid_until_ms??Infinity),
   job_id:job.id,business_id:job.business_id,account_id:job.account_id,platform:job.platform,max_mode:business.max_mode,
   launch_content_allowed:business.launch_content_allowed===true,production_permission:true,publication_permission:approval.publication_permission===true,revoked:false,
   ...(job.package_sha256?{package_sha256:job.package_sha256}:{}),...(job.task_sha256?{task_sha256:job.task_sha256}:{}),approval_event_id:approval.evidence_event_id,
-  readiness_sha256:crypto.createHash('sha256').update(JSON.stringify(readiness)).digest('hex'),
+  readiness_sha256:crypto.createHash('sha256').update(JSON.stringify(readinessEvidence)).digest('hex'),
   verified_facts:verifiedFacts,forbidden_claims:forbiddenClaims,price,economics:budget};
  return signPodGrant(payload,key);
 }
