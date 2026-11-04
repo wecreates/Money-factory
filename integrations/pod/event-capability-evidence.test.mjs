@@ -24,6 +24,9 @@ const callableProxy=(value,calls)=>new Proxy(value,{
  get(target,name,receiver){calls.get++;return Reflect.get(target,name,receiver);},
  apply(target,thisArg,args){calls.apply++;return Reflect.apply(target,thisArg,args);},
 });
+const ownBindAccessor=(value,reads)=>Object.defineProperty(value,'bind',{configurable:true,get(){
+ reads.count++;return Function.prototype.bind;
+}});
 
 for(const variant of [
  {name:'pool Proxy',make(f,reads){return new Proxy(f.pool,{get(target,name,receiver){reads.count++;return Reflect.get(target,name,receiver);}});}},
@@ -53,6 +56,12 @@ test('event handler rejects proxied pool connect capability without invocation',
  assert.deepEqual(calls,{get:0,apply:0});
 });
 
+test('event handler binds pool connect without invoking its own bind accessor',()=>{
+ const f=fixture(),reads={count:0};ownBindAccessor(f.pool.connect,reads);
+ assert.equal(typeof createPodEventHandler({pool:f.pool,key,clock:()=>now}),'function');
+ assert.equal(reads.count,0);
+});
+
 for(const name of ['query','release'])test(`event inbox rejects proxied client ${name} capability without invocation`,async()=>{
  const f=fixture(),calls={get:0,apply:0};
  const pool={connect:async()=>{
@@ -62,6 +71,13 @@ for(const name of ['query','release'])test(`event inbox rejects proxied client $
  await assert.rejects(acceptPodEvent(pool,envelope,key,()=>now),/EVENT_DATABASE_CAPABILITY_UNVERIFIED/);
  assert.deepEqual(calls,{get:0,apply:0});
  assert.equal(f.queries.includes('COMMIT'),false);
+});
+
+for(const name of ['query','release'])test(`event inbox binds client ${name} without invoking its own bind accessor`,async()=>{
+ const f=fixture(),reads={count:0};ownBindAccessor(f.client[name],reads);
+ assert.deepEqual(await acceptPodEvent(f.pool,envelope,key,()=>now),{accepted_event_id:event.id});
+ assert.equal(reads.count,0);
+ assert.equal(f.queries.includes('COMMIT'),true);
 });
 
 test('event inbox rejects proxied clock capability without invocation',async()=>{
