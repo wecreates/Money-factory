@@ -58,3 +58,21 @@ test('grant signer bounds shared readiness expansion before hashing',()=>{
  const s=snapshot();s.readiness.shared=shared;
  assert.throws(()=>issuePodGrant(s),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
 });
+
+test('grant signer rejects executable task hash coercion without invocation',()=>{
+ const reads={count:0},task=()=>{};
+ Object.defineProperty(task,Symbol.toPrimitive,{value(){reads.count++;return 'a'.repeat(64);}});
+ const s=snapshot();s.job.task_sha256=task;s.approval.task_sha256=task;
+ assert.throws(()=>issuePodGrant(s),/TASK_APPROVAL_REQUIRED/);
+ assert.equal(reads.count,0);
+});
+
+test('grant signer rejects executable launch package coercion without invocation',()=>{
+ const reads={count:0},packageHash=()=>{};
+ Object.defineProperty(packageHash,Symbol.toPrimitive,{value(){reads.count++;return 'invalid';}});
+ const s=snapshot();s.job.mode='LAUNCH';s.job.package_sha256=packageHash;
+ s.readiness.businesses[0].max_mode='LAUNCH';s.readiness.businesses[0].launch_content_allowed=true;
+ s.approval.publication_permission=true;s.approval.providers_healthy=true;s.approval.package_sha256=packageHash;
+ assert.throws(()=>issuePodGrant(s),/LAUNCH_BLOCKED/);
+ assert.equal(reads.count,0);
+});

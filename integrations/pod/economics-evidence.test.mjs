@@ -44,6 +44,14 @@ for(const [name,make] of cases)test(`economic authority rejects executable ${nam
  assert.equal(reads(),0);
 });
 
+test('economic authority rejects executable currency coercion without invocation',()=>{
+ const input=economicsFixture(baseJob,now),reads={count:0},currency=()=>{};
+ Object.defineProperty(currency,Symbol.toPrimitive,{value(){reads.count++;return 'USD';}});
+ input.price.currency=currency;
+ assert.throws(()=>enforceReleaseEconomics(input,baseJob,now),/ECONOMICS_EVIDENCE_REQUIRED/);
+ assert.equal(reads.count,0);
+});
+
 for(const [name,make] of [
  ['job Proxy',()=>{const observed=observedProxy({...baseJob});return {job:observed.value,clock:now,reads:observed.reads};}],
  ['job accessor',()=>{let reads=0,job={...baseJob};Object.defineProperty(job,'id',{get(){reads++;return baseJob.id;}});return {job,clock:now,reads:()=>reads};}],
