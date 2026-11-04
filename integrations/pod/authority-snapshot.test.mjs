@@ -47,6 +47,12 @@ test('unique valid business preserves exact identities, readiness hash and permi
  assert.equal(grant.readiness_sha256,crypto.createHash('sha256').update(JSON.stringify(s.readiness)).digest('hex'));
  assert.equal(grant.production_permission,true);assert.equal(grant.publication_permission,false);
 });
+test('bounded shared readiness aliases retain their expanded JSON hash',()=>{
+ const s=fixture(),shared={note:'safe'};
+ s.readiness.first=shared;s.readiness.second=shared;
+ const grant=JSON.parse(issuePodGrant(s).payload);
+ assert.equal(grant.readiness_sha256,crypto.createHash('sha256').update(JSON.stringify(s.readiness)).digest('hex'));
+});
 test('HTTP authority redacts ambiguous snapshots and can recover on a corrected snapshot',async t=>{
  let duplicate=true;
  const server=http.createServer(createPodAuthorityHandler({authKey,signingKey:key,clock:()=>now,loadSnapshot:async()=>{
