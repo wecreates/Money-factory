@@ -19,7 +19,22 @@ function copyAuthorityValue(value,state,depth){
  if(typeof value==='string'){addText(value);return value;}
  if(typeof value==='number'){if(!state.strict||Number.isFinite(value))return value;fail();}
  if(!state.strict&&['undefined','bigint','symbol','function'].includes(typeof value)){
-  if(typeof value==='function'&&utilTypes.isProxy(value))fail();
+  if(typeof value==='function'){
+   if(utilTypes.isProxy(value))fail();
+   // JSON.stringify resolves toJSON on callable objects before omitting them.
+   // Inspect that resolution path without a property read so an invalid
+   // function-valued field stays inert until its domain validator rejects it.
+   let cursor=value,prototypeDepth=0;
+   while(cursor!==null){
+    if(utilTypes.isProxy(cursor)||prototypeDepth++>MAX_SNAPSHOT_DEPTH)fail();
+    const descriptor=Object.getOwnPropertyDescriptor(cursor,'toJSON');
+    if(descriptor){
+     if(!Object.hasOwn(descriptor,'value')||typeof descriptor.value==='function')fail();
+     break;
+    }
+    cursor=Object.getPrototypeOf(cursor);
+   }
+  }
   return value;
  }
  if(!value||typeof value!=='object'||utilTypes.isProxy(value)||depth>MAX_SNAPSHOT_DEPTH)fail();
