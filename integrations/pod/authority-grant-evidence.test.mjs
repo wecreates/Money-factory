@@ -21,6 +21,9 @@ for(const variant of [
  {name:'business toJSON function',make(s,reads){const business=s.readiness.businesses[0];return {...s,readiness:{businesses:[{...business,toJSON(){reads.count++;return business;}}]}};}},
  {name:'boxed readiness value toJSON function',make(s,reads){const note=new String('note');Object.defineProperty(note,'toJSON',{enumerable:true,value(){reads.count++;return 'note';}});return {...s,readiness:{...s.readiness,note}};}},
  {name:'boxed business value toJSON function',make(s,reads){const score=new Number(1);Object.defineProperty(score,'toJSON',{enumerable:true,value(){reads.count++;return 1;}});return {...s,readiness:{businesses:[{...s.readiness.businesses[0],score}]}};}},
+ {name:'function value own toJSON function',make(s,reads){const note=()=>{};Object.defineProperty(note,'toJSON',{value(){reads.count++;return 'note';}});return {...s,readiness:{...s.readiness,note}};}},
+ {name:'function value toJSON accessor',make(s,reads){const note=()=>{};Object.defineProperty(note,'toJSON',{get(){reads.count++;return ()=>'note';}});return {...s,readiness:{...s.readiness,note}};}},
+ {name:'function value inherited toJSON function',make(s,reads){const note=()=>{};Object.setPrototypeOf(note,{toJSON(){reads.count++;return 'note';}});return {...s,readiness:{...s.readiness,note}};}},
  {name:'approval Proxy',make(s,reads){return {...s,approval:new Proxy(s.approval,{get(target,key,receiver){reads.count++;return Reflect.get(target,key,receiver);}})};}},
  {name:'verified facts Proxy',make(s,reads){return {...s,verifiedFacts:new Proxy(s.verifiedFacts,{get(target,key,receiver){reads.count++;return Reflect.get(target,key,receiver);},ownKeys(target){reads.count++;return Reflect.ownKeys(target);}})};}},
 ])test(`grant signer rejects executable ${variant.name} without invocation`,()=>{
