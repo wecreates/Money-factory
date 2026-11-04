@@ -9,7 +9,7 @@ export function enforceReleaseEconomics(input,job,now=Date.now()){
  const {price,economics:e}=input;
  if(!e||e.schema_version!==1||e.verified!==true||e.all_variable_costs_included!==true||
   !id(e.evidence_event_id)||!Array.isArray(e.source_evidence_ids)||e.source_evidence_ids.length<1||
-  e.source_evidence_ids.length>32||!e.source_evidence_ids.every(id)||new Set(e.source_evidence_ids).size!==e.source_evidence_ids.length||
+  e.source_evidence_ids.length>32||!e.source_evidence_ids.every(value=>id(value))||new Set(e.source_evidence_ids).size!==e.source_evidence_ids.length||
   !price||price.verified!==true||!id(price.evidence_id)||!e.source_evidence_ids.includes(price.evidence_id)||
   !minor(price.amount_minor)||price.amount_minor===0||!/^[A-Z]{3}$/.test(price.currency||'')||
   e.currency!==price.currency||e.price_minor!==price.amount_minor||
