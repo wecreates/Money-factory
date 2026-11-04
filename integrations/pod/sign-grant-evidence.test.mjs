@@ -16,3 +16,13 @@ for(const variant of [
  assert.throws(()=>signPodGrant(variant.make(payload(),reads),key),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
  assert.equal(reads.count,0);
 });
+
+test('grant envelope signer rejects unbounded property fanout',()=>{
+ const p=payload();
+ for(let index=0;index<8193;index++)p[`claim_${index}`]=index;
+ assert.throws(()=>signPodGrant(p,key),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
+});
+
+test('grant envelope signer rejects an oversized aggregate text budget',()=>{
+ assert.throws(()=>signPodGrant({...payload(),claim:'x'.repeat(262145)},key),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
+});
