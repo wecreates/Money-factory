@@ -19,6 +19,16 @@ function fixture(wrap){
  return {pool:{connect:async()=>client},queries,releases};
 }
 
+function synchronousFixture(wrap){
+ const queries=[],releases=[];
+ const client={query(sql){
+  queries.push(sql);
+  const result={rows:[{event_sha256:hash}]};
+  return sql.startsWith('SELECT')?wrap(result):result;
+ },release:discard=>releases.push(Boolean(discard))};
+ return {pool:{connect:async()=>client},queries,releases};
+}
+
 for(const variant of [
  {name:'result rows accessor',wrap:(result,reads)=>Object.defineProperty({},'rows',{get(){reads.count++;return result.rows;}})},
  {name:'rows Proxy',wrap:(result,reads)=>({rows:new Proxy(result.rows,{get(target,key,receiver){reads.count++;return Reflect.get(target,key,receiver);}})})},
@@ -28,6 +38,27 @@ for(const variant of [
  const reads={count:0},f=fixture(result=>variant.wrap(result,reads));
  await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),/EVENT_QUERY_UNVERIFIED/);
  assert.equal(reads.count,0);
+ assert.equal(f.queries.at(-1),'ROLLBACK');
+ assert.equal(f.queries.includes('COMMIT'),false);
+ assert.deepEqual(f.releases,[false]);
+});
+
+test('event inbox does not invoke a synchronous query-result then accessor',async()=>{
+ const reads={count:0},f=synchronousFixture(result=>Object.defineProperty(result,'then',{
+  enumerable:true,get(){reads.count++;return undefined;}
+ }));
+ assert.deepEqual(await acceptPodEvent(f.pool,envelope,key,()=>now),{accepted_event_id:event.id});
+ assert.equal(reads.count,0);
+ assert.equal(f.queries.at(-1),'COMMIT');
+ assert.deepEqual(f.releases,[false]);
+});
+
+test('event inbox does not let a synchronous query-result then function replace readback evidence',async()=>{
+ const calls={count:0},f=synchronousFixture(result=>Object.defineProperty({},'then',{
+  enumerable:true,value(resolve){calls.count++;resolve(result);}
+ }));
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),/EVENT_QUERY_UNVERIFIED/);
+ assert.equal(calls.count,0);
  assert.equal(f.queries.at(-1),'ROLLBACK');
  assert.equal(f.queries.includes('COMMIT'),false);
  assert.deepEqual(f.releases,[false]);
