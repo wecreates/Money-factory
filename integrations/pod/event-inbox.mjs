@@ -76,7 +76,9 @@ function exactCapability(target,name){
   const descriptor=Object.getOwnPropertyDescriptor(cursor,name);
   if(!descriptor)continue;
   if(!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function'||utilTypes.isProxy(descriptor.value))fail();
-  return descriptor.value.bind(target);
+  // Do not read a caller-owned `bind` property from the verified function.
+  // Ordinary functions can replace it with an accessor or executable value.
+  return Function.prototype.bind.call(descriptor.value,target);
  }
  fail();
 }
