@@ -36,3 +36,13 @@ test('grant signer rejects boxed text beyond the snapshot budget before hashing'
  const s=snapshot();s.readiness.note=new String('x'.repeat(262145));
  assert.throws(()=>issuePodGrant(s),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
 });
+
+for(const [name,value] of [
+ ['undefined',undefined],
+ ['function',()=>{}],
+ ['symbol',Symbol('note')],
+ ['nonfinite number',Number.NaN],
+])test(`grant signer rejects JSON-lossy readiness ${name} before hashing`,()=>{
+ const s=snapshot();s.readiness.note=value;
+ assert.throws(()=>issuePodGrant(s),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
+});
