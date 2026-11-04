@@ -98,10 +98,20 @@ async function acquireClient(pool,timeoutMs){
  // pg's promise API cannot remove a queued waiter. If it eventually receives
  // a client after this caller has failed, return that unused client immediately.
  // Promise.race installs rejection handling even when the timeout wins first.
- const connecting=Promise.resolve().then(connect).finally(()=>{
+ const connecting=Promise.resolve().then(()=>{
+  const connected=connect();
+  // A synchronous client is capability data, not a Promise resolution
+  // procedure. Wrap it so an executable own `then` member cannot run or
+  // replace the client before query/release verification. Preserve ordinary
+  // native Promise pools without reading caller-owned `then` or `bind` fields.
+  return utilTypes.isPromise(connected)
+   ?Promise.prototype.then.call(connected,client=>({client}))
+   :{client:connected};
+ }).finally(()=>{
   const remaining=pendingAcquisitions.get(pool)-1;
   if(remaining)pendingAcquisitions.set(pool,remaining);else pendingAcquisitions.delete(pool);
- }).then(client=>{
+ }).then(connected=>{
+  const client=connected.client;
   const verified={query:exactCapability(client,'query'),release:exactCapability(client,'release')};
   candidate=verified;
   if(expired){candidate=undefined;verified.release();throw Error('EVENT_CONNECTION_TIMEOUT');}

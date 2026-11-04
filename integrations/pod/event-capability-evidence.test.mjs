@@ -62,6 +62,24 @@ test('event handler binds pool connect without invoking its own bind accessor',(
  assert.equal(reads.count,0);
 });
 
+test('event inbox does not invoke a synchronous client then accessor',async()=>{
+ const f=fixture(),reads={count:0};
+ const client=Object.defineProperty(f.client,'then',{configurable:true,get(){reads.count++;return undefined;}});
+ const pool={connect:()=>client};
+ assert.deepEqual(await acceptPodEvent(pool,envelope,key,()=>now),{accepted_event_id:event.id});
+ assert.equal(reads.count,0);
+ assert.equal(f.queries.includes('COMMIT'),true);
+});
+
+test('event inbox does not let a synchronous client then function replace the capability source',async()=>{
+ const f=fixture(),calls={count:0};
+ const client=Object.defineProperty({},'then',{value(resolve){calls.count++;resolve(f.client);}});
+ const pool={connect:()=>client};
+ await assert.rejects(acceptPodEvent(pool,envelope,key,()=>now),/EVENT_DATABASE_CAPABILITY_UNVERIFIED/);
+ assert.equal(calls.count,0);
+ assert.equal(f.queries.includes('COMMIT'),false);
+});
+
 for(const name of ['query','release'])test(`event inbox rejects proxied client ${name} capability without invocation`,async()=>{
  const f=fixture(),calls={get:0,apply:0};
  const pool={connect:async()=>{
