@@ -20,6 +20,11 @@ function fixture(clientTransform=value=>value){
  return {pool:{connect:async()=>clientTransform(client)},client,queries,releases};
 }
 
+const callableProxy=(value,calls)=>new Proxy(value,{
+ get(target,name,receiver){calls.get++;return Reflect.get(target,name,receiver);},
+ apply(target,thisArg,args){calls.apply++;return Reflect.apply(target,thisArg,args);},
+});
+
 for(const variant of [
  {name:'pool Proxy',make(f,reads){return new Proxy(f.pool,{get(target,name,receiver){reads.count++;return Reflect.get(target,name,receiver);}});}},
  {name:'pool connect accessor',make(f,reads){return Object.defineProperty({},'connect',{get(){reads.count++;return f.pool.connect;}});}},
@@ -39,4 +44,29 @@ for(const variant of [
  const f=fixture(),reads={count:0},pool=variant.make(f,reads);
  assert.throws(()=>createPodEventHandler({pool,key,clock:()=>now}),/EVENT_DATABASE_CAPABILITY_UNVERIFIED/);
  assert.equal(reads.count,0);
+});
+
+test('event handler rejects proxied pool connect capability without invocation',()=>{
+ const f=fixture(),calls={get:0,apply:0};
+ f.pool.connect=callableProxy(f.pool.connect,calls);
+ assert.throws(()=>createPodEventHandler({pool:f.pool,key,clock:()=>now}),/EVENT_DATABASE_CAPABILITY_UNVERIFIED/);
+ assert.deepEqual(calls,{get:0,apply:0});
+});
+
+for(const name of ['query','release'])test(`event inbox rejects proxied client ${name} capability without invocation`,async()=>{
+ const f=fixture(),calls={get:0,apply:0};
+ const pool={connect:async()=>{
+  f.client[name]=callableProxy(f.client[name],calls);
+  return f.client;
+ }};
+ await assert.rejects(acceptPodEvent(pool,envelope,key,()=>now),/EVENT_DATABASE_CAPABILITY_UNVERIFIED/);
+ assert.deepEqual(calls,{get:0,apply:0});
+ assert.equal(f.queries.includes('COMMIT'),false);
+});
+
+test('event inbox rejects proxied clock capability without invocation',async()=>{
+ const f=fixture(),calls={get:0,apply:0},clock=callableProxy(()=>now,calls);
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,clock),/EVENT_CLOCK_INVALID/);
+ assert.deepEqual(calls,{get:0,apply:0});
+ assert.deepEqual(f.queries,[]);
 });
