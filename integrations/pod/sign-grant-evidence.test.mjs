@@ -27,6 +27,15 @@ test('grant envelope signer rejects an oversized aggregate text budget',()=>{
  assert.throws(()=>signPodGrant({...payload(),claim:'x'.repeat(262145)},key),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
 });
 
+test('grant envelope signer bounds escaped JSON text before HMAC',()=>{
+ assert.throws(()=>signPodGrant({...payload(),claim:'\u0001'.repeat(43700)},key),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
+});
+
+test('grant envelope signer retains bounded escaped JSON text',()=>{
+ const claim='\u0001'.repeat(40000),signed=signPodGrant({...payload(),claim},key);
+ assert.equal(JSON.parse(signed.payload).claim,claim);
+});
+
 test('grant envelope signer rejects negative zero before signing',()=>{
  assert.throws(()=>signPodGrant({...payload(),verified_facts:{score:-0}},key),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
 });
