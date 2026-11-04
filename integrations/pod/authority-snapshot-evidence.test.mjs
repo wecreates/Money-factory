@@ -22,6 +22,8 @@ async function invoke(value){
 }
 
 for(const variant of [
+ {name:'top-level then accessor',make(s,reads){return Object.defineProperty({...s},'then',{enumerable:true,get(){reads.count++;return undefined;}});}},
+ {name:'top-level then function',make(s,reads){return Object.defineProperty({...s},'then',{enumerable:true,value(resolve){reads.count++;resolve(snapshot());}});}},
  {name:'top-level job accessor',make(s,reads){return Object.defineProperty({...s},'job',{enumerable:true,get(){reads.count++;return s.job;}});}},
  {name:'job Proxy',make(s,reads){return {...s,job:new Proxy(s.job,{get(target,key,receiver){reads.count++;return Reflect.get(target,key,receiver);}})};}},
  {name:'job field accessor',make(s,reads){return {...s,job:Object.defineProperty({...s.job},'business_id',{enumerable:true,get(){reads.count++;return s.job.business_id;}})};}},

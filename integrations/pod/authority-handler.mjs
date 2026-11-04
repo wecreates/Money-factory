@@ -18,7 +18,15 @@ async function loadBoundedSnapshot(loadSnapshot,id,signal){
  pendingSnapshots.set(loadSnapshot,pending+1);
  return Promise.resolve().then(()=>{
   signal.throwIfAborted();
-  return loadSnapshot(id,{signal});
+  const loaded=loadSnapshot(id,{signal});
+  // A synchronous snapshot is authority data, not a Promise resolution
+  // procedure. Wrap it so an executable own `then` member cannot run or
+  // replace the snapshot before the fail-closed evidence copier validates it.
+  // Preserve ordinary native Promise loaders without reading caller-owned
+  // `then` or `bind` properties.
+  return utilTypes.isPromise(loaded)
+   ?Promise.prototype.then.call(loaded,snapshot=>({snapshot}))
+   :{snapshot:loaded};
  }).finally(()=>{
   const remaining=pendingSnapshots.get(loadSnapshot)-1;
   if(remaining)pendingSnapshots.set(loadSnapshot,remaining);else pendingSnapshots.delete(loadSnapshot);
@@ -64,7 +72,8 @@ export function createPodAuthorityHandler(config){
    });
    const deadline=performance.now()+snapshotTimeoutMs;
    snapshotTimer=setTimeout(()=>controller.abort(),snapshotTimeoutMs);
-   const loadedSnapshot=await Promise.race([aborted,loadBoundedSnapshot(loadSnapshot,request.job_id,controller.signal)]);
+   const loaded=await Promise.race([aborted,loadBoundedSnapshot(loadSnapshot,request.job_id,controller.signal)]);
+   const loadedSnapshot=loaded.snapshot;
    // A synchronous loader can delay the timer callback. Elapsed monotonic time
    // still forbids signing its late result.
    if(performance.now()>=deadline)controller.abort();
