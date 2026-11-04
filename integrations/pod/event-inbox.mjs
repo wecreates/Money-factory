@@ -75,7 +75,7 @@ function exactCapability(target,name){
   if(utilTypes.isProxy(cursor))fail();
   const descriptor=Object.getOwnPropertyDescriptor(cursor,name);
   if(!descriptor)continue;
-  if(!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')fail();
+  if(!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function'||utilTypes.isProxy(descriptor.value))fail();
   return descriptor.value.bind(target);
  }
  fail();
@@ -124,7 +124,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
  const {expectedEventId,connectionTimeoutMs}=exactAcceptOptions(options);
  if(!Number.isInteger(connectionTimeoutMs)||connectionTimeoutMs<1||connectionTimeoutMs>30000)
   throw Error('EVENT_CONNECTION_CONFIG_INVALID');
- if(typeof clock!=='function')throw Error('EVENT_CLOCK_INVALID');
+ if(typeof clock!=='function'||utilTypes.isProxy(clock))throw Error('EVENT_CLOCK_INVALID');
  const now=clock();
  envelope=exactInputEnvelope(envelope);
  // RegExp.test coerces arrays to strings, while Buffer.from treats them as
