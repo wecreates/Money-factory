@@ -35,6 +35,22 @@ test('shared key text must have one exact portable UTF-8 identity',()=>{
  assert.equal(validPodSharedKey('k'.repeat(28)+'😀'),true);
 });
 
+test('authority bearer key requires HTTP-visible ASCII',()=>{
+ const nonTransportKeys=[
+  ['line feed','a'.repeat(31)+'\n'],
+  ['carriage return','a'.repeat(31)+'\r'],
+  ['delete','a'.repeat(31)+'\x7f'],
+  ['Unicode','a'.repeat(30)+'é'],
+ ];
+ for(const [name,authKey] of nonTransportKeys)assert.throws(()=>createPodAuthorityHandler({
+  loadSnapshot(){},authKey,signingKey:'s'.repeat(32),
+ }),/AUTHORITY_CONFIG_INVALID/,name);
+ // HMAC keys do not cross an HTTP header and retain the shared UTF-8 contract.
+ assert.equal(typeof createPodAuthorityHandler({
+  loadSnapshot(){},authKey:'a'.repeat(32),signingKey:'s'.repeat(28)+'😀',
+ }),'function');
+});
+
 test('grant signing rejects non-portable shared key text before HMAC work',()=>{
  for(const [name,key] of nonPortableKeys)assert.throws(
   ()=>signPodGrant({schema_version:1,audience:'content-control:pod'},key),
