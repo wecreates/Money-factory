@@ -43,3 +43,14 @@ for(const [name,make] of cases)test(`economic authority rejects executable ${nam
  assert.throws(()=>enforceReleaseEconomics(input,job,now),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
  assert.equal(reads(),0);
 });
+
+for(const [name,make] of [
+ ['job Proxy',()=>{const observed=observedProxy({...baseJob});return {job:observed.value,clock:now,reads:observed.reads};}],
+ ['job accessor',()=>{let reads=0,job={...baseJob};Object.defineProperty(job,'id',{get(){reads++;return baseJob.id;}});return {job,clock:now,reads:()=>reads};}],
+ ['inherited job',()=>({job:Object.create(baseJob),clock:now,reads:()=>0})],
+ ['clock coercion',()=>{let reads=0;return {job:baseJob,clock:{valueOf(){reads++;return now;}},reads:()=>reads};}],
+])test(`synthetic economics fixture rejects executable or inherited ${name} without invocation`,()=>{
+ const {job,clock,reads}=make();
+ assert.throws(()=>economicsFixture(job,clock),/ECONOMICS_FIXTURE_INVALID/);
+ assert.equal(reads(),0);
+});
