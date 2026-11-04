@@ -46,3 +46,10 @@ for(const [name,value] of [
  const s=snapshot();s.readiness.note=value;
  assert.throws(()=>issuePodGrant(s),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
 });
+
+test('grant signer bounds shared readiness expansion before hashing',()=>{
+ let shared={note:'safe'};
+ for(let depth=0;depth<14;depth++)shared={left:shared,right:shared};
+ const s=snapshot();s.readiness.shared=shared;
+ assert.throws(()=>issuePodGrant(s),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
+});
