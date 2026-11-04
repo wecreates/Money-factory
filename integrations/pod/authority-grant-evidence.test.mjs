@@ -17,6 +17,8 @@ for(const variant of [
  {name:'top-level job accessor',make(s,reads){return Object.defineProperty({...s},'job',{enumerable:true,get(){reads.count++;return s.job;}});}},
  {name:'job Proxy',make(s,reads){return {...s,job:new Proxy(s.job,{get(target,key,receiver){reads.count++;return Reflect.get(target,key,receiver);}})};}},
  {name:'readiness businesses accessor',make(s,reads){return {...s,readiness:Object.defineProperty({},'businesses',{enumerable:true,get(){reads.count++;return s.readiness.businesses;}})};}},
+ {name:'readiness toJSON function',make(s,reads){const readiness=s.readiness;return {...s,readiness:{...readiness,toJSON(){reads.count++;return readiness;}}};}},
+ {name:'business toJSON function',make(s,reads){const business=s.readiness.businesses[0];return {...s,readiness:{businesses:[{...business,toJSON(){reads.count++;return business;}}]}};}},
  {name:'approval Proxy',make(s,reads){return {...s,approval:new Proxy(s.approval,{get(target,key,receiver){reads.count++;return Reflect.get(target,key,receiver);}})};}},
  {name:'verified facts Proxy',make(s,reads){return {...s,verifiedFacts:new Proxy(s.verifiedFacts,{get(target,key,receiver){reads.count++;return Reflect.get(target,key,receiver);},ownKeys(target){reads.count++;return Reflect.ownKeys(target);}})};}},
 ])test(`grant signer rejects executable ${variant.name} without invocation`,()=>{
