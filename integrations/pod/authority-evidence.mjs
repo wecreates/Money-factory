@@ -61,6 +61,10 @@ function copyAuthorityValue(value,state,depth){
    addText(key);
    const descriptor=Object.getOwnPropertyDescriptor(value,key);
    if(!descriptor||!descriptor.enumerable||!Object.hasOwn(descriptor,'value'))fail();
+   // JSON.stringify invokes an own callable toJSON property while deriving
+   // signed evidence hashes. Other function-valued invalid fields must remain
+   // inert so the established field validators can reject them precisely.
+   if(key==='toJSON'&&typeof descriptor.value==='function')fail();
    copy[key]=copyAuthorityValue(descriptor.value,state,depth+1);
   }
  }
