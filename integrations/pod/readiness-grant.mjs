@@ -10,7 +10,7 @@ const id=validOpaqueText;
 export function issuePodGrant(input){
  const {readiness,job,approval,verifiedFacts={},forbiddenClaims=[],price=null,economics=null,key,now=Date.now()}=copyAuthoritySnapshot(input,false);
  if(!Number.isSafeInteger(now)||now<0)throw Error('AUTHORITY_CLOCK_INVALID');
- if(![job?.id,job?.business_id,job?.account_id].every(id)||!Array.isArray(readiness?.businesses)||
+ if(![job?.id,job?.business_id,job?.account_id].every(value=>id(value))||!Array.isArray(readiness?.businesses)||
   !readiness.businesses.every(b=>b&&typeof b==='object'&&!Array.isArray(b)&&id(b.id)))throw Error('READINESS_BLOCKED');
  // A duplicated business cannot choose its authority decision by row order.
  const matches=readiness.businesses.filter(b=>b.id===job.business_id);
