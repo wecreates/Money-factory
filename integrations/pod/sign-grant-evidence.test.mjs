@@ -26,3 +26,12 @@ test('grant envelope signer rejects unbounded property fanout',()=>{
 test('grant envelope signer rejects an oversized aggregate text budget',()=>{
  assert.throws(()=>signPodGrant({...payload(),claim:'x'.repeat(262145)},key),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
 });
+
+test('grant envelope signer rejects negative zero before signing',()=>{
+ assert.throws(()=>signPodGrant({...payload(),verified_facts:{score:-0}},key),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
+});
+
+test('grant envelope signer retains canonical zero',()=>{
+ const signed=signPodGrant({...payload(),verified_facts:{score:0}},key);
+ assert.equal(JSON.parse(signed.payload).verified_facts.score,0);
+});

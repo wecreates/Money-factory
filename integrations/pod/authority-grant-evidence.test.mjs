@@ -37,6 +37,11 @@ test('grant signer rejects boxed text beyond the snapshot budget before hashing'
  assert.throws(()=>issuePodGrant(s),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
 });
 
+test('grant signer rejects negative zero readiness before hashing',()=>{
+ const s=snapshot();s.readiness.score=-0;
+ assert.throws(()=>issuePodGrant(s),/AUTHORITY_SNAPSHOT_UNVERIFIED/);
+});
+
 for(const [name,value] of [
  ['undefined',undefined],
  ['function',()=>{}],

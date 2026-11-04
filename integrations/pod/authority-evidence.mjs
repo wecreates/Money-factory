@@ -17,7 +17,12 @@ function copyAuthorityValue(value,state,depth){
  };
  if(value===null||typeof value==='boolean')return value;
  if(typeof value==='string'){addText(value);return value;}
- if(typeof value==='number'){if(!state.strict||Number.isFinite(value))return value;fail();}
+ if(typeof value==='number'){
+  // JSON.stringify normalizes negative zero to zero. Strict evidence must not
+  // let those distinct server-loaded facts produce the same signed bytes.
+  if(!state.strict||Number.isFinite(value)&&!Object.is(value,-0))return value;
+  fail();
+ }
  if(!state.strict&&['undefined','bigint','symbol','function'].includes(typeof value)){
   if(typeof value==='function'){
    if(utilTypes.isProxy(value))fail();
