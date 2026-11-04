@@ -14,6 +14,7 @@ export function parsePodRequestJSON(bytes){
 // and noncanonical number spellings that would change on storage. Do not normalize
 // signed bytes: event authentication must happen before calling this function.
 export function parsePodJSON(text){
+ if(typeof text!=='string')throw new TypeError('REQUEST_JSON_TEXT_INVALID');
  const value=JSON.parse(text),stack=[];
  for(let i=0;i<text.length;){
   const ch=text[i];
