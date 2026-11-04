@@ -68,6 +68,17 @@ function exactQueryRow(result,fields){
  return snapshot;
 }
 
+function settleQuery(query,...args){
+ const result=query(...args);
+ // Synchronous query results are evidence, not Promise resolution procedures.
+ // Wrap them so an executable own `then` member cannot run or replace readback
+ // before exactQueryRow validates it. Preserve ordinary native Promise clients
+ // without reading caller-owned `then` or `bind` fields.
+ return utilTypes.isPromise(result)
+  ?Promise.prototype.then.call(result,value=>({value}))
+  :Promise.resolve({value:result});
+}
+
 function exactCapability(target,name){
  const fail=()=>{throw Error('EVENT_DATABASE_CAPABILITY_UNVERIFIED');};
  if(!target||typeof target!=='object'||utilTypes.isProxy(target))fail();
@@ -159,25 +170,26 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
  const c=await acquireClient(pool,connectionTimeoutMs);let discard=false,began=false,beginAttempted=false,commitAttempted=false;
  try{
-  beginAttempted=true;await c.query('BEGIN');began=true;
+  beginAttempted=true;await settleQuery(c.query,'BEGIN');began=true;
   // Sender timeouts do not cancel PostgreSQL work. Bound lock and statement
   // waits locally so a blocked inbox cannot hold receiver capacity indefinitely.
-  await c.query("SET LOCAL lock_timeout='2s'");
-  await c.query("SET LOCAL statement_timeout='10s'");
-  await c.query('INSERT INTO pod_content_event_inbox(event_id,event_sha256,event) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[e.id,hash,e]);
-  const previous=exactQueryRow(await c.query('SELECT event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[e.id]),['event_sha256']);
+  await settleQuery(c.query,"SET LOCAL lock_timeout='2s'");
+  await settleQuery(c.query,"SET LOCAL statement_timeout='10s'");
+  await settleQuery(c.query,'INSERT INTO pod_content_event_inbox(event_id,event_sha256,event) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[e.id,hash,e]);
+  const selected=await settleQuery(c.query,'SELECT event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[e.id]);
+  const previous=exactQueryRow(selected.value,['event_sha256']);
   if(previous.event_sha256!==hash)throw Error('EVENT_REPLAY_CONFLICT');
   // A captured request timestamp is not authorization after connection, unique
   // index or row waits. Expiry must roll back rather than acknowledge delivery.
   const current=clock();
   if(!Number.isSafeInteger(current)||current<0||p.issued_at_ms>current||current-p.issued_at_ms>300000)throw Error('EVENT_SCOPE_INVALID');
-  commitAttempted=true;await c.query('COMMIT');return {accepted_event_id:e.id};
+  commitAttempted=true;await settleQuery(c.query,'COMMIT');return {accepted_event_id:e.id};
  }catch(err){
   // Rejected transaction boundaries leave protocol or commit state uncertain.
   // Do not send more SQL on that client; destroy it. Between confirmed BEGIN
   // and attempted COMMIT, rollback remains the normal cleanup path.
   if(commitAttempted)discard=true;
-  else if(began)try{await c.query('ROLLBACK');}catch{discard=true;}
+  else if(began)try{await settleQuery(c.query,'ROLLBACK');}catch{discard=true;}
   else if(beginAttempted)discard=true;
   throw err;
  }finally{c.release(discard);}
