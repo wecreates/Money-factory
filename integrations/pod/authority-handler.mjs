@@ -4,6 +4,7 @@ import {copyAuthoritySnapshot} from './authority-evidence.mjs';
 import {exactHandlerConfig} from './handler-config.mjs';
 import {issuePodGrant} from './readiness-grant.mjs';
 import {parsePodRequestJSON} from './request-json.mjs';
+import {validPodSharedKey} from './key-contract.mjs';
 
 // Share capacity across handlers wired to the same server-owned loader. An
 // aborted HTTP request does not prove the loader stopped its backend work.
@@ -41,7 +42,7 @@ export function createPodAuthorityHandler(config){
  if(typeof loadSnapshot!=='function'||utilTypes.isProxy(loadSnapshot)||
   typeof clock!=='function'||utilTypes.isProxy(clock)||
   !Number.isInteger(snapshotTimeoutMs)||snapshotTimeoutMs<1||snapshotTimeoutMs>10000||
-  [authKey,signingKey].some(k=>typeof k!=='string'||Buffer.byteLength(k)<32)||
+  [authKey,signingKey].some(k=>!validPodSharedKey(k))||
   Buffer.from(authKey).equals(Buffer.from(signingKey)))throw Error('AUTHORITY_CONFIG_INVALID');
  return async function handle(req,res){
   const sendBody=(status,body)=>{if(res.destroyed||res.writableEnded)return;

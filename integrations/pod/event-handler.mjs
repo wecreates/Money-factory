@@ -2,6 +2,7 @@ import {acceptPodEvent,verifyPodEventPool} from './event-inbox.mjs';
 import {exactHandlerConfig} from './handler-config.mjs';
 import {parsePodRequestJSON} from './request-json.mjs';
 import {types as utilTypes} from 'node:util';
+import {validPodSharedKey} from './key-contract.mjs';
 
 function exactFailure(error){
  if(!error||typeof error!=='object'||utilTypes.isProxy(error)||!utilTypes.isNativeError(error))
@@ -21,7 +22,7 @@ function exactFailure(error){
 export function createPodEventHandler(config){
  const {pool,key,clock,timeoutMs,connectionTimeoutMs}=exactHandlerConfig(config,
   ['pool','key','clock','timeoutMs','connectionTimeoutMs'],{clock:Date.now,timeoutMs:5000,connectionTimeoutMs:5000},'EVENT_HANDLER_CONFIG_INVALID');
- if(!pool||typeof key!=='string'||Buffer.byteLength(key)<32||
+ if(!pool||!validPodSharedKey(key)||
     typeof clock!=='function'||utilTypes.isProxy(clock)||
     !Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>30000||
     !Number.isInteger(connectionTimeoutMs)||connectionTimeoutMs<1||connectionTimeoutMs>30000)throw Error('EVENT_HANDLER_CONFIG_INVALID');
