@@ -12,8 +12,23 @@ function copyAuthorityValue(value,state,depth){
  const fail=()=>{throw Error('AUTHORITY_SNAPSHOT_UNVERIFIED');};
  if(++state.values>MAX_SNAPSHOT_VALUES)fail();
  const addText=text=>{
-  state.textBytes+=Buffer.byteLength(text,'utf8');
-  if(state.textBytes>MAX_SNAPSHOT_TEXT_BYTES)fail();
+  // Count the bytes JSON will place between the string quotes without first
+  // allocating the escaped string. Control characters and lone surrogates can
+  // expand to six bytes each; raw UTF-8 length would undercount pre-HMAC work.
+  for(let index=0;index<text.length;index++){
+   const unit=text.charCodeAt(index);let bytes;
+   if(unit===0x22||unit===0x5c||unit===0x08||unit===0x09||unit===0x0a||unit===0x0c||unit===0x0d)bytes=2;
+   else if(unit<=0x1f)bytes=6;
+   else if(unit<=0x7f)bytes=1;
+   else if(unit<=0x7ff)bytes=2;
+   else if(unit>=0xd800&&unit<=0xdbff){
+    const next=text.charCodeAt(index+1);
+    if(next>=0xdc00&&next<=0xdfff){bytes=4;index++;}else bytes=6;
+   }else if(unit>=0xdc00&&unit<=0xdfff)bytes=6;
+   else bytes=3;
+   state.textBytes+=bytes;
+   if(state.textBytes>MAX_SNAPSHOT_TEXT_BYTES)fail();
+  }
  };
  if(value===null||typeof value==='boolean')return value;
  if(typeof value==='string'){addText(value);return value;}
