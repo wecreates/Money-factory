@@ -45,12 +45,31 @@ function copyAuthorityValue(value,state,depth){
  }else{
   const prototype=Object.getPrototypeOf(value);
   if(!state.strict&&[String.prototype,Number.prototype,Boolean.prototype,BigInt.prototype,Symbol.prototype].includes(prototype)){
-   if(Reflect.ownKeys(value).some(key=>{
-    const descriptor=Object.getOwnPropertyDescriptor(value,key);
-    return !descriptor||!Object.hasOwn(descriptor,'value');
-   }))fail();
+   let primitive;
+   try{
+    if(prototype===String.prototype)primitive=String.prototype.valueOf.call(value);
+    else if(prototype===Number.prototype)primitive=Number.prototype.valueOf.call(value);
+    else if(prototype===Boolean.prototype)primitive=Boolean.prototype.valueOf.call(value);
+    else if(prototype===BigInt.prototype)primitive=BigInt.prototype.valueOf.call(value);
+    else primitive=Symbol.prototype.valueOf.call(value);
+   }catch{fail();}
+   if(typeof primitive==='string'){
+    addText(primitive);
+    // A boxed string exposes one own property per UTF-16 code unit. Bound that
+    // reflection work before enumerating the wrapper's canonical descriptors.
+    if(primitive.length>MAX_SNAPSHOT_VALUES-state.values)fail();
+   }
+   const clean=Object(primitive),keys=Reflect.ownKeys(value),cleanKeys=Reflect.ownKeys(clean);
+   if(keys.length!==cleanKeys.length||cleanKeys.some((key,index)=>keys[index]!==key))fail();
+   for(const key of cleanKeys){
+    const descriptor=Object.getOwnPropertyDescriptor(value,key),cleanDescriptor=Object.getOwnPropertyDescriptor(clean,key);
+    if(!descriptor||!Object.hasOwn(descriptor,'value')||descriptor.value!==cleanDescriptor.value||
+     descriptor.enumerable!==cleanDescriptor.enumerable||descriptor.configurable!==cleanDescriptor.configurable||
+     descriptor.writable!==cleanDescriptor.writable)fail();
+   }
+   state.copies.set(value,clean);
    state.active.delete(value);
-   return value;
+   return clean;
   }
   if(prototype!==Object.prototype&&prototype!==null)fail();
   const keys=Reflect.ownKeys(value);
