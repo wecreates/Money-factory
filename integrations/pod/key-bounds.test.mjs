@@ -17,6 +17,13 @@ test('grant signing rejects an oversized shared key before HMAC work',()=>{
  assert.throws(()=>signPodGrant({schema_version:1,audience:'content-control:pod'},oversized),/KEY_REQUIRED/);
 });
 
+test('shared key size is rejected before any Buffer allocation',t=>{
+ const original=Buffer.from;let allocations=0;
+ t.mock.method(Buffer,'from',function(...args){allocations++;return Reflect.apply(original,Buffer,args);});
+ assert.equal(validPodSharedKey(oversized),false);
+ assert.equal(allocations,0);
+});
+
 test('shared key upper bound is inclusive and counts encoded bytes',()=>{
  const payload={schema_version:1,audience:'content-control:pod'};
  assert.equal(signPodGrant(payload,'k'.repeat(4096)).signature.length,64);
