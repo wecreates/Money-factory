@@ -7,7 +7,8 @@ export const MAX_POD_SHARED_KEY_BYTES=4096;
 // upper bound is deliberately far above ordinary secret material while preventing
 // unbounded configuration from reaching those APIs.
 export function validPodSharedKey(value){
- if(typeof value!=='string'||value.includes('\0')||Buffer.from(value,'utf8').toString('utf8')!==value)return false;
+ if(typeof value!=='string')return false;
  const bytes=Buffer.byteLength(value);
- return bytes>=32&&bytes<=MAX_POD_SHARED_KEY_BYTES;
+ if(bytes<32||bytes>MAX_POD_SHARED_KEY_BYTES)return false;
+ return !value.includes('\0')&&Buffer.from(value,'utf8').toString('utf8')===value;
 }
