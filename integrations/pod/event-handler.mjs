@@ -3,6 +3,18 @@ import {exactHandlerConfig} from './handler-config.mjs';
 import {parsePodRequestJSON} from './request-json.mjs';
 import {types as utilTypes} from 'node:util';
 
+function exactFailure(error){
+ if(!error||typeof error!=='object'||utilTypes.isProxy(error)||!utilTypes.isNativeError(error))
+  return {code:undefined,syntax:false};
+ // Rejection values can originate in database and transport implementations.
+ // Inspect only a native Error's own data property so an accessor or Proxy
+ // cannot execute inside the receiver or forge a client-visible status class.
+ const descriptor=Object.getOwnPropertyDescriptor(error,'message');
+ const code=descriptor&&Object.hasOwn(descriptor,'value')&&typeof descriptor.value==='string'
+  ?descriptor.value:undefined;
+ return {code,syntax:Object.getPrototypeOf(error)===SyntaxError.prototype};
+}
+
 // Mount on the existing internal Money Factory host, behind its TLS ingress.
 // The signed envelope authenticates the sender; the transport cannot promote
 // observations into verified revenue, rights, readiness, or publication authority.
@@ -46,10 +58,10 @@ export function createPodEventHandler(config){
    const ack=await acceptPodEvent(pool,envelope,key,clock,{expectedEventId:id,connectionTimeoutMs});
    return send(200,ack);
   }catch(error){
-   const code=error?.message;
+   const {code,syntax}=exactFailure(error);
    const status=code==='REQUEST_TOO_LARGE'?413:code==='EVENT_SIGNATURE_INVALID'?401:
     code==='EVENT_REPLAY_CONFLICT'?409:
-    ['EVENT_ENVELOPE_INVALID','EVENT_SCOPE_INVALID','EVENT_STORAGE_TEXT_INVALID'].includes(code)||error instanceof SyntaxError?400:503;
+    ['EVENT_ENVELOPE_INVALID','EVENT_SCOPE_INVALID','EVENT_STORAGE_TEXT_INVALID'].includes(code)||syntax?400:503;
    // Database errors can contain schema, connection, and event data. Never echo.
    return send(status,{error:status===503?'EVENT_RECEIVER_UNAVAILABLE':'EVENT_REJECTED'});
   }finally{clearTimeout(timer);}

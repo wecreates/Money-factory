@@ -89,6 +89,25 @@ test('database failure does not leak details or acknowledge an event',async()=>{
   assert.deepEqual(await response.json(),{error:'EVENT_RECEIVER_UNAVAILABLE'});
  });
 });
+test('database rejection message accessors cannot execute or spoof an authentication response',async()=>{
+ const reads={count:0},rejection=Object.defineProperty({},'message',{get(){reads.count++;return 'EVENT_SIGNATURE_INVALID';}});
+ await serverFor({connect:async()=>{throw rejection;}},async post=>{
+  const response=await post(envelope());assert.equal(response.status,503);
+  assert.deepEqual(await response.json(),{error:'EVENT_RECEIVER_UNAVAILABLE'});
+ });
+ assert.equal(reads.count,0);
+});
+test('database rejection Proxies are not inspected while classifying a failure',async()=>{
+ const calls={get:0,getPrototypeOf:0},rejection=new Proxy({}, {
+  get(){calls.get++;return undefined;},
+  getPrototypeOf(){calls.getPrototypeOf++;return Object.prototype;},
+ });
+ await serverFor({connect:async()=>{throw rejection;}},async post=>{
+  const response=await post(envelope());assert.equal(response.status,503);
+  assert.deepEqual(await response.json(),{error:'EVENT_RECEIVER_UNAVAILABLE'});
+ });
+ assert.deepEqual(calls,{get:0,getPrototypeOf:0});
+});
 test('missing database and weak receiver keys fail closed at construction',()=>{
  assert.throws(()=>createPodEventHandler({pool:database(),key:'weak'}),/CONFIG_INVALID/);
  assert.throws(()=>createPodEventHandler({key}),/CONFIG_INVALID/);
