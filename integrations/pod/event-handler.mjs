@@ -8,6 +8,21 @@ const REQUEST_TOO_LARGE=Symbol('REQUEST_TOO_LARGE');
 const REQUEST_INVALID=Symbol('REQUEST_INVALID');
 const REQUEST_TIMEOUT=Symbol('REQUEST_TIMEOUT');
 const EVENT_ENVELOPE_INVALID=Symbol('EVENT_ENVELOPE_INVALID');
+const pendingRequests=new WeakMap();
+const MAX_PENDING_REQUESTS=32;
+
+function admitRequest(pool){
+ const pending=pendingRequests.get(pool)||0;
+ if(pending>=MAX_PENDING_REQUESTS)return;
+ pendingRequests.set(pool,pending+1);
+ let released=false;
+ return ()=>{
+  if(released)return;
+  released=true;
+  const remaining=pendingRequests.get(pool)-1;
+  if(remaining)pendingRequests.set(pool,remaining);else pendingRequests.delete(pool);
+ };
+}
 
 // Mount on the existing internal Money Factory host, behind its TLS ingress.
 // The signed envelope authenticates the sender; the transport cannot promote
@@ -34,6 +49,10 @@ export function createPodEventHandler(config){
   // Outer JSON escapes the signed payload; cap both wire bytes and decoded body.
   const maximum=524288;
   if(Number(req.headers['content-length'])>maximum)return send(413,{error:'REQUEST_TOO_LARGE'});
+  // Bound slow or concurrent bodies before allocating their buffers. The inbox
+  // separately caps unresolved PostgreSQL acquisitions after authentication.
+  const releaseAdmission=admitRequest(pool);
+  if(!releaseAdmission)return send(503,{error:'EVENT_RECEIVER_UNAVAILABLE'});
   const readDeadline=performance.now()+timeoutMs;
   try{
    const read=async()=>{
@@ -57,6 +76,6 @@ export function createPodEventHandler(config){
     error===REQUEST_TIMEOUT?408:podEventClientFailureStatus(error)||503;
    // Database errors can contain schema, connection, and event data. Never echo.
    return send(status,{error:status===503?'EVENT_RECEIVER_UNAVAILABLE':'EVENT_REJECTED'});
-  }finally{clearTimeout(timer);}
+  }finally{clearTimeout(timer);releaseAdmission();}
  };
 }

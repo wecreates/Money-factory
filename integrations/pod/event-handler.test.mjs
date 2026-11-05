@@ -100,6 +100,30 @@ test('native database errors cannot forge client protocol responses',async()=>{
   });
  }
 });
+test('concurrent slow request bodies are capped before decoding and release capacity after settlement',async()=>{
+ const pool=database(),handle=createPodEventHandler({pool,key,clock:()=>now,timeoutMs:30000});
+ const invoke=({blocked=false}={})=>{
+  let release,enteredResolve;
+  const entered=new Promise(resolve=>{enteredResolve=resolve;});
+  const body=new Promise(resolve=>{release=resolve;});
+  const res=new EventEmitter();
+  res.writeHead=status=>{res.status=status;};
+  res.end=value=>{res.body=JSON.parse(value);res.writableEnded=true;};
+  const req={method:'POST',headers:{'content-type':'application/json','idempotency-key':id},destroy(){this.destroyed=true;},
+   async *[Symbol.asyncIterator](){enteredResolve();yield blocked?await body:Buffer.from(JSON.stringify(envelope()));}};
+  return {done:handle(req,res),entered,release:()=>release?.(Buffer.from(JSON.stringify(envelope()))),res};
+ };
+ const occupied=Array.from({length:32},()=>invoke({blocked:true}));
+ await Promise.all(occupied.map(request=>request.entered));
+ const overflow=invoke();await overflow.done;
+ for(const request of occupied)request.release();
+ await Promise.all(occupied.map(request=>request.done));
+ const recovered=invoke();await recovered.done;
+ assert.equal(overflow.res.status,503);
+ assert.deepEqual(overflow.res.body,{error:'EVENT_RECEIVER_UNAVAILABLE'});
+ assert.equal(recovered.res.status,200);
+ assert.equal(pool.stats().commits,33);
+});
 test('database rejection message accessors cannot execute or spoof an authentication response',async()=>{
  const reads={count:0},rejection=Object.defineProperty({},'message',{get(){reads.count++;return 'EVENT_SIGNATURE_INVALID';}});
  await serverFor({connect:async()=>{throw rejection;}},async post=>{
