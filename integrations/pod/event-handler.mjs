@@ -71,7 +71,10 @@ export function createPodEventHandler(config){
    reading.then(()=>{bodySettled=true;releaseIfSettled();},()=>{bodySettled=true;releaseIfSettled();});
    const envelope=await Promise.race([reading,new Promise((_,reject)=>{
     timer=setTimeout(()=>{
-     send(408,{error:'REQUEST_TIMEOUT'});
+     // The response socket is best effort too. A wrapped response hook can
+     // throw, but it cannot keep the server-owned timeout pending and allow
+     // the body to enter the durable inbox after its deadline.
+     try{send(408,{error:'REQUEST_TIMEOUT'});}catch{}
      // A failing wrapper hook cannot strand this handler after the timeout
      // response and later admit the body into the durable event inbox.
      try{req.destroy();}catch{}
