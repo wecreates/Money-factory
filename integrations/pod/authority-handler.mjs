@@ -10,7 +10,9 @@ import {validPodBearerKey,validPodSharedKey} from './key-contract.mjs';
 // aborted HTTP request does not prove the loader stopped its backend work.
 const pendingSnapshots=new WeakMap();
 const MAX_PENDING_SNAPSHOTS=32;
+const MAX_REQUEST_BYTES=4096;
 const MAX_GRANT_RESPONSE_BYTES=262144;
+const REQUEST_TOO_LARGE=Symbol('REQUEST_TOO_LARGE');
 
 async function loadBoundedSnapshot(loadSnapshot,id,signal){
  signal.throwIfAborted();
@@ -58,12 +60,14 @@ export function createPodAuthorityHandler(config){
   if(actual.length!==expected.length||!crypto.timingSafeEqual(actual,expected))return send(401,{error:'AUTHORITY_AUTH_REQUIRED'});
   if((req.headers['content-type']||'').split(';')[0].trim().toLowerCase()!=='application/json')
    return send(415,{error:'JSON_REQUIRED'});
+  if(Number(req.headers['content-length'])>MAX_REQUEST_BYTES)
+   return send(413,{error:'REQUEST_TOO_LARGE'});
   let timer,snapshotTimer,onAbort;
   const controller=new AbortController(),onClose=()=>controller.abort();
   res.once('close',onClose);
   const readDeadline=performance.now()+5000;
   try{
-   const read=async()=>{const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>4096)throw Error('REQUEST_TOO_LARGE');chunks.push(chunk);}return parsePodRequestJSON(Buffer.concat(chunks));};
+   const read=async()=>{const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>MAX_REQUEST_BYTES)throw REQUEST_TOO_LARGE;chunks.push(chunk);}return parsePodRequestJSON(Buffer.concat(chunks));};
    const request=await Promise.race([read(),new Promise((_,reject)=>{timer=setTimeout(()=>{req.destroy();reject(Error('TIMEOUT'));},5000);})]);
    clearTimeout(timer);
    // A delayed timer must not give a late body a fresh snapshot lookup window.
@@ -92,7 +96,8 @@ export function createPodAuthorityHandler(config){
    const body=JSON.stringify(grant);
    if(Buffer.byteLength(body)>MAX_GRANT_RESPONSE_BYTES)throw Error('GRANT_RESPONSE_TOO_LARGE');
    return sendBody(200,body);
-  }catch{if(!res.destroyed)return send(409,{error:'GRANT_BLOCKED'});}
+  }catch(error){if(!res.destroyed)return error===REQUEST_TOO_LARGE
+   ?send(413,{error:'REQUEST_TOO_LARGE'}):send(409,{error:'GRANT_BLOCKED'});}
   finally{clearTimeout(timer);clearTimeout(snapshotTimer);res.removeListener('close',onClose);
    if(onAbort)controller.signal.removeEventListener('abort',onAbort);}
  };
