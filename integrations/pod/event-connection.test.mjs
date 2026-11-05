@@ -80,3 +80,17 @@ test('HTTP construction rejects invalid connection wait budgets',()=>{
  for(const connectionTimeoutMs of [0,-1,1.5,NaN,Infinity,30001,'20',null])
   assert.throws(()=>createPodEventHandler({pool:{connect(){}},key,connectionTimeoutMs}),/EVENT_HANDLER_CONFIG_INVALID/);
 });
+
+test('invalid transaction deadlines fail before asking the pool for a client',async()=>{
+ for(const value of [0,-1,1.5,NaN,Infinity,30001,'20',null]){
+  let connected=false;
+  await assert.rejects(acceptPodEvent({connect(){connected=true;throw Error('unexpected connect');}},envelope,key,()=>now,
+   {transactionTimeoutMs:value}),/EVENT_TRANSACTION_CONFIG_INVALID/);
+  assert.equal(connected,false);
+ }
+});
+
+test('HTTP construction rejects invalid transaction budgets',()=>{
+ for(const transactionTimeoutMs of [0,-1,1.5,NaN,Infinity,30001,'20',null])
+  assert.throws(()=>createPodEventHandler({pool:{connect(){}},key,transactionTimeoutMs}),/EVENT_HANDLER_CONFIG_INVALID/);
+});

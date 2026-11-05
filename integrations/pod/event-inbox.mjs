@@ -14,6 +14,7 @@ const EVENT_KIND=/^pod\.[a-z0-9]+(?:[._][a-z0-9]+)*$/;
 const ENVELOPE_FIELDS=['audience','event','issued_at_ms','schema_version'];
 const EVENT_FIELDS=['created_at','id','job_id','kind','payload'];
 const clientFailureStatuses=new WeakMap();
+const transactionTimeouts=new WeakSet();
 
 function clientFailure(status,code){
  const error=Error(code);clientFailureStatuses.set(error,status);return error;
@@ -52,7 +53,8 @@ function exactAcceptOptions(value){
   if(!Object.hasOwn(descriptor,'value'))fail();
   return descriptor.value;
  };
- return {expectedEventId:read('expectedEventId',undefined),connectionTimeoutMs:read('connectionTimeoutMs',5000)};
+ return {expectedEventId:read('expectedEventId',undefined),connectionTimeoutMs:read('connectionTimeoutMs',5000),
+  transactionTimeoutMs:read('transactionTimeoutMs',15000)};
 }
 
 function exactQueryRow(result,fields){
@@ -88,6 +90,26 @@ function settleQuery(query,...args){
  return utilTypes.isPromise(result)
   ?Promise.prototype.then.call(result,value=>({value}))
   :Promise.resolve({value:result});
+}
+
+function transactionTimeout(){
+ const error=Error('EVENT_TRANSACTION_TIMEOUT');transactionTimeouts.add(error);return error;
+}
+
+async function settleQueryWithin(query,deadline,...args){
+ const remaining=Math.ceil(deadline-performance.now());
+ if(remaining<=0)throw transactionTimeout();
+ let timer;
+ try{
+  const settled=settleQuery(query,...args);
+  const value=await Promise.race([settled,new Promise((_,reject)=>{
+   timer=setTimeout(()=>reject(transactionTimeout()),remaining);
+  })]);
+  // A synchronous query implementation can block the timer callback. Elapsed
+  // monotonic time still makes its result unusable after the transaction limit.
+  if(performance.now()>=deadline)throw transactionTimeout();
+  return value;
+ }finally{clearTimeout(timer);}
 }
 
 function exactCapability(target,name){
@@ -155,9 +177,11 @@ async function acquireClient(pool,timeoutMs){
 // This inbox records downstream observations. It never upgrades readiness or
 // manufactures a core verified-revenue event. Wire the existing authority separately.
 export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}){
- const {expectedEventId,connectionTimeoutMs}=exactAcceptOptions(options);
+ const {expectedEventId,connectionTimeoutMs,transactionTimeoutMs}=exactAcceptOptions(options);
  if(!Number.isInteger(connectionTimeoutMs)||connectionTimeoutMs<1||connectionTimeoutMs>30000)
   throw Error('EVENT_CONNECTION_CONFIG_INVALID');
+ if(!Number.isInteger(transactionTimeoutMs)||transactionTimeoutMs<1||transactionTimeoutMs>30000)
+  throw Error('EVENT_TRANSACTION_CONFIG_INVALID');
  if(typeof clock!=='function'||utilTypes.isProxy(clock))throw Error('EVENT_CLOCK_INVALID');
  const now=clock();
  envelope=exactInputEnvelope(envelope);
@@ -181,28 +205,29 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw clientFailure(400,'EVENT_SCOPE_INVALID');
  if(!validEventStorageText(e))throw clientFailure(400,'EVENT_STORAGE_TEXT_INVALID');
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
- const c=await acquireClient(pool,connectionTimeoutMs);let discard=false,began=false,beginAttempted=false,commitAttempted=false;
+ const c=await acquireClient(pool,connectionTimeoutMs),transactionDeadline=performance.now()+transactionTimeoutMs;
+ let discard=false,began=false,beginAttempted=false,commitAttempted=false;
  try{
-  beginAttempted=true;await settleQuery(c.query,'BEGIN');began=true;
+  beginAttempted=true;await settleQueryWithin(c.query,transactionDeadline,'BEGIN');began=true;
   // Sender timeouts do not cancel PostgreSQL work. Bound lock and statement
   // waits locally so a blocked inbox cannot hold receiver capacity indefinitely.
-  await settleQuery(c.query,"SET LOCAL lock_timeout='2s'");
-  await settleQuery(c.query,"SET LOCAL statement_timeout='10s'");
-  await settleQuery(c.query,'INSERT INTO pod_content_event_inbox(event_id,event_sha256,event) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[e.id,hash,e]);
-  const selected=await settleQuery(c.query,'SELECT event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[e.id]);
+  await settleQueryWithin(c.query,transactionDeadline,"SET LOCAL lock_timeout='2s'");
+  await settleQueryWithin(c.query,transactionDeadline,"SET LOCAL statement_timeout='10s'");
+  await settleQueryWithin(c.query,transactionDeadline,'INSERT INTO pod_content_event_inbox(event_id,event_sha256,event) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[e.id,hash,e]);
+  const selected=await settleQueryWithin(c.query,transactionDeadline,'SELECT event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[e.id]);
   const previous=exactQueryRow(selected.value,['event_sha256']);
   if(previous.event_sha256!==hash)throw clientFailure(409,'EVENT_REPLAY_CONFLICT');
   // A captured request timestamp is not authorization after connection, unique
   // index or row waits. Expiry must roll back rather than acknowledge delivery.
   const current=clock();
   if(!Number.isSafeInteger(current)||current<0||p.issued_at_ms>current||current-p.issued_at_ms>300000)throw clientFailure(400,'EVENT_SCOPE_INVALID');
-  commitAttempted=true;await settleQuery(c.query,'COMMIT');return {accepted_event_id:e.id};
+  commitAttempted=true;await settleQueryWithin(c.query,transactionDeadline,'COMMIT');return {accepted_event_id:e.id};
  }catch(err){
   // Rejected transaction boundaries leave protocol or commit state uncertain.
   // Do not send more SQL on that client; destroy it. Between confirmed BEGIN
   // and attempted COMMIT, rollback remains the normal cleanup path.
-  if(commitAttempted)discard=true;
-  else if(began)try{await settleQuery(c.query,'ROLLBACK');}catch{discard=true;}
+  if(transactionTimeouts.has(err)||commitAttempted)discard=true;
+  else if(began)try{await settleQueryWithin(c.query,transactionDeadline,'ROLLBACK');}catch{discard=true;}
   else if(beginAttempted)discard=true;
   throw err;
  }finally{c.release(discard);}
