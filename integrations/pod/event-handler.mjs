@@ -1,20 +1,13 @@
-import {acceptPodEvent,verifyPodEventPool} from './event-inbox.mjs';
+import {acceptPodEvent,podEventClientFailureStatus,verifyPodEventPool} from './event-inbox.mjs';
 import {exactHandlerConfig} from './handler-config.mjs';
 import {parsePodRequestJSON} from './request-json.mjs';
 import {types as utilTypes} from 'node:util';
 import {validPodSharedKey} from './key-contract.mjs';
 
-function exactFailure(error){
- if(!error||typeof error!=='object'||utilTypes.isProxy(error)||!utilTypes.isNativeError(error))
-  return {code:undefined,syntax:false};
- // Rejection values can originate in database and transport implementations.
- // Inspect only a native Error's own data property so an accessor or Proxy
- // cannot execute inside the receiver or forge a client-visible status class.
- const descriptor=Object.getOwnPropertyDescriptor(error,'message');
- const code=descriptor&&Object.hasOwn(descriptor,'value')&&typeof descriptor.value==='string'
-  ?descriptor.value:undefined;
- return {code,syntax:Object.getPrototypeOf(error)===SyntaxError.prototype};
-}
+const REQUEST_TOO_LARGE=Symbol('REQUEST_TOO_LARGE');
+const REQUEST_INVALID=Symbol('REQUEST_INVALID');
+const REQUEST_TIMEOUT=Symbol('REQUEST_TIMEOUT');
+const EVENT_ENVELOPE_INVALID=Symbol('EVENT_ENVELOPE_INVALID');
 
 // Mount on the existing internal Money Factory host, behind its TLS ingress.
 // The signed envelope authenticates the sender; the transport cannot promote
@@ -45,24 +38,23 @@ export function createPodEventHandler(config){
   try{
    const read=async()=>{
     const chunks=[];let size=0;
-    for await(const chunk of req){size+=chunk.length;if(size>maximum)throw Error('REQUEST_TOO_LARGE');chunks.push(chunk);}
-    return parsePodRequestJSON(Buffer.concat(chunks));
+    for await(const chunk of req){size+=chunk.length;if(size>maximum)throw REQUEST_TOO_LARGE;chunks.push(chunk);}
+    try{return parsePodRequestJSON(Buffer.concat(chunks));}catch{throw REQUEST_INVALID;}
    };
    const envelope=await Promise.race([read(),new Promise((_,reject)=>{
-    timer=setTimeout(()=>{send(408,{error:'REQUEST_TIMEOUT'});req.destroy();reject(Error('REQUEST_TIMEOUT'));},timeoutMs);
+    timer=setTimeout(()=>{send(408,{error:'REQUEST_TIMEOUT'});req.destroy();reject(REQUEST_TIMEOUT);},timeoutMs);
    })]);
    clearTimeout(timer);
    // Completing the stream/decoder can delay the timer callback. Do not let a
    // late body proceed to signature verification or acquire an inbox client.
    if(performance.now()>=readDeadline)return send(408,{error:'REQUEST_TIMEOUT'});
-   if(!envelope||Array.isArray(envelope)||Object.keys(envelope).sort().join(',')!=='payload,signature')throw Error('EVENT_ENVELOPE_INVALID');
+   if(!envelope||Array.isArray(envelope)||Object.keys(envelope).sort().join(',')!=='payload,signature')throw EVENT_ENVELOPE_INVALID;
    const ack=await acceptPodEvent(pool,envelope,key,clock,{expectedEventId:id,connectionTimeoutMs});
    return send(200,ack);
   }catch(error){
-   const {code,syntax}=exactFailure(error);
-   const status=code==='REQUEST_TOO_LARGE'?413:code==='EVENT_SIGNATURE_INVALID'?401:
-    code==='EVENT_REPLAY_CONFLICT'?409:
-    ['EVENT_ENVELOPE_INVALID','EVENT_SCOPE_INVALID','EVENT_STORAGE_TEXT_INVALID'].includes(code)||syntax?400:503;
+   const status=error===REQUEST_TOO_LARGE?413:
+    error===REQUEST_INVALID||error===EVENT_ENVELOPE_INVALID?400:
+    error===REQUEST_TIMEOUT?408:podEventClientFailureStatus(error)||503;
    // Database errors can contain schema, connection, and event data. Never echo.
    return send(status,{error:status===503?'EVENT_RECEIVER_UNAVAILABLE':'EVENT_REJECTED'});
   }finally{clearTimeout(timer);}
