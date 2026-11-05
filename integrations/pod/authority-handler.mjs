@@ -9,10 +9,25 @@ import {validPodBearerKey,validPodSharedKey} from './key-contract.mjs';
 // Share capacity across handlers wired to the same server-owned loader. An
 // aborted HTTP request does not prove the loader stopped its backend work.
 const pendingSnapshots=new WeakMap();
+const pendingRequests=new WeakMap();
 const MAX_PENDING_SNAPSHOTS=32;
+const MAX_PENDING_REQUESTS=32;
 const MAX_REQUEST_BYTES=4096;
 const MAX_GRANT_RESPONSE_BYTES=262144;
 const REQUEST_TOO_LARGE=Symbol('REQUEST_TOO_LARGE');
+
+function admitRequest(loadSnapshot){
+ const pending=pendingRequests.get(loadSnapshot)||0;
+ if(pending>=MAX_PENDING_REQUESTS)return;
+ pendingRequests.set(loadSnapshot,pending+1);
+ let released=false;
+ return ()=>{
+  if(released)return;
+  released=true;
+  const remaining=pendingRequests.get(loadSnapshot)-1;
+  if(remaining)pendingRequests.set(loadSnapshot,remaining);else pendingRequests.delete(loadSnapshot);
+ };
+}
 
 async function loadBoundedSnapshot(loadSnapshot,id,signal){
  signal.throwIfAborted();
@@ -62,6 +77,10 @@ export function createPodAuthorityHandler(config){
    return send(415,{error:'JSON_REQUIRED'});
   if(Number(req.headers['content-length'])>MAX_REQUEST_BYTES)
    return send(413,{error:'REQUEST_TOO_LARGE'});
+  // Bound slow or concurrent request bodies before allocating their buffers.
+  // Snapshot lookup retains its own separately bounded backend capacity.
+  const releaseAdmission=admitRequest(loadSnapshot);
+  if(!releaseAdmission)return send(409,{error:'GRANT_BLOCKED'});
   let timer,snapshotTimer,onAbort;
   const controller=new AbortController(),onClose=()=>controller.abort();
   res.once('close',onClose);
@@ -99,6 +118,6 @@ export function createPodAuthorityHandler(config){
   }catch(error){if(!res.destroyed)return error===REQUEST_TOO_LARGE
    ?send(413,{error:'REQUEST_TOO_LARGE'}):send(409,{error:'GRANT_BLOCKED'});}
   finally{clearTimeout(timer);clearTimeout(snapshotTimer);res.removeListener('close',onClose);
-   if(onAbort)controller.signal.removeEventListener('abort',onAbort);}
+   if(onAbort)controller.signal.removeEventListener('abort',onAbort);releaseAdmission();}
  };
 }
