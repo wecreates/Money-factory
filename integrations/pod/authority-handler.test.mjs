@@ -59,6 +59,33 @@ test('authority accepts JSON media type case and optional whitespace',async t=>{
  assert.equal((await post(undefined,undefined,undefined,'text/json')).status,415);
  assert.equal(loads,2);
 });
+test('authority rejects oversized declared and streamed bodies before snapshot lookup',async t=>{
+ let loads=0;
+ const post=await serve(t,{loadSnapshot:async id=>{loads++;return snapshot(id);}});
+ const declared=await post(undefined,'x'.repeat(4097));
+ assert.equal(declared.status,413);
+ assert.deepEqual(await declared.json(),{error:'REQUEST_TOO_LARGE'});
+
+ let iterated=false;
+ const declaredRes=new EventEmitter();
+ declaredRes.writeHead=status=>{declaredRes.status=status;};
+ declaredRes.end=body=>{declaredRes.body=JSON.parse(body);declaredRes.writableEnded=true;};
+ const declaredReq={method:'POST',headers:{authorization:'Bearer '+authKey,'content-type':'application/json','content-length':'4097'},
+  async *[Symbol.asyncIterator](){iterated=true;yield Buffer.alloc(4097);}};
+ await createPodAuthorityHandler({authKey,signingKey,loadSnapshot:async id=>{loads++;return snapshot(id);}})(declaredReq,declaredRes);
+ assert.equal(declaredRes.status,413);
+ assert.equal(iterated,false);
+
+ const res=new EventEmitter();
+ res.writeHead=status=>{res.status=status;};
+ res.end=body=>{res.body=JSON.parse(body);res.writableEnded=true;};
+ const req={method:'POST',headers:{authorization:'Bearer '+authKey,'content-type':'application/json'},
+  async *[Symbol.asyncIterator](){yield Buffer.alloc(4097);}};
+ await createPodAuthorityHandler({authKey,signingKey,loadSnapshot:async id=>{loads++;return snapshot(id);}})(req,res);
+ assert.equal(res.status,413);
+ assert.deepEqual(res.body,{error:'REQUEST_TOO_LARGE'});
+ assert.equal(loads,0);
+});
 test('invalid request bytes are rejected before snapshot lookup even in overwritten JSON fields',async t=>{
  let loads=0;
  const post=await serve(t,{loadSnapshot:async id=>{loads++;return snapshot(id);}});
