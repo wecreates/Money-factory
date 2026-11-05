@@ -124,6 +124,32 @@ test('concurrent slow request bodies are capped before decoding and release capa
  assert.equal(recovered.res.status,200);
  assert.equal(pool.stats().commits,33);
 });
+test('timed-out event bodies retain admission until their reads actually settle',async()=>{
+ const pool=database(),handle=createPodEventHandler({pool,key,clock:()=>now,timeoutMs:10});
+ const invoke=({blocked=false}={})=>{
+  let release,enteredResolve;
+  const entered=new Promise(resolve=>{enteredResolve=resolve;});
+  const body=new Promise(resolve=>{release=resolve;});
+  const res=new EventEmitter();
+  res.writeHead=status=>{res.status=status;};
+  res.end=value=>{res.body=JSON.parse(value);res.writableEnded=true;};
+  const req={method:'POST',headers:{'content-type':'application/json','idempotency-key':id},
+   destroy(){this.destroyed=true;},
+   async *[Symbol.asyncIterator](){enteredResolve();yield blocked?await body:Buffer.from(JSON.stringify(envelope()));}};
+  return {done:handle(req,res),entered,release:()=>release?.(Buffer.from(JSON.stringify(envelope()))),res};
+ };
+ const occupied=Array.from({length:32},()=>invoke({blocked:true}));
+ await Promise.all(occupied.map(request=>request.entered));
+ await Promise.all(occupied.map(request=>request.done));
+ const overflow=invoke();await overflow.done;
+ assert.equal(overflow.res.status,503);
+ assert.deepEqual(overflow.res.body,{error:'EVENT_RECEIVER_UNAVAILABLE'});
+ assert.equal(pool.stats().connects,0);
+ for(const request of occupied)request.release();
+ await new Promise(resolve=>setImmediate(resolve));
+ const recovered=invoke();await recovered.done;
+ assert.equal(recovered.res.status,200);assert.equal(pool.stats().commits,1);
+});
 test('database rejection message accessors cannot execute or spoof an authentication response',async()=>{
  const reads={count:0},rejection=Object.defineProperty({},'message',{get(){reads.count++;return 'EVENT_SIGNATURE_INVALID';}});
  await serverFor({connect:async()=>{throw rejection;}},async post=>{

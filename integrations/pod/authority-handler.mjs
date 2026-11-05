@@ -81,13 +81,19 @@ export function createPodAuthorityHandler(config){
   // Snapshot lookup retains its own separately bounded backend capacity.
   const releaseAdmission=admitRequest(loadSnapshot);
   if(!releaseAdmission)return send(409,{error:'GRANT_BLOCKED'});
-  let timer,snapshotTimer,onAbort;
+  let timer,snapshotTimer,onAbort,bodySettled=false,handlerSettled=false;
+  // A timed-out handler can return before a custom/wrapped request stream
+  // settles after destroy(). Keep that body admission occupied until both
+  // lifetimes have ended so detached reads cannot grow past the shared cap.
+  const releaseIfSettled=()=>{if(bodySettled&&handlerSettled)releaseAdmission();};
   const controller=new AbortController(),onClose=()=>controller.abort();
   res.once('close',onClose);
   const readDeadline=performance.now()+5000;
   try{
    const read=async()=>{const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>MAX_REQUEST_BYTES)throw REQUEST_TOO_LARGE;chunks.push(chunk);}return parsePodRequestJSON(Buffer.concat(chunks));};
-   const request=await Promise.race([read(),new Promise((_,reject)=>{timer=setTimeout(()=>{req.destroy();reject(Error('TIMEOUT'));},5000);})]);
+   const reading=read();
+   reading.then(()=>{bodySettled=true;releaseIfSettled();},()=>{bodySettled=true;releaseIfSettled();});
+   const request=await Promise.race([reading,new Promise((_,reject)=>{timer=setTimeout(()=>{req.destroy();reject(Error('TIMEOUT'));},5000);})]);
    clearTimeout(timer);
    // A delayed timer must not give a late body a fresh snapshot lookup window.
    if(performance.now()>=readDeadline)throw Error('TIMEOUT');
@@ -118,6 +124,7 @@ export function createPodAuthorityHandler(config){
   }catch(error){if(!res.destroyed)return error===REQUEST_TOO_LARGE
    ?send(413,{error:'REQUEST_TOO_LARGE'}):send(409,{error:'GRANT_BLOCKED'});}
   finally{clearTimeout(timer);clearTimeout(snapshotTimer);res.removeListener('close',onClose);
-   if(onAbort)controller.signal.removeEventListener('abort',onAbort);releaseAdmission();}
+   if(onAbort)controller.signal.removeEventListener('abort',onAbort);
+   handlerSettled=true;releaseIfSettled();}
  };
 }
