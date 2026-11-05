@@ -28,12 +28,14 @@ function admitRequest(pool){
 // The signed envelope authenticates the sender; the transport cannot promote
 // observations into verified revenue, rights, readiness, or publication authority.
 export function createPodEventHandler(config){
- const {pool,key,clock,timeoutMs,connectionTimeoutMs}=exactHandlerConfig(config,
-  ['pool','key','clock','timeoutMs','connectionTimeoutMs'],{clock:Date.now,timeoutMs:5000,connectionTimeoutMs:5000},'EVENT_HANDLER_CONFIG_INVALID');
+ const {pool,key,clock,timeoutMs,connectionTimeoutMs,transactionTimeoutMs}=exactHandlerConfig(config,
+  ['pool','key','clock','timeoutMs','connectionTimeoutMs','transactionTimeoutMs'],
+  {clock:Date.now,timeoutMs:5000,connectionTimeoutMs:5000,transactionTimeoutMs:15000},'EVENT_HANDLER_CONFIG_INVALID');
  if(!pool||!validPodSharedKey(key)||
     typeof clock!=='function'||utilTypes.isProxy(clock)||
     !Number.isInteger(timeoutMs)||timeoutMs<1||timeoutMs>30000||
-    !Number.isInteger(connectionTimeoutMs)||connectionTimeoutMs<1||connectionTimeoutMs>30000)throw Error('EVENT_HANDLER_CONFIG_INVALID');
+    !Number.isInteger(connectionTimeoutMs)||connectionTimeoutMs<1||connectionTimeoutMs>30000||
+    !Number.isInteger(transactionTimeoutMs)||transactionTimeoutMs<1||transactionTimeoutMs>30000)throw Error('EVENT_HANDLER_CONFIG_INVALID');
  verifyPodEventPool(pool);
  return async function handle(req,res){
   let timer;
@@ -68,7 +70,7 @@ export function createPodEventHandler(config){
    // late body proceed to signature verification or acquire an inbox client.
    if(performance.now()>=readDeadline)return send(408,{error:'REQUEST_TIMEOUT'});
    if(!envelope||Array.isArray(envelope)||Object.keys(envelope).sort().join(',')!=='payload,signature')throw EVENT_ENVELOPE_INVALID;
-   const ack=await acceptPodEvent(pool,envelope,key,clock,{expectedEventId:id,connectionTimeoutMs});
+   const ack=await acceptPodEvent(pool,envelope,key,clock,{expectedEventId:id,connectionTimeoutMs,transactionTimeoutMs});
    return send(200,ack);
   }catch(error){
    const status=error===REQUEST_TOO_LARGE?413:
