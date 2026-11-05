@@ -47,6 +47,8 @@ function exactAcceptOptions(value){
  if(!value||typeof value!=='object'||utilTypes.isProxy(value))fail();
  const prototype=Object.getPrototypeOf(value);
  if(prototype!==Object.prototype&&prototype!==null)fail();
+ const fields=['expectedEventId','connectionTimeoutMs','transactionTimeoutMs'];
+ if(Reflect.ownKeys(value).some(key=>typeof key!=='string'||!fields.includes(key)))fail();
  const read=(name,fallback)=>{
   const descriptor=Object.getOwnPropertyDescriptor(value,name);
   if(!descriptor)return fallback;

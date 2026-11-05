@@ -41,6 +41,8 @@ export function exactHandlerConfig(value,fields,defaults,errorCode){
  if(!value||typeof value!=='object'||utilTypes.isProxy(value))fail();
  const prototype=Object.getPrototypeOf(value);
  if(prototype!==Object.prototype&&prototype!==null)fail();
+ const keys=Reflect.ownKeys(value);
+ if(keys.some(key=>typeof key!=='string'||!fields.includes(key)))fail();
  const snapshot=Object.create(null);
  for(const field of fields){
   const descriptor=Object.getOwnPropertyDescriptor(value,field);

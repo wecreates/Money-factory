@@ -81,3 +81,16 @@ test('event handler rejects proxied clock capability without invocation',()=>{
  assert.throws(()=>createPodEventHandler(config),/EVENT_HANDLER_CONFIG_INVALID/);
  assert.deepEqual(calls,{get:0,apply:0});
 });
+
+for(const [name,make] of [
+ ['unknown string field',config=>({...config,transactionTimeuotMs:10})],
+ ['unknown non-enumerable field',config=>{
+  Object.defineProperty(config,'transactionTimeuotMs',{value:10});return config;
+ }],
+ ['unknown symbol field',config=>{
+  Object.defineProperty(config,Symbol('transactionTimeoutMs'),{value:10});return config;
+ }],
+])test(`handlers reject ${name} instead of silently applying defaults`,()=>{
+ assert.throws(()=>createPodAuthorityHandler(make(authorityConfig())),/AUTHORITY_CONFIG_INVALID/);
+ assert.throws(()=>createPodEventHandler(make(eventConfig())),/EVENT_HANDLER_CONFIG_INVALID/);
+});
