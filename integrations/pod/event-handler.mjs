@@ -70,7 +70,13 @@ export function createPodEventHandler(config){
    const reading=read();
    reading.then(()=>{bodySettled=true;releaseIfSettled();},()=>{bodySettled=true;releaseIfSettled();});
    const envelope=await Promise.race([reading,new Promise((_,reject)=>{
-    timer=setTimeout(()=>{send(408,{error:'REQUEST_TIMEOUT'});req.destroy();reject(REQUEST_TIMEOUT);},timeoutMs);
+    timer=setTimeout(()=>{
+     send(408,{error:'REQUEST_TIMEOUT'});
+     // A failing wrapper hook cannot strand this handler after the timeout
+     // response and later admit the body into the durable event inbox.
+     try{req.destroy();}catch{}
+     reject(REQUEST_TIMEOUT);
+    },timeoutMs);
    })]);
    clearTimeout(timer);
    // Completing the stream/decoder can delay the timer callback. Do not let a

@@ -150,6 +150,29 @@ test('timed-out event bodies retain admission until their reads actually settle'
  const recovered=invoke();await recovered.done;
  assert.equal(recovered.res.status,200);assert.equal(pool.stats().commits,1);
 });
+test('a throwing request destroy hook cannot strand timeout or commit a late event',async t=>{
+ const nativeSetTimeout=globalThis.setTimeout;let callbackError,release,enteredResolve;
+ t.mock.method(globalThis,'setTimeout',(callback,ms,...args)=>{
+  if(ms===10){queueMicrotask(()=>{try{callback(...args);}catch(error){callbackError=error;}});return 0;}
+  return nativeSetTimeout(callback,ms,...args);
+ });
+ const pool=database(),handle=createPodEventHandler({pool,key,clock:()=>now,timeoutMs:10});
+ const entered=new Promise(resolve=>{enteredResolve=resolve;});
+ const body=new Promise(resolve=>{release=resolve;});
+ const res=new EventEmitter();res.writeHead=status=>{res.status=status;};
+ res.end=value=>{res.body=JSON.parse(value);res.writableEnded=true;};
+ const req={method:'POST',headers:{'content-type':'application/json','idempotency-key':id},
+  destroy(){throw Error('wrapper destroy failed');},
+  async *[Symbol.asyncIterator](){enteredResolve();yield await body;}};
+ const done=handle(req,res);await entered;await new Promise(resolve=>setImmediate(resolve));
+ try{
+  assert.equal(callbackError,undefined);
+  assert.equal(res.status,408);assert.deepEqual(res.body,{error:'REQUEST_TIMEOUT'});
+  assert.deepEqual(pool.stats(),{connects:0,commits:0,releases:0});
+ }finally{release(Buffer.from(JSON.stringify(envelope())));await done;}
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.deepEqual(pool.stats(),{connects:0,commits:0,releases:0});
+});
 test('database rejection message accessors cannot execute or spoof an authentication response',async()=>{
  const reads={count:0},rejection=Object.defineProperty({},'message',{get(){reads.count++;return 'EVENT_SIGNATURE_INVALID';}});
  await serverFor({connect:async()=>{throw rejection;}},async post=>{

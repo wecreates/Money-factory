@@ -116,6 +116,28 @@ test('timed-out authority bodies retain admission until their reads actually set
  assert.equal(recovered.res.status,200);assert.equal(calls,1);
 });
 
+test('a throwing request destroy hook cannot strand timeout or permit late grant signing',async t=>{
+ const nativeSetTimeout=globalThis.setTimeout;let callbackError,calls=0,release,enteredResolve;
+ t.mock.method(globalThis,'setTimeout',(callback,ms,...args)=>{
+  if(ms===5000){queueMicrotask(()=>{try{callback(...args);}catch(error){callbackError=error;}});return 0;}
+  return nativeSetTimeout(callback,ms,...args);
+ });
+ const handle=handler(id=>{calls++;return snapshot(id);});
+ const entered=new Promise(resolve=>{enteredResolve=resolve;});
+ const body=new Promise(resolve=>{release=resolve;});
+ const res=new EventEmitter();res.writeHead=status=>{res.status=status;};
+ res.end=value=>{res.body=JSON.parse(value);res.writableEnded=true;};
+ const req={method:'POST',headers:{authorization:'Bearer '+authKey,'content-type':'application/json'},
+  destroy(){throw Error('wrapper destroy failed');},
+  async *[Symbol.asyncIterator](){enteredResolve();yield await body;}};
+ const done=handle(req,res);await entered;await tick();await tick();
+ try{
+  assert.equal(callbackError,undefined);
+  assert.equal(res.status,409);assert.deepEqual(res.body,{error:'GRANT_BLOCKED'});assert.equal(calls,0);
+ }finally{release(Buffer.from('{"job_id":"job"}'));await done;}
+ await tick();assert.equal(calls,0);
+});
+
 test('client disconnects do not release unsettled loader slots or sign late snapshots',async()=>{
  const pending=[];let calls=0,clocks=0,healthy=false;
  const loader=(id,{signal})=>{calls++;return healthy?snapshot(id):new Promise(resolve=>pending.push({resolve,signal}));};

@@ -93,7 +93,13 @@ export function createPodAuthorityHandler(config){
    const read=async()=>{const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>MAX_REQUEST_BYTES)throw REQUEST_TOO_LARGE;chunks.push(chunk);}return parsePodRequestJSON(Buffer.concat(chunks));};
    const reading=read();
    reading.then(()=>{bodySettled=true;releaseIfSettled();},()=>{bodySettled=true;releaseIfSettled();});
-   const request=await Promise.race([reading,new Promise((_,reject)=>{timer=setTimeout(()=>{req.destroy();reject(Error('TIMEOUT'));},5000);})]);
+   const request=await Promise.race([reading,new Promise((_,reject)=>{timer=setTimeout(()=>{
+    // Request destruction is best effort. A wrapped stream can throw here;
+    // that must not prevent the server-owned timeout from settling or allow a
+    // later body to reach authority lookup and grant signing.
+    try{req.destroy();}catch{}
+    reject(Error('TIMEOUT'));
+   },5000);})]);
    clearTimeout(timer);
    // A delayed timer must not give a late body a fresh snapshot lookup window.
    if(performance.now()>=readDeadline)throw Error('TIMEOUT');
