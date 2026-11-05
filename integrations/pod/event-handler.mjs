@@ -38,7 +38,7 @@ export function createPodEventHandler(config){
     !Number.isInteger(transactionTimeoutMs)||transactionTimeoutMs<1||transactionTimeoutMs>30000)throw Error('EVENT_HANDLER_CONFIG_INVALID');
  verifyPodEventPool(pool);
  return async function handle(req,res){
-  let timer;
+  let timer,bodySettled=false,handlerSettled=false;
   const send=(status,value)=>{
    if(res.destroyed||res.writableEnded)return;
    res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});
@@ -55,6 +55,11 @@ export function createPodEventHandler(config){
   // separately caps unresolved PostgreSQL acquisitions after authentication.
   const releaseAdmission=admitRequest(pool);
   if(!releaseAdmission)return send(503,{error:'EVENT_RECEIVER_UNAVAILABLE'});
+  // Destruction normally settles IncomingMessage promptly, but an exported
+  // handler can receive a wrapped stream that does not. Retain its slot until
+  // both the handler and underlying read settle so timed-out detached reads
+  // remain bounded by MAX_PENDING_REQUESTS.
+  const releaseIfSettled=()=>{if(bodySettled&&handlerSettled)releaseAdmission();};
   const readDeadline=performance.now()+timeoutMs;
   try{
    const read=async()=>{
@@ -62,7 +67,9 @@ export function createPodEventHandler(config){
     for await(const chunk of req){size+=chunk.length;if(size>maximum)throw REQUEST_TOO_LARGE;chunks.push(chunk);}
     try{return parsePodRequestJSON(Buffer.concat(chunks));}catch{throw REQUEST_INVALID;}
    };
-   const envelope=await Promise.race([read(),new Promise((_,reject)=>{
+   const reading=read();
+   reading.then(()=>{bodySettled=true;releaseIfSettled();},()=>{bodySettled=true;releaseIfSettled();});
+   const envelope=await Promise.race([reading,new Promise((_,reject)=>{
     timer=setTimeout(()=>{send(408,{error:'REQUEST_TIMEOUT'});req.destroy();reject(REQUEST_TIMEOUT);},timeoutMs);
    })]);
    clearTimeout(timer);
@@ -78,6 +85,6 @@ export function createPodEventHandler(config){
     error===REQUEST_TIMEOUT?408:podEventClientFailureStatus(error)||503;
    // Database errors can contain schema, connection, and event data. Never echo.
    return send(status,{error:status===503?'EVENT_RECEIVER_UNAVAILABLE':'EVENT_REJECTED'});
-  }finally{clearTimeout(timer);releaseAdmission();}
+  }finally{clearTimeout(timer);handlerSettled=true;releaseIfSettled();}
  };
 }

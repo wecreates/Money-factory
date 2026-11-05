@@ -86,6 +86,36 @@ test('concurrent slow authority bodies are capped before decoding and release ca
  assert.equal(calls,33);
 });
 
+test('timed-out authority bodies retain admission until their reads actually settle',async t=>{
+ const nativeSetTimeout=globalThis.setTimeout;let fast=true,calls=0;
+ t.mock.method(globalThis,'setTimeout',(callback,ms,...args)=>{
+  if(fast&&ms===5000){queueMicrotask(()=>callback(...args));return 0;}
+  return nativeSetTimeout(callback,ms,...args);
+ });
+ const handle=handler(id=>{calls++;return snapshot(id);});
+ const invokeBody=({blocked=false}={})=>{
+  let release,enteredResolve;
+  const entered=new Promise(resolve=>{enteredResolve=resolve;});
+  const body=new Promise(resolve=>{release=resolve;});
+  const res=new EventEmitter();
+  res.writeHead=status=>{res.status=status;};
+  res.end=value=>{res.body=JSON.parse(value);res.writableEnded=true;};
+  const req={method:'POST',headers:{authorization:'Bearer '+authKey,'content-type':'application/json'},
+   destroy(){this.destroyed=true;},
+   async *[Symbol.asyncIterator](){enteredResolve();yield blocked?await body:Buffer.from('{"job_id":"job"}');}};
+  return {done:handle(req,res),entered,release:()=>release?.(Buffer.from('{"job_id":"job"}')),res};
+ };
+ const occupied=Array.from({length:32},()=>invokeBody({blocked:true}));
+ await Promise.all(occupied.map(request=>request.entered));
+ await Promise.all(occupied.map(request=>request.done));
+ const overflow=invokeBody();await overflow.done;
+ assert.equal(overflow.res.status,409);assert.deepEqual(overflow.res.body,{error:'GRANT_BLOCKED'});assert.equal(calls,0);
+ for(const request of occupied)request.release();
+ await tick();await tick();fast=false;
+ const recovered=invokeBody();await recovered.done;
+ assert.equal(recovered.res.status,200);assert.equal(calls,1);
+});
+
 test('client disconnects do not release unsettled loader slots or sign late snapshots',async()=>{
  const pending=[];let calls=0,clocks=0,healthy=false;
  const loader=(id,{signal})=>{calls++;return healthy?snapshot(id):new Promise(resolve=>pending.push({resolve,signal}));};
