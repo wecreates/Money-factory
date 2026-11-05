@@ -43,3 +43,12 @@ for(const [name,code,make] of cases)test(`event inbox rejects executable ${name}
  await assert.rejects(acceptPodEvent(pool,envelope,key,Date.now,options),new RegExp(code));
  assert.equal(reads(),0);
 });
+
+for(const options of [
+ {connectionTimeuotMs:1},
+ Object.defineProperty({},'connectionTimeuotMs',{value:1}),
+ Object.defineProperty({},Symbol('connectionTimeoutMs'),{value:1}),
+])test('event inbox rejects an unknown option before authentication or database work',async()=>{
+ await assert.rejects(acceptPodEvent(pool,{payload,signature},key,Date.now,options),
+  /EVENT_CONNECTION_CONFIG_INVALID/);
+});
