@@ -173,6 +173,31 @@ test('a throwing request destroy hook cannot strand timeout or commit a late eve
  await new Promise(resolve=>setImmediate(resolve));
  assert.deepEqual(pool.stats(),{connects:0,commits:0,releases:0});
 });
+test('a throwing timeout response hook cannot strand the handler or commit a late event',async t=>{
+ const nativeSetTimeout=globalThis.setTimeout;let callbackError,release,enteredResolve,settled=false,writes=0;
+ t.mock.method(globalThis,'setTimeout',(callback,ms,...args)=>{
+  if(ms===10){queueMicrotask(()=>{try{callback(...args);}catch(error){callbackError=error;}});return 0;}
+  return nativeSetTimeout(callback,ms,...args);
+ });
+ const pool=database(),handle=createPodEventHandler({pool,key,clock:()=>now,timeoutMs:10});
+ const entered=new Promise(resolve=>{enteredResolve=resolve;});
+ const body=new Promise(resolve=>{release=resolve;});
+ const res=new EventEmitter();
+ res.writeHead=status=>{writes++;if(writes===1)throw Error('wrapper response failed');res.status=status;};
+ res.end=value=>{res.body=JSON.parse(value);res.writableEnded=true;};
+ const req={method:'POST',headers:{'content-type':'application/json','idempotency-key':id},
+  destroy(){this.destroyed=true;},
+  async *[Symbol.asyncIterator](){enteredResolve();yield await body;}};
+ const done=handle(req,res).finally(()=>{settled=true;});
+ await entered;await new Promise(resolve=>setImmediate(resolve));
+ try{
+  assert.equal(callbackError,undefined);assert.equal(settled,true);
+  assert.equal(res.status,408);assert.deepEqual(res.body,{error:'EVENT_REJECTED'});
+  assert.deepEqual(pool.stats(),{connects:0,commits:0,releases:0});
+ }finally{release(Buffer.from(JSON.stringify(envelope())));await done;}
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.deepEqual(pool.stats(),{connects:0,commits:0,releases:0});
+});
 test('database rejection message accessors cannot execute or spoof an authentication response',async()=>{
  const reads={count:0},rejection=Object.defineProperty({},'message',{get(){reads.count++;return 'EVENT_SIGNATURE_INVALID';}});
  await serverFor({connect:async()=>{throw rejection;}},async post=>{
