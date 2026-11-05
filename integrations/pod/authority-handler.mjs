@@ -49,7 +49,12 @@ export function createPodAuthorityHandler(config){
    res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(body);};
   const send=(status,value)=>sendBody(status,JSON.stringify(value));
   if(req.method!=='POST')return send(405,{error:'METHOD_NOT_ALLOWED'});
-  const expected=Buffer.from('Bearer '+authKey),actual=Buffer.from(req.headers.authorization||'');
+  const authorization=req.headers.authorization;
+  if(typeof authorization!=='string'||authorization.length<8||
+   authorization.slice(0,6).toLowerCase()!=='bearer'||authorization[6]!==' ')
+   return send(401,{error:'AUTHORITY_AUTH_REQUIRED'});
+  let tokenStart=7;while(authorization[tokenStart]===' ')tokenStart++;
+  const expected=Buffer.from(authKey),actual=Buffer.from(authorization.slice(tokenStart));
   if(actual.length!==expected.length||!crypto.timingSafeEqual(actual,expected))return send(401,{error:'AUTHORITY_AUTH_REQUIRED'});
   if((req.headers['content-type']||'').split(';')[0]!=='application/json')return send(415,{error:'JSON_REQUIRED'});
   let timer,snapshotTimer,onAbort;

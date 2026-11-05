@@ -32,9 +32,22 @@ async function serve(t,options){
  const server=http.createServer(createPodAuthorityHandler({authKey,signingKey,...options}));
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  t.after(async()=>{server.closeAllConnections();await new Promise(r=>server.close(r));});
- return (signal,body=JSON.stringify({job_id:'job'}))=>fetch('http://127.0.0.1:'+server.address().port,{method:'POST',signal,
-  headers:{authorization:'Bearer '+authKey,'content-type':'application/json'},body});
+ return (signal,body=JSON.stringify({job_id:'job'}),authorization='Bearer '+authKey)=>
+  fetch('http://127.0.0.1:'+server.address().port,{method:'POST',signal,
+   headers:{authorization,'content-type':'application/json'},body});
 }
+test('authority accepts case-insensitive Bearer scheme and required HTTP spaces',async t=>{
+ let loads=0;
+ const post=await serve(t,{loadSnapshot:async id=>{loads++;return snapshot(id);}});
+ for(const authorization of ['bearer '+authKey,'BEARER  '+authKey]){
+  const response=await post(undefined,undefined,authorization);
+  assert.equal(response.status,200);
+  assert.equal(JSON.parse((await response.json()).payload).publication_permission,false);
+ }
+ assert.equal((await post(undefined,undefined,'Bearer\t'+authKey)).status,401);
+ assert.equal((await post(undefined,undefined,'Bearer '+authKey+'x')).status,401);
+ assert.equal(loads,2);
+});
 test('invalid request bytes are rejected before snapshot lookup even in overwritten JSON fields',async t=>{
  let loads=0;
  const post=await serve(t,{loadSnapshot:async id=>{loads++;return snapshot(id);}});
