@@ -35,12 +35,17 @@ test('shared key text must have one exact portable UTF-8 identity',()=>{
  assert.equal(validPodSharedKey('k'.repeat(28)+'😀'),true);
 });
 
-test('authority bearer key requires HTTP-visible ASCII',()=>{
+test('authority bearer key requires canonical Bearer token syntax',()=>{
  const nonTransportKeys=[
   ['line feed','a'.repeat(31)+'\n'],
   ['carriage return','a'.repeat(31)+'\r'],
   ['delete','a'.repeat(31)+'\x7f'],
   ['Unicode','a'.repeat(30)+'é'],
+  ['space','a'.repeat(31)+' '],
+  ['comma','a'.repeat(31)+','],
+  ['quote','a'.repeat(31)+'"'],
+  ['colon','a'.repeat(31)+':'],
+  ['embedded padding','a'.repeat(30)+'=a'],
  ];
  for(const [name,authKey] of nonTransportKeys)assert.throws(()=>createPodAuthorityHandler({
   loadSnapshot(){},authKey,signingKey:'s'.repeat(32),
@@ -48,6 +53,9 @@ test('authority bearer key requires HTTP-visible ASCII',()=>{
  // HMAC keys do not cross an HTTP header and retain the shared UTF-8 contract.
  assert.equal(typeof createPodAuthorityHandler({
   loadSnapshot(){},authKey:'a'.repeat(32),signingKey:'s'.repeat(28)+'😀',
+ }),'function');
+ assert.equal(typeof createPodAuthorityHandler({
+  loadSnapshot(){},authKey:'A'.repeat(24)+'-._~+/==',signingKey:'s'.repeat(32),
  }),'function');
 });
 
