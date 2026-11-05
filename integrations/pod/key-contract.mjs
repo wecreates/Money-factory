@@ -13,11 +13,19 @@ export function validPodSharedKey(value){
  return !value.includes('\0')&&Buffer.from(value,'utf8').toString('utf8')===value;
 }
 
-// A bearer key is inserted verbatim into an HTTP Authorization field. Restrict
-// that transport-only credential to visible ASCII; Unicode remains supported for
-// HMAC-only keys through validPodSharedKey.
+// A bearer key is inserted verbatim into an HTTP Authorization field. Enforce
+// the RFC 6750 b64token alphabet and terminal padding so proxies and clients do
+// not reinterpret whitespace or header punctuation. Unicode remains supported
+// for HMAC-only keys through validPodSharedKey.
 export function validPodBearerKey(value){
  if(!validPodSharedKey(value))return false;
- for(let i=0;i<value.length;i++)if(value.charCodeAt(i)<0x20||value.charCodeAt(i)>0x7e)return false;
+ let padding=false;
+ for(let i=0;i<value.length;i++){
+  const code=value.charCodeAt(i);
+  if(code===0x3d){padding=true;continue;}
+  if(padding||!((code>=0x30&&code<=0x39)||(code>=0x41&&code<=0x5a)||
+   (code>=0x61&&code<=0x7a)||code===0x2d||code===0x2e||code===0x5f||
+   code===0x7e||code===0x2b||code===0x2f))return false;
+ }
  return true;
 }
