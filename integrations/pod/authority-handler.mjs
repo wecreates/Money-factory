@@ -56,7 +56,8 @@ export function createPodAuthorityHandler(config){
   let tokenStart=7;while(authorization[tokenStart]===' ')tokenStart++;
   const expected=Buffer.from(authKey),actual=Buffer.from(authorization.slice(tokenStart));
   if(actual.length!==expected.length||!crypto.timingSafeEqual(actual,expected))return send(401,{error:'AUTHORITY_AUTH_REQUIRED'});
-  if((req.headers['content-type']||'').split(';')[0]!=='application/json')return send(415,{error:'JSON_REQUIRED'});
+  if((req.headers['content-type']||'').split(';')[0].trim().toLowerCase()!=='application/json')
+   return send(415,{error:'JSON_REQUIRED'});
   let timer,snapshotTimer,onAbort;
   const controller=new AbortController(),onClose=()=>controller.abort();
   res.once('close',onClose);
