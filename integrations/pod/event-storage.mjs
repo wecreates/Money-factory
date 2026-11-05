@@ -2,12 +2,13 @@ import {types as utilTypes} from 'node:util';
 
 const MAX_EVENT_DEPTH=64;
 const MAX_EVENT_OBJECTS=8192;
+const INVALID_EVENT_STORAGE_TEXT=Symbol('INVALID_EVENT_STORAGE_TEXT');
 
 // PostgreSQL jsonb cannot represent NUL or unpaired UTF-16 surrogates, although
 // JavaScript's JSON parser accepts their escaped forms. Validate only the event
 // being stored, after authenticating its envelope. Never repair signed text.
-export function assertEventStorageText(event){
- const fail=()=>{throw Error('EVENT_STORAGE_TEXT_INVALID');};
+function validateEventStorageText(event){
+ const fail=()=>{throw INVALID_EVENT_STORAGE_TEXT;};
  const check=text=>{
   for(let index=0;index<text.length;index++){
    const unit=text.charCodeAt(index);
@@ -55,4 +56,13 @@ export function assertEventStorageText(event){
   state.active.delete(value);state.seen.add(value);
  };
  visit(event,0);
+}
+
+export function validEventStorageText(event){
+ try{validateEventStorageText(event);return true;}
+ catch(error){if(error===INVALID_EVENT_STORAGE_TEXT)return false;throw error;}
+}
+
+export function assertEventStorageText(event){
+ if(!validEventStorageText(event))throw Error('EVENT_STORAGE_TEXT_INVALID');
 }

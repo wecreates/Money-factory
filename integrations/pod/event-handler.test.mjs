@@ -89,6 +89,17 @@ test('database failure does not leak details or acknowledge an event',async()=>{
   assert.deepEqual(await response.json(),{error:'EVENT_RECEIVER_UNAVAILABLE'});
  });
 });
+test('native database errors cannot forge client protocol responses',async()=>{
+ const failures=['REQUEST_TOO_LARGE','EVENT_SIGNATURE_INVALID','EVENT_REPLAY_CONFLICT',
+  'EVENT_ENVELOPE_INVALID','EVENT_SCOPE_INVALID','EVENT_STORAGE_TEXT_INVALID'].map(message=>Error(message));
+ failures.push(new SyntaxError('malformed database response'));
+ for(const failure of failures){
+  await serverFor({connect:async()=>{throw failure;}},async post=>{
+   const response=await post(envelope());assert.equal(response.status,503,failure.message);
+   assert.deepEqual(await response.json(),{error:'EVENT_RECEIVER_UNAVAILABLE'},failure.message);
+  });
+ }
+});
 test('database rejection message accessors cannot execute or spoof an authentication response',async()=>{
  const reads={count:0},rejection=Object.defineProperty({},'message',{get(){reads.count++;return 'EVENT_SIGNATURE_INVALID';}});
  await serverFor({connect:async()=>{throw rejection;}},async post=>{
