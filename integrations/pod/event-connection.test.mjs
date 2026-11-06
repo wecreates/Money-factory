@@ -13,9 +13,10 @@ const hash=crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function fixture(){
  let resolve,reject;const queries=[],releases=[];
+ let connected;const connecting=new Promise(yes=>{connected=yes;});
  const client={query:async sql=>{queries.push(sql);return {rows:[{event_sha256:hash}]};},release:bad=>releases.push(bad)};
- const pool={connect:()=>new Promise((yes,no)=>{resolve=yes;reject=no;})};
- return {pool,client,queries,releases,resolve:()=>resolve(client),reject:()=>reject(Error('private backend failure'))};
+ const pool={connect:()=>new Promise((yes,no)=>{resolve=yes;reject=no;connected();})};
+ return {pool,client,queries,releases,connecting,resolve:()=>resolve(client),reject:()=>reject(Error('private backend failure'))};
 }
 const accept=pool=>acceptPodEvent(pool,envelope,key,()=>now,{connectionTimeoutMs:20});
 
@@ -58,18 +59,19 @@ test('invalid connection deadlines fail before asking the pool for a client',asy
  }
 });
 
-test('HTTP pool timeout returns a redacted retryable 503 and late acquisition cannot acknowledge or write',async()=>{
+for(const dispatchDelayMs of [0,350])test(`HTTP pool timeout survives ${dispatchDelayMs}ms dispatch delay without early client release`,{timeout:10000},async()=>{
  const f=fixture();
- const server=http.createServer(createPodEventHandler({pool:f.pool,key,clock:()=>now,connectionTimeoutMs:20}));
+ const handler=createPodEventHandler({pool:f.pool,key,clock:()=>now,connectionTimeoutMs:20});
+ const server=http.createServer(async(req,res)=>{if(dispatchDelayMs)await delay(dispatchDelayMs);return handler(req,res);});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- let resolved=false;
  try{
   const pending=fetch('http://127.0.0.1:'+server.address().port,{method:'POST',headers:{
    'content-type':'application/json','idempotency-key':event.id},body:JSON.stringify(envelope)});
-  // The fallback makes the baseline test finish rather than hang indefinitely.
-  const fallback=setTimeout(()=>{resolved=true;f.resolve();},300);
-  const response=await pending;clearTimeout(fallback);
-  if(!resolved){f.resolve();resolved=true;}await delay(0);
+  // Synchronize with actual acquisition, not wall-clock HTTP scheduling. The
+  // test deadline reports a stalled handler without resolving the client early.
+  await f.connecting;
+  const response=await pending;
+  f.resolve();await delay(0);
   assert.equal(response.status,503);
   assert.deepEqual(await response.json(),{error:'EVENT_RECEIVER_UNAVAILABLE'});
   assert.deepEqual(f.queries,[]);assert.equal(f.releases.length,1);
