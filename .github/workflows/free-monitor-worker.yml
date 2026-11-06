@@ -35,6 +35,8 @@ jobs:
         working-directory: automation/free-monitor
         run: npm test
       - name: Run free monitor worker
+        id: check
+        continue-on-error: true
         run: node automation/free-monitor/worker.mjs
       - name: Persist monitor state
         shell: bash
@@ -48,3 +50,6 @@ jobs:
           git commit -m "free monitor cadence tick"
           git pull --rebase origin main
           git push origin HEAD:main
+      - name: Fail on unhealthy targets
+        if: steps.check.outcome == 'failure'
+        run: exit 2

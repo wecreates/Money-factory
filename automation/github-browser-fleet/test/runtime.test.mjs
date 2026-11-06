@@ -58,3 +58,27 @@ test('workflow artifacts allowlist excludes storage-state files',async()=>{
   const upload=workflow.split('- uses: actions/upload-artifact@v4')[1];
   assert.match(upload,/path: \|\n\s+automation\/github-browser-fleet\/artifacts\/\$\{\{ matrix.business \}\}\/result\.json\n\s+automation\/github-browser-fleet\/artifacts\/\$\{\{ matrix.business \}\}\/\*\*\/\*\.png\n/);
 });
+
+import {spawnSync} from 'node:child_process';
+
+test('authenticated tasks reject missing sessions before opening the browser',async()=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'fleet-auth-'));
+  try{
+    await fs.writeFile(path.join(dir,'task.json'),JSON.stringify({steps:[{action:'goto',url:'https://chrome.google.com/webstore/devconsole/'}]}));
+    const result=spawnSync(process.execPath,['--loader',path.join(root,'test/fixtures/playwright-loader.mjs'),path.join(root,'src/run-business.mjs')],{cwd:dir,encoding:'utf8',env:{...process.env,BUSINESS_ID:'chrome-store',TASK_FILE:'task.json',BROWSER_SESSIONS_JSON:''}});
+    assert.equal(result.status,2);
+    assert.equal(JSON.parse(result.stdout).error,'AUTHENTICATED_SESSION_REQUIRED');
+    assert.deepEqual(await fs.readdir(path.join(dir,'artifacts/chrome-store')),['result.json']);
+  }finally{await fs.rm(dir,{recursive:true,force:true});}
+});
+
+test('authenticated navigation rejects sign-in redirects and stops following actions',async()=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'fleet-redirect-'));
+  try{
+    await fs.writeFile(path.join(dir,'task.json'),JSON.stringify({steps:[{action:'goto',url:'https://chrome.google.com/webstore/devconsole/'},{action:'screenshot'}]}));
+    const result=spawnSync(process.execPath,['--loader',path.join(root,'test/fixtures/playwright-loader.mjs'),path.join(root,'src/run-business.mjs')],{cwd:dir,encoding:'utf8',env:{...process.env,BUSINESS_ID:'chrome-store',TASK_FILE:'task.json',BROWSER_SESSIONS_JSON:JSON.stringify({'chrome-store':Buffer.from(JSON.stringify(state)).toString('base64')}),FIXTURE_URL:'https://accounts.google.com/signin'}});
+    assert.equal(result.status,2);
+    const report=JSON.parse(result.stdout);assert.equal(report.ok,false);assert.equal(report.results.length,1);
+    assert.equal(report.results[0].error,'AUTHENTICATED_DESTINATION_NOT_REACHED');
+  }finally{await fs.rm(dir,{recursive:true,force:true});}
+});

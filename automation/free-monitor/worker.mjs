@@ -49,8 +49,8 @@ export function evaluateCheck(watch,check){
 }
 
 async function fetchHash(url){
-  const r=await fetch(url,{redirect:'follow',headers:{'user-agent':'CYZOR-Free-Monitor/1.0'}});
-  if(!r.ok) throw new Error(`HTTP ${r.status} from monitored URL`);
+  const r=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(20000),headers:{'user-agent':'CYZOR-Free-Monitor/1.0'}});
+  if(!r.ok){ await r.body?.cancel(); throw Object.assign(new Error(`HTTP ${r.status} from monitored URL`),{status:r.status}); }
   const body=await r.arrayBuffer();
   const hash=crypto.createHash('sha256').update(Buffer.from(body)).digest('hex');
   return {hash,checkedAt:Date.now(),status:r.status};
@@ -86,17 +86,18 @@ export async function runWorker({
       }
       results.push({id:base.id,checked:true,changed,status:check.status,last_checked_at:check.checkedAt});
     }catch(error){
-      nextState[base.id]={...base,last_checked_at:now,last_error:String(error)};
+      nextState[base.id]={...base,last_checked_at:now,last_status:error.status??null,last_error:String(error)};
       results.push({id:base.id,checked:true,error:String(error),last_checked_at:now});
     }
   }
 
   await fs.writeFile(statePath,JSON.stringify(nextState,null,2)+'\n');
   await fs.writeFile(eventsPath,JSON.stringify(events.slice(-500),null,2)+'\n');
-  return {ran_at:new Date(now).toISOString(),results};
+  return {ran_at:new Date(now).toISOString(),ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>!w.last_error && w.last_status>=200 && w.last_status<300),results};
 }
 
 if(isMainEntry(import.meta.url,process.argv[1])){
   const report=await runWorker();
   console.log(JSON.stringify(report,null,2));
+  if(!report.ok) process.exitCode=2;
 }

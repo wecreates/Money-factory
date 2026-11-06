@@ -4,7 +4,7 @@ const stub=`export const chromium={launch:async()=>({
     if(typeof options.storageState!=='object'||options.storageState.cookies[0].value!=='test-only-session') throw new Error('Expected in-memory test session');
     return {
       storageState:async()=>{throw new Error('Session export must not be called');},
-      newPage:async()=>({goto:async()=>{},url:()=> 'https://example.invalid',title:async()=> 'Fixture',locator:()=>({innerText:async()=> 'Fixture page'})})
+      newPage:async()=>({goto:async()=>{},url:()=> process.env.FIXTURE_URL || 'https://example.invalid',title:async()=> 'Fixture',locator:()=>({innerText:async()=> 'Fixture page'})})
     };
   },
   close:async()=>{}
