@@ -1,10 +1,35 @@
 {
-  "checked_at": "2026-10-08T04:03:49.951Z",
+  "checked_at": "2026-11-06T20:22:42.586Z",
   "test_code": 0,
-  "worker_code": 0,
-  "test_output": "\n> test\n> node --test test/*.test.mjs\n\nTAP version 13\n# Subtest: normalizeWatch accepts an active HTTPS watch\nok 1 - normalizeWatch accepts an active HTTPS watch\n  ---\n  duration_ms: 0.746115\n  type: 'test'\n  ...\n# Subtest: dueForCheck is true when no prior check exists\nok 2 - dueForCheck is true when no prior check exists\n  ---\n  duration_ms: 0.183346\n  type: 'test'\n  ...\n# Subtest: dueForCheck honors cadence interval\nok 3 - dueForCheck honors cadence interval\n  ---\n  duration_ms: 0.105429\n  type: 'test'\n  ...\n# Subtest: evaluateCheck records baseline without false change event\nok 4 - evaluateCheck records baseline without false change event\n  ---\n  duration_ms: 0.138058\n  type: 'test'\n  ...\n# Subtest: evaluateCheck flags changed content after baseline\nok 5 - evaluateCheck flags changed content after baseline\n  ---\n  duration_ms: 0.190207\n  type: 'test'\n  ...\n# Subtest: isMainEntry matches a file URL to the executable path\nok 6 - isMainEntry matches a file URL to the executable path\n  ---\n  duration_ms: 0.131849\n  type: 'test'\n  ...\n# Subtest: normalizeWatch preserves status metadata\nok 7 - normalizeWatch preserves status metadata\n  ---\n  duration_ms: 0.162675\n  type: 'test'\n  ...\n1..7\n# tests 7\n# suites 0\n# pass 7\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 59.899514",
-  "worker_output": "{\n  \"ran_at\": \"2026-10-08T04:03:49.919Z\",\n  \"results\": []\n}",
+  "worker_code": 2,
+  "test_output": "\n> test\n> node --test test/*.test.mjs\n\nTAP version 13\n# Subtest: normalizeWatch accepts an active HTTPS watch\nok 1 - normalizeWatch accepts an active HTTPS watch\n  ---\n  duration_ms: 0.605838\n  type: 'test'\n  ...\n# Subtest: dueForCheck is true when no prior check exists\nok 2 - dueForCheck is true when no prior check exists\n  ---\n  duration_ms: 0.112058\n  type: 'test'\n  ...\n# Subtest: dueForCheck honors cadence interval\nok 3 - dueForCheck honors cadence interval\n  ---\n  duration_ms: 0.06012\n  type: 'test'\n  ...\n# Subtest: evaluateCheck records baseline without false change event\nok 4 - evaluateCheck records baseline without false change event\n  ---\n  duration_ms: 0.134762\n  type: 'test'\n  ...\n# Subtest: evaluateCheck flags changed content after baseline\nok 5 - evaluateCheck flags changed content after baseline\n  ---\n  duration_ms: 0.06649\n  type: 'test'\n  ...\n# Subtest: isMainEntry matches a file URL to the executable path\nok 6 - isMainEntry matches a file URL to the executable path\n  ---\n  duration_ms: 0.071006\n  type: 'test'\n  ...\n# Subtest: normalizeWatch preserves status metadata\nok 7 - normalizeWatch preserves status metadata\n  ---\n  duration_ms: 0.097336\n  type: 'test'\n  ...\n# Subtest: real HTTP failure persists 502, exits nonzero, and recovery clears the error\nok 8 - real HTTP failure persists 502, exits nonzero, and recovery clears the error\n  ---\n  duration_ms: 105.496027\n  type: 'test'\n  ...\n1..8\n# tests 8\n# suites 0\n# pass 8\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 167.110046",
+  "worker_output": "{\n  \"ran_at\": \"2026-11-06T20:22:21.942Z\",\n  \"ok\": false,\n  \"results\": [\n    {\n      \"id\": \"cyzor-website\",\n      \"checked\": true,\n      \"error\": \"TimeoutError: The operation was aborted due to timeout\",\n      \"last_checked_at\": 1793996541942\n    },\n    {\n      \"id\": \"money-factory-repository\",\n      \"checked\": true,\n      \"changed\": true,\n      \"status\": 200,\n      \"last_checked_at\": 1793996562559\n    }\n  ]\n}",
   "state_exists": true,
   "events_exists": true,
-  "state": {}
+  "state": {
+    "cyzor-website": {
+      "id": "cyzor-website",
+      "kind": "change",
+      "targetUrl": "https://cyzorcreations.com/",
+      "label": "CYZOR Creations website",
+      "status": "active",
+      "last_value": "1b6a246850033b95a20fb0169f5b2e4ffb697a70340e3a15a8651b962acf8086",
+      "last_checked_at": 1793996541942,
+      "last_change_at": 1793731264853,
+      "last_status": null,
+      "last_error": "TimeoutError: The operation was aborted due to timeout"
+    },
+    "money-factory-repository": {
+      "id": "money-factory-repository",
+      "kind": "change",
+      "targetUrl": "https://github.com/wecreates/Money-factory",
+      "label": "Money Factory GitHub repository",
+      "status": "active",
+      "last_value": "ac7b192d16d4f2f3516303beb49ca1f105349eef1a9239d3b41ac874c316e91f",
+      "last_checked_at": 1793996562559,
+      "last_change_at": 1793996562559,
+      "last_status": 200,
+      "last_error": null
+    }
+  }
 }
