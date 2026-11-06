@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: cyzor-free-monitor-worker
+  cancel-in-progress: false
+
 jobs:
   diagnose:
     # Manual dispatch can select a branch, so the trigger filter alone is not enough.
@@ -20,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
