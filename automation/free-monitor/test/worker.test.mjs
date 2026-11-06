@@ -44,3 +44,38 @@ test('normalizeWatch preserves status metadata',()=>{
   const w=normalizeWatch({id:'demo2',targetUrl:'https://example.com/',status:'active',last_status:200});
   assert.equal(w.last_status,200);
 });
+
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import http from 'node:http';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {runWorker} from '../worker.mjs';
+
+test('real HTTP failure persists 502, exits nonzero, and recovery clears the error',async()=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-health-'));
+  let status=502;
+  const server=http.createServer((req,res)=>{res.writeHead(status);res.end('fixture');});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const options={watchesPath:path.join(dir,'FREE_MONITOR_WATCHES.json'),statePath:path.join(dir,'FREE_MONITOR_STATE.json'),eventsPath:path.join(dir,'FREE_MONITOR_EVENTS.json'),intervalMs:0};
+  try{
+    const watch={id:'fixture',targetUrl:'http://127.0.0.1:'+server.address().port,status:'active'};
+    await fs.writeFile(options.watchesPath,JSON.stringify([watch]));
+    await fs.writeFile(options.statePath,JSON.stringify({fixture:{...watch,last_status:200,last_value:'old'}}));
+    const child=spawn(process.execPath,[fileURLToPath(new URL('../worker.mjs',import.meta.url))],{cwd:dir,stdio:['ignore','pipe','pipe']});
+    let out='';child.stdout.on('data',chunk=>out+=chunk);
+    const exit=await new Promise((resolve,reject)=>{child.on('error',reject);child.on('exit',resolve);});
+    assert.equal(exit,2);assert.equal(JSON.parse(out).ok,false);
+    const state=JSON.parse(await fs.readFile(options.statePath,'utf8'));
+    assert.equal(state.fixture.last_status,502);assert.match(state.fixture.last_error,/502/);
+    assert.equal((await runWorker({...options,intervalMs:999999})).ok,false);
+    status=200;
+    assert.equal((await runWorker(options)).ok,true);
+    const recovered=JSON.parse(await fs.readFile(options.statePath,'utf8')).fixture;
+    assert.equal(recovered.last_status,200);assert.equal(recovered.last_error,null);
+    await new Promise(resolve=>server.close(resolve));
+    assert.equal((await runWorker(options)).ok,false);
+    assert.equal(JSON.parse(await fs.readFile(options.statePath,'utf8')).fixture.last_status,null);
+  }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
+});

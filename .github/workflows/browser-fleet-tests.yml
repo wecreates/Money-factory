@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'automation/github-browser-fleet/**'
+      - 'automation/free-monitor/**'
       - '.github/workflows/browser-fleet*.yml'
       - '.github/workflows/free-browser-fleet-health.yml'
       - '.github/workflows/free-monitor-diagnostic.yml'
@@ -15,6 +16,7 @@ on:
     branches: [main]
     paths:
       - 'automation/github-browser-fleet/**'
+      - 'automation/free-monitor/**'
       - '.github/workflows/browser-fleet*.yml'
       - '.github/workflows/free-browser-fleet-health.yml'
       - '.github/workflows/free-monitor-diagnostic.yml'
@@ -36,3 +38,4 @@ jobs:
           node-version: '22'
       - run: npm test
         working-directory: automation/github-browser-fleet
+      - run: node --test automation/free-monitor/test/*.test.mjs

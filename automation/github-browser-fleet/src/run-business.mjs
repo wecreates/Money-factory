@@ -15,31 +15,47 @@ await fs.mkdir(artifactDir,{recursive:true});
 // Keep credentials in memory only, never in the uploaded artifact directory.
 const storageState=sessionForBusiness(process.env.BROWSER_SESSIONS_JSON,business);
 
+const registry=JSON.parse(await fs.readFile(new URL('../businesses.json',import.meta.url),'utf8'));
+const authenticated=registry.businesses.find(row=>row.id===business)?.mode==='authenticated';
+if(authenticated && !storageState){
+  const summary={business,ok:false,error:'AUTHENTICATED_SESSION_REQUIRED',results:[]};
+  await fs.writeFile(path.join(artifactDir,'result.json'),JSON.stringify(summary,null,2));
+  console.log(JSON.stringify(summary));
+  process.exit(2);
+}
+
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
 const context=await browser.newContext(storageState?{storageState}:{viewport:{width:1440,height:1000}});
 const page=await context.newPage();
+
+async function navigate(url){
+  const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
+  if(response && !response.ok()) throw new Error('NAVIGATION_HTTP_'+response.status());
+  const final=new URL(page.url());
+  if(authenticated && (final.origin!==new URL(url).origin || /(?:sign[-_]?in|log[-_]?in|captcha|challenge)/i.test(final.pathname))) throw new Error('AUTHENTICATED_DESTINATION_NOT_REACHED');
+}
 
 async function runStep(step){
   const out={action:step.action,ok:false};
   try{
     if(step.action==='goto'){
-      await page.goto(step.url,{waitUntil:'domcontentloaded',timeout:60000});
+      await navigate(step.url);
       out.url=page.url();out.title=await page.title();
     }else if(step.action==='inspect'){
-      await page.goto(step.url,{waitUntil:'domcontentloaded',timeout:60000});
+      await navigate(step.url);
       out.url=page.url();out.title=await page.title();
       out.text=(await page.locator('body').innerText()).slice(0,20000);
     }else if(step.action==='screenshot'){
-      if(step.url) await page.goto(step.url,{waitUntil:'domcontentloaded',timeout:60000});
+      if(step.url) await navigate(step.url);
       const p=path.join(artifactDir,step.filename||'page.png');
       await page.screenshot({path:p,fullPage:true});
       out.file=p;
     }else if(step.action==='click_text'){
-      if(step.url) await page.goto(step.url,{waitUntil:'domcontentloaded',timeout:60000});
+      if(step.url) await navigate(step.url);
       await page.getByText(step.text,{exact:false}).first().click();
       out.url=page.url();
     }else if(step.action==='fill_label'){
-      if(step.url) await page.goto(step.url,{waitUntil:'domcontentloaded',timeout:60000});
+      if(step.url) await navigate(step.url);
       await page.getByLabel(step.label,{exact:false}).first().fill(String(step.value??''));
       out.url=page.url();
     }else if(step.action==='wait'){
@@ -55,7 +71,10 @@ async function runStep(step){
 }
 
 const results=[];
-for(const step of (task.steps||[])) results.push(await runStep(step));
+for(const step of (task.steps||[])){
+  const result=await runStep(step);results.push(result);
+  if(!result.ok) break;
+}
 
 const summary={
   business,
