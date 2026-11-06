@@ -40,3 +40,11 @@ test('guard changes trigger dedicated regression CI',async()=>{
     assert.equal(workflow.split(`'.github/workflows/${name}.yml'`).length-1,2,'both PR and main push must test '+name);
   }
 });
+
+test('all shared monitor state writers serialize and check out current main',async()=>{
+  for(const name of ['free-monitor-worker','free-monitor-verify','free-monitor-diagnostic']){
+    const workflow=await fs.readFile(new URL('../../../.github/workflows/'+name+'.yml',import.meta.url),'utf8');
+    assert.match(workflow,/concurrency:\n  group: cyzor-free-monitor-worker\n  cancel-in-progress: false/);
+    assert.match(workflow,/with:\n          ref: main\n          fetch-depth: 0/);
+  }
+});
