@@ -237,7 +237,15 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   // index or row waits. Expiry must roll back rather than acknowledge delivery.
   const current=clock();
   if(!Number.isSafeInteger(current)||current<0||p.issued_at_ms>current||current-p.issued_at_ms>300000)throw clientFailure(400,'EVENT_SCOPE_INVALID');
-  commitAttempted=true;await settleQueryWithin(c.query,transactionDeadline,'COMMIT');return {accepted_event_id:e.id};
+  commitAttempted=true;
+  const {value:commit}=await settleQueryWithin(c.query,transactionDeadline,'COMMIT');
+  // A resolved SQL call is not proof of a commit: an aborted PostgreSQL
+  // transaction can return a ROLLBACK command tag. Never read an executable
+  // property or acknowledge ambiguous database evidence.
+  const tag=commit&&typeof commit==='object'&&!utilTypes.isProxy(commit)
+   ?Object.getOwnPropertyDescriptor(commit,'command'):null;
+  if(!tag||!Object.hasOwn(tag,'value')||tag.value!=='COMMIT')throw Error('EVENT_COMMIT_UNVERIFIED');
+  return {accepted_event_id:e.id};
  }catch(err){
   failed=true;
   // Rejected transaction boundaries leave protocol or commit state uncertain.
