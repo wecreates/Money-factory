@@ -18,13 +18,13 @@ test('readiness ceilings must be exact mode strings',()=>{
  for(const mode of invalidModes){const s=fixture();s.readiness.businesses[0].max_mode=mode;
   s.job.mode='RESEARCH';assert.throws(()=>issuePodGrant(s),/READINESS_BLOCKED/);}
 });
-test('exact string modes preserve the readiness ceiling and launch safeguards',()=>{
+test('exact string modes respect the business ceiling and cap each grant at its checked mode',()=>{
  const modes=['RESEARCH','PRELAUNCH','LAUNCH'];
  for(let ceiling=0;ceiling<modes.length;ceiling++)for(let requested=0;requested<modes.length;requested++){
   const s=fixture();s.readiness.businesses[0].max_mode=modes[ceiling];s.job.mode=modes[requested];
   if(requested>ceiling)assert.throws(()=>issuePodGrant(s),/READINESS_BLOCKED/);
   else if(s.job.mode==='LAUNCH')assert.throws(()=>issuePodGrant(s),/LAUNCH_BLOCKED/);
-  else{const grant=JSON.parse(issuePodGrant(s).payload);assert.equal(grant.max_mode,modes[ceiling]);assert.equal(grant.publication_permission,false);}
+  else{const grant=JSON.parse(issuePodGrant(s).payload);assert.equal(grant.max_mode,modes[requested]);assert.equal(grant.publication_permission,false);assert.equal(grant.launch_content_allowed,false);}
  }
 });
 test('HTTP authority blocks malformed modes in server snapshots without signing them',async t=>{

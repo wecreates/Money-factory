@@ -22,18 +22,21 @@ export function issuePodGrant(input){
  if((approval?.production_permission!==true&&approval?.publication_permission!==true)||approval.revoked!==false||approval.business_id!==job.business_id||
   approval.job_id!==job.id||approval.account_id!==job.account_id||approval.platform!==job.platform||
   !Number.isSafeInteger(approval.expires_at_ms)||approval.expires_at_ms<0||approval.expires_at_ms<=now||!id(approval.evidence_event_id))throw Error('APPROVAL_REQUIRED');
- if(job.mode==='LAUNCH'&&(approval.publication_permission!==true||business.launch_content_allowed!==true||approval.providers_healthy!==true||
+ const launch=job.mode==='LAUNCH';
+ if(launch&&(approval.publication_permission!==true||business.launch_content_allowed!==true||approval.providers_healthy!==true||
   typeof job.package_sha256!=='string'||!/^[a-f0-9]{64}$/.test(job.package_sha256)||approval.package_sha256!==job.package_sha256))throw Error('LAUNCH_BLOCKED');
  if(job.task_sha256!==undefined&&(typeof job.task_sha256!=='string'||!/^[a-f0-9]{64}$/.test(job.task_sha256)||approval.task_sha256!==job.task_sha256))throw Error('TASK_APPROVAL_REQUIRED');
- const budget=job.mode==='LAUNCH'?enforceReleaseEconomics({price,economics},job,now):null;
+ const budget=launch?enforceReleaseEconomics({price,economics},job,now):null;
  if(budget&&approval.economics_event_id!==budget.evidence_event_id)throw Error('ECONOMICS_APPROVAL_REQUIRED');
  // The permissive authority copy above preserves precise domain errors for
  // invalid required fields. Hash only a strict JSON-representable copy after
  // those checks so omitted or normalized extras cannot collide with evidence.
  const readinessEvidence=copyAuthoritySnapshot(readiness);
  const payload={schema_version:1,audience:'content-control:pod',issued_at_ms:now,expires_at_ms:Math.min(now+300000,approval.expires_at_ms,budget?.valid_until_ms??Infinity),
-  job_id:job.id,business_id:job.business_id,account_id:job.account_id,platform:job.platform,max_mode:business.max_mode,
-  launch_content_allowed:business.launch_content_allowed===true,production_permission:true,publication_permission:approval.publication_permission===true,revoked:false,
+  // The business ceiling admits the snapshot, but must not broaden the
+  // signed permission beyond the job mode whose checks actually ran.
+  job_id:job.id,business_id:job.business_id,account_id:job.account_id,platform:job.platform,max_mode:job.mode,
+  launch_content_allowed:launch,production_permission:true,publication_permission:launch,revoked:false,
   ...(job.package_sha256?{package_sha256:job.package_sha256}:{}),...(job.task_sha256?{task_sha256:job.task_sha256}:{}),approval_event_id:approval.evidence_event_id,
   readiness_sha256:crypto.createHash('sha256').update(JSON.stringify(readinessEvidence)).digest('hex'),
   verified_facts:verifiedFacts,forbidden_claims:forbiddenClaims,price,economics:budget};

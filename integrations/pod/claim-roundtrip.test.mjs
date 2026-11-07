@@ -16,6 +16,26 @@ function input(){
   approval:{job_id:job.id,business_id:job.business_id,account_id:job.account_id,platform:job.platform,
    production_permission:true,publication_permission:false,revoked:false,evidence_event_id:'fixture-approval',expires_at_ms:now+60000}};
 }
+test('a PRELAUNCH grant cannot be replayed for LAUNCH on the same package',async()=>{
+ const {verifyEnvelope,enforceBrief}=await consumer(),f=input();
+ Object.assign(f.readiness.businesses[0],{max_mode:'LAUNCH',launch_content_allowed:true});
+ f.approval.publication_permission=true;
+ f.job.package_sha256='a'.repeat(64);
+ const grant=verifyEnvelope(issuePodGrant(f),f.key,'content-control:pod',f.now);
+ assert.equal(enforceBrief(grant,f.job).mode,'PRELAUNCH');
+ const launch={...f.job,mode:'LAUNCH'};
+ assert.throws(()=>enforceBrief(grant,launch),/PUBLICATION_PERMISSION_REQUIRED/);
+ assert.throws(()=>enforceBrief(grant,launch,{publishing:true}),/PUBLICATION_PERMISSION_REQUIRED/);
+ assert.equal(grant.max_mode,'PRELAUNCH');assert.equal(grant.launch_content_allowed,false);
+});
+test('a RESEARCH grant cannot be replayed for PRELAUNCH under a broader business ceiling',async()=>{
+ const {verifyEnvelope,enforceBrief}=await consumer(),f=input();
+ f.job.mode='RESEARCH';
+ const grant=verifyEnvelope(issuePodGrant(f),f.key,'content-control:pod',f.now);
+ assert.equal(enforceBrief(grant,f.job).mode,'RESEARCH');
+ assert.throws(()=>enforceBrief(grant,{...f.job,mode:'PRELAUNCH'}),/READINESS_CEILING/);
+ assert.equal(grant.max_mode,'RESEARCH');
+});
 test('consumer omits malformed signed claim and price references from actual issuer output',async()=>{
  const {verifyEnvelope,enforceBrief}=await consumer(),f=input();
  f.verifiedFacts={title:{verified:true,value:'Fixture title',evidence_ids:['fixture-source']},
