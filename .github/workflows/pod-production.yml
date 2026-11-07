@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: cca116e003f7252210900ab862c3fb0ff9e87372
+          ref: 993f50f1135f12629f0905da207f0a39ffa50047
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -48,6 +48,9 @@ jobs:
         working-directory: content-control-test
       - name: Verify recorded activity cleanup and unverified capacity
         run: node --test tests/pod-capacity.test.mjs
+        working-directory: content-control-test
+      - name: Verify ledger write identity, replay and evidence expiry
+        run: node --test tests/pod-financial-replay.test.mjs tests/pod-evidence-expiry.test.mjs
         working-directory: content-control-test
       - name: Verify strict Python evidence and bounded JSON
         run: python -m unittest discover -s tests -p test_pod_evidence.py
