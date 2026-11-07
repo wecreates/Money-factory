@@ -252,5 +252,204 @@
       "hosted_verification_report": "integrations/youtube_skill/hosted-verification.json",
       "scope": "Eleven unchanged project-local skills discoverable; six real upstream Python CLI operations executed. Prompt-led channel workflows and live analytics remain unverified."
     }
+  ],
+  "external_bridges": [
+    {
+      "id": "open-seo",
+      "repository": "https://github.com/every-app/open-seo",
+      "revision": "2d8236a4fd5d799bf5c089187d0131f4dac4f38c",
+      "archive_sha256": "dcac96b90def2ba3b27f14a916e96c059990ad29c5c4c82922bbc2b5c99b5159",
+      "adapter_path": "integrations/open_seo/adapter.py",
+      "operations": [
+        "readiness",
+        "prepare-research",
+        "import-serp"
+      ],
+      "capability": "seo_research",
+      "integration_target": "Money Factory job runner and Content Control integration status",
+      "source_status": "archive_reviewed_not_installed",
+      "runtime_status": "offline_bridge_only_upstream_runtime_unverified",
+      "license": "MIT",
+      "enabled": false,
+      "offline_bridge_enabled": true,
+      "live_execution_enabled": false,
+      "required_for_production": false,
+      "publication_enabled": false,
+      "paid_services_enabled": false,
+      "production_ready": false,
+      "blockers": [
+        "Fresh research requires paid DataForSEO usage and separate runtime configuration"
+      ],
+      "scope": "Project-owned import/export adapter; no downloaded code execution, live service or complete product acceptance"
+    },
+    {
+      "id": "weknora",
+      "repository": "https://github.com/Tencent/WeKnora",
+      "revision": "30658b7d43bf6415537435c42a5c4e95f2766b8d",
+      "archive_sha256": "78245ca971ffd776ef5064d773f3570ff571f9de7773db609623aa927d26fd34",
+      "adapter_path": "integrations/weknora/adapter.py",
+      "operations": [
+        "readiness",
+        "prepare-search",
+        "import-search"
+      ],
+      "capability": "knowledge_retrieval",
+      "integration_target": "Money Factory job runner and Content Control integration status",
+      "source_status": "archive_reviewed_not_installed",
+      "runtime_status": "offline_bridge_only_upstream_runtime_unverified",
+      "license": "MIT with third-party exceptions",
+      "enabled": false,
+      "offline_bridge_enabled": true,
+      "live_execution_enabled": false,
+      "required_for_production": false,
+      "publication_enabled": false,
+      "paid_services_enabled": false,
+      "production_ready": false,
+      "blockers": [
+        "Service, database, retrieval models and authorized knowledge source not configured"
+      ],
+      "scope": "Project-owned import/export adapter; no downloaded code execution, live service or complete product acceptance"
+    },
+    {
+      "id": "openwhispr",
+      "repository": "https://github.com/OpenWhispr/openwhispr",
+      "revision": "7a6ae826de9ec1caf65f3a6e769475dab2ae829f",
+      "archive_sha256": "cd4a16ab7b095c146a28ae343785029b5c6f01c289cdd1f7c5fddbb325350917",
+      "adapter_path": "integrations/openwhispr/adapter.py",
+      "operations": [
+        "readiness",
+        "import-transcript"
+      ],
+      "capability": "transcript_import",
+      "integration_target": "Money Factory job runner and Content Control integration status",
+      "source_status": "archive_reviewed_not_installed",
+      "runtime_status": "offline_bridge_only_upstream_runtime_unverified",
+      "license": "MIT",
+      "enabled": false,
+      "offline_bridge_enabled": true,
+      "live_execution_enabled": false,
+      "required_for_production": false,
+      "publication_enabled": false,
+      "paid_services_enabled": false,
+      "production_ready": false,
+      "blockers": [
+        "Desktop microphone/transcription runtime not installed or verified"
+      ],
+      "scope": "Project-owned import/export adapter; no downloaded code execution, live service or complete product acceptance"
+    },
+    {
+      "id": "openproject",
+      "repository": "https://github.com/opf/openproject",
+      "revision": "b2f981098776c3c1522833273bc77158d71d5ccb",
+      "archive_sha256": "a38f4e5fef6e5d5ddd899472292b5b6990586cda21f7fab1f21036e0ad534eaa",
+      "adapter_path": "integrations/openproject/adapter.py",
+      "operations": [
+        "readiness",
+        "export-work-packages",
+        "import-work-packages"
+      ],
+      "capability": "project_tracking",
+      "integration_target": "Money Factory job runner and Content Control integration status",
+      "source_status": "archive_reviewed_not_installed",
+      "runtime_status": "offline_bridge_only_upstream_runtime_unverified",
+      "license": "GPL-3.0",
+      "enabled": false,
+      "offline_bridge_enabled": true,
+      "live_execution_enabled": false,
+      "required_for_production": false,
+      "publication_enabled": false,
+      "paid_services_enabled": false,
+      "production_ready": false,
+      "blockers": [
+        "OpenProject service, project mapping and authentication not configured"
+      ],
+      "scope": "Project-owned import/export adapter; no downloaded code execution, live service or complete product acceptance"
+    },
+    {
+      "id": "open-higgsfield",
+      "repository": "https://github.com/wide-trace/open-higgsfield",
+      "revision": "b16a0efe4d7e2707b56f8ccb02387fd2a9d2eddf",
+      "archive_sha256": "13636d4bb00145217d3ed7282ad14163d0255005cfbd27de7b159e2db5208446",
+      "adapter_path": "integrations/open_higgsfield/adapter.py",
+      "operations": [
+        "status",
+        "prepare-generation",
+        "validate-export"
+      ],
+      "capability": "video_asset_exchange",
+      "integration_target": "Money Factory job runner and Content Control integration status",
+      "source_status": "archive_reviewed_not_installed",
+      "runtime_status": "offline_bridge_only_upstream_runtime_unverified",
+      "license": "NOASSERTION",
+      "enabled": false,
+      "offline_bridge_enabled": true,
+      "live_execution_enabled": false,
+      "required_for_production": false,
+      "publication_enabled": false,
+      "paid_services_enabled": false,
+      "production_ready": false,
+      "blockers": [
+        "No upstream license found; no source vendored or executed",
+        "Live generation and provider usage disabled"
+      ],
+      "scope": "Project-owned import/export adapter; no downloaded code execution, live service or complete product acceptance"
+    },
+    {
+      "id": "voicestudio",
+      "repository": "https://github.com/debpalash/VoiceStudio",
+      "revision": "311effa5f7b9ca8f2559de7f91fccf35d686e981",
+      "archive_sha256": "dbf99e2672e49ac66dc47e07855b4c5785c565e8419456cc5e8f015032ad5fe9",
+      "adapter_path": "integrations/voicestudio/reel_adapter.py",
+      "operations": [
+        "status",
+        "prepare-narration",
+        "validate-export"
+      ],
+      "capability": "narration_asset_exchange",
+      "integration_target": "Money Factory job runner and Content Control integration status",
+      "source_status": "archive_reviewed_not_installed",
+      "runtime_status": "offline_bridge_only_upstream_runtime_unverified",
+      "license": "AGPL-3.0-only",
+      "enabled": false,
+      "offline_bridge_enabled": true,
+      "live_execution_enabled": false,
+      "required_for_production": false,
+      "publication_enabled": false,
+      "paid_services_enabled": false,
+      "production_ready": false,
+      "blockers": [
+        "New downloaded source runtime not installed or verified; existing synthesis pin remains unchanged"
+      ],
+      "scope": "Project-owned import/export adapter; no downloaded code execution, live service or complete product acceptance"
+    },
+    {
+      "id": "hypit",
+      "repository": "https://github.com/hypit-ai/hypit",
+      "revision": "e26d9142fd8a6f78bf4f3cdb800d6205f4ecca16",
+      "archive_sha256": "9a1e40cb9597b8c8a9008735b0561faaae663f33a1ccaff19016ca13abf2bd2d",
+      "adapter_path": "integrations/hypit/adapter.py",
+      "operations": [
+        "status",
+        "prepare-project",
+        "validate-export"
+      ],
+      "capability": "video_project_exchange",
+      "integration_target": "Money Factory job runner and Content Control integration status",
+      "source_status": "archive_reviewed_not_installed",
+      "runtime_status": "offline_bridge_only_upstream_runtime_unverified",
+      "license": "Hypit source-available license; own-organization commercial use allowed; third-party service and redistribution restricted",
+      "enabled": false,
+      "offline_bridge_enabled": true,
+      "live_execution_enabled": false,
+      "required_for_production": false,
+      "publication_enabled": false,
+      "paid_services_enabled": false,
+      "production_ready": false,
+      "blockers": [
+        "Hypit runtime not installed or executed; configured providers not verified",
+        "Third-party multi-tenant commercial service and commercial redistribution restricted by upstream license"
+      ],
+      "scope": "Project-owned preparation/export adapter only; no upstream service execution or paid providers"
+    }
   ]
 }

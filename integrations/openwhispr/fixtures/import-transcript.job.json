@@ -1,0 +1,8 @@
+{
+  "tool": "openwhispr",
+  "operation": "import-transcript",
+  "input": "integrations/openwhispr/fixtures/transcript.json",
+  "output": "runtime/repository-interop/openwhispr-import-transcript.json",
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}

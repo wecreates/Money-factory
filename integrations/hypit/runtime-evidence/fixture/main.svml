@@ -1,0 +1,24 @@
+<?svml using="@hypit/markup@1"?>
+<svml>
+  <import as="time" from="@hypit/timeline-author@1"/>
+  <import as="space" from="@hypit/spatial@1"/>
+  <import as="media" from="@hypit/media@1"/>
+  <import as="visual" from="@hypit/visual-track@1"/>
+  <import as="film" from="@hypit/film@1"/>
+  <import as="html" from="@hypit/html-video@1"/>
+  <import as="look" source="./style.svs"/>
+  <time:Clock id="clock" frame-rate="24"/>
+  <time:Timeline id="program" clock={clock} end="24f">
+    <time:Window id="scene-0" from="0f" for="24f"/>
+  </time:Timeline>
+  <space:Canvas id="canvas" width="160" height="160"/>
+  <media:Image id="image-0" src="./assets/original-fixture-1b8e24ee565c66dd.png"/>
+  <space:Extent id="extent-0" width="160" height="160"/>
+  <visual:Track id="pictures" timeline={program.timeline}>
+    <visual:Clip id="clip-0" image={image-0} extent={extent-0} during={program.scene-0} frame={canvas.bounds} z="0" fit="contain"/>
+  </visual:Track>
+  <film:Film id="main" canvas={canvas.canvas} timeline={program.timeline} appearance={look.film.main}>
+    <film:Track source={pictures.visual}/>
+  </film:Film>
+  <html:Video id="final" composition={main.composition} timeline={program.timeline}/>
+</svml>

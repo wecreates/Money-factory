@@ -119,6 +119,11 @@ def run(job, runtime):
 def _run(job, runtime):
     if job.get('publication_enabled') or job.get('paid_generation_enabled'):
         raise ValueError('This worker does not support publication or paid generation')
+    # Narrow project-owned bridges do not execute downloaded upstream code. Their
+    # explicit allowlist is independent of the existing installed-source routes.
+    from reel_bridges import handles, run_bridge
+    if handles(job):
+        return run_bridge(job, REGISTRY)
     tool, operation = job['tool'], job['operation']
     upstream = source(tool)
     output = Path(job['output']).resolve()
@@ -146,7 +151,9 @@ def _run(job, runtime):
         result = dispatch(job, runtime / 'rea')
         if not isinstance(result, dict) or result.get('status') not in ('PASS', 'BLOCKED'):
             raise ValueError('Invalid REA adapter result')
-        output.write_text(json.dumps(result, indent=2) + '\n')
+        # Preserve every evidence field without whitespace inflation beyond the
+        # persistence layer's unchanged 1 MiB evidence limit.
+        output.write_text(json.dumps(result, separators=(',', ':')) + '\n')
         if result['status'] != 'PASS':
             return result
     elif (tool, operation) == ('youtube-clipper-skill', 'clip'):
@@ -257,7 +264,10 @@ if __name__ == '__main__':
     parser.add_argument('--runtime', type=Path, required=True)
     args = parser.parse_args()
     try:
-        print(json.dumps(run(json.loads(args.job.read_text()), args.runtime.resolve()), indent=2))
+        result = run(json.loads(args.job.read_text()), args.runtime.resolve())
+        print(json.dumps(result, indent=2))
+        if result.get('execution_kind') == 'project_owned_offline_adapter' and result.get('status') == 'BLOCKED':
+            sys.exit(2)
     except Exception as error:
         print(json.dumps({'status': 'FAIL', 'error': str(error), 'publication_enabled': False}), file=sys.stderr)
         sys.exit(1)

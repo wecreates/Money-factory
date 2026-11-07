@@ -1,0 +1,98 @@
+{
+  "package": "@hypit/hypit",
+  "version": "0.3.1",
+  "entry": {
+    "version": "0.3.1",
+    "resolved": "https://registry.npmjs.org/@hypit/hypit/-/hypit-0.3.1.tgz",
+    "integrity": "sha512-FI54GPQRB9uXSTRmCt8fngzWH/YEEasOIuYhwsEh9G2v92L50N/TdcMiLgDT1KfRjt+C1/HXcG28Bai6HMEDQQ==",
+    "license": "SEE LICENSE IN LICENSE",
+    "dependencies": {
+      "@hypit/browser-capture": "^0.2.0",
+      "@hypit/media-local": "^0.2.0",
+      "@hypit/runtime-local": "^0.1.1",
+      "@hypit/speech-estimate": "^0.1.1",
+      "@hypit/studio": "^0.2.0",
+      "@hypit/video": "^0.2.0",
+      "@hypit/whisperx": "^0.2.0",
+      "@hypit/yt-dlp": "^0.2.0",
+      "@types/node": "24.10.1",
+      "cjs-module-lexer": "2.2.1",
+      "koffi": "3.2.1",
+      "tsx": "4.21.0",
+      "typescript": "5.9.3"
+    },
+    "bin": {
+      "hypit": "bin/hypit.mjs"
+    },
+    "engines": {
+      "node": ">=22.15.0"
+    }
+  },
+  "lock_sha256": "b7b028e45ab08c8cac3acb183ed0a3d8143b3a67886c1336466ee4279e9eb23f",
+  "install_scripts_executed": false,
+  "dependency_hooks": [
+    {
+      "name": "chromium-bidi",
+      "version": "17.0.2",
+      "disabled_hooks": {
+        "prepare": "npm run build"
+      }
+    },
+    {
+      "name": "cliui",
+      "version": "9.0.1",
+      "disabled_hooks": {
+        "prepare": "npm run compile"
+      }
+    },
+    {
+      "name": "esbuild",
+      "version": "0.27.7",
+      "disabled_hooks": {
+        "postinstall": "node install.js"
+      }
+    },
+    {
+      "name": "get-caller-file",
+      "version": "2.0.5",
+      "disabled_hooks": {
+        "prepare": "tsc"
+      }
+    },
+    {
+      "name": "koffi",
+      "version": "3.2.1",
+      "disabled_hooks": {
+        "install": "node ./cnoke.cjs -P . -D src/koffi --prebuild --release"
+      }
+    },
+    {
+      "name": "lightningcss",
+      "version": "1.33.0",
+      "disabled_hooks": {
+        "prepare": "patch-package"
+      }
+    },
+    {
+      "name": "y18n",
+      "version": "5.0.8",
+      "disabled_hooks": {
+        "prepare": "npm run compile"
+      }
+    },
+    {
+      "name": "yargs",
+      "version": "18.2.0",
+      "disabled_hooks": {
+        "prepare": "npm run compile"
+      }
+    },
+    {
+      "name": "yargs-parser",
+      "version": "22.0.0",
+      "disabled_hooks": {
+        "prepare": "npm run compile"
+      }
+    }
+  ]
+}

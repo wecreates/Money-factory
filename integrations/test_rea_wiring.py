@@ -9,6 +9,30 @@ import hosted_job
 
 
 class REAWiringTests(unittest.TestCase):
+    def test_large_rea_evidence_is_lossless_and_fits_strict_persistence_limit(self):
+        import hashlib
+        import types
+        from persist_job import LIMIT, read_file
+        # Synthetic structure reproduces the real project's whitespace growth.
+        evidence = {'status': 'PASS', 'evidence': {'rows': [
+            {'id': i, 'values': [1, 2, 3], 'note': 'original synthetic fixture'}
+            for i in range(10000)]}, 'production_ready': False}
+        self.assertGreater(len((json.dumps(evidence, indent=2) + '\n').encode()), LIMIT)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / 'result.json'
+            adapter = types.ModuleType('rea.adapter')
+            adapter.dispatch = lambda job, runtime: evidence
+            with patch.dict('sys.modules', {'rea.adapter': adapter}):
+                receipt = run.run(dict(tool='rea', operation='analyze-javascript-application',
+                    output=str(output), publication_enabled=False, paid_generation_enabled=False),
+                    root / 'runtime')
+            data = read_file(root, 'result.json')
+            self.assertLessEqual(len(data), LIMIT)
+            self.assertEqual(json.loads(data), evidence)
+            self.assertEqual(receipt['output_sha256'], hashlib.sha256(data).hexdigest())
+            self.assertEqual(json.loads(Path(str(output) + '.receipt.json').read_text()), receipt)
+
     def test_registry_keeps_original_seven_and_adds_engineering_pin(self):
         self.assertEqual([e['order'] for e in run.REGISTRY['repositories']], list(range(1, 8)))
         self.assertEqual(run.TOOLS['rea']['revision'], 'npm:rea-agents@6.4.0')

@@ -1,0 +1,5 @@
+✓ Runtime Worker is down
+
+  Worker  stopped
+
+Managed Programs are unchanged. To stop processes started by Hypit: hypit programs down --project /workspace/scratch/2308b2d79b84/hypit-integration-20261023/smoke-project --runtime /workspace/scratch/2308b2d79b84/hypit-integration-20261023/smoke-project/hypit.runtime.json
