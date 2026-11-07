@@ -46,3 +46,15 @@ test('a stalled database query cannot retain receiver admission indefinitely',as
  assert.deepEqual(retry.res.body,{accepted_event_id:id});
  assert.deepEqual(releases,[true,false]);
 });
+
+test('a rejected release after COMMIT withholds the redacted HTTP acknowledgement',async()=>{
+ const queries=[],releases=[];
+ const pool={connect:()=>({
+  query:sql=>{queries.push(sql);return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:{};},
+  release:discard=>{releases.push(discard);return Promise.reject(Error('private release error'));},
+ })};
+ const handle=createPodEventHandler({pool,key,clock:()=>now});
+ const {req,res}=request();await handle(req,res);
+ assert.equal(res.status,503);assert.deepEqual(res.body,{error:'EVENT_RECEIVER_UNAVAILABLE'});
+ assert.equal(queries.at(-1),'COMMIT');assert.deepEqual(releases,[false]);
+});

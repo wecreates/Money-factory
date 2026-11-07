@@ -36,6 +36,14 @@ test('late connection rejection is consumed after the caller times out',async()=
  assert.deepEqual(f.releases,[]);
 });
 
+test('late unused client release rejects without an unhandled rejection',async()=>{
+ const f=fixture();
+ f.client.release=bad=>{f.releases.push(bad);return Promise.reject(Error('private late release error'));};
+ await assert.rejects(accept(f.pool),/^Error: EVENT_CONNECTION_TIMEOUT$/);
+ f.resolve();await delay(0);
+ assert.deepEqual(f.queries,[]);assert.deepEqual(f.releases,[undefined]);
+});
+
 for(const finishMs of [9,10,11])test(`pool completion at ${finishMs}ms observes a 10ms monotonic deadline`,async t=>{
  let elapsed=0;t.mock.method(performance,'now',()=>elapsed);
  const f=fixture(),pool={connect:async()=>{elapsed=finishMs;return f.client;}};
