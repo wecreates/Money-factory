@@ -31,6 +31,7 @@ test('event creation time cannot lead signed envelope issuance beyond clock-skew
  const boundary={...event,created_at:new Date(now+300000).toISOString()};let hash;
  const boundaryPool={connect:async()=>({release(){},async query(sql,args){
   if(sql.startsWith('INSERT'))hash=args[1];
+  if(sql==='COMMIT')return {command:'COMMIT'};
   return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:{};
  }})};
  assert.deepEqual(await acceptPodEvent(boundaryPool,signed(envelope(boundary)),key,()=>now),{accepted_event_id:id});

@@ -15,6 +15,7 @@ function fixture(clientTransform=value=>value){
  const client={async query(sql){
   queries.push(sql);
   if(sql.startsWith('SELECT'))return {rows:[{event_sha256:hash}]};
+  if(sql==='COMMIT')return {command:'COMMIT'};
   return {};
  },release:discard=>releases.push(Boolean(discard))};
  return {pool:{connect:async()=>clientTransform(client)},client,queries,releases};

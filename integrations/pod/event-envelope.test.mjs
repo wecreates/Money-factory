@@ -46,7 +46,7 @@ test('canonical signatures still admit lower- and uppercase UUID strings with un
   let hash,stored,commits=0;
   const pool={connect:async()=>({release(){},async query(sql,args){
    if(sql.startsWith('INSERT')){hash=args[1];stored=args[2];}
-   if(sql==='COMMIT')commits++;
+   if(sql==='COMMIT'){commits++;return {command:'COMMIT'};}
    return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:{};
   }})};
   const envelope=sign(eventId);

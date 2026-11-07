@@ -8,16 +8,29 @@ const event={id:'12b4c678-1234-4321-abcd-123456789abc',job_id:null,kind:'pod.tes
 const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:now,event});
 const envelope={payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};
 const hash=crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex');
-function fixture({failAt,rollbackFails=false,release}={}){
+function fixture({failAt,rollbackFails=false,release,commitResult=()=>({command:'COMMIT'})}={}){
  const queries=[],releases=[],failure=Error('synthetic database failure');
  const pool={connect:async()=>({query:async sql=>{
   queries.push(sql);
   if(sql===failAt||failAt==='INSERT'&&sql.startsWith('INSERT'))throw failure;
   if(sql==='ROLLBACK'&&rollbackFails)throw Error('synthetic rollback failure');
+  if(sql==='COMMIT')return commitResult();
   return {rows:[{event_sha256:hash}]};
  },release:bad=>{releases.push(bad);return release?.();}})};
  return {pool,queries,releases,failure};
 }
+test('resolved but unverified COMMIT cannot acknowledge or reuse its client',async()=>{
+ let reads=0;
+ for(const result of [{command:'ROLLBACK'},null,{},Object.create({command:'COMMIT'}),
+  {command:['COMMIT']},{get command(){reads++;throw Error('private command getter');}},
+  new Proxy({command:'COMMIT'},{getOwnPropertyDescriptor(){reads++;throw Error('private descriptor trap');}})]){
+  const f=fixture({commitResult:()=>result});
+  await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),/^Error: EVENT_COMMIT_UNVERIFIED$/);
+  assert.equal(f.queries.at(-1),'COMMIT');assert.equal(f.queries.includes('ROLLBACK'),false);
+  assert.deepEqual(f.releases,[true]);
+ }
+ assert.equal(reads,0);
+});
 test('inbox awaits asynchronous client cleanup before acknowledging a committed event',{timeout:1000},async()=>{
  let resolve,started;const releasing=new Promise(yes=>{started=yes;});
  const f=fixture({release:()=>new Promise(yes=>{resolve=yes;started();})});

@@ -150,6 +150,25 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   await assert.rejects(()=>acceptPodEvent(pool,sign({id:duplicateId,kind:'pod.published',payload:{}}),key),/EVENT_REPLAY_CONFLICT/);
   assert.equal((await pool.query('SELECT event FROM pod_content_event_inbox WHERE event_id=$1',[duplicateId])).rows[0].event.kind,'pod.production.qa_failed');
 
+  // An aborted PostgreSQL transaction can resolve COMMIT with a ROLLBACK
+  // command tag. Force that outcome only on this disposable connection.
+  const abortedId=crypto.randomUUID(),abortedEnvelope=sign({id:abortedId,kind:'pod.test.aborted_commit',payload:{}});
+  let commitTag,discarded;
+  const abortedPool={connect:async()=>{
+   const client=await pool.connect();
+   return {release:discard=>{discarded=discard;client.release(discard);},query:async(sql,args)=>{
+    if(sql==='COMMIT')await assert.rejects(client.query('SELECT 1/0'),error=>error.code==='22012');
+    const result=await client.query(sql,args);
+    if(sql==='COMMIT')commitTag=result.command;
+    return result;
+   }};
+  }};
+  await assert.rejects(acceptPodEvent(abortedPool,abortedEnvelope,key),/^Error: EVENT_COMMIT_UNVERIFIED$/);
+  assert.equal(commitTag,'ROLLBACK');assert.equal(discarded,true);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[abortedId])).rows[0].n,0);
+  assert.equal((await acceptPodEvent(pool,abortedEnvelope,key)).accepted_event_id,abortedId);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[abortedId])).rows[0].n,1);
+
   // Force the receiver to wait on an uncommitted duplicate event, then expire
   // its envelope or invalidate its clock. Rolling back the blocker frees the
   // insert; the receiver must roll back that row, then allow an unchanged-ID
