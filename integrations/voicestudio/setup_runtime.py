@@ -1,5 +1,6 @@
 """Install the focused official VoiceStudio/Kitten CPU runtime and pinned model."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -22,8 +23,10 @@ def setup(upstream, runtime):
 
 def download(runtime):
     import hashlib
-    from huggingface_hub import snapshot_download
     runtime=Path(runtime); cache=runtime/'hf-cache'
+    # Keep all download caches in the requested writable runtime.
+    os.environ['HF_XET_CACHE']=str(runtime/'xet-cache')
+    from huggingface_hub import snapshot_download
     snapshot=Path(snapshot_download(MODEL,revision=MODEL_REVISION,cache_dir=cache,token=False))
     config=json.loads((snapshot/'config.json').read_text())
     files=['config.json',config['model_file'],config['voices']]
