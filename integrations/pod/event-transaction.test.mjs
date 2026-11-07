@@ -8,16 +8,53 @@ const event={id:'12b4c678-1234-4321-abcd-123456789abc',job_id:null,kind:'pod.tes
 const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:now,event});
 const envelope={payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};
 const hash=crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex');
-function fixture({failAt,rollbackFails=false}={}){
+function fixture({failAt,rollbackFails=false,release}={}){
  const queries=[],releases=[],failure=Error('synthetic database failure');
  const pool={connect:async()=>({query:async sql=>{
   queries.push(sql);
   if(sql===failAt||failAt==='INSERT'&&sql.startsWith('INSERT'))throw failure;
   if(sql==='ROLLBACK'&&rollbackFails)throw Error('synthetic rollback failure');
   return {rows:[{event_sha256:hash}]};
- },release:bad=>releases.push(bad)})};
+ },release:bad=>{releases.push(bad);return release?.();}})};
  return {pool,queries,releases,failure};
 }
+test('inbox awaits asynchronous client cleanup before acknowledging a committed event',{timeout:1000},async()=>{
+ let resolve,started;const releasing=new Promise(yes=>{started=yes;});
+ const f=fixture({release:()=>new Promise(yes=>{resolve=yes;started();})});
+ let acknowledged=false;
+ const pending=acceptPodEvent(f.pool,envelope,key,()=>now).then(value=>{acknowledged=true;return value;});
+ await releasing;await new Promise(yes=>setImmediate(yes));
+ try{assert.equal(acknowledged,false);assert.equal(f.queries.at(-1),'COMMIT');}
+ finally{resolve();await pending;}
+ assert.deepEqual(await pending,{accepted_event_id:event.id});assert.deepEqual(f.releases,[false]);
+});
+for(const mode of ['reject','stall'])test(`inbox does not acknowledge after ${mode} during asynchronous cleanup`,{timeout:1000},async()=>{
+ const error=Error('private release error');
+ const f=fixture({release:()=>{
+  if(mode==='stall')return new Promise(()=>{});
+  const rejected=Promise.reject(error);rejected.catch(()=>{});return rejected;
+ }});
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now,{transactionTimeoutMs:35}),
+  mode==='stall'?/^Error: EVENT_TRANSACTION_TIMEOUT$/:/^Error: EVENT_RELEASE_UNVERIFIED$/);
+ assert.equal(f.queries.at(-1),'COMMIT');assert.deepEqual(f.releases,[false]);
+});
+test('release rejection after rollback preserves the original transaction failure',async()=>{
+ const f=fixture({failAt:'INSERT',release:()=>Promise.reject(Error('private cleanup failure'))});
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),error=>error===f.failure);
+ assert.equal(f.queries.at(-1),'ROLLBACK');assert.deepEqual(f.releases,[false]);
+});
+test('a synchronous release ending at the transaction deadline cannot acknowledge',async t=>{
+ let elapsed=0;t.mock.method(performance,'now',()=>elapsed);
+ const f=fixture({release:()=>{elapsed=10;}});
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now,{transactionTimeoutMs:10}),/^Error: EVENT_TRANSACTION_TIMEOUT$/);
+ assert.equal(f.queries.at(-1),'COMMIT');assert.deepEqual(f.releases,[false]);
+});
+test('release cannot use an executable thenable to manufacture acknowledgement',async()=>{
+ let reads=0;
+ const f=fixture({release:()=>({get then(){reads++;throw Error('private then getter');}})});
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),/^Error: EVENT_RELEASE_UNVERIFIED$/);
+ assert.equal(reads,0);assert.deepEqual(f.releases,[false]);
+});
 test('inbox deadlines precede writes and successful commit returns a reusable connection',async()=>{
  const f=fixture();assert.deepEqual(await acceptPodEvent(f.pool,envelope,key,()=>now),{accepted_event_id:event.id});
  assert.deepEqual(f.queries.slice(0,3),['BEGIN',"SET LOCAL lock_timeout='2s'","SET LOCAL statement_timeout='10s'"]);

@@ -134,6 +134,20 @@ export function verifyPodEventPool(pool){
  return pool;
 }
 
+function startClientRelease(client,discard){
+ return new Promise((resolve,reject)=>{
+  const fail=()=>reject(Error('EVENT_RELEASE_UNVERIFIED'));
+  try{
+   const result=client.release(discard);
+   if(utilTypes.isPromise(result))Promise.prototype.then.call(result,()=>resolve(),fail);
+   else if(result!==null&&(typeof result==='object'||typeof result==='function'))fail();
+   else resolve();
+  }catch{fail();}
+ });
+}
+
+function releaseLateClient(client){startClientRelease(client,undefined).catch(()=>{});}
+
 async function acquireClient(pool,timeoutMs){
  const connect=verifiedPoolConnections.get(verifyPodEventPool(pool));
  const pending=pendingAcquisitions.get(pool)||0;
@@ -160,7 +174,7 @@ async function acquireClient(pool,timeoutMs){
   const client=connected.client;
   const verified={query:exactCapability(client,'query'),release:exactCapability(client,'release')};
   candidate=verified;
-  if(expired){candidate=undefined;verified.release();throw Error('EVENT_CONNECTION_TIMEOUT');}
+  if(expired){candidate=undefined;releaseLateClient(verified);throw Error('EVENT_CONNECTION_TIMEOUT');}
   return verified;
  });
  try{
@@ -172,7 +186,7 @@ async function acquireClient(pool,timeoutMs){
   handedOff=true;return client;
  }finally{
   clearTimeout(timer);expired=true;
-  if(!handedOff&&candidate){const client=candidate;candidate=undefined;client.release();}
+  if(!handedOff&&candidate){const client=candidate;candidate=undefined;releaseLateClient(client);}
  }
 }
 
@@ -208,7 +222,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
  if(!validEventStorageText(e))throw clientFailure(400,'EVENT_STORAGE_TEXT_INVALID');
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
  const c=await acquireClient(pool,connectionTimeoutMs),transactionDeadline=performance.now()+transactionTimeoutMs;
- let discard=false,began=false,beginAttempted=false,commitAttempted=false;
+ let discard=false,began=false,beginAttempted=false,commitAttempted=false,failed=false;
  try{
   beginAttempted=true;await settleQueryWithin(c.query,transactionDeadline,'BEGIN');began=true;
   // Sender timeouts do not cancel PostgreSQL work. Bound lock and statement
@@ -225,6 +239,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   if(!Number.isSafeInteger(current)||current<0||p.issued_at_ms>current||current-p.issued_at_ms>300000)throw clientFailure(400,'EVENT_SCOPE_INVALID');
   commitAttempted=true;await settleQueryWithin(c.query,transactionDeadline,'COMMIT');return {accepted_event_id:e.id};
  }catch(err){
+  failed=true;
   // Rejected transaction boundaries leave protocol or commit state uncertain.
   // Do not send more SQL on that client; destroy it. Between confirmed BEGIN
   // and attempted COMMIT, rollback remains the normal cleanup path.
@@ -232,6 +247,14 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   else if(began)try{await settleQueryWithin(c.query,transactionDeadline,'ROLLBACK');}catch{discard=true;}
   else if(beginAttempted)discard=true;
   throw err;
- }finally{c.release(discard);}
+ }finally{
+  // Release once even after the transaction budget is exhausted. Never send
+  // a success while cleanup is unverified; an already committed event can be
+  // retried safely through the exact event-ID/hash deduplication path.
+  const cleanup=startClientRelease(c,discard);
+  cleanup.catch(()=>{});
+  try{await settleQueryWithin(()=>cleanup,transactionDeadline);}
+  catch(error){if(!failed)throw error;}
+ }
 }
 
