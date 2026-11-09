@@ -27,6 +27,10 @@ test('task artifact requires exact upstream approval',()=>{
  const g=JSON.parse(issuePodGrant({readiness,job:j,approval:{...approval,task_sha256:j.task_sha256},key,now}).payload);
  assert.equal(g.task_sha256,j.task_sha256);
 });
+test('a task-scoped approval cannot authorize a job with no task binding',()=>{
+ const scoped={...approval,task_sha256:'a'.repeat(64)};
+ assert.throws(()=>issuePodGrant({readiness,job,approval:scoped,key,now}),/^Error: TASK_APPROVAL_REQUIRED$/);
+});
 
 function launch(){
  const j={...job,mode:'LAUNCH',package_sha256:'a'.repeat(64)};

@@ -36,6 +36,22 @@ test('a RESEARCH grant cannot be replayed for PRELAUNCH under a broader business
  assert.throws(()=>enforceBrief(grant,{...f.job,mode:'PRELAUNCH'}),/READINESS_CEILING/);
  assert.equal(grant.max_mode,'RESEARCH');
 });
+test('task-scoped approval stays bound from issuance to consumer verification',async()=>{
+ const {verifyEnvelope,enforceBrief}=await consumer(),f=input(),digest='a'.repeat(64);
+ f.approval.task_sha256=digest;
+ assert.throws(()=>issuePodGrant(f),/^Error: TASK_APPROVAL_REQUIRED$/);
+ for(const invalid of [null,'b'.repeat(64),[digest],digest.toUpperCase()]){
+  f.job.task_sha256=invalid;
+  assert.throws(()=>issuePodGrant(f),/^Error: TASK_APPROVAL_REQUIRED$/);
+ }
+ f.job.task_sha256=digest;
+ const grant=verifyEnvelope(issuePodGrant(f),f.key,'content-control:pod',f.now);
+ assert.equal(enforceBrief(grant,f.job).task_sha256,digest);
+ assert.throws(()=>enforceBrief(grant,{...f.job,task_sha256:'b'.repeat(64)}),/TASK_SCOPE_MISMATCH/);
+ const {task_sha256,...unbound}=f.job;
+ assert.throws(()=>enforceBrief(grant,unbound),/TASK_SCOPE_MISMATCH/);
+ assert.equal(grant.publication_permission,false);
+});
 test('consumer omits malformed signed claim and price references from actual issuer output',async()=>{
  const {verifyEnvelope,enforceBrief}=await consumer(),f=input();
  f.verifiedFacts={title:{verified:true,value:'Fixture title',evidence_ids:['fixture-source']},
