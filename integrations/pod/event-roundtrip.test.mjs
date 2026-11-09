@@ -7,7 +7,7 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {once} from 'node:events';
-import {createPodEventHandler} from './event-handler.mjs';
+import {createPodBridgeDispatcher} from './bridge-dispatcher.mjs';
 import {acceptPodEvent} from './event-inbox.mjs';
 
 const connectionString=process.env.POD_BRIDGE_TEST_DATABASE_URL;
@@ -22,8 +22,9 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
  const require=createRequire(path.join(root,'package.json'));
  const {Pool}=require('pg');
  const {deliverOutbox}=await import(pathToFileURL(path.join(root,'integrations/pod/outbox.mjs')));
+ const {createGrantResolver}=await import(pathToFileURL(path.join(root,'integrations/pod/grant-client.mjs')));
  const {PodDB}=await import(pathToFileURL(path.join(root,'pod-db-bridge.js')));
- const {BRIDGE_RULES}=await import(pathToFileURL(path.join(root,'integrations/pod/policy.mjs')));
+ const {BRIDGE_RULES,verifyEnvelope}=await import(pathToFileURL(path.join(root,'integrations/pod/policy.mjs')));
  const {monitorPodPool}=await import(pathToFileURL(path.join(root,'integrations/pod/pool-health.mjs')));
  const admin=new Pool({connectionString,max:1});
  const schema='pod_bridge_'+crypto.randomBytes(8).toString('hex');
@@ -42,11 +43,35 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   }finally{c.release();}},async tx(fn){const c=await pool.connect();try{
    await c.query('BEGIN');const result=await fn(c);await c.query('COMMIT');return result;
   }catch(error){await c.query('ROLLBACK');throw error;}finally{c.release();}}};
-  server=http.createServer(createPodEventHandler({pool,key}));
+  const authKey='test-only-grant-bearer-'.repeat(3),signingKey='test-only-grant-signing-'.repeat(3);
+  const grantPath='/pod/grant',eventPath='/pod/events';
+  const brief={id:'fixture-job',business_id:'fixture-business',account_id:'fixture-account',
+   platform:'kdp',destination_platform:'kdp',mode:'PRELAUNCH',task_sha256:'a'.repeat(64)};
+  let revoked=false,loads=0;
+  const dispatch=createPodBridgeDispatcher({grantPath,eventPath,pool,authKey,signingKey,outboxKey:key,loadSnapshot:async id=>{
+   loads++;assert.equal(id,brief.id);
+   return {job:brief,readiness:{businesses:[{id:brief.business_id,content_production_ready:true,max_mode:'PRELAUNCH'}]},
+    approval:{job_id:id,business_id:brief.business_id,account_id:brief.account_id,platform:brief.platform,
+     task_sha256:brief.task_sha256,revoked,production_permission:true,publication_permission:false,
+     expires_at_ms:Date.now()+60000,evidence_event_id:'fixture-approval'}};
+  }});
+  server=http.createServer(async(req,res)=>{
+   if(await dispatch(req,res))return;
+   res.writeHead(404);res.end();
+  });
   await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const local='http://127.0.0.1:'+server.address().port;
   // Inject the test transport: no external endpoint or marketplace is contacted.
-  const transport=async(endpoint,options)=>{assert.equal(endpoint.href,'https://authority.invalid/pod/events');return fetch(local,options);};
+  const transport=async(endpoint,options)=>{assert.equal(endpoint.href,'https://authority.invalid'+eventPath);return fetch(local+eventPath,options);};
+  const resolveGrant=createGrantResolver({env:{POD_GRANT_URL:'https://authority.invalid'+grantPath,
+   POD_GRANT_AUTH_KEY:authKey,POD_UPSTREAM_KEY:signingKey},fetchImpl:async(endpoint,options)=>{
+    assert.equal(endpoint.href,'https://authority.invalid'+grantPath);return fetch(local+grantPath,options);
+  }});
+  const authorized=verifyEnvelope(await resolveGrant({id:brief.id,brief}),signingKey,'content-control:pod');
+  assert.equal(authorized.task_sha256,brief.task_sha256);assert.equal(authorized.publication_permission,false);
+  revoked=true;
+  await assert.rejects(resolveGrant({id:brief.id,brief}),/^Error: GRANT_AUTHORITY_BLOCKED$/);
+  assert.equal(loads,2,'renewal must fetch the revoked snapshot instead of reusing the grant');
   const options={url:'https://authority.invalid/pod/events',key,fetchImpl:transport,continueOnError:true};
   const id=crypto.randomUUID(),job=crypto.randomUUID();
   await pool.query('INSERT INTO pod_events(id,job_id,kind,payload) VALUES($1,$2,$3,$4)',[id,job,'pod.production.review_required',{publication_enabled:false}]);
