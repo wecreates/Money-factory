@@ -25,6 +25,28 @@ and remains retryable. It never updates readiness or the verified revenue ledger
 Tests use an in-memory transaction double and a real local HTTP server; they are
 not evidence that the deployed authority or production database is configured.
 
+### Mount both handlers in the existing authority
+
+`bridge-dispatcher.mjs` exports `createPodBridgeDispatcher({grantPath, eventPath,
+loadSnapshot, pool, authKey, signingKey, outboxKey})`. Construct it once at host
+startup with the authoritative snapshot loader and the existing restricted inbox
+pool. `authKey`, `signingKey` and `outboxKey` are the host-side counterparts of
+`POD_GRANT_AUTH_KEY`, `POD_UPSTREAM_KEY` and `POD_OUTBOX_KEY`; startup rejects any
+reuse. Set distinct explicit origin-form paths matching the configured HTTPS
+grant and outbox endpoints. Path segments accept only ASCII letters, numbers,
+underscores and hyphens. Query strings, trailing slashes, encoded aliases and
+other targets do not dispatch to POD.
+
+Before any middleware consumes the request stream, call
+`if (await dispatch(req, res)) return;` in the existing host's raw HTTP handler.
+On `false`, continue to the host's normal non-POD router. Do not separately
+register normalized aliases for these paths. The dispatcher retains the original
+handlers' auth, size, timeout and response rules, and does not listen on a socket,
+provision a pool, run a migration or enable a feature. The host still needs its
+TLS ingress, real current snapshot loader, migrated restricted pool and live
+verification. The existing disposable PostgreSQL workflow exercises the same
+dispatcher with Content Control's real grant client and outbox sender.
+
 Both POD HTTP handlers strictly decode the bounded raw body as UTF-8 before
 JSON parsing. Invalid, overlong, surrogate or truncated byte sequences are
 rejected instead of silently replaced before signature or scope checks. Valid
