@@ -25,7 +25,8 @@ export function issuePodGrant(input){
  const launch=job.mode==='LAUNCH';
  if(launch&&(approval.publication_permission!==true||business.launch_content_allowed!==true||approval.providers_healthy!==true||
   typeof job.package_sha256!=='string'||!/^[a-f0-9]{64}$/.test(job.package_sha256)||approval.package_sha256!==job.package_sha256))throw Error('LAUNCH_BLOCKED');
- if(job.task_sha256!==undefined&&(typeof job.task_sha256!=='string'||!/^[a-f0-9]{64}$/.test(job.task_sha256)||approval.task_sha256!==job.task_sha256))throw Error('TASK_APPROVAL_REQUIRED');
+ if((job.task_sha256!==undefined||approval.task_sha256!==undefined)&&
+  (typeof job.task_sha256!=='string'||!/^[a-f0-9]{64}$/.test(job.task_sha256)||approval.task_sha256!==job.task_sha256))throw Error('TASK_APPROVAL_REQUIRED');
  const budget=launch?enforceReleaseEconomics({price,economics},job,now):null;
  if(budget&&approval.economics_event_id!==budget.evidence_event_id)throw Error('ECONOMICS_APPROVAL_REQUIRED');
  // The permissive authority copy above preserves precise domain errors for
