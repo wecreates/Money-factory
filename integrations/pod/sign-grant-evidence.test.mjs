@@ -44,3 +44,11 @@ test('grant envelope signer retains canonical zero',()=>{
  const signed=signPodGrant({...payload(),verified_facts:{score:0}},key);
  assert.equal(JSON.parse(signed.payload).verified_facts.score,0);
 });
+
+test('grant signer enforces the consumer payload byte ceiling after JSON framing',()=>{
+ const p={...payload(),claim:''},overhead=Buffer.byteLength(JSON.stringify(p));
+ p.claim='x'.repeat(262144-overhead);
+ assert.equal(Buffer.byteLength(signPodGrant(p,key).payload),262144);
+ p.claim+='x';
+ assert.throws(()=>signPodGrant(p,key),/^Error: GRANT_PAYLOAD_TOO_LARGE$/);
+});

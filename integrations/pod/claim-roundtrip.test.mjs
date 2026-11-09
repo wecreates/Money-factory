@@ -52,6 +52,16 @@ test('task-scoped approval stays bound from issuance to consumer verification',a
  assert.throws(()=>enforceBrief(grant,unbound),/TASK_SCOPE_MISMATCH/);
  assert.equal(grant.publication_permission,false);
 });
+test('issuer refuses numbers the pinned consumer cannot represent safely',async()=>{
+ const {verifyEnvelope,enforceBrief}=await consumer(),f=input();
+ f.verifiedFacts={title:{verified:true,value:'Fixture title',evidence_ids:['fixture-source'],score:9007199254740992}};
+ assert.throws(()=>issuePodGrant(f),/^Error: AUTHORITY_SNAPSHOT_UNVERIFIED$/);
+ for(const score of [Number.MIN_SAFE_INTEGER,Number.MAX_SAFE_INTEGER,0.125]){
+  f.verifiedFacts.title.score=score;
+  const grant=verifyEnvelope(issuePodGrant(f),f.key,'content-control:pod',f.now);
+  assert.equal(enforceBrief(grant,f.job).facts.title.score,score);
+ }
+});
 test('consumer omits malformed signed claim and price references from actual issuer output',async()=>{
  const {verifyEnvelope,enforceBrief}=await consumer(),f=input();
  f.verifiedFacts={title:{verified:true,value:'Fixture title',evidence_ids:['fixture-source']},

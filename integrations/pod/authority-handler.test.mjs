@@ -36,6 +36,20 @@ async function serve(t,options){
   fetch('http://127.0.0.1:'+server.address().port,{method:'POST',signal,
    headers:{authorization,'content-type':contentType},body});
 }
+test('authority returns a redacted failure instead of an unusable signed grant',async t=>{
+ let score=Number.MAX_SAFE_INTEGER+1;
+ const post=await serve(t,{loadSnapshot:async id=>({...snapshot(id),
+  verifiedFacts:{title:{verified:true,value:'Fixture title',evidence_ids:['fixture-source'],score}}})});
+ const rejected=await post();
+ assert.equal(rejected.status,409);
+ assert.deepEqual(await rejected.json(),{error:'GRANT_BLOCKED'});
+ score=Number.MAX_SAFE_INTEGER;
+ const accepted=await post();
+ assert.equal(accepted.status,200);
+ const grant=JSON.parse((await accepted.json()).payload);
+ assert.equal(grant.verified_facts.title.score,score);
+ assert.equal(grant.publication_permission,false);
+});
 test('authority accepts case-insensitive Bearer scheme and required HTTP spaces',async t=>{
  let loads=0;
  const post=await serve(t,{loadSnapshot:async id=>{loads++;return snapshot(id);}});
