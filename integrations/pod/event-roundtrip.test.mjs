@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import http from 'node:http';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
@@ -48,7 +49,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   }catch(error){await c.query('ROLLBACK');throw error;}finally{c.release();}}};
   const authKey='test-only-grant-bearer-'.repeat(3),signingKey='test-only-grant-signing-'.repeat(3);
   const grantPath='/pod/grant',eventPath='/pod/events',ackPath='/pod/ack-freshness';
-  const brief={id:crypto.randomUUID(),business_id:'fixture-business',account_id:'fixture-account',
+  const brief={id:crypto.randomUUID(),business_id:'fixture-business',account_id:crypto.randomUUID(),
    platform:'kdp',destination_platform:'kdp',mode:'PRELAUNCH',task_sha256:'a'.repeat(64)};
   let revoked=false,loads=0;
   const dispatch=createPodBridgeDispatcher({grantPath,eventPath,pool,authKey,signingKey,outboxKey:key,loadSnapshot:async id=>{
@@ -276,6 +277,57 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
    assert.deepEqual((await pool.query('SELECT state,reason_code,lease_until::text,attempt,fencing_token FROM pod_production_queue WHERE id=$1',[brief.id])).rows,
     [{state:held,reason_code:reason,lease_until:lease,attempt:1,fencing_token:'7'}]);
    assert.deepEqual(await archiveRows(),archives);
+  }
+
+  // Exercise actual state export/restore before renewing authority, not just
+  // recovery on an already running queue. The recovery receipt may be delivered
+  // to the inbox, but it must not release an unverified restored job for retry.
+  const {migrate}=await import(pathToFileURL(path.join(root,'scripts/pod_storage_init.mjs')));
+  const {exportStateArchive,restoreStateArchive}=await import(pathToFileURL(path.join(root,'integrations/pod/state-archive.mjs')));
+  const archiveRoot=await fs.mkdtemp(path.join(os.tmpdir(),'pod-bridge-restore-'));
+  const databases=[],dbPools=[],role=`${schema}_archive`;
+  let roleCreated=false;
+  try{
+   await admin.query(`CREATE ROLE ${role} NOLOGIN`);roleCreated=true;
+   for(const suffix of ['source','target']){
+    const name=`${role}_${suffix}`;await admin.query(`CREATE DATABASE ${name} TEMPLATE template0`);databases.push(name);
+    const destination=new URL(url);destination.pathname=`/${name}`;
+    const dbPool=new Pool({connectionString:destination.toString(),max:2});dbPools.push(dbPool);
+    await migrate(dbPool,role);
+   }
+   const [source,target]=dbPools;
+   await source.query("INSERT INTO pod_concepts(id,business_id,fingerprint,rights_state) VALUES($1,$2,$3,'PASS')",[conceptId,brief.business_id,crypto.randomUUID()]);
+   await source.query("INSERT INTO pod_accounts(id,platform,state,daily_cap) VALUES($1,$2,'ACTIVE',10)",[brief.account_id,brief.platform]);
+   await source.query(`INSERT INTO pod_production_queue
+    (id,concept_id,account_id,platform,revision,brief,upstream_envelope,idempotency_key,state,attempt,fencing_token,lease_until)
+    VALUES($1,$2,$3,$4,1,$5,'{}',$6,'processing',1,7,'infinity')`,
+    [brief.id,conceptId,brief.account_id,brief.platform,brief,crypto.randomUUID()]);
+   const restricted=owner=>({connect:async()=>{
+    const c=await owner.connect();try{await c.query(`SET ROLE ${role}`);}catch(error){c.release(true);throw error;}
+    return {query:(...args)=>c.query(...args),release:()=>c.release(true)};
+   }});
+   const restoredDB=new PodDB({pool:restricted(target),upstreamKey:signingKey,
+    bridge:{producer:'CYZOR Money Factory',consumer:'Content Control',contract:{fail_closed_rules:BRIDGE_RULES}},
+    expiresAt:new Date(Date.now()+7*86400000).toISOString()});
+   const archive={directory:path.join(archiveRoot,'snapshot'),key:Buffer.alloc(32,18),env:{PUBLICATION_ENABLED:'false',
+    POD_PUBLICATION_ENABLED:'false',POD_PRODUCTION_ENABLED:'false',POD_OUTBOX_ENABLED:'false'}};
+   await exportStateArchive({pool:restricted(source)},archive);
+   const receipt=await restoreStateArchive(restoredDB,archive);
+   const recoveryId=(await target.query("SELECT id FROM pod_events WHERE kind='pod.recovery.restored'")).rows[0].id;
+   assert.deepEqual(await deliverOutbox(restoredDB,options),{delivered:1,failed:0,nextCursor:null});
+   assert.deepEqual(await deliverOutbox(restoredDB,options),{delivered:0,failed:0,nextCursor:null});
+   assert.deepEqual((await pool.query('SELECT event->\'payload\' AS payload FROM pod_content_event_inbox WHERE event_id=$1',[recoveryId])).rows,[{payload:receipt}]);
+   const restoredGrant=await resolveGrant({id:brief.id,brief});
+   await assert.rejects(restoredDB.requeueRepair(brief.id,restoredGrant),/^Error: REPAIR_BLOCKED$/);
+   const held=(await target.query('SELECT state,reason_code,lease_until::text,attempt,fencing_token FROM pod_production_queue WHERE id=$1',[brief.id])).rows;
+   assert.deepEqual(held,[{state:'blocked',reason_code:'PRODUCTION_LEASE_UNVERIFIED',lease_until:'infinity',attempt:1,fencing_token:'8'}]);
+   assert.equal((await metrics(restoredDB)).health.unverified_leases,'1');
+   assert.equal((await target.query("SELECT id FROM pod_events WHERE kind='pod.repair.archived'")).rowCount,0);
+  }finally{
+   await Promise.all(dbPools.map(p=>p.end()));
+   for(const name of databases.reverse())await admin.query(`DROP DATABASE ${name}`);
+   if(roleCreated)await admin.query(`DROP ROLE ${role}`);
+   await fs.rm(archiveRoot,{recursive:true,force:true});
   }
 
   // Cross the sender's real storage cutoff after the receiver commits the first
