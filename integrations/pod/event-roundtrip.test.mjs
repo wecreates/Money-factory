@@ -354,6 +354,35 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_events WHERE id=ANY($1::uuid[]) AND delivered_at IS NOT NULL',[cutoffIds])).rows[0].n,2);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=ANY($1::uuid[])',[cutoffIds])).rows[0].n,2);
 
+  // A client-side query rejection does not put PostgreSQL in aborted-transaction
+  // state. The managed sender must roll back the earlier real outbox insert.
+  const atomicId=crypto.randomUUID(),atomicPayload={fixture:'transaction-completion'};
+  const atomicOptions={bridge:{producer:'CYZOR Money Factory',consumer:'Content Control',contract:{fail_closed_rules:BRIDGE_RULES}},
+   expiresAt:new Date(Date.now()+7*86400000).toISOString()};
+  const reasonlessDB=new PodDB({...atomicOptions,pool:{connect:async()=>{
+   const client=await pool.connect();return {release:discard=>client.release(discard),query:(...args)=>
+    args[0]?.text==='SELECT 2'?Promise.reject(false):client.query(...args)};
+  }}});
+  const writeAtomic=c=>c.query("INSERT INTO pod_events(id,job_id,kind,payload) VALUES($1,$2,'pod.test.atomic',$3)",[atomicId,job,atomicPayload]);
+  await assert.rejects(reasonlessDB.tx(async c=>{
+   await writeAtomic(c);await c.query('SELECT 2').catch(()=>{});
+  }),/^Error: POD_TRANSACTION_QUERY_FAILED$/);
+  assert.equal((await pool.query('SELECT id FROM pod_events WHERE id=$1',[atomicId])).rowCount,0);
+  assert.deepEqual(await deliverOutbox(cutoffDB,{...options,fetchImpl:()=>assert.fail('uncommitted outbox reached transport')}),
+   {delivered:0,failed:0,nextCursor:null});
+  await cutoffDB.tx(writeAtomic);
+  const lateCutoffDB=new PodDB({...atomicOptions,pool:{connect:async()=>{
+   const client=await pool.connect();return {query:(...args)=>client.query(...args),release:async discard=>{
+    await Promise.resolve();client.release(discard);lateCutoffDB.expiresAt=Date.now()+3600000;
+   }};
+  }}});
+  await assert.rejects(deliverOutbox(lateCutoffDB,{...options,fetchImpl:()=>assert.fail('expired selection reached transport')}),
+   /^Error: POD_STORAGE_EXPIRING$/);
+  assert.equal((await pool.query('SELECT event_id FROM pod_content_event_inbox WHERE event_id=$1',[atomicId])).rowCount,0);
+  assert.deepEqual(await deliverOutbox(cutoffDB,options),{delivered:1,failed:0,nextCursor:null});
+  assert.deepEqual((await pool.query("SELECT event->'payload' AS payload FROM pod_content_event_inbox WHERE event_id=$1",[atomicId])).rows,[{payload:atomicPayload}]);
+  assert.deepEqual(await deliverOutbox(cutoffDB,options),{delivered:0,failed:0,nextCursor:null});
+
   const eventRecord=event=>({job_id:null,created_at:new Date().toISOString(),...event});
   const sign=event=>{event=eventRecord(event);
    const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:Date.now(),event});
