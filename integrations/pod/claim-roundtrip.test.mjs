@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import http from 'node:http';
 import {pathToFileURL} from 'node:url';
 import {issuePodGrant} from './readiness-grant.mjs';
+import {createPodAuthorityHandler} from './authority-handler.mjs';
 
 async function consumer(){
  if(!process.env.CONTENT_CONTROL_ROOT)throw Error('CONTENT_CONTROL_ROOT_REQUIRED');
@@ -16,6 +18,34 @@ function input(){
   approval:{job_id:job.id,business_id:job.business_id,account_id:job.account_id,platform:job.platform,
    production_permission:true,publication_permission:false,revoked:false,evidence_event_id:'fixture-approval',expires_at_ms:now+60000}};
 }
+test('pinned Content Control resolver only receives a current grant after a fresh authority retry',async t=>{
+ const f=input(),authKey='synthetic-authority-transport-'.repeat(2);
+ const {createGrantResolver}=await import(pathToFileURL(path.join(process.env.CONTENT_CONTROL_ROOT,'integrations/pod/grant-client.mjs')).href);
+ let mode='expiring',reads=0,loads=0;
+ const handler=createPodAuthorityHandler({authKey,signingKey:f.key,
+  clock:()=>++reads===2&&mode==='expiring'?f.approval.expires_at_ms:f.now,
+  loadSnapshot:id=>{
+   assert.equal(id,f.job.id);loads++;reads=0;
+   return {job:f.job,readiness:f.readiness,approval:{...f.approval,revoked:mode==='revoked',evidence_event_id:'fixture-'+loads}};
+  }});
+ const server=http.createServer(handler);
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ t.after(()=>{server.closeAllConnections();return new Promise(resolve=>server.close(resolve));});
+ const fixtureUrl='https://authority.example.invalid/pod/grant',responses=[];
+ const resolve=createGrantResolver({env:{POD_GRANT_URL:fixtureUrl,POD_GRANT_AUTH_KEY:authKey,POD_UPSTREAM_KEY:f.key},
+  fetchImpl:async (target,options)=>{
+   assert.equal(target.href,fixtureUrl);
+   const response=await fetch('http://127.0.0.1:'+server.address().port+'/pod/grant',options);
+   responses.push(response.status);return response;
+  }});
+ const job={id:f.job.id,brief:f.job};
+ await assert.rejects(resolve(job),/GRANT_AUTHORITY_BLOCKED/);
+ mode='current';
+ const grant=JSON.parse((await resolve(job)).payload);
+ assert.equal(grant.approval_event_id,'fixture-2');assert.equal(grant.publication_permission,false);
+ mode='revoked';await assert.rejects(resolve(job),/GRANT_AUTHORITY_BLOCKED/);
+ assert.deepEqual(responses,[409,200,409]);assert.equal(loads,3);
+});
 test('a PRELAUNCH grant cannot be replayed for LAUNCH on the same package',async()=>{
  const {verifyEnvelope,enforceBrief}=await consumer(),f=input();
  Object.assign(f.readiness.businesses[0],{max_mode:'LAUNCH',launch_content_allowed:true});

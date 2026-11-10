@@ -160,6 +160,35 @@ test('elapsed lookup deadline rejects results even before its timer callback run
  const response=await post();assert.equal(response.status,409);
  assert.equal(lookupSignal.aborted,true);assert.equal(clockCalls,0);
 });
+for(const [name,firstElapsed,finalElapsed,offset,status] of [
+ ['still current one millisecond before expiry',9,9,49,200],
+ ['exact grant expiry',1,2,50,409],
+ ['clock rolled backward',1,2,-1,409],
+ ['invalid final clock',1,2,NaN,409],
+ ['issuance clock exhausts the authority deadline',10,10,0,409],
+ ['response clock exhausts the authority deadline',1,10,0,409]
+])test(`authority response checks ${name}`,async t=>{
+ const issued=1800000000000;let elapsed=0,reads=0,signal;
+ t.mock.method(performance,'now',()=>elapsed);
+ const res=new EventEmitter();res.writeHead=value=>{res.status=value;};
+ res.end=body=>{res.body=JSON.parse(body);res.writableEnded=true;};
+ const req={method:'POST',headers:{authorization:'Bearer '+authKey,'content-type':'application/json'},
+  async *[Symbol.asyncIterator](){yield Buffer.from('{"job_id":"job"}');}};
+ await createPodAuthorityHandler({authKey,signingKey,snapshotTimeoutMs:10,clock:()=>{
+  if(++reads===1){elapsed=firstElapsed;return issued;}
+  elapsed=finalElapsed;return issued+offset;
+ },loadSnapshot:(id,options)=>{
+  signal=options.signal;const f=snapshot(id);f.approval.expires_at_ms=issued+50;return f;
+ }})(req,res);
+ assert.equal(res.status,status);
+ if(status===200){
+  const payload=JSON.parse(res.body.payload);
+  assert.equal(payload.issued_at_ms,issued);assert.equal(payload.expires_at_ms,issued+50);
+  assert.equal(payload.publication_permission,false);
+ }else assert.deepEqual(res.body,{error:'GRANT_BLOCKED'});
+ assert.equal(reads,firstElapsed>=10?1:2);
+ assert.equal(signal.aborted,finalElapsed>=10);
+});
 test('snapshot failure is redacted and following lookup can succeed',async t=>{
  let calls=0;
  const post=await serve(t,{loadSnapshot:async id=>{if(++calls===1)throw Error('private database connection');return snapshot(id);}});

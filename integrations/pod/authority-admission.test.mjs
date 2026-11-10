@@ -39,9 +39,9 @@ test('HTTP timeouts retain shared loader capacity until actual settlement, then 
   // A different loader does not inherit this loader's occupied slots.
   const independent=invoke(handler(id=>snapshot(id)));await independent.done;assert.equal(independent.res.status,200);
   pending.shift().reject(Error('private backend failure'));await tick();healthy=true;
-  const recovered=await second();assert.equal(recovered.status,200);assert.equal(calls,33);assert.equal(clockCalls,1);
+  const recovered=await second();assert.equal(recovered.status,200);assert.equal(calls,33);assert.equal(clockCalls,2);
   assert.equal(JSON.parse((await recovered.json()).payload).publication_permission,false);
-  for(const work of pending)work.resolve(snapshot('job'));await tick();assert.equal(clockCalls,1);
+  for(const work of pending)work.resolve(snapshot('job'));await tick();assert.equal(clockCalls,2);
  }finally{for(const work of pending)work.resolve(snapshot('job'));await tick();}
 });
 
@@ -149,7 +149,7 @@ test('client disconnects do not release unsettled loader slots or sign late snap
   await Promise.all(jobs.map(x=>x.done));assert.ok(pending.every(x=>x.signal.aborted));assert.equal(clocks,0);
   const overflow=invoke(handle);await overflow.done;assert.equal(overflow.res.status,409);assert.equal(calls,32);
   for(const work of pending)work.resolve(snapshot('job'));await tick();assert.equal(clocks,0);
-  healthy=true;const retry=invoke(handle);await retry.done;assert.equal(retry.res.status,200);assert.equal(clocks,1);
+  healthy=true;const retry=invoke(handle);await retry.done;assert.equal(retry.res.status,200);assert.equal(clocks,2);
  }finally{for(const work of pending)work.resolve(snapshot('job'));await Promise.all(jobs.map(x=>x.done));}
 });
 
