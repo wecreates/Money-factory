@@ -324,6 +324,22 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
    assert.deepEqual(changed,[{state:'processing',brief:changedBrief,fencing_token:'7',reason_code:null}]);
    assert.deepEqual(await deliverOutbox(sourceDB,{...options,fetchImpl:()=>assert.fail('stale production reached transport')}),
     {delivered:0,failed:0,nextCursor:null});
+   // Model an inconsistent stored queue row entering the real claim path.
+   // A prior current grant cannot make a contradictory identity admissible.
+   const {produceOnce}=await import(pathToFileURL(path.join(root,'scripts/pod_production_worker.mjs')));
+   const legacyBrief={...brief,account_id:crypto.randomUUID()};
+   await source.query(`UPDATE pod_production_queue SET state='raw',attempt=0,fencing_token=6,
+    lease_until=NULL,brief=$2 WHERE id=$1`,[brief.id,legacyBrief]);
+   let grantCalls=0,taskCalls=0;
+   await assert.rejects(produceOnce({db:sourceDB,upstreamKey:signingKey,
+    env:{POD_PRODUCTION_ENABLED:'true',PUBLICATION_ENABLED:'false',POD_PUBLICATION_ENABLED:'false'},
+    resolveGrant:async job=>{grantCalls++;return resolveGrant(job);},
+    resolveTask:async()=>{taskCalls++;return null;}}),/^Error: PRODUCTION_SETTLEMENT_UNCERTAIN$/);
+   assert.equal(grantCalls,0);assert.equal(taskCalls,0);
+   const heldClaim=(await source.query(`SELECT state,attempt,fencing_token,brief,reason_code,
+    isfinite(lease_until) AS finite FROM pod_production_queue WHERE id=$1`,[brief.id])).rows;
+   assert.deepEqual(heldClaim,[{state:'processing',attempt:1,fencing_token:'7',brief:legacyBrief,reason_code:null,finite:true}]);
+   assert.equal((await source.query('SELECT id FROM pod_events WHERE job_id=$1',[brief.id])).rowCount,0);
    await source.query("UPDATE pod_production_queue SET brief=$2,lease_until='infinity' WHERE id=$1",[brief.id,brief]);
    const restoredDB=new PodDB({pool:restricted(target),upstreamKey:signingKey,
     bridge:{producer:'CYZOR Money Factory',consumer:'Content Control',contract:{fail_closed_rules:BRIDGE_RULES}},
