@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: cdb6f217d10668cc1276744f5f4790e601a2fcc9
+          ref: 04035fda4b88d212f5803f1723a9f746366dbe23
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -98,3 +98,6 @@ jobs:
         working-directory: content-control-test
       - run: node --test integrations/pod/*.test.mjs
       - run: CONTENT_CONTROL_ROOT="$GITHUB_WORKSPACE/content-control-test" python3 -m unittest discover -s integrations/pod -p 'test_*.py'
+      - name: Verify committed review hold survives a lost acknowledgment
+        run: POD_TEST_DATABASE_URL="$POD_BRIDGE_TEST_DATABASE_URL" node --test tests/pod-production-e2e.mjs
+        working-directory: content-control-test
