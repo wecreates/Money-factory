@@ -23,6 +23,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
  const require=createRequire(path.join(root,'package.json'));
  const {Pool}=require('pg');
  const {deliverOutbox}=await import(pathToFileURL(path.join(root,'integrations/pod/outbox.mjs')));
+ const {recordFinancialEvent}=await import(pathToFileURL(path.join(root,'integrations/pod/finance.mjs')));
  const {createGrantResolver}=await import(pathToFileURL(path.join(root,'integrations/pod/grant-client.mjs')));
  const {PodDB}=await import(pathToFileURL(path.join(root,'pod-db-bridge.js')));
  const {BRIDGE_RULES,verifyEnvelope}=await import(pathToFileURL(path.join(root,'integrations/pod/policy.mjs')));
@@ -170,6 +171,51 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.deepEqual(mismatchStatuses,[409,200]);assert.deepEqual(mismatchSent,[mismatchId,mismatchId]);
   assert.deepEqual(await readInbox(),savedInbox);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[mismatchId])).rows[0].n,1);
+
+  // Synthetic financial evidence uses the pinned intake, managed transaction,
+  // sender and HTTP receiver. The small tables are isolated test fixtures.
+  await pool.query(`CREATE TABLE pod_artifacts(sha256 text PRIMARY KEY,media_type text NOT NULL,body bytea NOT NULL);
+   CREATE TABLE pod_financial_events(id uuid PRIMARY KEY,job_id uuid NOT NULL,provider text NOT NULL,
+    provider_event_id text NOT NULL,kind text NOT NULL,amount_minor bigint NOT NULL,currency char(3) NOT NULL,
+    occurred_at timestamptz NOT NULL,evidence_sha256 text NOT NULL REFERENCES pod_artifacts(sha256),
+    authority_event_id text UNIQUE NOT NULL,UNIQUE(provider,provider_event_id))`);
+  const financeDB=new PodDB({pool,bridge:{producer:'CYZOR Money Factory',consumer:'Content Control',contract:{fail_closed_rules:BRIDGE_RULES}},
+   expiresAt:new Date(Date.now()+7*86400000).toISOString()});
+  const financeKey='test-only-bridge-finance-key-'.repeat(3),proof=Buffer.from('{"fixture_only":true}');
+  const evidenceSha=crypto.createHash('sha256').update(proof).digest('hex');
+  await pool.query("INSERT INTO pod_artifacts(sha256,media_type,body) VALUES($1,'application/json',$2)",[evidenceSha,proof]);
+  const occurred_at='2026-01-01T00:00:00.123456Z',authorityId=crypto.randomUUID(),providerEventId=crypto.randomUUID();
+  const signStatement=()=>{
+   const issued_at_ms=Date.now()-1;
+   const payload=JSON.stringify({schema_version:1,audience:'content-control:pod:finance',issued_at_ms,expires_at_ms:issued_at_ms+60000,
+    verified:true,job_id:job,provider:'fixture-provider',provider_event_id:providerEventId,authority_event_id:authorityId,
+    kind:'royalty',currency:'USD',amount_minor:1234,occurred_at,evidence_sha256:evidenceSha});
+   return {payload,signature:crypto.createHmac('sha256',financeKey).update(payload).digest('hex')};
+  };
+  const statement=await recordFinancialEvent(financeDB,signStatement(),financeKey);
+  assert.equal(statement.duplicate,false);
+  assert.deepEqual(await recordFinancialEvent(financeDB,signStatement(),financeKey),{id:statement.id,duplicate:true});
+  const readStatement=await pool.query('SELECT id,amount_minor,occurred_at=$1::timestamptz AS exact_time FROM pod_financial_events',[occurred_at]);
+  assert.deepEqual(readStatement.rows,[{id:statement.id,amount_minor:'1234',exact_time:true}]);
+  const financeRows=await pool.query("SELECT id,payload FROM pod_events WHERE kind='pod.finance.verified'");
+  const financeEvent=financeRows.rows[0],financeLink={financial_event_id:statement.id,authority_event_id:authorityId};
+  assert.equal(financeRows.rowCount,1);
+  assert.deepEqual(financeEvent.payload,financeLink);
+  const lostFinanceReceipt=await deliverOutbox(financeDB,{...options,fetchImpl:async(endpoint,request)=>{
+   assert.equal(request.headers['idempotency-key'],financeEvent.id);
+   const response=await transport(endpoint,request);assert.equal(response.status,200);await response.arrayBuffer();
+   throw Error('SIMULATED_LOST_FINANCIAL_ACK');
+  }});
+  assert.equal(lostFinanceReceipt.failed,1);
+  assert.equal((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[financeEvent.id])).rows[0].delivered_at,null);
+  const recoveredFinanceReceipt=await deliverOutbox(financeDB,options);
+  assert.deepEqual(recoveredFinanceReceipt,{delivered:1,failed:0,nextCursor:null});
+  assert.ok((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[financeEvent.id])).rows[0].delivered_at);
+  const financeInbox=await pool.query('SELECT event FROM pod_content_event_inbox WHERE event_id=$1',[financeEvent.id]);
+  assert.equal(financeInbox.rowCount,1);
+  assert.equal(financeInbox.rows[0].event.job_id,job);
+  assert.equal(financeInbox.rows[0].event.kind,'pod.finance.verified');
+  assert.deepEqual(financeInbox.rows[0].event.payload,financeLink);
 
   // Cross the sender's real storage cutoff after the receiver commits the first
   // event. The sender must retain both pending rows and never send the second.
