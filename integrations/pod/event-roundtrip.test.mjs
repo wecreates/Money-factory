@@ -213,6 +213,26 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal((await acceptPodEvent(pool,noBeginEnvelope,key)).accepted_event_id,noBeginId);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[noBeginId])).rows[0].n,1);
 
+  // The signed event is inserted, then the fixture clock invalidates it.
+  // Substitute an actual SELECT for ROLLBACK while the transaction is open.
+  // The client must be destroyed, the insert lost, and the same ID retryable.
+  const noRollbackId=crypto.randomUUID(),noRollbackEnvelope=sign({id:noRollbackId,kind:'pod.test.no_rollback',payload:{}});
+  const noRollbackQueries=[];let noRollbackTag,noRollbackDiscarded,calls=0;
+  const noRollbackPool={connect:async()=>{
+   const client=await pool.connect();
+   return {release:discard=>{noRollbackDiscarded=discard;client.release(discard);},query:async(sql,args)=>{
+    noRollbackQueries.push(sql);
+    if(sql==='ROLLBACK'){const result=await client.query('SELECT 1');noRollbackTag=result.command;return result;}
+    return client.query(sql,args);
+   }};
+  }};
+  await assert.rejects(acceptPodEvent(noRollbackPool,noRollbackEnvelope,key,()=>++calls===1?Date.now():NaN),/^Error: EVENT_SCOPE_INVALID$/);
+  assert.equal(noRollbackTag,'SELECT');assert.equal(noRollbackDiscarded,true);
+  assert.equal(noRollbackQueries.at(-1),'ROLLBACK');assert.equal(noRollbackQueries.includes('COMMIT'),false);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[noRollbackId])).rows[0].n,0);
+  assert.equal((await acceptPodEvent(pool,noRollbackEnvelope,key)).accepted_event_id,noRollbackId);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[noRollbackId])).rows[0].n,1);
+
   // Force the receiver to wait on an uncommitted duplicate event, then expire
   // its envelope or invalidate its clock. Rolling back the blocker frees the
   // insert; the receiver must roll back that row, then allow an unchanged-ID

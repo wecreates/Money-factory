@@ -8,18 +8,31 @@ const event={id:'12b4c678-1234-4321-abcd-123456789abc',job_id:null,kind:'pod.tes
 const payload=JSON.stringify({schema_version:1,audience:'money-factory:pod:event',issued_at_ms:now,event});
 const envelope={payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};
 const hash=crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex');
-function fixture({failAt,rollbackFails=false,release,beginResult=()=>({command:'BEGIN'}),commitResult=()=>({command:'COMMIT'})}={}){
+function fixture({failAt,rollbackFails=false,release,beginResult=()=>({command:'BEGIN'}),commitResult=()=>({command:'COMMIT'}),rollbackResult=()=>({command:'ROLLBACK'})}={}){
  const queries=[],releases=[],failure=Error('synthetic database failure');
  const pool={connect:async()=>({query:async sql=>{
   queries.push(sql);
   if(sql===failAt||failAt==='INSERT'&&sql.startsWith('INSERT'))throw failure;
   if(sql==='ROLLBACK'&&rollbackFails)throw Error('synthetic rollback failure');
+  if(sql==='ROLLBACK')return rollbackResult();
   if(sql==='BEGIN')return beginResult();
   if(sql==='COMMIT')return commitResult();
   return {rows:[{event_sha256:hash}]};
  },release:bad=>{releases.push(bad);return release?.();}})};
  return {pool,queries,releases,failure};
 }
+test('inbox discards unverified rollback without acknowledging or replacing the failure',async()=>{
+ let reads=0;
+ for(const result of [{command:'SELECT'},undefined,{},Object.create({command:'ROLLBACK'}),
+  Object.assign([],{command:'ROLLBACK'}),{get command(){reads++;throw Error('private command getter');}},
+  new Proxy({command:'ROLLBACK'},{getOwnPropertyDescriptor(){reads++;throw Error('private descriptor trap');}})]){
+  const f=fixture({failAt:'INSERT',rollbackResult:()=>result});
+  await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),e=>e===f.failure);
+  assert.equal(f.queries.at(-1),'ROLLBACK');assert.equal(f.queries.includes('COMMIT'),false);
+  assert.deepEqual(f.releases,[true]);
+ }
+ assert.equal(reads,0);
+});
 test('inbox will not write or reuse a connection after unverified BEGIN',async()=>{
  let reads=0;
  for(const result of [{command:'SELECT'},null,{},Object.create({command:'BEGIN'}),

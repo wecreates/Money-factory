@@ -38,7 +38,7 @@ function signed(issued){
 function database(){
  const queries=[],releases=[];let connections=0,hash;
  return {queries,releases,get connections(){return connections;},pool:{connect:async()=>{
-  connections++;return {query:async(sql,args)=>{queries.push(sql);if(sql==='BEGIN'||sql==='COMMIT')return {command:sql};if(sql.startsWith('INSERT'))hash=args[1];return {rows:[{event_sha256:hash}]};},release:bad=>releases.push(bad)};
+  connections++;return {query:async(sql,args)=>{queries.push(sql);if(['BEGIN','COMMIT','ROLLBACK'].includes(sql))return {command:sql};if(sql.startsWith('INSERT'))hash=args[1];return {rows:[{event_sha256:hash}]};},release:bad=>releases.push(bad)};
  }}};
 }
 test('invalid inbox clocks cannot acquire a connection',async()=>{
