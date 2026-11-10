@@ -13,7 +13,7 @@ const hash=crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture(){
  const pending=[],queries=[],releases=[];
- const client={query:async sql=>{queries.push(sql);return (sql==='BEGIN'||sql==='COMMIT')?{command:sql}:{rows:[{event_sha256:hash}]};},release:()=>releases.push(true)};
+ const client={query:async sql=>{queries.push(sql);return (sql==='BEGIN'||sql==='COMMIT')?{command:sql}:{rows:[{event_sha256:hash,event_matches:true}]};},release:()=>releases.push(true)};
  const pool={connect:()=>new Promise((resolve,reject)=>pending.push({resolve:()=>resolve(client),reject}))};
  return {pool,pending,queries,releases,resolveAll:()=>pending.forEach(p=>p.resolve())};
 }
@@ -54,7 +54,7 @@ test('a late rejection frees admission and independent pools do not share the ca
 });
 
 test('on-time success and synchronous connection errors never leak admission',async()=>{
- const pool={connect:async()=>({query:async sql=>(sql==='BEGIN'||sql==='COMMIT')?{command:sql}:{rows:[{event_sha256:hash}]},release(){}})};
+ const pool={connect:async()=>({query:async sql=>(sql==='BEGIN'||sql==='COMMIT')?{command:sql}:{rows:[{event_sha256:hash,event_matches:true}]},release(){}})};
  for(let i=0;i<70;i++)assert.deepEqual(await accept(pool,1000),{accepted_event_id:event.id});
  const error=Error('private early error'),bad={connect(){throw error;}};
  for(let i=0;i<70;i++)await assert.rejects(accept(bad,1000),e=>e===error);

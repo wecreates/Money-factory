@@ -17,7 +17,7 @@ function fixture({failAt,rollbackFails=false,release,beginResult=()=>({command:'
   if(sql==='ROLLBACK')return rollbackResult();
   if(sql==='BEGIN')return beginResult();
   if(sql==='COMMIT')return commitResult();
-  return {rows:[{event_sha256:hash}]};
+  return {rows:[{event_sha256:hash,event_matches:true}]};
  },release:bad=>{releases.push(bad);return release?.();}})};
  return {pool,queries,releases,failure};
 }

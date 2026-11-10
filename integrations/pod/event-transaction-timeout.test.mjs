@@ -27,7 +27,7 @@ test('a stalled database query cannot retain receiver admission indefinitely',as
   query:sql=>{queries.push(sql);if(stalled&&sql!=="BEGIN")return new Promise(()=>{});
    if(sql==='BEGIN')return {command:'BEGIN'};
    if(sql==='COMMIT')return {command:'COMMIT'};
-   return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:{};},
+   return sql.startsWith('SELECT')?{rows:[{event_sha256:hash,event_matches:true}]}:{};},
   release:discard=>releases.push(discard),
  })};
  const handle=createPodEventHandler({pool,key,clock:()=>now,connectionTimeoutMs:100,transactionTimeoutMs:10});
@@ -52,7 +52,7 @@ test('a stalled database query cannot retain receiver admission indefinitely',as
 test('a rejected release after COMMIT withholds the redacted HTTP acknowledgement',async()=>{
  const queries=[],releases=[];
  const pool={connect:()=>({
-  query:sql=>{queries.push(sql);return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:(sql==='BEGIN'||sql==='COMMIT')?{command:sql}:{};},
+  query:sql=>{queries.push(sql);return sql.startsWith('SELECT')?{rows:[{event_sha256:hash,event_matches:true}]}:(sql==='BEGIN'||sql==='COMMIT')?{command:sql}:{};},
   release:discard=>{releases.push(discard);return Promise.reject(Error('private release error'));},
  })};
  const handle=createPodEventHandler({pool,key,clock:()=>now});
@@ -63,7 +63,7 @@ test('a rejected release after COMMIT withholds the redacted HTTP acknowledgemen
 test('an unverified commit produces a redacted HTTP failure and destroys the client',async()=>{
  const queries=[],releases=[];
  const pool={connect:()=>({
-  query:sql=>{queries.push(sql);return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:
+  query:sql=>{queries.push(sql);return sql.startsWith('SELECT')?{rows:[{event_sha256:hash,event_matches:true}]}:
    sql==='BEGIN'?{command:'BEGIN'}:sql==='COMMIT'?{command:'ROLLBACK'}:{};},
   release:discard=>releases.push(discard),
  })};
