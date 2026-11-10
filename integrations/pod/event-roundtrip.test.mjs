@@ -24,6 +24,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
  const {Pool}=require('pg');
  const {deliverOutbox}=await import(pathToFileURL(path.join(root,'integrations/pod/outbox.mjs')));
  const {recordFinancialEvent}=await import(pathToFileURL(path.join(root,'integrations/pod/finance.mjs')));
+ const {metrics}=await import(pathToFileURL(path.join(root,'integrations/pod/metrics.mjs')));
  const {createGrantResolver}=await import(pathToFileURL(path.join(root,'integrations/pod/grant-client.mjs')));
  const {PodDB}=await import(pathToFileURL(path.join(root,'pod-db-bridge.js')));
  const {BRIDGE_RULES,verifyEnvelope}=await import(pathToFileURL(path.join(root,'integrations/pod/policy.mjs')));
@@ -220,15 +221,15 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   // A revoked authority snapshot must leave the failed attempt untouched.
   // With a fresh signed grant, follow the real repair archive to the inbox.
   await pool.query(`CREATE TABLE pod_concepts(id uuid PRIMARY KEY,rights_state text NOT NULL,permanently_unpublished boolean NOT NULL);
-   CREATE TABLE pod_production_queue(id uuid PRIMARY KEY,concept_id uuid NOT NULL REFERENCES pod_concepts(id),
+   CREATE TABLE pod_production_queue(id uuid PRIMARY KEY,concept_id uuid NOT NULL REFERENCES pod_concepts(id),platform text NOT NULL,
     brief jsonb NOT NULL,attempt integer NOT NULL,fencing_token bigint NOT NULL,manifest jsonb,qa_envelope jsonb,
     reason_code text,state text NOT NULL,provider_id text,lease_until timestamptz,upstream_envelope jsonb NOT NULL,
     next_attempt_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now())`);
   const conceptId=crypto.randomUUID(),oldManifest={package_sha256:'b'.repeat(64)},oldQA={fixture_only:'failed-attempt'};
   await pool.query("INSERT INTO pod_concepts VALUES($1,'PASS',false)",[conceptId]);
   await pool.query(`INSERT INTO pod_production_queue
-   (id,concept_id,brief,attempt,fencing_token,manifest,qa_envelope,reason_code,state,upstream_envelope)
-   VALUES($1,$2,$3,1,7,$4,$5,'REVIEW_REQUIRED','qa_failed','{}')`,[brief.id,conceptId,brief,oldManifest,oldQA]);
+   (id,concept_id,brief,attempt,fencing_token,manifest,qa_envelope,reason_code,state,upstream_envelope,platform)
+   VALUES($1,$2,$3,1,7,$4,$5,'REVIEW_REQUIRED','qa_failed','{}',$6)`,[brief.id,conceptId,brief,oldManifest,oldQA,brief.platform]);
   const repairDB=new PodDB({pool,upstreamKey:signingKey,
    bridge:{producer:'CYZOR Money Factory',consumer:'Content Control',contract:{fail_closed_rules:BRIDGE_RULES}},
    expiresAt:new Date(Date.now()+7*86400000).toISOString()});
@@ -254,6 +255,28 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal(repairInbox.length,1);
   assert.equal(repairInbox[0].event.job_id,brief.id);assert.equal(repairInbox[0].event.kind,'pod.repair.archived');
   assert.deepEqual(repairInbox[0].event.payload,archivedAttempt);
+
+  // Even a current authority grant cannot turn an unverified deadline into
+  // permission to requeue. Both held states remain visible to monitoring.
+  for(const [active,lease,held,reason] of [
+   ['processing',null,'blocked','PRODUCTION_LEASE_UNVERIFIED'],
+   ['publishing','infinity','ambiguous','PUBLISH_LEASE_UNVERIFIED'],
+  ]){
+   await pool.query('UPDATE pod_production_queue SET state=$2,reason_code=NULL,lease_until=$3::timestamptz WHERE id=$1',[brief.id,active,lease]);
+   const observe=async()=>{
+    const report=await metrics(repairDB);
+    assert.equal(report.health.expired_leases,'0');assert.equal(report.health.unverified_leases,'1');
+    assert.ok(report.health.alerts.some(a=>a.code==='UNVERIFIED_WORKER_LEASES'&&a.severity==='critical'));
+    assert.equal(report.health.acceptance_verified,false);
+   };
+   await observe();
+   await repairDB.recover();
+   await observe();
+   await assert.rejects(repair(),/^Error: REPAIR_BLOCKED$/);
+   assert.deepEqual((await pool.query('SELECT state,reason_code,lease_until::text,attempt,fencing_token FROM pod_production_queue WHERE id=$1',[brief.id])).rows,
+    [{state:held,reason_code:reason,lease_until:lease,attempt:1,fencing_token:'7'}]);
+   assert.deepEqual(await archiveRows(),archives);
+  }
 
   // Cross the sender's real storage cutoff after the receiver commits the first
   // event. The sender must retain both pending rows and never send the second.
