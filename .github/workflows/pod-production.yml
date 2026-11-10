@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: 4679e07f02646635437afc48ea99093583f061fc
+          ref: c7f909e2048d175f7d1fcc140ff0335f94d19f24
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -49,10 +49,10 @@ jobs:
       - name: Verify recorded activity cleanup and unverified capacity
         run: node --test tests/pod-capacity.test.mjs
         working-directory: content-control-test
-      - name: Verify Content Control transaction and restore boundaries
+      - name: Verify Content Control transaction, restore and deployment boundaries
         # Its real PostgreSQL boundary tests run in Content Control CI; this
         # job uses the separate bridge database for the cross-repo round trip.
-        run: node --test tests/pod-commit-evidence.test.mjs tests/pod-read-storage-expiry.test.mjs tests/pod-transaction-storage-checkpoints.test.mjs tests/pod-restore-completion.test.mjs
+        run: node --test tests/pod-commit-evidence.test.mjs tests/pod-read-storage-expiry.test.mjs tests/pod-transaction-storage-checkpoints.test.mjs tests/pod-restore-completion.test.mjs tests/pod-deploy.test.mjs tests/pod-migration-cleanup.test.mjs tests/pod-migration-query.test.mjs
         working-directory: content-control-test
       - name: Verify ledger write identity, replay and evidence expiry
         run: node --test tests/pod-financial-replay.test.mjs tests/pod-evidence-expiry.test.mjs
