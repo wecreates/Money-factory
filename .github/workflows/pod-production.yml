@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: da053cda68a430f393ce92ff7773c0bc12e75222
+          ref: bc32c49efd49533a817a2b6a1d89cfc54244e939
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -84,7 +84,7 @@ jobs:
       - name: Verify retained official KDP interior-template source
         run: python -m unittest discover -s tests -p test_pod_kdp_interior_template_import.py
         working-directory: content-control-test
-      - name: Verify authorized market snapshots and unambiguous JSON-LD
+      - name: Verify exact market source authorization and unambiguous JSON-LD
         run: python -m unittest discover -s tests -p test_pod_market_intake.py
         working-directory: content-control-test
       - name: Verify KDP metadata, original manuscript/font rights, template source, CMYK cover and editorial-bound QA
