@@ -46,6 +46,36 @@ test('pinned Content Control resolver only receives a current grant after a fres
  mode='revoked';await assert.rejects(resolve(job),/GRANT_AUTHORITY_BLOCKED/);
  assert.deepEqual(responses,[409,200,409]);assert.equal(loads,3);
 });
+test('a task changed during the authority request requires a fresh Content Control lookup',async t=>{
+ const f=input(),authKey='synthetic-scope-transport-'.repeat(2),oldTask='a'.repeat(64),newTask='b'.repeat(64);
+ const caller={id:f.job.id,brief:{...f.job,task_sha256:oldTask}};
+ const {createGrantResolver}=await import(pathToFileURL(path.join(process.env.CONTENT_CONTROL_ROOT,'integrations/pod/grant-client.mjs')).href);
+ let loads=0;
+ const handler=createPodAuthorityHandler({authKey,signingKey:f.key,loadSnapshot:id=>{
+  assert.equal(id,f.job.id);loads++;
+  // The authoritative task and caller's visible brief advanced while the
+  // first lookup was in flight. The new task needs its own request-time scope.
+  caller.brief.task_sha256=newTask;
+  return {job:{...f.job,task_sha256:newTask},readiness:f.readiness,
+   approval:{...f.approval,task_sha256:newTask,evidence_event_id:'scope-fixture-'+loads}};
+ }});
+ const server=http.createServer(handler);
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ t.after(()=>{server.closeAllConnections();return new Promise(resolve=>server.close(resolve));});
+ const fixtureUrl='https://authority.example.invalid/pod/grant',responses=[];
+ const resolve=createGrantResolver({env:{POD_GRANT_URL:fixtureUrl,POD_GRANT_AUTH_KEY:authKey,POD_UPSTREAM_KEY:f.key},
+  fetchImpl:async (target,options)=>{
+   assert.equal(target.href,fixtureUrl);
+   const response=await fetch('http://127.0.0.1:'+server.address().port+'/pod/grant',options);
+   responses.push(response.status);return response;
+  }});
+ await assert.rejects(resolve(caller),/^Error: TASK_SCOPE_MISMATCH$/);
+ const grant=JSON.parse((await resolve(caller)).payload);
+ assert.equal(grant.task_sha256,newTask);
+ assert.equal(grant.approval_event_id,'scope-fixture-2');
+ assert.equal(grant.publication_permission,false);
+ assert.deepEqual(responses,[200,200]);assert.equal(loads,2);
+});
 test('a PRELAUNCH grant cannot be replayed for LAUNCH on the same package',async()=>{
  const {verifyEnvelope,enforceBrief}=await consumer(),f=input();
  Object.assign(f.readiness.businesses[0],{max_mode:'LAUNCH',launch_content_allowed:true});
