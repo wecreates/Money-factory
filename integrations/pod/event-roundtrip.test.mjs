@@ -306,6 +306,25 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
     const c=await owner.connect();try{await c.query(`SET ROLE ${role}`);}catch(error){c.release(true);throw error;}
     return {query:(...args)=>c.query(...args),release:()=>c.release(true)};
    }});
+   // A current grant for the previously claimed brief is not evidence that
+   // the same task is still attached to the locked production row.
+   const sourceDB=new PodDB({pool:restricted(source),upstreamKey:signingKey,
+    bridge:{producer:'CYZOR Money Factory',consumer:'Content Control',contract:{fail_closed_rules:BRIDGE_RULES}},
+    expiresAt:new Date(Date.now()+7*86400000).toISOString()});
+   const claim={id:brief.id,account_id:brief.account_id,platform:brief.platform,brief,fencing_token:'7'};
+   const scopedGrant=verifyEnvelope(await resolveGrant(claim),signingKey,'content-control:pod');
+   assert.equal(scopedGrant.task_sha256,brief.task_sha256);assert.equal(scopedGrant.publication_permission,false);
+   await source.query("UPDATE pod_production_queue SET lease_until=clock_timestamp()+interval '5 minutes' WHERE id=$1",[brief.id]);
+   assert.equal(await sourceDB.assertProducible(claim),true);
+   const changedBrief={...brief,task_sha256:'d'.repeat(64)};
+   await source.query('UPDATE pod_production_queue SET brief=$2 WHERE id=$1',[brief.id,changedBrief]);
+   await assert.rejects(sourceDB.assertProducible(claim),/^Error: LOCAL_PRODUCTION_BLOCKED$/);
+   await assert.rejects(sourceDB.failProduction(claim,'QA_FAILED'),/^Error: LEASE_LOST$/);
+   const changed=(await source.query('SELECT state,brief,fencing_token,reason_code FROM pod_production_queue WHERE id=$1',[brief.id])).rows;
+   assert.deepEqual(changed,[{state:'processing',brief:changedBrief,fencing_token:'7',reason_code:null}]);
+   assert.deepEqual(await deliverOutbox(sourceDB,{...options,fetchImpl:()=>assert.fail('stale production reached transport')}),
+    {delivered:0,failed:0,nextCursor:null});
+   await source.query("UPDATE pod_production_queue SET brief=$2,lease_until='infinity' WHERE id=$1",[brief.id,brief]);
    const restoredDB=new PodDB({pool:restricted(target),upstreamKey:signingKey,
     bridge:{producer:'CYZOR Money Factory',consumer:'Content Control',contract:{fail_closed_rules:BRIDGE_RULES}},
     expiresAt:new Date(Date.now()+7*86400000).toISOString()});
