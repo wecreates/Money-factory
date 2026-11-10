@@ -66,6 +66,33 @@ test('inbox awaits asynchronous client cleanup before acknowledging a committed 
  finally{resolve();await pending;}
  assert.deepEqual(await pending,{accepted_event_id:event.id});assert.deepEqual(f.releases,[false]);
 });
+test('inbox rejects a backwards pre-commit clock even within the signed window',async()=>{
+ const f=fixture();let reads=0;
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now+(++reads===1?10:9)),{message:'EVENT_SCOPE_INVALID'});
+ assert.equal(f.queries.at(-1),'ROLLBACK');assert.equal(f.queries.includes('COMMIT'),false);
+ assert.deepEqual(f.releases,[false]);
+});
+for(const [name,late] of [['expired',now+300001],['regressed',now+9],['invalid',NaN]])
+ test(`inbox withholds a committed acknowledgement when its cleanup clock is ${name}`,async()=>{
+  let wall=now+10;
+  const f=fixture({release:async()=>{await Promise.resolve();wall=late;}});
+  await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>wall),{message:'EVENT_SCOPE_INVALID'});
+  assert.equal(f.queries.at(-1),'COMMIT');assert.equal(f.queries.includes('ROLLBACK'),false);
+  assert.deepEqual(f.releases,[false]);
+ });
+test('inbox checks the transaction deadline again after its final clock read',async t=>{
+ let elapsed=0,reads=0;t.mock.method(performance,'now',()=>elapsed);
+ const f=fixture();
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>{if(++reads===3)elapsed=10;return now;},
+  {transactionTimeoutMs:10}),{message:'EVENT_TRANSACTION_TIMEOUT'});
+ assert.equal(f.queries.at(-1),'COMMIT');assert.deepEqual(f.releases,[false]);
+});
+test('inbox still acknowledges at the exact signed-window boundary after cleanup',async()=>{
+ let wall=now;
+ const f=fixture({release:()=>{wall=now+300000;}});
+ assert.deepEqual(await acceptPodEvent(f.pool,envelope,key,()=>wall),{accepted_event_id:event.id});
+ assert.deepEqual(f.releases,[false]);
+});
 for(const mode of ['reject','stall'])test(`inbox does not acknowledge after ${mode} during asynchronous cleanup`,{timeout:1000},async()=>{
  const error=Error('private release error');
  const f=fixture({release:()=>{
