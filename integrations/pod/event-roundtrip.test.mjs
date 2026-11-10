@@ -166,6 +166,26 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
    assert.equal(rows.rows[0].n,0);
    assert.equal((await acceptPodEvent(single,poolWaitEnvelope,key)).accepted_event_id,poolWaitId);
    assert.equal((await single.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[poolWaitId])).rows[0].n,1);
+
+   // A broken query capability on a checked-out connection must not strand
+   // this one-slot pool. Verify no write, then retry the same signed event.
+   const malformedId=crypto.randomUUID(),malformedEnvelope=sign({id:malformedId,kind:'pod.test.query_capability',payload:{}});
+   let checkout,discards=[],queryReads=0,malformedPid;
+   const malformedPool={connect:async()=>{
+    checkout=await single.connect();malformedPid=checkout.processID;
+    return {
+     get query(){queryReads++;throw Error('query capability must not be invoked');},
+     release:discard=>{discards.push(discard);const client=checkout;checkout=null;client.release(discard);}
+    };
+   }};
+   try{
+    await assert.rejects(acceptPodEvent(malformedPool,malformedEnvelope,key),/^Error: EVENT_DATABASE_CAPABILITY_UNVERIFIED$/);
+    assert.equal(queryReads,0);assert.deepEqual(discards,[true]);assert.equal(single.totalCount,0);
+    const before=await single.query('SELECT pg_backend_pid() AS pid, (SELECT count(*)::int FROM pod_content_event_inbox WHERE event_id=$1) AS n',[malformedId]);
+    assert.notEqual(before.rows[0].pid,malformedPid);assert.equal(before.rows[0].n,0);
+    assert.equal((await acceptPodEvent(single,malformedEnvelope,key)).accepted_event_id,malformedId);
+    assert.equal((await single.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[malformedId])).rows[0].n,1);
+   }finally{if(checkout)checkout.release(true);}
   }finally{if(held)held.release();await single.end();}
 
   const duplicateId=crypto.randomUUID(),envelope=sign({id:duplicateId,kind:'pod.production.qa_failed',payload:{}});
