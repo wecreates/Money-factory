@@ -47,7 +47,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   }catch(error){await c.query('ROLLBACK');throw error;}finally{c.release();}}};
   const authKey='test-only-grant-bearer-'.repeat(3),signingKey='test-only-grant-signing-'.repeat(3);
   const grantPath='/pod/grant',eventPath='/pod/events',ackPath='/pod/ack-freshness';
-  const brief={id:'fixture-job',business_id:'fixture-business',account_id:'fixture-account',
+  const brief={id:crypto.randomUUID(),business_id:'fixture-business',account_id:'fixture-account',
    platform:'kdp',destination_platform:'kdp',mode:'PRELAUNCH',task_sha256:'a'.repeat(64)};
   let revoked=false,loads=0;
   const dispatch=createPodBridgeDispatcher({grantPath,eventPath,pool,authKey,signingKey,outboxKey:key,loadSnapshot:async id=>{
@@ -216,6 +216,44 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal(financeInbox.rows[0].event.job_id,job);
   assert.equal(financeInbox.rows[0].event.kind,'pod.finance.verified');
   assert.deepEqual(financeInbox.rows[0].event.payload,financeLink);
+
+  // A revoked authority snapshot must leave the failed attempt untouched.
+  // With a fresh signed grant, follow the real repair archive to the inbox.
+  await pool.query(`CREATE TABLE pod_concepts(id uuid PRIMARY KEY,rights_state text NOT NULL,permanently_unpublished boolean NOT NULL);
+   CREATE TABLE pod_production_queue(id uuid PRIMARY KEY,concept_id uuid NOT NULL REFERENCES pod_concepts(id),
+    brief jsonb NOT NULL,attempt integer NOT NULL,fencing_token bigint NOT NULL,manifest jsonb,qa_envelope jsonb,
+    reason_code text,state text NOT NULL,provider_id text,lease_until timestamptz,upstream_envelope jsonb NOT NULL,
+    next_attempt_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now())`);
+  const conceptId=crypto.randomUUID(),oldManifest={package_sha256:'b'.repeat(64)},oldQA={fixture_only:'failed-attempt'};
+  await pool.query("INSERT INTO pod_concepts VALUES($1,'PASS',false)",[conceptId]);
+  await pool.query(`INSERT INTO pod_production_queue
+   (id,concept_id,brief,attempt,fencing_token,manifest,qa_envelope,reason_code,state,upstream_envelope)
+   VALUES($1,$2,$3,1,7,$4,$5,'REVIEW_REQUIRED','qa_failed','{}')`,[brief.id,conceptId,brief,oldManifest,oldQA]);
+  const repairDB=new PodDB({pool,upstreamKey:signingKey,
+   bridge:{producer:'CYZOR Money Factory',consumer:'Content Control',contract:{fail_closed_rules:BRIDGE_RULES}},
+   expiresAt:new Date(Date.now()+7*86400000).toISOString()});
+  const repair=async()=>repairDB.requeueRepair(brief.id,await resolveGrant({id:brief.id,brief}));
+  const repairRow=async()=>(await pool.query('SELECT state,attempt,fencing_token,manifest,qa_envelope,reason_code,upstream_envelope FROM pod_production_queue WHERE id=$1',[brief.id])).rows[0];
+  const archiveRows=async()=>(await pool.query("SELECT id,payload FROM pod_events WHERE job_id=$1 AND kind='pod.repair.archived'",[brief.id])).rows;
+  await assert.rejects(repair(),/^Error: GRANT_AUTHORITY_BLOCKED$/);
+  assert.deepEqual(await repairRow(),{state:'qa_failed',attempt:1,fencing_token:'7',manifest:oldManifest,
+   qa_envelope:oldQA,reason_code:'REVIEW_REQUIRED',upstream_envelope:{}});
+  assert.deepEqual(await archiveRows(),[]);
+  revoked=false;
+  const fresh=await resolveGrant({id:brief.id,brief});
+  await repairDB.requeueRepair(brief.id,fresh);
+  assert.deepEqual(await repairRow(),{state:'raw',attempt:1,fencing_token:'7',manifest:null,
+   qa_envelope:null,reason_code:null,upstream_envelope:fresh});
+  await assert.rejects(repair(),/^Error: REPAIR_BLOCKED$/);
+  const archives=await archiveRows();
+  assert.equal(archives.length,1);
+  const repairArchive=archives[0],archivedAttempt={attempt:1,manifest:oldManifest,qa_envelope:oldQA,reason_code:'REVIEW_REQUIRED'};
+  assert.deepEqual(repairArchive.payload,archivedAttempt);
+  assert.deepEqual(await deliverOutbox(repairDB,options),{delivered:1,failed:0,nextCursor:null});
+  const repairInbox=(await pool.query('SELECT event FROM pod_content_event_inbox WHERE event_id=$1',[repairArchive.id])).rows;
+  assert.equal(repairInbox.length,1);
+  assert.equal(repairInbox[0].event.job_id,brief.id);assert.equal(repairInbox[0].event.kind,'pod.repair.archived');
+  assert.deepEqual(repairInbox[0].event.payload,archivedAttempt);
 
   // Cross the sender's real storage cutoff after the receiver commits the first
   // event. The sender must retain both pending rows and never send the second.
