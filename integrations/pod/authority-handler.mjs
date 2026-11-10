@@ -113,19 +113,29 @@ export function createPodAuthorityHandler(config){
     if(controller.signal.aborted)onAbort();
    });
    const deadline=performance.now()+snapshotTimeoutMs;
+   const checkpoint=()=>{
+    if(performance.now()>=deadline||res.destroyed||req.aborted)controller.abort();
+    controller.signal.throwIfAborted();
+   };
    snapshotTimer=setTimeout(()=>controller.abort(),snapshotTimeoutMs);
    const loaded=await Promise.race([aborted,loadBoundedSnapshot(loadSnapshot,request.job_id,controller.signal)]);
    const loadedSnapshot=loaded.snapshot;
    // A synchronous loader can delay the timer callback. Elapsed monotonic time
    // still forbids signing its late result.
-   if(performance.now()>=deadline)controller.abort();
-   controller.signal.throwIfAborted();
+   checkpoint();
    const snapshot=copyAuthoritySnapshot(loadedSnapshot);
    if(snapshot?.job?.id!==request.job_id)throw Error('JOB_NOT_FOUND');
    const now=clock();if(!Number.isSafeInteger(now)||now<0)throw Error('AUTHORITY_CLOCK_INVALID');
+   checkpoint();
    const grant=issuePodGrant({...snapshot,key:signingKey,now});
    const body=JSON.stringify(grant);
    if(Buffer.byteLength(body)>MAX_GRANT_RESPONSE_BYTES)throw Error('GRANT_RESPONSE_TOO_LARGE');
+   checkpoint();
+   // This is our own bounded, signed payload; use the actual grant cutoff,
+   // which can be earlier than the approval expiry (e.g. economics evidence).
+   const {expires_at_ms}=JSON.parse(grant.payload),current=clock();
+   checkpoint();
+   if(!Number.isSafeInteger(current)||current<now||current>=expires_at_ms)throw Error('GRANT_NOT_CURRENT');
    return sendBody(200,body);
   }catch(error){if(!res.destroyed)return error===REQUEST_TOO_LARGE
    ?send(413,{error:'REQUEST_TOO_LARGE'}):send(409,{error:'GRANT_BLOCKED'});}
