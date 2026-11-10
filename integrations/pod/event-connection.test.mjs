@@ -44,6 +44,14 @@ test('late unused client release rejects without an unhandled rejection',async()
  assert.deepEqual(f.queries,[]);assert.deepEqual(f.releases,[undefined]);
 });
 
+test('a late client with an unverifiable query is discarded exactly once',async()=>{
+ const f=fixture();let reads=0;
+ Object.defineProperty(f.client,'query',{get(){reads++;throw Error('query accessor invoked');}});
+ await assert.rejects(accept(f.pool),/^Error: EVENT_CONNECTION_TIMEOUT$/);
+ f.resolve();await delay(0);
+ assert.deepEqual(f.releases,[true]);assert.equal(reads,0);assert.deepEqual(f.queries,[]);
+});
+
 for(const finishMs of [9,10,11])test(`pool completion at ${finishMs}ms observes a 10ms monotonic deadline`,async t=>{
  let elapsed=0;t.mock.method(performance,'now',()=>elapsed);
  const f=fixture(),pool={connect:async()=>{elapsed=finishMs;return f.client;}};

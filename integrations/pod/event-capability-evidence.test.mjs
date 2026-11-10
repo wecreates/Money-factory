@@ -42,6 +42,19 @@ for(const variant of [
  assert.equal(f.queries.includes('COMMIT'),false);
 });
 
+test('an unverifiable query discards the acquired client without invoking it',async()=>{
+ const f=fixture();let reads=0;
+ Object.defineProperty(f.client,'query',{get(){reads++;throw Error('query accessor invoked');}});
+ const safeRelease=f.client.release;
+ f.client.release=function(discard){
+  assert.equal(this,f.client);
+  safeRelease(discard);
+  return Promise.reject(Error('private cleanup error'));
+ };
+ await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),/^Error: EVENT_DATABASE_CAPABILITY_UNVERIFIED$/);
+ assert.deepEqual(f.releases,[true]);assert.equal(reads,0);assert.deepEqual(f.queries,[]);
+});
+
 for(const variant of [
  {name:'pool Proxy',make(f,reads){return new Proxy(f.pool,{get(target,name,receiver){reads.count++;return Reflect.get(target,name,receiver);}});}},
  {name:'pool connect accessor',make(f,reads){return Object.defineProperty({},'connect',{get(){reads.count++;return f.pool.connect;}});}},

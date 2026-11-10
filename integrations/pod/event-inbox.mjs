@@ -178,7 +178,17 @@ async function acquireClient(pool,timeoutMs){
   if(remaining)pendingAcquisitions.set(pool,remaining);else pendingAcquisitions.delete(pool);
  }).then(connected=>{
   const client=connected.client;
-  const verified={query:exactCapability(client,'query'),release:exactCapability(client,'release')};
+  // Once the pool hands us a client, retain its verified cleanup capability
+  // before validating query. A malformed query must not strand the checkout,
+  // even if acquisition already timed out. Do not touch an unsafe release.
+  const release=exactCapability(client,'release');
+  let query;
+  try{query=exactCapability(client,'query');}
+  catch(error){
+   startClientRelease({release},true).catch(()=>{});
+   throw error;
+  }
+  const verified={query,release};
   candidate=verified;
   if(expired){candidate=undefined;releaseLateClient(verified);throw Error('EVENT_CONNECTION_TIMEOUT');}
   return verified;
