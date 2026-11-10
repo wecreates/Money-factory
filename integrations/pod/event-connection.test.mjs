@@ -14,7 +14,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function fixture(){
  let resolve,reject;const queries=[],releases=[];
  let connected;const connecting=new Promise(yes=>{connected=yes;});
- const client={query:async sql=>{queries.push(sql);return sql==='COMMIT'?{command:'COMMIT'}:{rows:[{event_sha256:hash}]};},release:bad=>releases.push(bad)};
+ const client={query:async sql=>{queries.push(sql);return (sql==='BEGIN'||sql==='COMMIT')?{command:sql}:{rows:[{event_sha256:hash}]};},release:bad=>releases.push(bad)};
  const pool={connect:()=>new Promise((yes,no)=>{resolve=yes;reject=no;connected();})};
  return {pool,client,queries,releases,connecting,resolve:()=>resolve(client),reject:()=>reject(Error('private backend failure'))};
 }

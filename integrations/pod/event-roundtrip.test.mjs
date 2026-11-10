@@ -194,6 +194,25 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal((await acceptPodEvent(pool,abortedEnvelope,key)).accepted_event_id,abortedId);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[abortedId])).rows[0].n,1);
 
+  // A driver wrapper resolving BEGIN without opening a transaction must not
+  // allow the INSERT to run in autocommit. Use real command-tag evidence from
+  // an inert SELECT on a disposable connection, then retry the exact event.
+  const noBeginId=crypto.randomUUID(),noBeginEnvelope=sign({id:noBeginId,kind:'pod.test.no_begin',payload:{}});
+  const noBeginQueries=[];let noBeginTag,noBeginDiscarded;
+  const noBeginPool={connect:async()=>{
+   const client=await pool.connect();
+   return {release:discard=>{noBeginDiscarded=discard;client.release(discard);},query:async(sql,args)=>{
+    noBeginQueries.push(sql);
+    if(sql==='BEGIN'){const result=await client.query('SELECT 1');noBeginTag=result.command;return result;}
+    return client.query(sql,args);
+   }};
+  }};
+  await assert.rejects(acceptPodEvent(noBeginPool,noBeginEnvelope,key),/^Error: EVENT_BEGIN_UNVERIFIED$/);
+  assert.equal(noBeginTag,'SELECT');assert.equal(noBeginDiscarded,true);assert.deepEqual(noBeginQueries,['BEGIN']);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[noBeginId])).rows[0].n,0);
+  assert.equal((await acceptPodEvent(pool,noBeginEnvelope,key)).accepted_event_id,noBeginId);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[noBeginId])).rows[0].n,1);
+
   // Force the receiver to wait on an uncommitted duplicate event, then expire
   // its envelope or invalidate its clock. Rolling back the blocker frees the
   // insert; the receiver must roll back that row, then allow an unchanged-ID

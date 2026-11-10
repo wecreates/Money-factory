@@ -42,6 +42,7 @@ function database(){
  const rows=new Map();let connects=0,commits=0,releases=0;
  return {rows,stats:()=>({connects,commits,releases}),connect:async()=>{connects++;return {
   query:async(sql,args)=>{
+   if(sql==='BEGIN')return {command:'BEGIN'};
    if(sql==='COMMIT'){commits++;return {command:'COMMIT'};}
    if(sql.startsWith('INSERT')){if(!rows.has(args[0]))rows.set(args[0],args[1]);return {};}
    if(sql.startsWith('SELECT'))return {rows:[{event_sha256:rows.get(args[0])}]};
