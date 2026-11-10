@@ -28,6 +28,7 @@ test('HTTP storage-invalid input is rejected without DB work; valid Unicode is s
  let connects=0,stored,storedHash;
  const pool={connect:async()=>{connects++;return {release(){},async query(sql,args){
   if(sql.startsWith('INSERT')){stored=structuredClone(args[2]);storedHash=args[1];}
+  if(sql==='BEGIN')return {command:'BEGIN'};
   if(sql==='COMMIT')return {command:'COMMIT'};
   return sql.startsWith('SELECT')?{rows:[{event_sha256:storedHash}]}:{};
  }};}};

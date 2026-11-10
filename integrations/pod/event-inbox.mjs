@@ -94,6 +94,12 @@ function settleQuery(query,...args){
   :Promise.resolve({value:result});
 }
 
+function assertTransactionTag(result,expected,errorCode){
+ const tag=result&&typeof result==='object'&&!utilTypes.isProxy(result)&&!Array.isArray(result)
+  ?Object.getOwnPropertyDescriptor(result,'command'):null;
+ if(!tag||!Object.hasOwn(tag,'value')||tag.value!==expected)throw Error(errorCode);
+}
+
 function transactionTimeout(){
  const error=Error('EVENT_TRANSACTION_TIMEOUT');transactionTimeouts.add(error);return error;
 }
@@ -224,7 +230,11 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
  const c=await acquireClient(pool,connectionTimeoutMs),transactionDeadline=performance.now()+transactionTimeoutMs;
  let discard=false,began=false,beginAttempted=false,commitAttempted=false,failed=false;
  try{
-  beginAttempted=true;await settleQueryWithin(c.query,transactionDeadline,'BEGIN');began=true;
+  // Do not issue any writes unless the driver confirms that they will be
+  // inside the managed transaction rather than running in autocommit.
+  beginAttempted=true;
+  const {value:begin}=await settleQueryWithin(c.query,transactionDeadline,'BEGIN');
+  assertTransactionTag(begin,'BEGIN','EVENT_BEGIN_UNVERIFIED');began=true;
   // Sender timeouts do not cancel PostgreSQL work. Bound lock and statement
   // waits locally so a blocked inbox cannot hold receiver capacity indefinitely.
   await settleQueryWithin(c.query,transactionDeadline,"SET LOCAL lock_timeout='2s'");
@@ -242,9 +252,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   // A resolved SQL call is not proof of a commit: an aborted PostgreSQL
   // transaction can return a ROLLBACK command tag. Never read an executable
   // property or acknowledge ambiguous database evidence.
-  const tag=commit&&typeof commit==='object'&&!utilTypes.isProxy(commit)
-   ?Object.getOwnPropertyDescriptor(commit,'command'):null;
-  if(!tag||!Object.hasOwn(tag,'value')||tag.value!=='COMMIT')throw Error('EVENT_COMMIT_UNVERIFIED');
+  assertTransactionTag(commit,'COMMIT','EVENT_COMMIT_UNVERIFIED');
   return {accepted_event_id:e.id};
  }catch(err){
   failed=true;

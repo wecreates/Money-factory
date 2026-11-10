@@ -25,6 +25,7 @@ test('a stalled database query cannot retain receiver admission indefinitely',as
  const queries=[],releases=[];let stalled=true;
  const pool={connect:async()=>({
   query:sql=>{queries.push(sql);if(stalled&&sql!=="BEGIN")return new Promise(()=>{});
+   if(sql==='BEGIN')return {command:'BEGIN'};
    if(sql==='COMMIT')return {command:'COMMIT'};
    return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:{};},
   release:discard=>releases.push(discard),
@@ -51,7 +52,7 @@ test('a stalled database query cannot retain receiver admission indefinitely',as
 test('a rejected release after COMMIT withholds the redacted HTTP acknowledgement',async()=>{
  const queries=[],releases=[];
  const pool={connect:()=>({
-  query:sql=>{queries.push(sql);return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:sql==='COMMIT'?{command:'COMMIT'}:{};},
+  query:sql=>{queries.push(sql);return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:(sql==='BEGIN'||sql==='COMMIT')?{command:sql}:{};},
   release:discard=>{releases.push(discard);return Promise.reject(Error('private release error'));},
  })};
  const handle=createPodEventHandler({pool,key,clock:()=>now});
@@ -62,11 +63,21 @@ test('a rejected release after COMMIT withholds the redacted HTTP acknowledgemen
 test('an unverified commit produces a redacted HTTP failure and destroys the client',async()=>{
  const queries=[],releases=[];
  const pool={connect:()=>({
-  query:sql=>{queries.push(sql);return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:sql==='COMMIT'?{command:'ROLLBACK'}:{};},
+  query:sql=>{queries.push(sql);return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:
+   sql==='BEGIN'?{command:'BEGIN'}:sql==='COMMIT'?{command:'ROLLBACK'}:{};},
   release:discard=>releases.push(discard),
  })};
  const handle=createPodEventHandler({pool,key,clock:()=>now});
  const {req,res}=request();await handle(req,res);
  assert.equal(res.status,503);assert.deepEqual(res.body,{error:'EVENT_RECEIVER_UNAVAILABLE'});
  assert.equal(queries.at(-1),'COMMIT');assert.deepEqual(releases,[true]);
+});
+
+test('an unverified begin returns a redacted HTTP failure before writing',async()=>{
+ const queries=[],releases=[];
+ const pool={connect:()=>({query:sql=>{queries.push(sql);return {command:'SELECT'};},release:discard=>releases.push(discard)})};
+ const handle=createPodEventHandler({pool,key,clock:()=>now});
+ const {req,res}=request();await handle(req,res);
+ assert.equal(res.status,503);assert.deepEqual(res.body,{error:'EVENT_RECEIVER_UNAVAILABLE'});
+ assert.deepEqual(queries,['BEGIN']);assert.deepEqual(releases,[true]);
 });
