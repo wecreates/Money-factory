@@ -256,11 +256,14 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   return {accepted_event_id:e.id};
  }catch(err){
   failed=true;
-  // Rejected transaction boundaries leave protocol or commit state uncertain.
+  // Unverified transaction boundaries leave protocol or commit state uncertain.
   // Do not send more SQL on that client; destroy it. Between confirmed BEGIN
   // and attempted COMMIT, rollback remains the normal cleanup path.
   if(transactionTimeouts.has(err)||commitAttempted)discard=true;
-  else if(began)try{await settleQueryWithin(c.query,transactionDeadline,'ROLLBACK');}catch{discard=true;}
+  else if(began)try{
+   const {value:rollback}=await settleQueryWithin(c.query,transactionDeadline,'ROLLBACK');
+   assertTransactionTag(rollback,'ROLLBACK','EVENT_ROLLBACK_UNVERIFIED');
+  }catch{discard=true;}
   else if(beginAttempted)discard=true;
   throw err;
  }finally{

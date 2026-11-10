@@ -14,7 +14,7 @@ function fixture(wrap){
  const client={async query(sql){
   queries.push(sql);
   const result={rows:[{event_sha256:hash}]};
-  return sql.startsWith('SELECT')?wrap(result):(sql==='BEGIN'||sql==='COMMIT')?{command:sql}:result;
+  return sql.startsWith('SELECT')?wrap(result):['BEGIN','COMMIT','ROLLBACK'].includes(sql)?{command:sql}:result;
  },release:discard=>releases.push(Boolean(discard))};
  return {pool:{connect:async()=>client},queries,releases};
 }
@@ -24,7 +24,7 @@ function synchronousFixture(wrap){
  const client={query(sql){
   queries.push(sql);
   const result={rows:[{event_sha256:hash}]};
-  return sql.startsWith('SELECT')?wrap(result):(sql==='BEGIN'||sql==='COMMIT')?{command:sql}:result;
+  return sql.startsWith('SELECT')?wrap(result):['BEGIN','COMMIT','ROLLBACK'].includes(sql)?{command:sql}:result;
  },release:discard=>releases.push(Boolean(discard))};
  return {pool:{connect:async()=>client},queries,releases};
 }
