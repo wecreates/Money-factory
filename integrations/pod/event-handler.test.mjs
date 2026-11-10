@@ -39,13 +39,13 @@ function envelope(event={id,kind:'pod.production.review_required',payload:{publi
 }
 // In-memory transaction double: HTTP/security tests, not live database evidence.
 function database(){
- const rows=new Map();let connects=0,commits=0,releases=0;
- return {rows,stats:()=>({connects,commits,releases}),connect:async()=>{connects++;return {
+ const rows=new Map(),events=new Map();let connects=0,commits=0,releases=0;
+ return {rows,events,stats:()=>({connects,commits,releases}),connect:async()=>{connects++;return {
   query:async(sql,args)=>{
    if(sql==='BEGIN')return {command:'BEGIN'};
    if(sql==='COMMIT'){commits++;return {command:'COMMIT'};}
-   if(sql.startsWith('INSERT')){if(!rows.has(args[0]))rows.set(args[0],args[1]);return {};}
-   if(sql.startsWith('SELECT'))return {rows:[{event_sha256:rows.get(args[0])}]};
+   if(sql.startsWith('INSERT')){if(!rows.has(args[0])){rows.set(args[0],args[1]);events.set(args[0],args[2]);}return {};}
+   if(sql.startsWith('SELECT'))return {rows:[{event_sha256:rows.get(args[0]),event_matches:events.get(args[0])===args[1]}]};
    return {};
   },release:()=>{releases++;}
  };}};
@@ -67,6 +67,33 @@ test('signed HTTP delivery acknowledges only after commit and deduplicates stabl
   assert.equal(pool.rows.size,1);assert.deepEqual(pool.stats(),{connects:2,commits:2,releases:2});
   const response=await post(envelope({id,kind:'pod.published',payload:{}}));
   assert.equal(response.status,409);assert.equal(pool.stats().commits,2);assert.equal(pool.stats().releases,3);
+ });
+});
+test('signed replay cannot acknowledge different stored content with the same digest',async()=>{
+ const pool=database();
+ await serverFor(pool,async post=>{
+  assert.equal((await post(envelope())).status,200);
+  const stored=pool.events.get(id),digest=pool.rows.get(id);
+  pool.events.set(id,JSON.stringify({...JSON.parse(stored),payload:{publication_enabled:true}}));
+  const conflict=await post(envelope(undefined,now-1));
+  assert.equal(conflict.status,409);
+  assert.deepEqual(await conflict.json(),{error:'EVENT_REJECTED'});
+  assert.equal(pool.rows.get(id),digest);
+  assert.equal(pool.stats().commits,1);
+  pool.events.set(id,stored);
+  assert.equal((await post(envelope(undefined,now-2))).status,200);
+  assert.equal(pool.rows.size,1);
+ });
+});
+test('signed non-string event dates are client rejections without database work',async()=>{
+ const pool=database();
+ await serverFor(pool,async post=>{
+  for(const created_at of [{toString:null,valueOf:null},[new Date(now).toISOString()],now,null]){
+   const response=await post(envelope({id,kind:'pod.test.date',payload:{},created_at}));
+   assert.equal(response.status,400);
+   assert.deepEqual(await response.json(),{error:'EVENT_REJECTED'});
+  }
+  assert.equal(pool.stats().connects,0);
  });
 });
 test('invalid signatures, stale claims, mismatched IDs and malformed requests never connect',async()=>{

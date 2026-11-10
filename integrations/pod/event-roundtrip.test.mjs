@@ -136,6 +136,41 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.ok((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[ackId])).rows[0].delivered_at);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[ackId])).rows[0].n,1);
 
+  // Simulate a bad restore in the disposable receiver schema: the digest
+  // remains correct but the content does not. A replay must not mark delivery.
+  const mismatchId=crypto.randomUUID(),mismatchStatuses=[],mismatchSent=[];
+  await pool.query('INSERT INTO pod_events(id,job_id,kind,payload) VALUES($1,$2,$3,$4)',
+   [mismatchId,job,'pod.test.stored_content',{publication_enabled:false,nested:{long_key:2,a:1}}]);
+  const loseReceipt=await deliverOutbox(db,{...options,fetchImpl:async(...args)=>{
+   const response=await transport(...args);assert.equal(response.status,200);await response.arrayBuffer();
+   throw Error('SIMULATED_LOST_ACK');
+  }});
+  assert.equal(loseReceipt.failed,1);
+  const readInbox=async()=>(await pool.query('SELECT event,event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[mismatchId])).rows[0];
+  const savedInbox=await readInbox();
+  const altered=await pool.query("UPDATE pod_content_event_inbox SET event=jsonb_set(event,'{payload,nested,a}','0') WHERE event_id=$1",[mismatchId]);
+  assert.equal(altered.rowCount,1);
+  const mismatchedInbox=await readInbox();
+  assert.equal(mismatchedInbox.event_sha256,savedInbox.event_sha256);
+  assert.equal(mismatchedInbox.event.payload.nested.a,0);
+  const mismatchOptions={...options,fetchImpl:async(endpoint,request)=>{
+   mismatchSent.push(request.headers['idempotency-key']);
+   const response=await transport(endpoint,request);mismatchStatuses.push(response.status);
+   if(response.status===409)assert.deepEqual(await response.clone().json(),{error:'EVENT_REJECTED'});
+   return response;
+  }};
+  const refused=await deliverOutbox(db,mismatchOptions);
+  assert.equal(refused.failed,1);assert.equal(refused.delivered,0);
+  assert.deepEqual(await readInbox(),mismatchedInbox);
+  assert.equal((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[mismatchId])).rows[0].delivered_at,null);
+  // Restore the deliberately altered fixture only. No runtime repair is implied.
+  await pool.query('UPDATE pod_content_event_inbox SET event=$2::jsonb WHERE event_id=$1',[mismatchId,savedInbox.event]);
+  const mismatchRecovered=await deliverOutbox(db,mismatchOptions);
+  assert.equal(mismatchRecovered.failed,0);assert.equal(mismatchRecovered.delivered,1);
+  assert.deepEqual(mismatchStatuses,[409,200]);assert.deepEqual(mismatchSent,[mismatchId,mismatchId]);
+  assert.deepEqual(await readInbox(),savedInbox);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[mismatchId])).rows[0].n,1);
+
   // Cross the sender's real storage cutoff after the receiver commits the first
   // event. The sender must retain both pending rows and never send the second.
   const cutoffIds=[crypto.randomUUID(),crypto.randomUUID()],cutoffSent=[];

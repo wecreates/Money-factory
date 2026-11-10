@@ -45,10 +45,10 @@ test('canonical signatures still admit lower- and uppercase UUID strings with un
  for(const eventId of [id,id.toUpperCase()]){
   let hash,stored,commits=0;
   const pool={connect:async()=>({release(){},async query(sql,args){
-   if(sql.startsWith('INSERT')){hash=args[1];stored=args[2];}
+   if(sql.startsWith('INSERT')){hash=args[1];stored=JSON.parse(args[2]);}
    if(sql==='BEGIN')return {command:'BEGIN'};
    if(sql==='COMMIT'){commits++;return {command:'COMMIT'};}
-   return sql.startsWith('SELECT')?{rows:[{event_sha256:hash}]}:{};
+   return sql.startsWith('SELECT')?{rows:[{event_sha256:hash,event_matches:true}]}:{};
   }})};
   const envelope=sign(eventId);
   assert.deepEqual(await acceptPodEvent(pool,envelope,key,()=>now,{expectedEventId:eventId}),{accepted_event_id:eventId});

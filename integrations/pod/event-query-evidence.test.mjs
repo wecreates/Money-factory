@@ -13,7 +13,7 @@ function fixture(wrap){
  const queries=[],releases=[];
  const client={async query(sql){
   queries.push(sql);
-  const result={rows:[{event_sha256:hash}]};
+  const result={rows:[{event_sha256:hash,event_matches:true}]};
   return sql.startsWith('SELECT')?wrap(result):['BEGIN','COMMIT','ROLLBACK'].includes(sql)?{command:sql}:result;
  },release:discard=>releases.push(Boolean(discard))};
  return {pool:{connect:async()=>client},queries,releases};
@@ -23,7 +23,7 @@ function synchronousFixture(wrap){
  const queries=[],releases=[];
  const client={query(sql){
   queries.push(sql);
-  const result={rows:[{event_sha256:hash}]};
+  const result={rows:[{event_sha256:hash,event_matches:true}]};
   return sql.startsWith('SELECT')?wrap(result):['BEGIN','COMMIT','ROLLBACK'].includes(sql)?{command:sql}:result;
  },release:discard=>releases.push(Boolean(discard))};
  return {pool:{connect:async()=>client},queries,releases};
@@ -33,7 +33,8 @@ for(const variant of [
  {name:'result rows accessor',wrap:(result,reads)=>Object.defineProperty({},'rows',{get(){reads.count++;return result.rows;}})},
  {name:'rows Proxy',wrap:(result,reads)=>({rows:new Proxy(result.rows,{get(target,key,receiver){reads.count++;return Reflect.get(target,key,receiver);}})})},
  {name:'row Proxy',wrap:(result,reads)=>({rows:[new Proxy(result.rows[0],{get(target,key,receiver){reads.count++;return Reflect.get(target,key,receiver);}})]})},
- {name:'field accessor',wrap:(result,reads)=>({rows:[Object.defineProperty({},'event_sha256',{enumerable:true,get(){reads.count++;return result.rows[0].event_sha256;}})]})},
+ {name:'digest accessor',wrap:(result,reads)=>({rows:[Object.defineProperty({...result.rows[0]},'event_sha256',{enumerable:true,get(){reads.count++;return result.rows[0].event_sha256;}})]})},
+ {name:'content equality accessor',wrap:(result,reads)=>({rows:[Object.defineProperty({...result.rows[0]},'event_matches',{enumerable:true,get(){reads.count++;return true;}})]})},
 ])test(`event inbox rejects executable ${variant.name} without invocation`,async()=>{
  const reads={count:0},f=fixture(result=>variant.wrap(result,reads));
  await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),/EVENT_QUERY_UNVERIFIED/);
@@ -69,6 +70,8 @@ for(const variant of [
  {name:'oversized rows',wrap:result=>({rows:[...result.rows,...result.rows]})},
  {name:'extra field',wrap:result=>({rows:[{...result.rows[0],extra:true}]})},
  {name:'missing row',wrap:()=>({rows:[]})},
+ {name:'digest-only row',wrap:()=>({rows:[{event_sha256:hash}]})},
+ {name:'truthy non-boolean content comparison',wrap:()=>({rows:[{event_sha256:hash,event_matches:'true'}]})},
 ])test(`event inbox rejects ${variant.name} readback evidence`,async()=>{
  const f=fixture(variant.wrap);
  await assert.rejects(acceptPodEvent(f.pool,envelope,key,()=>now),/EVENT_QUERY_UNVERIFIED/);

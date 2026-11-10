@@ -14,7 +14,7 @@ function fixture(clientTransform=value=>value){
  const queries=[],releases=[];
  const client={async query(sql){
   queries.push(sql);
-  if(sql.startsWith('SELECT'))return {rows:[{event_sha256:hash}]};
+  if(sql.startsWith('SELECT'))return {rows:[{event_sha256:hash,event_matches:true}]};
   if(sql==='BEGIN')return {command:'BEGIN'};
   if(sql==='COMMIT')return {command:'COMMIT'};
   return {};

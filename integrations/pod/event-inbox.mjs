@@ -226,7 +226,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
  if(!crypto.timingSafeEqual(expected,Buffer.from(envelope.signature,'hex')))throw clientFailure(401,'EVENT_SIGNATURE_INVALID');
  let p;
  try{p=parsePodJSON(envelope.payload);}catch(error){throw markClientFailure(error,400);}
- const e=p?.event,createdAt=Date.parse(e?.created_at);
+ const e=p?.event,createdAt=typeof e?.created_at==='string'?Date.parse(e.created_at):NaN;
  if(!Number.isSafeInteger(now)||now<0||!exactPlainObject(p,ENVELOPE_FIELDS)||p.schema_version!==1||p.audience!=='money-factory:pod:event'||!Number.isSafeInteger(p.issued_at_ms)||p.issued_at_ms<0||p.issued_at_ms>now||now-p.issued_at_ms>300000||
   !exactPlainObject(e,EVENT_FIELDS)||typeof e.id!=='string'||e.id.length!==36||!UUID.test(e.id)||
   !(e.job_id===null||typeof e.job_id==='string'&&e.job_id.length===36&&UUID.test(e.job_id))||
@@ -236,7 +236,8 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   new Date(createdAt).toISOString()!==e.created_at||createdAt-p.issued_at_ms>300000||
   (expectedEventId!==undefined&&expectedEventId!==e.id))throw clientFailure(400,'EVENT_SCOPE_INVALID');
  if(!validEventStorageText(e))throw clientFailure(400,'EVENT_STORAGE_TEXT_INVALID');
- const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
+ const serializedEvent=JSON.stringify(e);
+ const hash=crypto.createHash('sha256').update(serializedEvent).digest('hex');
  const c=await acquireClient(pool,connectionTimeoutMs),transactionDeadline=performance.now()+transactionTimeoutMs;
  let discard=false,began=false,beginAttempted=false,commitAttempted=false,failed=false,preCommitTime;
  try{
@@ -249,10 +250,14 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   // waits locally so a blocked inbox cannot hold receiver capacity indefinitely.
   await settleQueryWithin(c.query,transactionDeadline,"SET LOCAL lock_timeout='2s'");
   await settleQueryWithin(c.query,transactionDeadline,"SET LOCAL statement_timeout='10s'");
-  await settleQueryWithin(c.query,transactionDeadline,'INSERT INTO pod_content_event_inbox(event_id,event_sha256,event) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[e.id,hash,e]);
-  const selected=await settleQueryWithin(c.query,transactionDeadline,'SELECT event_sha256 FROM pod_content_event_inbox WHERE event_id=$1',[e.id]);
-  const previous=exactQueryRow(selected.value,['event_sha256']);
-  if(previous.event_sha256!==hash)throw clientFailure(409,'EVENT_REPLAY_CONFLICT');
+  await settleQueryWithin(c.query,transactionDeadline,'INSERT INTO pod_content_event_inbox(event_id,event_sha256,event) VALUES($1,$2,$3::jsonb) ON CONFLICT DO NOTHING',[e.id,hash,serializedEvent]);
+  // The digest column can agree while the stored observation differs (e.g.
+  // after a bad restore). Compare the body in PostgreSQL: jsonb does not retain
+  // object-key order, so rehashing the returned object would reject valid rows.
+  const selected=await settleQueryWithin(c.query,transactionDeadline,'SELECT event_sha256,event=$2::jsonb AS event_matches FROM pod_content_event_inbox WHERE event_id=$1',[e.id,serializedEvent]);
+  const previous=exactQueryRow(selected.value,['event_sha256','event_matches']);
+  if(typeof previous.event_matches!=='boolean')throw Error('EVENT_QUERY_UNVERIFIED');
+  if(previous.event_sha256!==hash||!previous.event_matches)throw clientFailure(409,'EVENT_REPLAY_CONFLICT');
   // A captured request timestamp is not authorization after connection, unique
   // index or row waits. Expiry must roll back rather than acknowledge delivery.
   preCommitTime=clock();
@@ -279,7 +284,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
  }finally{
   // Release once even after the transaction budget is exhausted. Never send
   // a success while cleanup is unverified; an already committed event can be
-  // retried safely through the exact event-ID/hash deduplication path.
+  // retried safely through the exact event-ID/digest/content deduplication path.
   const cleanup=startClientRelease(c,discard);
   cleanup.catch(()=>{});
   try{await settleQueryWithin(()=>cleanup,transactionDeadline);}
