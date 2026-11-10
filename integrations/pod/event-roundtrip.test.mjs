@@ -9,6 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {once} from 'node:events';
 import {createPodBridgeDispatcher} from './bridge-dispatcher.mjs';
 import {acceptPodEvent} from './event-inbox.mjs';
+import {createPodEventHandler} from './event-handler.mjs';
 
 const connectionString=process.env.POD_BRIDGE_TEST_DATABASE_URL;
 test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and rolls back failures',
@@ -44,7 +45,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
    await c.query('BEGIN');const result=await fn(c);await c.query('COMMIT');return result;
   }catch(error){await c.query('ROLLBACK');throw error;}finally{c.release();}}};
   const authKey='test-only-grant-bearer-'.repeat(3),signingKey='test-only-grant-signing-'.repeat(3);
-  const grantPath='/pod/grant',eventPath='/pod/events';
+  const grantPath='/pod/grant',eventPath='/pod/events',ackPath='/pod/ack-freshness';
   const brief={id:'fixture-job',business_id:'fixture-business',account_id:'fixture-account',
    platform:'kdp',destination_platform:'kdp',mode:'PRELAUNCH',task_sha256:'a'.repeat(64)};
   let revoked=false,loads=0;
@@ -55,7 +56,21 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
      task_sha256:brief.task_sha256,revoked,production_permission:true,publication_permission:false,
      expires_at_ms:Date.now()+60000,evidence_event_id:'fixture-approval'}};
   }});
+  let expireOnRelease=true,ackClockOffset=0,ackCommits=0,ackRollbacks=0;
+  const ackHandler=createPodEventHandler({key,clock:()=>Date.now()+ackClockOffset,pool:{connect:async()=>{
+   const client=await pool.connect();
+   return {query:async(sql,args)=>{
+    const result=await client.query(sql,args);
+    if(sql==='COMMIT'&&result.command==='COMMIT')ackCommits++;
+    if(sql==='ROLLBACK')ackRollbacks++;
+    return result;
+   },release:async discard=>{
+    await Promise.resolve();client.release(discard);
+    if(expireOnRelease)ackClockOffset=300001;
+   }};
+  }}});
   server=http.createServer(async(req,res)=>{
+   if(req.url===ackPath)return ackHandler(req,res);
    if(await dispatch(req,res))return;
    res.writeHead(404);res.end();
   });
@@ -96,6 +111,30 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal(poolHealth().idle_connection_failures,1);
   assert.ok((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[id])).rows[0].delivered_at);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox')).rows[0].n,1);
+
+  // The actual receiver commits, but expiry during cleanup withholds its
+  // acknowledgement. The pinned sender retries the unchanged durable event.
+  const ackId=crypto.randomUUID(),statuses=[],sentIds=[];
+  await pool.query('INSERT INTO pod_events(id,job_id,kind,payload) VALUES($1,$2,$3,$4)',
+   [ackId,job,'pod.test.ack_freshness',{publication_enabled:false}]);
+  const ackOptions={...options,url:'https://authority.invalid'+ackPath,fetchImpl:async(endpoint,request)=>{
+   assert.equal(endpoint.href,'https://authority.invalid'+ackPath);
+   sentIds.push(request.headers['idempotency-key']);
+   const response=await fetch(local+ackPath,request);statuses.push(response.status);
+   if(response.status===400)assert.deepEqual(await response.clone().json(),{error:'EVENT_REJECTED'});
+   return response;
+  }};
+  const withheld=await deliverOutbox(db,ackOptions);
+  assert.equal(withheld.failed,1);assert.equal(withheld.delivered,0);
+  assert.equal((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[ackId])).rows[0].delivered_at,null);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[ackId])).rows[0].n,1);
+  expireOnRelease=false;ackClockOffset=0;
+  const recoveredAck=await deliverOutbox(db,ackOptions);
+  assert.equal(recoveredAck.delivered,1);assert.equal(recoveredAck.failed,0);
+  assert.deepEqual(statuses,[400,200]);assert.deepEqual(sentIds,[ackId,ackId]);
+  assert.equal(ackCommits,2);assert.equal(ackRollbacks,0);
+  assert.ok((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[ackId])).rows[0].delivered_at);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[ackId])).rows[0].n,1);
 
   // Cross the sender's real storage cutoff after the receiver commits the first
   // event. The sender must retain both pending rows and never send the second.

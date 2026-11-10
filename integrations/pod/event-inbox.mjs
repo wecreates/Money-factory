@@ -238,7 +238,7 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
  if(!validEventStorageText(e))throw clientFailure(400,'EVENT_STORAGE_TEXT_INVALID');
  const hash=crypto.createHash('sha256').update(JSON.stringify(e)).digest('hex');
  const c=await acquireClient(pool,connectionTimeoutMs),transactionDeadline=performance.now()+transactionTimeoutMs;
- let discard=false,began=false,beginAttempted=false,commitAttempted=false,failed=false;
+ let discard=false,began=false,beginAttempted=false,commitAttempted=false,failed=false,preCommitTime;
  try{
   // Do not issue any writes unless the driver confirms that they will be
   // inside the managed transaction rather than running in autocommit.
@@ -255,15 +255,15 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   if(previous.event_sha256!==hash)throw clientFailure(409,'EVENT_REPLAY_CONFLICT');
   // A captured request timestamp is not authorization after connection, unique
   // index or row waits. Expiry must roll back rather than acknowledge delivery.
-  const current=clock();
-  if(!Number.isSafeInteger(current)||current<0||p.issued_at_ms>current||current-p.issued_at_ms>300000)throw clientFailure(400,'EVENT_SCOPE_INVALID');
+  preCommitTime=clock();
+  if(!Number.isSafeInteger(preCommitTime)||preCommitTime<now||preCommitTime-p.issued_at_ms>300000)
+   throw clientFailure(400,'EVENT_SCOPE_INVALID');
   commitAttempted=true;
   const {value:commit}=await settleQueryWithin(c.query,transactionDeadline,'COMMIT');
   // A resolved SQL call is not proof of a commit: an aborted PostgreSQL
   // transaction can return a ROLLBACK command tag. Never read an executable
   // property or acknowledge ambiguous database evidence.
   assertTransactionTag(commit,'COMMIT','EVENT_COMMIT_UNVERIFIED');
-  return {accepted_event_id:e.id};
  }catch(err){
   failed=true;
   // Unverified transaction boundaries leave protocol or commit state uncertain.
@@ -285,5 +285,13 @@ export async function acceptPodEvent(pool,envelope,key,clock=Date.now,options={}
   try{await settleQueryWithin(()=>cleanup,transactionDeadline);}
   catch(error){if(!failed)throw error;}
  }
+ // COMMIT is already confirmed and the client released. A stale response
+ // must not acknowledge delivery or try to undo a committed transaction.
+ // The sender can sign the same event again and recover its exact receipt.
+ const acknowledgementTime=clock();
+ if(performance.now()>=transactionDeadline)throw transactionTimeout();
+ if(!Number.isSafeInteger(acknowledgementTime)||acknowledgementTime<preCommitTime||
+  acknowledgementTime-p.issued_at_ms>300000)throw clientFailure(400,'EVENT_SCOPE_INVALID');
+ return {accepted_event_id:e.id};
 }
 
