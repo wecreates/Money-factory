@@ -47,3 +47,18 @@ establish retained backup/recovery,live authority/current grants,production
 preflight,independent QA,owner-phone acceptance,100/1000 measured capacity or
 controlled release. A sleeping free service is not a continuous self-hosted
 worker. Record final exact-head tests,merges and rollout evidence in the PRs.
+
+## Cross-repository fixture follow-up
+
+Money Factory's first candidate19beefbf failed its own Node integration step;
+subsequent Python and E2E steps were skipped, not passed. Downloading the failed
+job's logs timed out, so no exact failure text is claimed. Source inspection
+found its real bridge round-trip fixture still created POD tables in a custom
+search_path schema while calling the now public-qualified monitor. Move that
+fixture into its own strictly generated disposable database, including its
+single-client contention probe. Preserve existing local-host/database guards,
+actual PostgreSQL/transport assertions, restricted-role restore drills and both
+publication holds. Close clients before dropping only that generated database.
+No production role/schema/resource changes. Syntax check passes locally; the
+real fixture is unexecuted locally without PostgreSQL and must pass hosted CI.
+Reuse PR521; do not bypass the failed step or declare skipped tests successful.

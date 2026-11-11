@@ -31,12 +31,16 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
  const {BRIDGE_RULES,verifyEnvelope}=await import(pathToFileURL(path.join(root,'integrations/pod/policy.mjs')));
  const {monitorPodPool}=await import(pathToFileURL(path.join(root,'integrations/pod/pool-health.mjs')));
  const admin=new Pool({connectionString,max:1});
- const schema='pod_bridge_'+crypto.randomBytes(8).toString('hex');
- let pool,server;
+ const database='pod_bridge_'+crypto.randomBytes(8).toString('hex');
+ assert.match(database,/^pod_bridge_[a-f0-9]{16}$/);
+ const isolatedURL=new URL(url);isolatedURL.pathname='/'+database;
+ let pool,server,databaseCreated=false;
  const key='test-only-outbox-key-'.repeat(3);
  try{
-  await admin.query(`CREATE SCHEMA ${schema}`);
-  pool=new Pool({connectionString,max:10,options:`-c search_path=${schema}`});
+  // The production monitor binds public POD tables explicitly. Give this
+  // fixture its own database instead of relying on a session search_path.
+  await admin.query(`CREATE DATABASE ${database} TEMPLATE template0`);databaseCreated=true;
+  pool=new Pool({connectionString:isolatedURL.toString(),max:10});
   const poolHealth=monitorPodPool(pool);
   await pool.query(await fs.readFile(new URL('./001_event_inbox.sql',import.meta.url),'utf8'));
   // Only sender event storage is a fixture; delivery and receipt are production modules.
@@ -139,7 +143,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.ok((await pool.query('SELECT delivered_at FROM pod_events WHERE id=$1',[ackId])).rows[0].delivered_at);
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[ackId])).rows[0].n,1);
 
-  // Simulate a bad restore in the disposable receiver schema: the digest
+  // Simulate a bad restore in the disposable receiver database: the digest
   // remains correct but the content does not. A replay must not mark delivery.
   const mismatchId=crypto.randomUUID(),mismatchStatuses=[],mismatchSent=[];
   await pool.query('INSERT INTO pod_events(id,job_id,kind,payload) VALUES($1,$2,$3,$4)',
@@ -285,7 +289,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   const {migrate}=await import(pathToFileURL(path.join(root,'scripts/pod_storage_init.mjs')));
   const {exportStateArchive,restoreStateArchive}=await import(pathToFileURL(path.join(root,'integrations/pod/state-archive.mjs')));
   const archiveRoot=await fs.mkdtemp(path.join(os.tmpdir(),'pod-bridge-restore-'));
-  const databases=[],dbPools=[],role=`${schema}_archive`;
+  const databases=[],dbPools=[],role=`${database}_archive`;
   let roleCreated=false;
   try{
    await admin.query(`CREATE ROLE ${role} NOLOGIN`);roleCreated=true;
@@ -424,7 +428,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
    return {payload,signature:crypto.createHmac('sha256',key).update(payload).digest('hex')};};
   // Confirm the actual jsonb storage boundary, then reject the same signed
   // observations before acquiring a client rather than reporting a retryable
-  // database outage. Only the isolated disposable schema is touched.
+  // database outage. Only the isolated disposable database is touched.
   let storageConnects=0;
   assert.equal((await pool.query('SHOW server_encoding')).rows[0].server_encoding,'UTF8');
   const storagePool={connect:()=>{storageConnects++;return pool.connect();}};
@@ -446,7 +450,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
 
   // Saturate a real pg pool: the receiver must reject without acquiring a
   // transaction, release its late queued client, and allow an unchanged-ID retry.
-  const single=new Pool({connectionString,max:1,options:`-c search_path=${schema}`});
+  const single=new Pool({connectionString:isolatedURL.toString(),max:1});
   let held=await single.connect();
   const poolWaitId=crypto.randomUUID(),poolWaitEnvelope=sign({id:poolWaitId,kind:'pod.test.pool_wait',payload:{}});
   try{
@@ -590,7 +594,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[lockId])).rows[0].n,0);
   assert.equal((await acceptPodEvent(pool,lockEnvelope,key)).accepted_event_id,lockId);
 
-  // This trigger exists only in the isolated disposable test schema. Sleeping
+  // This trigger exists only in the isolated disposable test database. Sleeping
   // without lock contention exercises statement_timeout independently.
   await pool.query(`CREATE FUNCTION pod_test_delay() RETURNS trigger LANGUAGE plpgsql AS $$
    BEGIN IF NEW.event->>'kind'='pod.test.slow' THEN PERFORM pg_sleep(11); END IF; RETURN NEW; END; $$`);
@@ -613,7 +617,7 @@ test('PostgreSQL bridge recovers lost acknowledgments, serializes duplicates and
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM pod_content_event_inbox WHERE event_id=$1',[rejectedId])).rows[0].n,0);
  }finally{
   if(server){server.closeAllConnections();await new Promise(r=>server.close(r));}
-  if(pool)await pool.end();
-  await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);await admin.end();
+  try{if(pool)await pool.end();}
+  finally{try{if(databaseCreated)await admin.query(`DROP DATABASE ${database}`);}finally{await admin.end();}}
  }
 });
