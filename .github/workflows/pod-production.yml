@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: 1b8c60a750f304f4faa9f7afe733181c1a43eab2
+          ref: b9c53dd734c4c7c0ec2950b8190ac07d97823aa8
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -71,7 +71,7 @@ jobs:
         run: node --test tests/pod-diagnostic-source.test.mjs tests/pod-diagnostic-native-state.test.mjs tests/pod-diagnostic-deadline.test.mjs
         working-directory: content-control-test
       - name: Verify private archive lifecycle and pool shutdown controls
-        run: node --test tests/pod-archive-native-state.test.mjs tests/pod-archive-session.test.mjs
+        run: node --test tests/pod-database-native-state.test.mjs tests/pod-database-wait.test.mjs tests/pod-archive-native-state.test.mjs tests/pod-archive-session.test.mjs
         working-directory: content-control-test
       - name: Verify Content Control transaction, restore and deployment boundaries
         # Its real PostgreSQL boundary tests run in Content Control CI; this
