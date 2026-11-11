@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: 944508b7bde18c25d834aec4c083772093f88ab7
+          ref: 1b8c60a750f304f4faa9f7afe733181c1a43eab2
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -59,7 +59,7 @@ jobs:
         run: node --test tests/pod-outbox-native-state.test.mjs tests/pod-outbox-cursor.test.mjs tests/pod-outbox-counts.test.mjs tests/pod-outbox-stop.test.mjs tests/pod-outbox-runtime.test.mjs tests/pod-outbox-date.test.mjs
         working-directory: content-control-test
       - name: Verify bounded manual operations snapshot lifecycle
-        run: node --test tests/pod-operational-health.test.mjs
+        run: node --test tests/pod-snapshot-source.test.mjs tests/pod-operational-health.test.mjs
         working-directory: content-control-test
       - name: Verify the live-source dual publication hold on disabled startup
         run: node --test tests/pod-service.test.mjs
