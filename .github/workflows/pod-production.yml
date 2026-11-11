@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: wecreates/content-control
-          ref: 6b6f77c568e689b04f8808e5f09e943fb4adebba
+          ref: 62e2d509e3320833eb5c7c999fa57e85068fea16
           path: content-control-test
       - uses: actions/setup-node@v4
         with:
@@ -53,7 +53,7 @@ jobs:
         run: node --test tests/pod-worker-timer.test.mjs tests/pod-worker-wait.test.mjs tests/pod-worker.test.mjs
         working-directory: content-control-test
       - name: Verify native outbox shutdown after delivery callbacks
-        run: node --test tests/pod-outbox-counts.test.mjs tests/pod-outbox-stop.test.mjs tests/pod-outbox-runtime.test.mjs tests/pod-outbox-date.test.mjs
+        run: node --test tests/pod-outbox-cursor.test.mjs tests/pod-outbox-counts.test.mjs tests/pod-outbox-stop.test.mjs tests/pod-outbox-runtime.test.mjs tests/pod-outbox-date.test.mjs
         working-directory: content-control-test
       - name: Verify bounded manual operations snapshot lifecycle
         run: node --test tests/pod-operational-health.test.mjs
