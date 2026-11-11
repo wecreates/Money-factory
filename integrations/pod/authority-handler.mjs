@@ -6,6 +6,13 @@ import {issuePodGrant} from './readiness-grant.mjs';
 import {parsePodRequestJSON} from './request-json.mjs';
 import {validPodBearerKey,validPodSharedKey} from './key-contract.mjs';
 
+const nativeThrowIfAborted=AbortSignal.prototype.throwIfAborted;
+const nativeAborted=Object.getOwnPropertyDescriptor(AbortSignal.prototype,'aborted').get;
+const addAbortListener=EventTarget.prototype.addEventListener;
+const removeAbortListener=EventTarget.prototype.removeEventListener;
+const throwIfAborted=signal=>Reflect.apply(nativeThrowIfAborted,signal,[]);
+const signalAborted=signal=>Reflect.apply(nativeAborted,signal,[]);
+
 // Share capacity across handlers wired to the same server-owned loader. An
 // aborted HTTP request does not prove the loader stopped its backend work.
 const pendingSnapshots=new WeakMap();
@@ -30,12 +37,12 @@ function admitRequest(loadSnapshot){
 }
 
 async function loadBoundedSnapshot(loadSnapshot,id,signal){
- signal.throwIfAborted();
+ throwIfAborted(signal);
  const pending=pendingSnapshots.get(loadSnapshot)||0;
  if(pending>=MAX_PENDING_SNAPSHOTS)throw Error('SNAPSHOT_BUSY');
  pendingSnapshots.set(loadSnapshot,pending+1);
  return Promise.resolve().then(()=>{
-  signal.throwIfAborted();
+  throwIfAborted(signal);
   const loaded=loadSnapshot(id,{signal});
   // A synchronous snapshot is authority data, not a Promise resolution
   // procedure. Wrap it so an executable own `then` member cannot run or
@@ -108,14 +115,16 @@ export function createPodAuthorityHandler(config){
    // Bound the authority lookup separately from reading the request. A loader
    // must honor this signal and its own database deadlines to stop backend work.
    const aborted=new Promise((_,reject)=>{
-    onAbort=()=>reject(Error('SNAPSHOT_ABORTED'));
-    controller.signal.addEventListener('abort',onAbort,{once:true});
-    if(controller.signal.aborted)onAbort();
+    // The loader receives this signal: do not trust shadowable members or
+    // let a synthetic event consume the real deadline/disconnect listener.
+    onAbort=()=>{if(signalAborted(controller.signal))reject(Error('SNAPSHOT_ABORTED'));};
+    Reflect.apply(addAbortListener,controller.signal,['abort',onAbort]);
+    if(signalAborted(controller.signal))onAbort();
    });
    const deadline=performance.now()+snapshotTimeoutMs;
    const checkpoint=()=>{
     if(performance.now()>=deadline||res.destroyed||req.aborted)controller.abort();
-    controller.signal.throwIfAborted();
+    throwIfAborted(controller.signal);
    };
    snapshotTimer=setTimeout(()=>controller.abort(),snapshotTimeoutMs);
    const loaded=await Promise.race([aborted,loadBoundedSnapshot(loadSnapshot,request.job_id,controller.signal)]);
@@ -140,7 +149,7 @@ export function createPodAuthorityHandler(config){
   }catch(error){if(!res.destroyed)return error===REQUEST_TOO_LARGE
    ?send(413,{error:'REQUEST_TOO_LARGE'}):send(409,{error:'GRANT_BLOCKED'});}
   finally{clearTimeout(timer);clearTimeout(snapshotTimer);res.removeListener('close',onClose);
-   if(onAbort)controller.signal.removeEventListener('abort',onAbort);
+   if(onAbort)Reflect.apply(removeAbortListener,controller.signal,['abort',onAbort]);
    handlerSettled=true;releaseIfSettled();}
  };
 }
