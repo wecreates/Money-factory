@@ -6,7 +6,10 @@ Jobs have tool, operation, input, output and operation-specific fields.
 Outputs must be new files. Invoke from an authenticated worker, not a public shell API.
 """
 import argparse
-import fcntl
+try:
+    import fcntl
+except ImportError:  # Offline wholesale can run on Windows; upstream jobs cannot.
+    fcntl = None
 import hashlib
 import json
 import math
@@ -109,6 +112,11 @@ def media_probe(output, runtime):
 
 
 def run(job, runtime):
+    if job.get("tool") == "wholesale":
+        from wholesale.worker import dispatch
+        return dispatch(job, ROOT)
+    if fcntl is None:
+        raise RuntimeError("This upstream worker requires POSIX file locking")
     runtime.mkdir(parents=True, exist_ok=True)
     # Serialize media/ML operations on small workers to avoid memory exhaustion.
     with (runtime / 'worker.lock').open('a') as lock:
