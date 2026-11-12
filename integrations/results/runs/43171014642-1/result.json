@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "tool": "youtube-agent-skill",
+  "operation": "hook-score",
+  "status": "PASS",
+  "execution_status": "PASS",
+  "exit_code": 0,
+  "upstream_revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+  "script_sha256": "8205dca03de1d5d8e25614e7c0d8d40fd756a99b838320462195b342d5eb0545",
+  "input_sha256": "b0544aaf79eeb090a6a59c9a94a0ef061cf0f435d7cb4e06460ded51e3b6d0ff",
+  "findings": [
+    {
+      "hook": "Stop attacking my wallet!",
+      "properties": {
+        "SPECIFICITY": 34,
+        "ADDRESS": 26,
+        "STAKES": 48,
+        "CURIOSITY": 24,
+        "BREVITY": 45
+      },
+      "verdict": 31,
+      "band": "WEAK",
+      "formula": "The Mistake"
+    }
+  ],
+  "stdout": "[\n {\n  \"hook\": \"Stop attacking my wallet!\",\n  \"properties\": {\n   \"SPECIFICITY\": 34,\n   \"ADDRESS\": 26,\n   \"STAKES\": 48,\n   \"CURIOSITY\": 24,\n   \"BREVITY\": 45\n  },\n  \"verdict\": 31,\n  \"band\": \"WEAK\",\n  \"formula\": \"The Mistake\"\n }\n]\n",
+  "stderr": "",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "scope": "Actual offline heuristic execution; negative findings retained, not audience prediction or publication approval"
+}
