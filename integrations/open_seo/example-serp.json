@@ -1,0 +1,9 @@
+{
+  "structuredContent": {
+    "results": [{
+      "keyword": "synthetic integration fixture",
+      "ok": true,
+      "items": [{"type":"organic","rank":3,"organicRank":1,"title":"Example fixture","url":"https://example.org/","domain":"example.org","description":"Synthetic contract test only"}]
+    }]
+  }
+}

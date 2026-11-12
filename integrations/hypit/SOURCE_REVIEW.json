@@ -1,0 +1,47 @@
+{
+  "repository": "hypit-ai/hypit",
+  "revision": "e26d9142fd8a6f78bf4f3cdb800d6205f4ecca16",
+  "archive_url": "https://codeload.github.com/hypit-ai/hypit/zip/e26d9142fd8a6f78bf4f3cdb800d6205f4ecca16",
+  "archive_sha256": "9a1e40cb9597b8c8a9008735b0561faaae663f33a1ccaff19016ca13abf2bd2d",
+  "archive_bytes": 15214140,
+  "archive_entries": 2080,
+  "uncompressed_bytes": 25014984,
+  "archive_git_comment": "e26d9142fd8a6f78bf4f3cdb800d6205f4ecca16",
+  "unsafe_paths": [],
+  "symlinks_not_extracted": [
+    "hypit-e26d9142fd8a6f78bf4f3cdb800d6205f4ecca16/.claude/skills/hypit",
+    "hypit-e26d9142fd8a6f78bf4f3cdb800d6205f4ecca16/.codex/skills/hypit"
+  ],
+  "installed": false,
+  "executed": false,
+  "reviewed_at": "2026-10-23",
+  "source_type": "read_only_downloaded_archive",
+  "license": "Apache-2.0 with additional Hypit conditions (not standard Apache-2.0)",
+  "license_sha256": "ed7bd598743c93dd27349eab6921e4e86884c785a33aef8ea2caeb541df8b912",
+  "terms_summary": [
+    "Own organization commercial/internal work, client work and single-tenant self-operated deployment permitted by supplied terms",
+    "Third-party hosted or multi-tenant functionality and commercial redistribution require separate Hypit authorization",
+    "Preserve Hypit name/logo/copyright in CLI, generated run reports/manifests and derived user-facing surfaces",
+    "Output belongs to its creator under these terms; third-party provider terms and input rights still apply"
+  ],
+  "security_scope": "Targeted static boundary review, not a comprehensive security audit",
+  "reviewed_file_sha256": {
+    "LICENSE": "ed7bd598743c93dd27349eab6921e4e86884c785a33aef8ea2caeb541df8b912",
+    "package.json": "76507e8592fb12f65f55931903c1fdcb166201b71fa63f56c47e1e0776799d60",
+    "README.md": "4a58c61016561cef90afdb46bcc85a24dae0cd78bf2544d969369952ff956cef",
+    "docs/quickstart.md": "10b009fc6e9217c74716cc77ca766218332fff5aff2a5d2a58fd03a5257fc83b",
+    "docs/guide/develop.md": "6bec4097a9387a8a47778d32ad4bde42a136e0e2000b98932fac8abca8dc5b12",
+    "docs/quickstart/run.md": "616f9d32a135f5410a155410f45b87d7a96dab10059b05f61d47c95394405fe3",
+    "docs/guide/runtime.md": "1557a70e67fad3c22910966bc542bf426613d8176b949fad83eed74b43262943",
+    "packages/provider-html-local/README.md": "9972b9ac0fa8c6edcf1c5203ff8ca818354d15cd456874bba7a0684e33e27283",
+    "packages/provider-html-local/src/capture.ts": "1ef5cb5ebaa6a369ce6b0c0ffd67dd573f2178a280c5f2eed58d94fd068f3b78",
+    "packages/result/src/types.ts": "9d953a29047a5c76dacb836b0d52eec4560cbb56e151f3daa73fdc2b46142942",
+    "packages/result/src/decode.ts": "be46636b63edf1dd183d1c1fe66afbd5d1966701aba0f3a060ea16ebaa32d740",
+    "packages/media/test/asset-surface.test.ts": "447ca889e0749164338d3bc737faeb8e5c70b0c007a2ac6ea1c10565324831ad",
+    "packages/studio/test/unconsumed-instant.test.ts": "d623e05656aae8e1d01b3d9f1490f981a6d49481fd560c784924f5a3068a3943"
+  },
+  "npm_runtime_review_separate": true,
+  "source_commit_equivalence_to_npm_release_verified": false,
+  "no_instagram_media_downloaded": true,
+  "provider_calls": 0
+}

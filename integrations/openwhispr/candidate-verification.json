@@ -1,0 +1,56 @@
+{
+  "checked_at": "2026-10-23T19:46:40.221900+00:00",
+  "verification_scope": "Offline adapters through the existing ContentControl-to-MoneyFactory entrypoint with synthetic fixtures. No upstream app/server execution.",
+  "focused_test_command": "python -m unittest -v integrations/openwhispr/test_adapter.py",
+  "focused_tests_passed": 18,
+  "entrypoint": "content-control/scripts/repository_tools.py",
+  "MONEY_FACTORY_ROOT": "existing candidate Money-factory checkout",
+  "operations": [
+    {
+      "operation": "import-transcript",
+      "status": "PASS",
+      "output_sha256": "e2e8808c6abf5938c24a0cd4b2602bf5c5b86417830a18890157f188c342ea5a",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "openwhispr",
+        "operation": "import-transcript",
+        "revision": "7a6ae826de9ec1caf65f3a6e769475dab2ae829f",
+        "status": "PASS",
+        "execution_kind": "project_owned_offline_adapter",
+        "verified_at": "2026-10-23T19:46:15Z",
+        "output_sha256": "e2e8808c6abf5938c24a0cd4b2602bf5c5b86417830a18890157f188c342ea5a",
+        "publication_enabled": false,
+        "paid_generation_enabled": false,
+        "paid_services_enabled": false,
+        "network_executed": false,
+        "upstream_runtime_verified": false,
+        "production_ready": false,
+        "scope": "Only the named offline import/export/preparation/status operation; no upstream service execution"
+      }
+    },
+    {
+      "operation": "readiness",
+      "status": "BLOCKED",
+      "output_sha256": "5fa36aa5e7c4fb9a847f58ac4a4bc5bec38ed066bb73a0e8e62821be3628a3a6",
+      "receipt": {
+        "schema_version": 1,
+        "tool": "openwhispr",
+        "operation": "readiness",
+        "revision": "7a6ae826de9ec1caf65f3a6e769475dab2ae829f",
+        "status": "BLOCKED",
+        "execution_kind": "project_owned_offline_adapter",
+        "verified_at": "2026-10-23T19:46:15Z",
+        "output_sha256": "5fa36aa5e7c4fb9a847f58ac4a4bc5bec38ed066bb73a0e8e62821be3628a3a6",
+        "publication_enabled": false,
+        "paid_generation_enabled": false,
+        "paid_services_enabled": false,
+        "network_executed": false,
+        "upstream_runtime_verified": false,
+        "production_ready": false,
+        "scope": "Only the named offline import/export/preparation/status operation; no upstream service execution"
+      }
+    }
+  ],
+  "adapter_sha256": "76f83b5c02ca1598d9a0d5e4daec0058e0b4609fe3d3d4544e4d75b11693ff2c",
+  "security_regression": "Symlink ancestor and raw parent traversal rejected; descriptor-anchored read resists ancestor rename-to-symlink races. Focused suite rerun after fix."
+}

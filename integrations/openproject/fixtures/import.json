@@ -1,0 +1,60 @@
+{
+  "queue_kind": "content-control",
+  "queue": {
+    "version": 1,
+    "queue": [
+      {
+        "id": "content-review",
+        "title": "Review content",
+        "status": "BLOCKED",
+        "instruction": "Verify the source claims.",
+        "publication_enabled": false
+      },
+      {
+        "id": "other-task",
+        "title": "Keep private",
+        "status": "READY",
+        "secret": "never-export"
+      }
+    ]
+  },
+  "selected_ids": [
+    "content-review"
+  ],
+  "project_id": 7,
+  "type_id": 1,
+  "mappings": [
+    {
+      "queue_id": "content-review",
+      "work_package_id": 42
+    }
+  ],
+  "collection": {
+    "_type": "Collection",
+    "total": 100,
+    "_links": {
+      "nextByOffset": {
+        "href": "/api/v3/work_packages?offset=2"
+      }
+    },
+    "_embedded": {
+      "elements": [
+        {
+          "_type": "WorkPackage",
+          "id": 42,
+          "lockVersion": 3,
+          "subject": "Review content",
+          "_links": {
+            "self": {
+              "href": "/api/v3/work_packages/42"
+            },
+            "status": {
+              "href": "/api/v3/statuses/8",
+              "title": "Closed"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

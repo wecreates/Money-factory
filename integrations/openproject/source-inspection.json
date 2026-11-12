@@ -1,0 +1,55 @@
+{
+  "upstream_repository": "https://github.com/opf/openproject",
+  "upstream_revision": "b2f981098776c3c1522833273bc77158d71d5ccb",
+  "archive_sha256": "a38f4e5fef6e5d5ddd899472292b5b6990586cda21f7fab1f21036e0ad534eaa",
+  "inspection": "Static source and documented export/API contracts only; upstream code, installers and dependencies not executed.",
+  "upstream_license": "GPL-3.0-only",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "869895442c909b22fc57fd985be5ddc222efc702c2f708bb7d83d41c0522d115",
+      "url": "https://github.com/opf/openproject/blob/b2f981098776c3c1522833273bc77158d71d5ccb/README.md"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "url": "https://github.com/opf/openproject/blob/b2f981098776c3c1522833273bc77158d71d5ccb/LICENSE"
+    },
+    {
+      "path": "COPYRIGHT",
+      "sha256": "cd81bc9a5020d601a2e7d99f690b16acb760988036874d13ea79f2aaad69ee67",
+      "url": "https://github.com/opf/openproject/blob/b2f981098776c3c1522833273bc77158d71d5ccb/COPYRIGHT"
+    },
+    {
+      "path": "SECURITY.md",
+      "sha256": "a02b8052a04079032f8b28124299062f69ddc5b1c354cd4a61625143b2959a12",
+      "url": "https://github.com/opf/openproject/blob/b2f981098776c3c1522833273bc77158d71d5ccb/SECURITY.md"
+    },
+    {
+      "path": "package.json",
+      "sha256": "e38297330802ee55230449eefe7d855aa8b2c9a594de08f53e31be8903c505b7",
+      "url": "https://github.com/opf/openproject/blob/b2f981098776c3c1522833273bc77158d71d5ccb/package.json"
+    },
+    {
+      "path": "docs/api/apiv3/paths/project_work_packages.yml",
+      "sha256": "82c6e321cb08b218c47d640b17309b541c269d9edd6ec8647ce6f00859643a85",
+      "url": "https://github.com/opf/openproject/blob/b2f981098776c3c1522833273bc77158d71d5ccb/docs/api/apiv3/paths/project_work_packages.yml"
+    },
+    {
+      "path": "docs/api/apiv3/paths/project_work_packages_form.yml",
+      "sha256": "590f34a84e985c8eb561cfc735f46f62bba2a42b84bec578172644db696d6b00",
+      "url": "https://github.com/opf/openproject/blob/b2f981098776c3c1522833273bc77158d71d5ccb/docs/api/apiv3/paths/project_work_packages_form.yml"
+    },
+    {
+      "path": "docs/api/apiv3/paths/work_package.yml",
+      "sha256": "4baa41b86d3e37abde078ccd93f48fd2b4413bff2d381d2370462c89d4665c43",
+      "url": "https://github.com/opf/openproject/blob/b2f981098776c3c1522833273bc77158d71d5ccb/docs/api/apiv3/paths/work_package.yml"
+    },
+    {
+      "path": "docs/api/apiv3/components/schemas/work_package_write_model.yml",
+      "sha256": "1b44be19a9631cdf9b5af808f97d3fe41bebf4832874a4777e40f471f0debf31",
+      "url": "https://github.com/opf/openproject/blob/b2f981098776c3c1522833273bc77158d71d5ccb/docs/api/apiv3/components/schemas/work_package_write_model.yml"
+    }
+  ],
+  "implementation": "New independent file-format/API adapter; no upstream implementation vendored."
+}
