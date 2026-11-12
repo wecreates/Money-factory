@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "tool": "rea",
+  "operation": "analyze-javascript-application",
+  "revision": "npm:rea-agents@6.4.0",
+  "status": "PASS",
+  "verified_at": "2026-11-12T06:53:00Z",
+  "output_sha256": "fa51cbe5c70503129017bdc4d405529b3b940cb8c0cf2d958279a17040a29da7",
+  "media": null,
+  "publication_enabled": false,
+  "scope": "This operation only; not complete product or hosted readiness"
+}
