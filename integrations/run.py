@@ -6,7 +6,10 @@ Jobs have tool, operation, input, output and operation-specific fields.
 Outputs must be new files. Invoke from an authenticated worker, not a public shell API.
 """
 import argparse
-import fcntl
+try:
+    import fcntl
+except ImportError:  # Offline wholesale can run on Windows; upstream jobs cannot.
+    fcntl = None
 import hashlib
 import json
 import math
@@ -109,6 +112,11 @@ def media_probe(output, runtime):
 
 
 def run(job, runtime):
+    if job.get("tool") == "wholesale":
+        from wholesale.worker import dispatch
+        return dispatch(job, ROOT)
+    if fcntl is None:
+        raise RuntimeError("This upstream worker requires POSIX file locking")
     runtime.mkdir(parents=True, exist_ok=True)
     # Serialize media/ML operations on small workers to avoid memory exhaustion.
     with (runtime / 'worker.lock').open('a') as lock:
@@ -146,7 +154,9 @@ def _run(job, runtime):
         result = dispatch(job, runtime / 'rea')
         if not isinstance(result, dict) or result.get('status') not in ('PASS', 'BLOCKED'):
             raise ValueError('Invalid REA adapter result')
-        output.write_text(json.dumps(result, indent=2) + '\n')
+        # Preserve every evidence field without whitespace inflation beyond the
+        # persistence layer's unchanged 1 MiB evidence limit (reuse PR170 for PR522).
+        output.write_text(json.dumps(result, separators=(',', ':')) + '\n')
         if result['status'] != 'PASS':
             return result
     elif (tool, operation) == ('youtube-clipper-skill', 'clip'):
