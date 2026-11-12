@@ -155,7 +155,7 @@ def _run(job, runtime):
         if not isinstance(result, dict) or result.get('status') not in ('PASS', 'BLOCKED'):
             raise ValueError('Invalid REA adapter result')
         # Preserve every evidence field without whitespace inflation beyond the
-        # persistence layer's unchanged 1 MiB evidence limit (reuse PR170).
+        # persistence layer's unchanged 1 MiB evidence limit (reuse PR170 for PR522).
         output.write_text(json.dumps(result, separators=(',', ':')) + '\n')
         if result['status'] != 'PASS':
             return result
