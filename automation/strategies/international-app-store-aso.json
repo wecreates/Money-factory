@@ -1,0 +1,31 @@
+{
+  "id": "international-app-store-localization-aso",
+  "source": "https://www.instagram.com/reel/Dcjup0gSwAi/",
+  "creator": "Ayo Omolewa (@ayoships)",
+  "category": "Marketing strategy",
+  "target_department": "acquisition",
+  "business_type": "mobile_apps",
+  "status": "research_pending_market_validation",
+  "evidence": {
+    "transcript": "complete auto transcript retrieved",
+    "creator_download_claim": "20000+ monthly downloads, unverified",
+    "video_visuals": "not fully verified"
+  },
+  "hypothesis": "Localized metadata and language-specific search discovery may improve qualified organic installs in under-served markets.",
+  "experiment": [
+    "Identify an existing eligible mobile app; do not invent one",
+    "Compare relevant query demand, competition, and conversion by country/language",
+    "Review Apple App Store and Google Play metadata policies independently",
+    "Translate with locale-specific human quality review",
+    "Run measured market-specific experiments, recording impressions, installs, retention and verified economics"
+  ],
+  "constraints": [
+    "No fake localization claims or keyword stuffing",
+    "Do not assume English-only apps are acceptable in all markets",
+    "No paid advertising without approval",
+    "Do not treat search popularity as proven sales",
+    "No automatic store submission"
+  ],
+  "publication_enabled": false,
+  "spend_enabled": false
+}
