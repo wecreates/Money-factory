@@ -6,7 +6,7 @@
     "label": "CYZOR Creations website",
     "status": "active",
     "last_value": "1b6a246850033b95a20fb0169f5b2e4ffb697a70340e3a15a8651b962acf8086",
-    "last_checked_at": 1794990695646,
+    "last_checked_at": 1795022950276,
     "last_change_at": 1793731264853,
     "last_status": null,
     "last_error": "TimeoutError: The operation was aborted due to timeout"
@@ -17,9 +17,9 @@
     "targetUrl": "https://github.com/wecreates/Money-factory",
     "label": "Money Factory GitHub repository",
     "status": "active",
-    "last_value": "cdd1e40d6edb3720877e46948ab37e1901b070735716465f87b3913cd44a62f3",
-    "last_checked_at": 1794990716392,
-    "last_change_at": 1794990716392,
+    "last_value": "ff64b49a10f5570af356829cb1be5e2760c08100a657925c60ac1ba63c108aba",
+    "last_checked_at": 1795022970914,
+    "last_change_at": 1795022970914,
     "last_status": 200,
     "last_error": null
   }
