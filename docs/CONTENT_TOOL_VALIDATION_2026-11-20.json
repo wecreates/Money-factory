@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-20T21:40:00Z",
+  "recorded_at": "2026-11-20T21:38:49.172174+00:00",
   "scope": "Personal skill installation status and isolated workspace runtime tests; not user PC/VPN installation or production acceptance.",
   "publication_enabled": false,
   "paid_provider_calls": 0,
@@ -66,7 +66,8 @@
         "ai_detector_tested": false,
         "scope": "One factual rewrite fixture; no claim of authorship detection or automatic general semantic equivalence",
         "installed_skill_sha256": "ef9a7ee620bcdb29732e4f2b962e76768df8e9de97db00895c4f9ff053f0ea40",
-        "installed_workflow_rechecked_at": "2026-11-20T21:21:43.922205+00:00"
+        "installed_workflow_rechecked_at": "2026-11-20T21:21:43.922205+00:00",
+        "output": "On November 20, 2026, Maya tested release 2.4: 16 of 18 tests passed and 2 failed. The render took 42 seconds, down from 60 seconds under the same settings. Publishing remains disabled. Maya has not verified the VPN worker, so its capacity is unknown. Run `python verify.py --mode local` to repeat the check. Source: [fixture report](https://example.invalid/report/2.4)."
       }
     },
     "ffmpeg": {
