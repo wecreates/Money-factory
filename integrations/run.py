@@ -112,6 +112,9 @@ def media_probe(output, runtime):
 
 
 def run(job, runtime):
+    if job.get('tool') == 'openclaw':
+        from openclaw.worker import dispatch
+        return dispatch(job, runtime)
     if job.get("tool") == "wholesale":
         from wholesale.worker import dispatch
         return dispatch(job, ROOT)
