@@ -1,0 +1,285 @@
+{
+  "recorded_at": "2026-11-20T21:40:00Z",
+  "scope": "Personal skill installation status and isolated workspace runtime tests; not user PC/VPN installation or production acceptance.",
+  "publication_enabled": false,
+  "paid_provider_calls": 0,
+  "personal_installations": {
+    "humanizer": {
+      "status": "INSTALLED_INSTRUCTION_SKILL",
+      "url": "https://chatgpt.com/skills?skill_id=6b00b9c21f888191b425ce978b5c7da5"
+    },
+    "ffmpeg": {
+      "status": "INSTALLED_FULL_EDITING_BUNDLE",
+      "url": "https://chatgpt.com/skills?skill_id=6b00bb92f0288191ba1a057bd771466e"
+    },
+    "last30days": {
+      "status": "RESTRICTED_WORKFLOW_INSTALLED_FULL_PACKAGE_BLOCKED",
+      "url": "https://chatgpt.com/skills?skill_id=6b00bc5fbd2c8191afd5ac345fb4dc7b",
+      "blocker": "Automatic safety check rejected the full package; no specific rationale returned. Restricted adaptation contains no upstream executable, credential/browser or provider code."
+    },
+    "stickman": {
+      "status": "RESTRICTED_DIRECTOR_INSTALLED_FULL_PACKAGE_BLOCKED",
+      "url": "https://chatgpt.com/skills?skill_id=6b00bd74aea88191acb0815f40318914",
+      "blocker": "Automatic safety check rejected the full portable runtime bundle; no specific rationale returned. Restricted director contains no executable engine/archive/reference library."
+    },
+    "openmontage": {
+      "status": "WORKFLOW_ROUTER_INSTALLED",
+      "url": "https://chatgpt.com/skills?skill_id=6b00bcc226008191824fdbecf5bfd35a",
+      "limitation": "Full runtime and dependencies tested separately in transient workspace; not bundled by router."
+    },
+    "sim": {
+      "status": "BLOCKED_CANONICAL_SOURCE_UNAVAILABLE",
+      "source": "https://www.instagram.com/reel/DfqzrDSNS_x/",
+      "limitation": "No verified download or repository; no substitute installed."
+    }
+  },
+  "workspace_tests": {
+    "humanizer": {
+      "source_receipt_sha256": "7d199925a81a0fa51f7e76ceab9aac23a0b7178e90c7e6674ddda02e6aec31b1",
+      "evidence": {
+        "upstream": "https://github.com/blader/humanizer",
+        "revision": "a32f24407364c74c812b43c15926d638bee1e072",
+        "skill_version": "4.0.0",
+        "executed_by": "current assistant applying instruction-only skill; no separate executable/model service",
+        "verified_at": "2026-11-20T21:21:16.776769+00:00",
+        "fixture_notice": "Synthetic editorial test data; not claims about real deployment or test results",
+        "input": "Let's dive into the latest verification results. It is important to note that on November 20, 2026, Maya tested release 2.4. Not just a faster run, but a pivotal improvement: the render took 42 seconds, down from 60 seconds under the same settings. Of 18 tests, 16 passed and 2 failed. Publishing remains disabled. Maya has not verified the VPN worker, so its capacity is unknown. Run `python verify.py --mode local` to repeat the check. Source: [fixture report](https://example.invalid/report/2.4). I hope this helps!",
+        "manual_semantic_review": "All supported sample facts, uncertainty, publication status, command and citation retained; staged opener, unsupported significance and chat wrapper removed",
+        "literal_checks": {
+          "16": true,
+          "November 20, 2026": true,
+          "Maya": true,
+          "release 2.4": true,
+          "42 seconds": true,
+          "60 seconds": true,
+          "same settings": true,
+          "18 tests": true,
+          "2 failed": true,
+          "Publishing remains disabled.": true,
+          "Maya has not verified the VPN worker, so its capacity is unknown.": true,
+          "`python verify.py --mode local`": true,
+          "[fixture report](https://example.invalid/report/2.4)": true
+        },
+        "api_calls": 0,
+        "browser_cookie_reads": 0,
+        "publication_enabled": false,
+        "ai_detector_tested": false,
+        "scope": "One factual rewrite fixture; no claim of authorship detection or automatic general semantic equivalence",
+        "installed_skill_sha256": "ef9a7ee620bcdb29732e4f2b962e76768df8e9de97db00895c4f9ff053f0ea40",
+        "installed_workflow_rechecked_at": "2026-11-20T21:21:43.922205+00:00"
+      }
+    },
+    "ffmpeg": {
+      "source_receipt_sha256": "b275aedb540764309513fc1a2195f9b183ff747398f69ac7673970022dbcf609",
+      "evidence": {
+        "status": "PASS",
+        "generated_at": "2026-11-20T21:23:37.409869+00:00",
+        "upstream_commit": "f65df46953d62afb8e0a767f3f7ca5f4bb40fc36",
+        "upstream_version": "4.2.1",
+        "runtime": {
+          "python": "3.12.14",
+          "ffmpeg": "7.1.5-0+deb13u1"
+        },
+        "execution": [
+          "probe installed source",
+          "dry-run accurate cut 1..4s (no output written)",
+          "execute accurate cut",
+          "dry-run height640 resize (no output written)",
+          "execute resize",
+          "check writer output identity and requested aspect/duration",
+          "probe output",
+          "render contact sheet and source/start comparison"
+        ],
+        "source_sha256": "79bbf8abe422e6ff1ef8ee0e2224a952a3114ac435c6b49a8154725ee4dc0053",
+        "source_unchanged": true,
+        "output_sha256": "c666775a3e1edf6c1a6ed6f2da058ac5a52556a4a34c78b4f4c256ba83e62f85",
+        "video_duration_seconds": 3,
+        "container_duration_seconds": 3.008,
+        "video_frames": 72,
+        "size": [
+          360,
+          640
+        ],
+        "fps": 24,
+        "video_codec": "h264",
+        "audio": "AAC stereo48000Hz",
+        "check_failed": 0,
+        "check_warnings": [
+          {
+            "check": "subtitles",
+            "status": "WARN",
+            "value": "none",
+            "expected": ">= 1 language-tagged subtitle track",
+            "fix": "caption.py video.mp4 --mode mux --srt subs.srt:en -o video_subs.mkv (streams are copied)",
+            "reason": "subtitles are optional, but they are the cheapest accessibility win a delivery has",
+            "kind": "format",
+            "basis": "requirement"
+          }
+        ],
+        "notes": [
+          "AAC container/audio tail is8ms longer than exact72-frame video",
+          "No separate subtitle track; captions inherited as burned-in pixels",
+          "Loudness not measured in this basic edit runtime check"
+        ],
+        "publication_enabled": false,
+        "paid_calls": 0,
+        "visual_inspection": {
+          "inspected": true,
+          "result": "Source at1.0s matches output first frame; resized9:16 picture and burned captions remain inside frame. Contact-sheet timecode overlays are preview-only."
+        }
+      }
+    },
+    "last30days_upstream_only": {
+      "source_receipt_sha256": "ad52b3dab07b43b9f015dc0fb1046f2a75270c2d063daa6e748c3aa4bfe47313",
+      "evidence": {
+        "upstream": "https://github.com/mvanhorn/last30days-skill",
+        "revision": "bb2f1ed2b9f6d07b90557c5eebd736b566533fec",
+        "version": "4.4.0",
+        "verified_at": "2026-11-20T21:25:09.430473+00:00",
+        "python": "3.12.14",
+        "status": "PASS_WITH_LIMITATION",
+        "actual_engine_exit_code": 0,
+        "elapsed_seconds": 19.99,
+        "query": "AI agents",
+        "window_days": 30,
+        "generated_at": "2026-11-20T21:23:31.324668Z",
+        "results": 6,
+        "sources": [
+          "hackernews"
+        ],
+        "source_status": {
+          "hackernews": "ok"
+        },
+        "limitations": [
+          "Three HN comment-order enrichment requests timed out; core story retrieval returned6ranked items.",
+          "Other platforms, paid providers, login-backed sources and optional CLIs not exercised.",
+          "This is a keyless engine smoke, not a complete user research report or verification of linked article claims."
+        ],
+        "isolation": {
+          "temporary_home": true,
+          "config_source": "env_only",
+          "browser_cookie_reads": false,
+          "paid_provider_keys_present": false,
+          "keychain_disabled": true,
+          "research_persistence": false,
+          "publication_enabled": false
+        },
+        "source_tree_clean": true,
+        "artifact_hashes": {
+          "cyzor-last30days-live.json": "3dd2e4aa5d5fbf9d3e07717c44515256cc47367e59ee8dee0098c6e7dacb5453",
+          "cyzor-last30days-live.stderr": "5bfd3b0677387915c1921c067f93132a80a2a4d9f6f691c61f88a062839eaa4f",
+          "cyzor-last30days-diagnose.json": "01ab9c0493763bd78e6f593311692f490630cbb2868f61c746b3cdd925f8332b",
+          "cyzor-last30days-preflight.json": "3869207a696f60ea2ad52f48abe92fe1f6a6f8f1210636c9fa98ca763de30a15"
+        },
+        "engine_sha256": "9de4cd55a8e74570b3dd625af2db93d34841c8ab3f0bb960edd51f0a4fe27f17"
+      }
+    },
+    "stickman_source": {
+      "source_receipt_sha256": "57b8a58c11cf91efcbdd42b3bc59f628014a90b090a42ae039ccbf7877d208ac",
+      "evidence": {
+        "repository": "https://github.com/kaomei/stickman-video-director",
+        "upstream_sha": "7fa6a9a543694cac95775200eb2f731b5594da0d",
+        "verified_at": "2026-11-20T21:23:42.821576+00:00",
+        "scope": "Isolated Linux workspace runtime smoke, not user desktop installation or finished B1 production",
+        "runtime_status": "PASS",
+        "node": "v24.22.3",
+        "dependencies": {
+          "@napi-rs/canvas": "0.1.100",
+          "sharp": "0.35.5"
+        },
+        "dependency_install": "npm ci --ignore-scripts --no-audit --no-fund",
+        "doctor_checks": {
+          "node": true,
+          "ffmpeg": true,
+          "ffprobe": true,
+          "canvas": true,
+          "sharp": true,
+          "fonts": true,
+          "b4_hook_font": true
+        },
+        "test_command": "node --test tests/runtime.test.mjs tests/b-style-quality.test.mjs",
+        "tests": {
+          "passed": 34,
+          "failed": 0,
+          "skipped": 0
+        },
+        "preview_command": "node scripts/autopilot.mjs preview /tmp/cyzor-stickman-engine-smoke/project.json --seconds 3",
+        "output_sha256": "fe5c557b41b7c9011b603b33642758582ecc5f8de593f44987ffe9a9283b5a83",
+        "bytes": 173208,
+        "frames": 90,
+        "seconds": 3,
+        "full_decode": "pass",
+        "voice_source": "Existing CYZOR mixed audio, extracted without provider call; native-rate input",
+        "voice_sha256": "e23fa8dc01116d09d295fd8b7556d4724fc7dae88ad9291057d0c7b9be058f72",
+        "artwork_source": "Bundled upstream B1 engineering pose atlas; not a new story or showcase equivalence claim",
+        "reference_review_status": "pending_independent_review",
+        "provider_generation_attempted": false,
+        "publication_enabled": false,
+        "production_approved": false,
+        "personal_skills_modified_by_reviewer": false
+      }
+    },
+    "openmontage": {
+      "source_receipt_sha256": "c175787ff40d3c1b652c30dd596ca9fe11f74907d545c9f777c3fd25974075f0",
+      "evidence": {
+        "verified_at": "2026-11-20T21:25:07.611986+00:00",
+        "repository": "https://github.com/OpenMontageInc/OpenMontage",
+        "commit": "2e003e65fa99a0f329478a2c1cdcf26bc481933a",
+        "source_clean": true,
+        "installed": {
+          "python_core": true,
+          "editable_package": "0.1.0",
+          "piper_tts": "1.8.0",
+          "onnxruntime": "1.32.0",
+          "pip": "26.3",
+          "remotion_npm_dependencies": true,
+          "piper_model": "en_US-lessac-medium"
+        },
+        "verified": {
+          "ffmpeg_concat_probe": true,
+          "backlot_health_root_projects_http_200": true,
+          "piper_actual_local_inference": true,
+          "pip_check": true
+        },
+        "blocked": {
+          "remotion_actual_render": "Chromium process_singleton socket() EPERM in this execution environment"
+        },
+        "unverified": [
+          "cloud generation providers",
+          "GPU generation",
+          "HyperFrames actual render",
+          "production creative/audio quality",
+          "24/7 operation",
+          "user computer or VPN installation"
+        ],
+        "provider_calls": 0,
+        "publication_enabled": false,
+        "evidence": [
+          "runtime-validation.json",
+          "piper-validation.json"
+        ],
+        "scope": "Installed and tested in agent workspace; personal workflow router installed separately by capacity agent"
+      }
+    },
+    "stickman_portable": {
+      "verified_at": "2026-11-20T21:37:45.375392+00:00",
+      "scope": "Extracted portable workspace B1 runtime only; not full personal installation or other styles",
+      "source_files_verified": 1011,
+      "source_mismatches": 0,
+      "doctor_passed": 7,
+      "preview_sha256": "fe5c557b41b7c9011b603b33642758582ecc5f8de593f44987ffe9a9283b5a83",
+      "frames": 90,
+      "seconds": 3,
+      "bytes": 173208,
+      "full_decode": "pass",
+      "creative_acceptance": "not_reviewed",
+      "delivery_ready": false,
+      "paid_provider_calls": 0,
+      "publication_enabled": false
+    }
+  },
+  "actual_host": {
+    "verified": false,
+    "reason": "Only workspace Linux execution available; actual VPS SSH attempt returned Network is unreachable. User computer/VPN runtime, capacity and continuous operation remain unavailable."
+  }
+}
