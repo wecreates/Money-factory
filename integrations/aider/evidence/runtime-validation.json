@@ -1,0 +1,54 @@
+{
+  "observed_at": "2026-11-20T21:32:40.922774+00:00",
+  "package": "aider-chat",
+  "version": "0.86.2",
+  "source_commit": "253f0368b873ba30d8ee26e463718f0c03614ddf",
+  "wheel_sha256": "64f6a0c66c9f4633ad9f479bca3e64ebcba02b9da03c6b604b74a44736b2416e",
+  "python": "3.12.14",
+  "installed_package_count": 108,
+  "version_command": "aider 0.86.2",
+  "dependency_check": "All installed packages are compatible",
+  "lock_sha256": "a6c6bf404e992be39a0c402ed97598f6766459981b224624ad794a9e412ce4cb",
+  "installed_runtime_in_this_workspace": "/tmp/cyzor-aider-runtime",
+  "offline_edit": {
+    "exit_code": 0,
+    "output": "def greet():\n    return 'Hi, Chris!'\n",
+    "expected_edit_pass": true,
+    "mode": "offline --apply fixture; no LLM inference",
+    "paid_calls": 0
+  },
+  "local_model": {
+    "name": "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "source": "existing cached model from local runtime; no new model download",
+    "dtype": "float16",
+    "direct_inference": {
+      "http_status": 200,
+      "prompt_tokens": 32,
+      "completion_tokens": 8,
+      "response": "Hello! How can I assist you today"
+    },
+    "aider_edit": {
+      "exit_code": 0,
+      "elapsed_seconds": 80.963,
+      "output": "def greet():\n    return 'Hello'\n",
+      "file_changed": false,
+      "sentinel_unchanged": true,
+      "provider_requests": 1,
+      "model": "HuggingFaceTB/SmolLM2-135M-Instruct",
+      "precision": "float16",
+      "provider_exit_code_after_client": -9,
+      "paid_calls": 0,
+      "publication_enabled": false,
+      "expected_edit_pass": false
+    },
+    "limitation": "Provider process exited with signal9 after Aider started, before receiving an Aider request. Shared available memory was about1.7GiB; memory pressure is a suspected cause, not a confirmed kernel diagnostic. Exit0 did not mean successful editing."
+  },
+  "not_verified": [
+    "Ollama installation or runtime",
+    "Useful model-driven code editing quality",
+    "User computer or VPN-host installation",
+    "Persistent or unattended operation"
+  ],
+  "publication_enabled": false,
+  "paid_calls": 0
+}
