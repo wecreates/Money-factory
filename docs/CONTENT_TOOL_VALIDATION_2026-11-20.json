@@ -282,5 +282,94 @@
   "actual_host": {
     "verified": false,
     "reason": "Only workspace Linux execution available; actual VPS SSH attempt returned Network is unreachable. User computer/VPN runtime, capacity and continuous operation remain unavailable."
+  },
+  "completion_evidence": {
+    "observed_at": "2026-11-20T22:34:28.967063+00:00",
+    "target_date": "2026-11-22",
+    "target_timezone": "America/Los_Angeles",
+    "target_is_not_completion_claim": true,
+    "picture_video": {
+      "candidate_sha256": "79bbf8abe422e6ff1ef8ee0e2224a952a3114ac435c6b49a8154725ee4dc0053",
+      "duration_seconds": 30,
+      "shot_count": 18,
+      "output_receipt_scope": "Existing characters rendered as eighteen authored picture shots; no competitor or creative acceptance implied",
+      "muxed_spoken_word_verification": {
+        "candidate_sha256": "79bbf8abe422e6ff1ef8ee0e2224a952a3114ac435c6b49a8154725ee4dc0053",
+        "checks": {
+          "approved_script_bound": true,
+          "candidate_identity_bound": true,
+          "exact_spoken_words_match": true,
+          "observed_transcription_pass": true,
+          "publication_disabled": true,
+          "transcription_checks_pass": true
+        },
+        "contract_sha256": "1c08545af240ce7a22129a39abe333c3c9e799599a97caabd69008111b29a5fc",
+        "failed_checks": [],
+        "generated_at": "2026-11-20T21:16:30.970708+00:00",
+        "production_approved": false,
+        "publication_enabled": false,
+        "schema_version": 1,
+        "scope": "Exact spoken words in encoded candidate; not voice quality, creative approval, or caption timing",
+        "status": "PASS",
+        "transcription_receipt_sha256": "f3e13e9b20fdcc12f4977bdabe3c778191970549671ad7fbf0437528339c5f33"
+      },
+      "asr_summary": {
+        "engine": "faster-whisper",
+        "model": "base.en",
+        "faster_whisper_version": "1.2.1",
+        "content_token_recall": 1.0,
+        "semantic_recall": 1.0,
+        "sequence_similarity": 1.0,
+        "media_duration_seconds": 30.016,
+        "transcribed_duration_seconds": 25.68,
+        "word_timestamps": true,
+        "status": "PASS"
+      },
+      "full_audiovisual_review_verified": false
+    },
+    "canonical_live_candidate": {
+      "candidate_sha256": "be71199000e09ab67267dcc7d5fcbaf934727fe83b083c2f74e965298af92bc3",
+      "source": "https://content-control-render-worker.onrender.com/readyz",
+      "fresh_direct_check_at": "2026-11-20T22:27:16Z",
+      "watchdog_commit": "08a49886c819578ed0b1f202877686711b335c47",
+      "watchdog_verified_at": "2026-11-20T22:28:53Z",
+      "watchdog_status": "GREEN",
+      "npm_security_run": 44829024803,
+      "python_security_run": 44829019222,
+      "scope": "Canonical V10 artifact and recorded component checks; not V2 or picture-cut acceptance"
+    },
+    "v2_candidate": {
+      "candidate_sha256": "feec786c87a0f811dd6793f0108d15e34b57308a83666f987c294f8cdfa2cc25",
+      "build_run": 44821511267,
+      "technical_status": "PASS",
+      "handoff_run": 44822293770,
+      "handoff_status": "OPERATIONS_VERIFIED",
+      "handoff_operation_count": 8,
+      "handoff_verified_at": "2026-11-20T21:44:50Z",
+      "independent_review_summary": {
+        "reviewed_at": "2026-11-20T22:31:26.312998+00:00",
+        "source_review_sha256": "88f814cb49c5bbd8b778641d0c0f7768efbb91431d87789bddd4411bc2898a26",
+        "sample_count": 23,
+        "decision": "FAIL",
+        "typography": "MISMATCH",
+        "staging": "MISMATCH",
+        "functional_sampled_diagnostic": "PASS",
+        "full_audiovisual_review_verified": false,
+        "scope": "Documented sampled findings only; not installed as an acceptance record or approval override",
+        "schema_validated_at": "2026-11-20T22:31:26Z"
+      }
+    },
+    "actual_host": {
+      "user_pc_execution_verified": false,
+      "vpn_vps_execution_verified": false,
+      "persistent_workers_verified": 0,
+      "continuous_24h_operation_verified": false
+    },
+    "self_serve_onboarding": {
+      "end_to_end_new_customer_flow_verified": false,
+      "available_scope": "Offline wholesale declaration checker; complete declarations remain unverified against providers"
+    },
+    "production_approved": false,
+    "publication_enabled": false
   }
 }
