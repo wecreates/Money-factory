@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "workflow_run_id": "44816533929",
+  "workflow_run_attempt": "1",
+  "source_revision": "a821070245d3206dae9db2ad619de61c52517633",
+  "job": "voicestudio-narration.job.json",
+  "tool": "voicestudio",
+  "operation": "synthesize",
+  "operation_status": "PASS",
+  "result_persisted": false,
+  "output_sha256": "b82ce4d6460eb404e27985db86fa238b42cea485f67c8551cfde2af0d6af2cfc",
+  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/44816533929",
+  "publication_enabled": false,
+  "production_ready": false,
+  "scope": "Operation execution evidence; findings and content approval are separate"
+}
