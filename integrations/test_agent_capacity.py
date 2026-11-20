@@ -73,6 +73,23 @@ class CapacityTests(unittest.TestCase):
             (root / 'memory.current').unlink()
             self.assertIn('cgroup_memory_unreadable', _cgroup_v2_limits(root, membership)[2])
 
+    def test_hierarchy_root_absent_max_controls_are_not_failed_measurements(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'cgroup'; child = root / 'worker'; child.mkdir(parents=True)
+            (root / 'cgroup.controllers').write_text('cpu memory')
+            (child / 'cpu.max').write_text('150000 100000')
+            (child / 'memory.max').write_text(str(4096 * 1024**2))
+            (child / 'memory.current').write_text(str(1024 * 1024**2))
+            membership = Path(tmp) / 'membership'; membership.write_text('0::/worker\n')
+            self.assertEqual(_cgroup_v2_limits(root, membership), (1.5, 3072, []))
+            # A bounded child without usage still fails; absent root limits do
+            # not excuse a missing current-group measurement.
+            (child / 'memory.current').unlink()
+            self.assertIn('cgroup_memory_unreadable', _cgroup_v2_limits(root, membership)[2])
+            # Controller support must be established, not inferred from a missing file.
+            (root / 'cgroup.controllers').write_text('')
+            self.assertIn('cgroup_cpu_unreadable', _cgroup_v2_limits(root, membership)[2])
+
     def test_unreadable_container_limits_do_not_use_host_totals(self):
         with patch('integrations.agent_capacity.platform.system', return_value='Linux'), \
              patch('integrations.agent_capacity._memory_available_mb', return_value=48000), \

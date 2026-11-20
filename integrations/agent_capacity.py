@@ -39,6 +39,7 @@ def _cgroup_v2_limits(root=Path('/sys/fs/cgroup'), membership=Path('/proc/self/c
     root = Path(root)
     if not (root / 'cgroup.controllers').exists():
         return None, None, ['cgroup_v2_unavailable']
+    controllers = set((root / 'cgroup.controllers').read_text().split())
     relative = next((line.split(':', 2)[2] for line in membership.read_text().splitlines() if line.startswith('0::')), '/')
     root = root.resolve()
     current = (root / relative.lstrip('/')).resolve()
@@ -51,13 +52,24 @@ def _cgroup_v2_limits(root=Path('/sys/fs/cgroup'), membership=Path('/proc/self/c
         if directory != root and root not in directory.parents:
             break
         try:
-            quota, period = (directory / 'cpu.max').read_text().split()
+            cpu_file = directory / 'cpu.max'
+            # The hierarchy root has no parent and therefore no max controls.
+            # Establish controller support before treating that absence as
+            # unbounded; unreadable existing files remain errors.
+            if directory == root and 'cpu' in controllers and not cpu_file.exists():
+                quota, period = 'max', '1'
+            else:
+                quota, period = cpu_file.read_text().split()
             if quota != 'max':
                 cpu_limits.append(int(quota) / int(period))
         except (OSError, ValueError, ZeroDivisionError):
             warnings.append('cgroup_cpu_unreadable')
         try:
-            maximum = (directory / 'memory.max').read_text().strip()
+            memory_file = directory / 'memory.max'
+            if directory == root and 'memory' in controllers and not memory_file.exists():
+                maximum = 'max'
+            else:
+                maximum = memory_file.read_text().strip()
             if maximum != 'max':
                 used = int((directory / 'memory.current').read_text())
                 memory_limits.append(max(0, int(maximum) - used) / MIB)
@@ -110,7 +122,7 @@ def recommend_capacity(snapshot, *, worker_memory_mb, requested_workers, cpu_per
                        shared_model_memory_mb=0, render_memory_mb=0, render_cpu=0):
     """Budget recommendation, not a reservation or proof that a model is installed.
 
-    Reserve shared model memory in reserve_memory_mb in addition to OS headroom.
+    Use shared_model_memory_mb for additional model memory beyond OS headroom.
     The caller must enforce the result across all workers/frameworks and resample
     before each new batch. Model throughput can require a lower concurrency.
     """
