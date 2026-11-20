@@ -1,5 +1,8 @@
 # Local agent capacity
 
+For ordered host inventory, bounded runs, stopping and restart/soak evidence, use
+the [actual-host runbook](../docs/LOCAL_AGENT_HOST_RUNBOOK.md).
+
 `agent_capacity.py` measures only the machine running it. It does not connect to a
 PC, VPS, VPN, model provider, or gateway. It reads no credentials and changes no
 settings. Run it on the actual Windows PC or Linux host before choosing worker
