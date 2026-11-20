@@ -4,10 +4,11 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
-from integrations.agent_capacity import _cgroup_v2_limits, collect_snapshot, recommend_capacity
+from integrations.agent_capacity import _cgroup_v2_limits, collect_snapshot, recommend_capacity, _admission_lock_at, AdmissionBusy
 
 NOW = datetime(2026, 11, 20, tzinfo=timezone.utc)
 
@@ -99,6 +100,44 @@ class CapacityTests(unittest.TestCase):
             self.assertIsNone(result['memory_available_mb'])
             self.assertIs(result['model_execution_verified'], False)
             self.assertEqual(result['scope'], 'current_execution_host_only')
+
+    def test_shared_lock_blocks_other_framework_and_recovers_after_exit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock = str(Path(tmp) / 'agent-admission.lock')
+            code = ('from integrations.agent_capacity import _admission_lock_at; '
+                    'import sys; '
+                    'lock = _admission_lock_at(sys.argv[1]); lock.__enter__(); '
+                    'from pathlib import Path; Path(sys.argv[2]).write_text("held"); sys.stdin.read()')
+            marker = Path(tmp) / 'held'
+            child = subprocess.Popen([sys.executable, '-c', code, lock, str(marker)],
+                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+            try:
+                deadline = time.monotonic() + 5
+                while not marker.exists() and child.poll() is None and time.monotonic() < deadline:
+                    time.sleep(.01)
+                self.assertTrue(marker.exists(), 'Lock holder did not start within five seconds')
+                # Both framework wrappers use this same lock implementation.
+                with self.assertRaises(AdmissionBusy):
+                    with _admission_lock_at(lock):
+                        self.fail('Second framework entered a held budget')
+                child.kill()
+                child.wait(timeout=5)
+                with _admission_lock_at(lock):
+                    self.assertTrue(Path(lock).exists())
+            finally:
+                if child.poll() is None:
+                    child.kill(); child.wait(timeout=5)
+                child.stdin.close(); child.stdout.close()
+
+    def test_shared_lock_releases_on_exception_and_keeps_same_inode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock = Path(tmp) / 'agent-admission.lock'
+            with self.assertRaisesRegex(ValueError, 'task failed'):
+                with _admission_lock_at(lock):
+                    inode = lock.stat().st_ino
+                    raise ValueError('task failed')
+            with _admission_lock_at(lock):
+                self.assertEqual(lock.stat().st_ino, inode)
 
     def test_cli_is_read_only_json_and_never_claims_remote_host(self):
         result = subprocess.run([sys.executable, '-m', 'integrations.agent_capacity',
