@@ -1,6 +1,7 @@
 """Read-only local agent capacity planning. Never launches agents or exposes ports."""
 import argparse
 import ctypes
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import json
 import math
@@ -159,6 +160,56 @@ def recommend_capacity(snapshot, *, worker_memory_mb, requested_workers, cpu_per
     if admitted < requested_workers:
         base['reasons'].append('request_exceeds_reserved_resource_budget')
     return base
+
+
+class AdmissionBusy(RuntimeError):
+    """Another local framework currently owns the per-user execution budget."""
+
+
+@contextmanager
+def _admission_lock_at(path):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+    locked = False
+    try:
+        # Windows byte-range locks require one existing byte. The lock file is
+        # persistent and never unlinked, preventing separate inode lock domains.
+        if os.fstat(fd).st_size == 0:
+            os.write(fd, b'0')
+        os.lseek(fd, 0, os.SEEK_SET)
+        try:
+            if os.name == 'nt':
+                import msvcrt
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            locked = True
+        except OSError as exc:
+            raise AdmissionBusy('Another local agent batch owns the shared host budget') from exc
+        yield
+    finally:
+        try:
+            if locked:
+                if os.name == 'nt':
+                    import msvcrt
+                    os.lseek(fd, 0, os.SEEK_SET)
+                    msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+
+def shared_admission_lock():
+    """Nonblocking per-user lock shared by every checkout and agent framework.
+
+    Hold through fresh capacity sampling and the complete batch/turn. OS lock
+    release handles process termination; no PID-file stale-lock guessing occurs.
+    """
+    return _admission_lock_at(Path.home() / '.cyzor' / 'agent-admission.lock')
 
 
 def main():

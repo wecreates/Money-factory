@@ -39,24 +39,33 @@ actually enforces independent host budgets and task ownership.
 ## Python integration
 
 ```python
-from integrations.agent_capacity import collect_snapshot, recommend_capacity
+from integrations.agent_capacity import collect_snapshot, recommend_capacity, shared_admission_lock
 
-snapshot = collect_snapshot()
-budget = recommend_capacity(
-    snapshot,
-    worker_memory_mb=512,       # replace with measured worker peak
-    requested_workers=4,
-    shared_model_memory_mb=4096,  # only additional/unallocated model memory
-    render_memory_mb=2048,
-    render_cpu=2,
-)
-workers = budget['admitted_workers']
+with shared_admission_lock():
+    snapshot = collect_snapshot()
+    budget = recommend_capacity(
+        snapshot,
+        worker_memory_mb=512,       # replace with measured worker peak
+        requested_workers=4,
+        shared_model_memory_mb=4096,  # only additional/unallocated model memory
+        render_memory_mb=2048,
+        render_cpu=2,
+    )
+    workers = budget['admitted_workers']
+    # Execute and join the entire admitted batch INSIDE this context.
 ```
 
 The caller must enforce `workers` as a **shared limit across Ruflo and OpenClaw**,
-not create that many workers independently in each framework. A recommendation
-is not a reservation: resample before every batch and use one coordinator/lock
-for admission. Reports older than 60 seconds, future-dated reports, unknown
+not create that many workers independently in each framework. The
+`shared_admission_lock()` context uses one fixed per-user host lock across all
+checkouts: `~/.cyzor/agent-admission.lock`. It serializes framework batches while
+allowing internal workers inside the admitted batch. It raises `AdmissionBusy`
+immediately if another batch holds the budget. The persistent file is never
+unlinked; POSIX flock/Windows byte-range OS locks release on process exit,
+including crashes. Both adapters must use it before sampling capacity and hold
+it until every worker has joined. Different OS accounts are not coordinated.
+The standalone diagnostic CLI does not acquire or create this lock. A numeric
+recommendation alone is not a reservation. Reports older than 60 seconds, future-dated reports, unknown
 metrics, and nonfinite values are rejected. No success implies model execution,
 VPN reachability, creative approval, or publication permission.
 
