@@ -33,13 +33,15 @@
       "output": "def greet():\n    return 'Hello'\n",
       "file_changed": false,
       "sentinel_unchanged": true,
-      "provider_requests": 1,
       "model": "HuggingFaceTB/SmolLM2-135M-Instruct",
       "precision": "float16",
       "provider_exit_code_after_client": -9,
       "paid_calls": 0,
       "publication_enabled": false,
-      "expected_edit_pass": false
+      "expected_edit_pass": false,
+      "provider_total_requests": 1,
+      "direct_preflight_requests": 1,
+      "aider_model_requests": 0
     },
     "limitation": "Provider process exited with signal9 after Aider started, before receiving an Aider request. Shared available memory was about1.7GiB; memory pressure is a suspected cause, not a confirmed kernel diagnostic. Exit0 did not mean successful editing."
   },
