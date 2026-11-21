@@ -184,8 +184,9 @@ def dispatch(job, runtime):
               'tools_enabled': False, 'delivery_enabled': False, 'production_ready': False,
               'verified_agents': 0, 'scope': 'One isolated local text turn only; not host capacity or production readiness'}
     from agent_capacity import shared_admission_lock, recommend_capacity, collect_snapshot, AdmissionBusy
+    from owned_process import interruptible_processes
     try:
-        with shared_admission_lock() as lease_fd:
+        with interruptible_processes(), shared_admission_lock() as lease_fd:
             if executable is None:
                 report.update(status='BLOCKED', blockers=['OPENCLAW_NOT_INSTALLED'], model_execution_verified=False)
             else:
