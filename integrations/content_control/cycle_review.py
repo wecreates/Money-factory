@@ -201,10 +201,22 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cycle-dir', required=True)
-    parser.add_argument('--review', required=True)
+    parser.add_argument('--review')
     parser.add_argument('--output', required=True)
     parser.add_argument('--revision-brief', help='Optional new full brief JSON; --review must then be a recorded review.')
+    parser.add_argument('--analyze', action='store_true', help='Collect offline REA Video diagnostics before recording a review.')
+    parser.add_argument('--rea-runtime', help='Absolute Python interpreter from the installed REA Video environment.')
+    parser.add_argument('--timeout', type=int, default=300)
     args = parser.parse_args()
+    if args.analyze:
+        if not args.rea_runtime or args.review or args.revision_brief:
+            parser.error('--analyze requires --rea-runtime and cannot be combined with --review or --revision-brief')
+        from integrations.rea_video.analyze_cycle import analyze_cycle
+        result = analyze_cycle(args.cycle_dir, args.output, runtime=args.rea_runtime, timeout=args.timeout)
+        print(json.dumps(result, indent=2))
+        return 0 if result.get('status') == 'DIAGNOSTIC_COMPLETE' else 2
+    if not args.review or args.rea_runtime:
+        parser.error('Review/revision requires --review; --rea-runtime is only for --analyze')
     if args.revision_brief:
         result = revision_brief(args.cycle_dir, args.review, _load(Path(args.revision_brief)), args.output)
     else:

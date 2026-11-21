@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'integrations/content_control/**'
+      - 'integrations/rea_video/**'
       - 'integrations/local_agent_queue.py'
       - '.github/workflows/content-cycle.yml'
 permissions:
@@ -23,3 +24,4 @@ jobs:
       - run: python -m pip install -r integrations/content_control/requirements-cycle.txt
       - run: python -m unittest discover -s integrations/content_control -p 'test_cycle_*.py' -v
       - run: python -m unittest integrations.content_control.test_complete_cycle -v
+      - run: python -m unittest integrations.rea_video.test_analyze_cycle -v
