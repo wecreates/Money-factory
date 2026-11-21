@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "title": "Your Rewards Card Is Not a Trophy",
+  "topic": "An original fictional finance short about comparing real rewards with fees and interest. No named card offers or promised savings.",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "sources": [
+    {
+      "id": "cfpb-costs",
+      "url": "https://www.consumerfinance.gov/data-research/credit-card-data/know-you-owe-credit-cards/",
+      "retrieved_at": "2026-11-21T16:55:42.493069+00:00",
+      "claim": "Annual fees should be compared with the benefits received; interest costs also matter when carrying a balance.",
+      "excerpt": "Ask yourself if any benefits or rewards you get with the card are worth the fee."
+    },
+    {
+      "id": "cfpb-rewards",
+      "url": "https://www.consumerfinance.gov/archive/newsroom/cfpb-report-highlights-consumer-frustrations-with-credit-card-rewards-programs/",
+      "retrieved_at": "2026-11-21T16:55:42.493069+00:00",
+      "claim": "The CFPB reports that revolving-balance consumers often pay more interest and fees than they receive in rewards.",
+      "excerpt": "Consumers who carry revolving balances often pay far more in interest and fees than they get back on rewards."
+    }
+  ],
+  "reference_observations": [
+    {
+      "url": "https://www.instagram.com/reel/DgAnDCHhoiR/",
+      "observed_at": "2026-11-21T16:55:42.493069+00:00",
+      "observation_type": "transcript",
+      "patterns": [
+        "Transcript describes studying successful channels before original research, scripts, storyboards and production.",
+        "Workflow reference only; no visual style or revenue claim verified."
+      ]
+    },
+    {
+      "url": "https://www.instagram.com/oddsofmind/",
+      "observed_at": "2026-11-21T16:55:42.493069+00:00",
+      "observation_type": "metadata",
+      "patterns": [
+        "User-selected primary creative reference. No audiovisual observation available in this run; comparison remains pending."
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "id": "trophy",
+      "speaker": "dave",
+      "narration": "My rewards card deserves a trophy. So why is my wallet asking for a fire extinguisher?",
+      "visual": "Dave proudly holds a card; a red bill interrupts his victory pose.",
+      "visual_spec": {
+        "kind": "card",
+        "headline": "NICE CARD. NOW THE BILL.",
+        "labels": [
+          "REWARDS",
+          "ANNUAL FEE"
+        ],
+        "values": [
+          "?",
+          "?"
+        ]
+      },
+      "duration_seconds": 8,
+      "factual": false,
+      "source_ids": []
+    },
+    {
+      "id": "receipt",
+      "speaker": "points_monk",
+      "narration": "Because the trophy is not paying the bill. Compare benefits you actually use with the annual fee.",
+      "visual": "Points Monk turns the card into an itemized value-versus-fee receipt.",
+      "visual_spec": {
+        "kind": "receipt",
+        "headline": "COUNT WHAT YOU USE",
+        "labels": [
+          "USEFUL BENEFITS",
+          "ANNUAL FEE"
+        ],
+        "values": [
+          "VALUE",
+          "COST"
+        ]
+      },
+      "duration_seconds": 8,
+      "factual": true,
+      "source_ids": [
+        "cfpb-costs"
+      ]
+    },
+    {
+      "id": "flex",
+      "speaker": "dave",
+      "narration": "But it comes with perks. And a very impressive rectangle.",
+      "visual": "Dave tries to defend the rectangle; Monk holds an empty checklist.",
+      "visual_spec": {
+        "kind": "card",
+        "headline": "PREMIUM RECTANGLE",
+        "labels": [
+          "PERKS",
+          "ACTUAL USE"
+        ],
+        "values": [
+          "?",
+          "?"
+        ]
+      },
+      "duration_seconds": 8,
+      "factual": false,
+      "source_ids": []
+    },
+    {
+      "id": "balance",
+      "speaker": "narrator",
+      "narration": "Carrying a balance changes the math. Interest and fees can outweigh the rewards.",
+      "visual": "A balance scale tips toward costs while a small rewards card rises on the other side.",
+      "visual_spec": {
+        "kind": "balance",
+        "headline": "COSTS CAN WIN",
+        "labels": [
+          "REWARDS",
+          "INTEREST + FEES"
+        ],
+        "values": [
+          "VALUE",
+          "COST"
+        ]
+      },
+      "duration_seconds": 8,
+      "factual": true,
+      "source_ids": [
+        "cfpb-rewards"
+      ]
+    },
+    {
+      "id": "test",
+      "speaker": "points_monk",
+      "narration": "Check the fee, the interest rate, and the benefits you will use. Judge the card by the numbers.",
+      "visual": "Monk ticks three clearly labeled boxes; Dave lowers the trophy.",
+      "visual_spec": {
+        "kind": "checklist",
+        "headline": "THE THREE-CHECK TEST",
+        "labels": [
+          "FEE",
+          "INTEREST RATE",
+          "USEFUL BENEFITS"
+        ],
+        "values": []
+      },
+      "duration_seconds": 8,
+      "factual": true,
+      "source_ids": [
+        "cfpb-costs"
+      ]
+    },
+    {
+      "id": "payoff",
+      "speaker": "dave",
+      "narration": "Fine. The trophy can stay. The card has to earn its spot.",
+      "visual": "Dave places the card beside a checklist instead of on a pedestal.",
+      "visual_spec": {
+        "kind": "comparison",
+        "headline": "EARN YOUR SPOT",
+        "labels": [
+          "THE FLEX",
+          "THE MATH"
+        ],
+        "values": [
+          "?",
+          "CHECK"
+        ]
+      },
+      "duration_seconds": 8,
+      "factual": false,
+      "source_ids": []
+    }
+  ]
+}
