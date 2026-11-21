@@ -188,3 +188,18 @@ For recreating missing free voice/ASR environments, use the tested
 [free runtime setup](free-runtime-setup.md). Fresh caption verification now
 requires the exact four-file ASR snapshot and records its verified identity;
 mutable cached model names cannot silently select a different model.
+
+## Fresh minimum-payment episode (2026-11-21)
+
+The agent selected a new topic, read current CFPB sources, wrote the original
+script/storyboard, and applied an independent source-review correction before
+running the existing free production command. See
+[research and authorship](examples/minimum-payment-research.md),
+[reusable brief](examples/minimum-payment-brief.json), and
+[actual run and durable checkpoint](minimum-payment-proof-20261121.json).
+
+The 35.919-second candidate has ASR-verified speech/caption text correspondence and remains
+`AWAITING_REVIEW`. This is partial C02 evidence: the production CLI still consumes
+a supplied brief; no unattended discovery service or complete watch/listen and
+creative revision acceptance is established. Publishing and paid generation remain
+disabled. Issue #543 remains the sole completion checklist.
