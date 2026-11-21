@@ -61,7 +61,7 @@ class WorkerTests(unittest.TestCase):
 
     def test_real_command_shape_and_isolated_config(self):
         calls=[]
-        def fake(argv,cwd,env,timeout):
+        def fake(argv,cwd,env,timeout,lease_fd=None):
             calls.append(argv)
             if '--version' in argv:return worker.VERSION
             cfg=json.loads((cwd/'config.json').read_text())

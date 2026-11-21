@@ -44,7 +44,15 @@ Example batch (model name and memory budgets are examples, not readiness claims)
 Admission uses `integrations/agent_capacity.py` (PR #523), fails closed on unknown
 host limits, and allows at most four workers / sixteen tasks per batch. Ruflo and
 OpenClaw share one fixed per-user OS admission lock across runtime directories.
-One framework batch can execute at a time; crashes automatically release the lock.
+One framework batch can execute at a time. On Linux/WSL2, an independent guardian
+retains the lease until owned process-group cleanup completes, including after
+parent SIGKILL. Foreground SIGINT/SIGTERM stops active workers and prevents queued
+tasks from starting before the batch unwinds. Timeout and excessive-output paths
+use the same cleanup. Native Windows retains direct-child cleanup only; no
+Windows parent-death/process-tree guarantee is made. The local model server is
+separately owned: client cleanup does not prove server-side inference cancellation.
+Interrupted tasks must not be automatically replayed as if their outcome were
+known. This is not containment against malicious children escaping their group.
 Local Ollama `/api/show` metadata must confirm an installed model and contain no
 remote-model/remote-host fields; IDs containing `cloud` are rejected. A trusted
 local model server is required: this is not an OS network-egress firewall.
