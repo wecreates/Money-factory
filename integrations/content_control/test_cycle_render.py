@@ -212,4 +212,55 @@ class RenderValidationTests(unittest.TestCase):
             self.assertNotEqual(frames[:frame_bytes],frames[frame_bytes:])
 
 
+class PinnedASRTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.hub=Path(self.temp.name)/'hub'
+        self.snapshot=self.hub/'models--Systran--faster-whisper-base.en'/'snapshots'/render.ASR_REVISION
+        self.snapshot.mkdir(parents=True)
+        self.assets={name:(len(name.encode()),hashlib.sha256(name.encode()).hexdigest())
+                     for name in render.ASR_ASSETS}
+        for name in self.assets:(self.snapshot/name).write_bytes(name.encode())
+        self.addCleanup(patch.stopall)
+        patch.object(render,'ASR_ASSETS',self.assets).start()
+        patch.dict(os.environ,{'HF_HUB_CACHE':str(self.hub)}).start()
+
+    def test_exact_snapshot_selected_without_mutable_main_and_identity_retained(self):
+        refs=self.snapshot.parent.parent/'refs';refs.mkdir();(refs/'main').write_text('0'*40)
+        path,identity=render.pinned_asr_snapshot()
+        self.assertEqual(path,self.snapshot)
+        self.assertEqual(identity['revision'],render.ASR_REVISION)
+        self.assertEqual(set(identity['files']),set(self.assets))
+        self.assertEqual(identity['files']['model.bin']['sha256'],self.assets['model.bin'][1])
+
+    def test_normal_blob_symlink_supported_but_escape_rejected(self):
+        model=self.snapshot/'model.bin';model.unlink()
+        blob=self.hub/'models--Systran--faster-whisper-base.en'/'blobs'/'verified'
+        blob.parent.mkdir();blob.write_bytes(b'model.bin');model.symlink_to(blob)
+        render.pinned_asr_snapshot()
+        model.unlink();outside=Path(self.temp.name)/'outside';outside.write_bytes(b'model.bin');model.symlink_to(outside)
+        with self.assertRaisesRegex(ValueError,'outside selected cache'):render.pinned_asr_snapshot()
+
+    def test_corruption_missing_and_unverified_extra_files_rejected(self):
+        model=self.snapshot/'model.bin'
+        model.write_bytes(b'MODEL.BIN')
+        with self.assertRaisesRegex(ValueError,'size/hash'):render.pinned_asr_snapshot()
+        model.unlink()
+        with self.assertRaisesRegex(ValueError,'exactly'):render.pinned_asr_snapshot()
+        model.write_bytes(b'model.bin');(self.snapshot/'preprocessor_config.json').write_text('{}')
+        with self.assertRaisesRegex(ValueError,'exactly'):render.pinned_asr_snapshot()
+
+    def test_missing_pin_blocks_before_importing_or_loading_model(self):
+        self.snapshot.rename(self.snapshot.with_name('0'*40))
+        with patch.dict(sys.modules,{'faster_whisper':None}):
+            with self.assertRaisesRegex(ValueError,'snapshot unavailable'):
+                render.transcribe_encoded({},Path(self.temp.name),self.temp.name)
+
+    def test_hf_home_cache_location_supported(self):
+        with patch.dict(os.environ,{'HF_HOME':self.temp.name}):
+            del os.environ['HF_HUB_CACHE']
+            path,_=render.pinned_asr_snapshot()
+        self.assertEqual(path,self.snapshot)
+
+
 if __name__=='__main__':unittest.main()
