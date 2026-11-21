@@ -1,0 +1,125 @@
+{
+  "observed_at": "2026-11-21T23:36:24.545798+00:00",
+  "scope": "Agent-led fresh primary-source research and original script through existing production pipeline; partial C02 evidence, not standalone unattended autonomy or full acceptance.",
+  "money_factory_commit": "4c8b869d998ae6ca9eea01be19f814ef728dbfcd",
+  "content_control_commit": "7d213cdd3b1bcb767dd29b8db1dd0b7201478e8d",
+  "cycle": {
+    "archive_sha256": "1a2e875415c26b69ea8628ec4f5c439a06837dc048915b06c635c2de760ee059",
+    "brief_sha256": "7aaf9981d0d9ee8885687ddc54e7bc7800e6e66d56b43efb9843e8be9899ec48",
+    "candidate_sha256": "5adc0a937921e87404186d583ae787f619f9c4d47d91ace8942a6ef29ea8c8de",
+    "competitor_comparison": false,
+    "editorial_sha256": "a4b8a874dc22a7863cb8efbde2b15c21f6774125e28c676382d93b5ca1a0aae6",
+    "factual_review": false,
+    "finished_at": "2026-11-21T23:33:41.653353+00:00",
+    "full_av_review": false,
+    "package_sha256": "e544a36ce679d02e98eb42f76d48a00ab101668d3b692d87164c99e80b0cc39c",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.",
+    "started_at": "2026-11-21T23:33:05.814449+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "editorial",
+        "status": "PASS"
+      },
+      {
+        "name": "render",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "complete_cycle.py": "d8da6bb363a4fdfcc2e01e8281bb7054efba5237883a98843cd297769976b8f4",
+      "cycle_editorial.py": "ab5d0231e26b55a7b94d4f7c899094e336069a1fc1344a8b6688f20b88e19b73",
+      "cycle_package.py": "226b4c5e24a66509ee97e3314bf01bf8117f17cd2bb09037ef3117afe62ba513",
+      "cycle_render.py": "0194961109f686db700143194bc1504796dbb4d8e3979555745f2541f0da692c"
+    }
+  },
+  "duration_seconds": 35.918667,
+  "transcription_comparison": {
+    "critical_numeric_and_negation_tokens_match": true,
+    "ordered_word_similarity": 1.0,
+    "passed": true,
+    "word_recall": 1.0
+  },
+  "voice_assignments": {
+    "dave": "am_fenrir",
+    "narrator": "am_adam",
+    "points_monk": "am_michael"
+  },
+  "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+  "model_asset_sha256": {
+    "config.json": "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f",
+    "kokoro-v1_0.pth": "496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4",
+    "voices/am_adam.pt": "ced7e284aba12472891be1da3ab34db84cc05cc02b5889535796dbf2d8b0cb34",
+    "voices/am_fenrir.pt": "98e507eca1db08230ae3b6232d59c10aec9630022d19accac4f5d12fcec3c37a",
+    "voices/am_michael.pt": "9a443b79a4b22489a5b0ab7c651a0bcd1a30bef675c28333f06971abbd47bd37"
+  },
+  "inspect_cycle": "PASS: verified brief/editorial/candidate/package/archive identities and disabled flags",
+  "static_observation": {
+    "scope": "Scene 5 panel only; not full playback",
+    "observations": [
+      "All three grace-period qualifiers visible and legible at 720x1280.",
+      "No obvious clipping in sampled panel."
+    ]
+  },
+  "independent_source_review": {
+    "reviewer": "fresh_editorial_review",
+    "observed_at": "2026-11-21T23:32:55Z",
+    "correction": "Explicitly require grace-period eligibility and no carried balance before claiming new-purchase interest avoidance.",
+    "scope": "Source-based script review, not audiovisual acceptance"
+  },
+  "checkpoint": {
+    "sha256": "61e9b066868891dcefa6debdce4e5aa22db0dc66b0b1ed788cac38943695e13a",
+    "bytes": 1986391,
+    "library_file_id": "libfile_fde3_f-336150d323f48191af0eb3b1c2d27065_389d2c70fb1c8191bcf9b25e87727630",
+    "version": 0,
+    "url": "https://chatgpt.com/library?file_id=libfile_fde3_f-336150d323f48191af0eb3b1c2d27065_389d2c70fb1c8191bcf9b25e87727630&account_id=personal"
+  },
+  "remaining": [
+    "Full watch/listen, timing and creative revision acceptance",
+    "Listening-based character voice/music/SFX acceptance",
+    "Permitted full reference comparison",
+    "Actual host 24-hour unattended operation",
+    "Long-form, deployed phone playback and onboarding acceptance",
+    "Evidence-based audience learning; no performance metrics available"
+  ],
+  "production_ready": false,
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "validation": {
+    "editorial_package_review_tests": {
+      "passed": 32,
+      "command": "python -m unittest integrations.content_control.test_cycle_editorial integrations.content_control.test_cycle_package integrations.content_control.test_cycle_review"
+    },
+    "full_ffmpeg_decode": {
+      "exit_code": 0,
+      "observed_at": "2026-11-21T23:36:48Z",
+      "scope": "Technical decode only; not listening/watch acceptance"
+    }
+  },
+  "independent_final_review": {
+    "reviewer": "fresh_editorial_review",
+    "observed_at": "2026-11-21T23:37:00Z",
+    "result": "No blocking findings for a review-only evidence PR",
+    "scope": "All four changed files, exact cycle/transcript, all six static 720x1280 panels",
+    "observations": [
+      "Corrected grace-period condition matches source eligibility",
+      "All six static panels readable with no obvious clipping",
+      "Claims remain partial and disabled flags remain false"
+    ],
+    "limitations": [
+      "No full audiovisual or listening review",
+      "No phone playback or creative acceptance"
+    ],
+    "minor_wording_correction": "Specify ASR-verified speech/caption text correspondence, not timing acceptance"
+  }
+}

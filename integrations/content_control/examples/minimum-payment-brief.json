@@ -1,0 +1,164 @@
+{
+  "paid_generation_enabled": false,
+  "publication_enabled": false,
+  "reference_observations": [
+    {
+      "observation_type": "metadata",
+      "observed_at": "2026-11-21T23:32:54.399675+00:00",
+      "patterns": [
+        "User-selected creative reference only; no audiovisual observation or style comparison has been completed."
+      ],
+      "url": "https://www.instagram.com/oddsofmind/"
+    }
+  ],
+  "scenes": [
+    {
+      "duration_seconds": 8,
+      "factual": false,
+      "id": "horror",
+      "narration": "I paid the minimum. Why is my balance still auditioning for a horror movie?",
+      "source_ids": [],
+      "speaker": "dave",
+      "visual": "Dave gestures at a remaining card balance.",
+      "visual_spec": {
+        "headline": "MINIMUM PAID. BALANCE STAYED.",
+        "kind": "card",
+        "labels": [
+          "BALANCE REMAINS"
+        ],
+        "values": [
+          "STILL HERE"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 8,
+      "factual": true,
+      "id": "minimum",
+      "narration": "The minimum is the required payment, not a promise that interest disappears.",
+      "source_ids": [
+        "cfpb_minimum",
+        "cfpb_grace"
+      ],
+      "speaker": "points_monk",
+      "visual": "Monk contrasts a payment obligation with an interest charge.",
+      "visual_spec": {
+        "headline": "REQUIRED IS NOT INTEREST-FREE",
+        "kind": "comparison",
+        "labels": [
+          "MINIMUM DUE",
+          "INTEREST"
+        ],
+        "values": [
+          "REQUIRED",
+          "CAN REMAIN"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 8,
+      "factual": true,
+      "id": "more",
+      "narration": "Paying more than the minimum can cut interest costs and help you finish sooner.",
+      "source_ids": [
+        "cfpb_minimum"
+      ],
+      "speaker": "narrator",
+      "visual": "Narrator points to a shorter repayment path.",
+      "visual_spec": {
+        "headline": "MORE CAN MEAN LESS",
+        "kind": "receipt",
+        "labels": [
+          "INTEREST COST"
+        ],
+        "values": [
+          "PAY MORE",
+          "FINISH SOONER"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 8,
+      "factual": false,
+      "id": "finish",
+      "narration": "So the tiny number on my statement is not the finish line?",
+      "source_ids": [],
+      "speaker": "dave",
+      "visual": "Dave realizes the difference between payment due and balance payoff.",
+      "visual_spec": {
+        "headline": "TWO DIFFERENT GOALS",
+        "kind": "comparison",
+        "labels": [
+          "PAYMENT DUE",
+          "BALANCE PAID"
+        ],
+        "values": [
+          "MINIMUM",
+          "IN FULL"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 8,
+      "factual": true,
+      "id": "conditions",
+      "narration": "If your card offers a grace period and you are not carrying a balance, paying in full by the due date can avoid interest on new purchases.",
+      "source_ids": [
+        "cfpb_grace"
+      ],
+      "speaker": "points_monk",
+      "visual": "Monk shows the conditions together, not an unconditional promise.",
+      "visual_spec": {
+        "headline": "THE CONDITIONS MATTER",
+        "kind": "checklist",
+        "labels": [
+          "GRACE PERIOD",
+          "NO CARRIED BALANCE",
+          "FULL AND ON TIME"
+        ],
+        "values": []
+      }
+    },
+    {
+      "duration_seconds": 8,
+      "factual": true,
+      "id": "check",
+      "narration": "Check your statement and agreement. Minimum due and paid in full are different goals.",
+      "source_ids": [
+        "cfpb_minimum",
+        "cfpb_grace"
+      ],
+      "speaker": "narrator",
+      "visual": "Narrator closes with statement and agreement checks.",
+      "visual_spec": {
+        "headline": "READ THE TWO NUMBERS",
+        "kind": "checklist",
+        "labels": [
+          "MINIMUM DUE",
+          "FULL BALANCE",
+          "DUE DATE"
+        ],
+        "values": []
+      }
+    }
+  ],
+  "schema_version": 1,
+  "sources": [
+    {
+      "claim": "The minimum is the monthly required payment. Paying more can reduce interest costs and repay the balance sooner.",
+      "excerpt": "pay more than the minimum",
+      "id": "cfpb_minimum",
+      "retrieved_at": "2026-11-21T23:32:54.399675+00:00",
+      "url": "https://www.consumerfinance.gov/data-research/credit-card-data/know-you-owe-credit-cards/"
+    },
+    {
+      "claim": "Where a card offers a grace period and no balance is carried, paying in full by the due date can avoid interest on new purchases. Grace periods are not universal.",
+      "excerpt": "Credit card companies are not required to give a grace period.",
+      "id": "cfpb_grace",
+      "retrieved_at": "2026-11-21T23:32:54.399675+00:00",
+      "url": "https://www.consumerfinance.gov/ask-cfpb/what-is-a-grace-period-for-a-credit-card-en-47/"
+    }
+  ],
+  "title": "Minimum Paid. Balance Stayed.",
+  "topic": "Why the minimum payment is different from paying a credit-card balance in full. Agent-selected educational topic; no trend or audience-performance claim."
+}
