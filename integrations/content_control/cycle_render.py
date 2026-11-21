@@ -25,6 +25,14 @@ import wave
 VOICE_ASSIGNMENTS = {'dave': 'am_fenrir', 'points_monk': 'am_michael', 'narrator': 'am_adam'}
 KINDS = {'card', 'receipt', 'balance', 'checklist', 'comparison'}
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+ASR_REPOSITORY = 'Systran/faster-whisper-base.en'
+ASR_REVISION = '3d3d5dee26484f91867d81cb899cfcf72b96be6c'
+ASR_ASSETS = {
+    'config.json': (2227, 'f3bc3821e9fc76a27bae538e11ae5b677dcdd352b4600429ce7951d398569aeb'),
+    'model.bin': (145216508, '2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef'),
+    'tokenizer.json': (2128466, '929c5252409436dce1b38a75d1abbcb5e132d170d8e324e4e04ed915fa2d22df'),
+    'vocabulary.txt': (422309, 'ff77588746d3a2595d32ab5b69ffd7b95ce2441ac57533cb66fc3eb575a115cf'),
+}
 MOTION_FRAMES = 24
 MOTION_FPS = 8
 MOTION_SCOPE = 'Deterministic three-second arm-gesture loop; static diagrams and typography. No lip sync or full character animation.'
@@ -377,8 +385,33 @@ def observed_captions(words, duration):
     return '\n'.join(lines)+'\n'
 
 
+def pinned_asr_snapshot():
+    """Verify the recorded immutable ASR assets before model deserialization.
+
+    Normal Hugging Face snapshot links into this cache's blobs are supported.
+    Missing assets never trigger a download, and mutable refs/main is ignored.
+    """
+    hub = Path(os.environ.get('HF_HUB_CACHE', str(Path(os.environ.get(
+        'HF_HOME', str(Path.home() / '.cache/huggingface'))) / 'hub'))).resolve()
+    snapshot = hub / 'models--Systran--faster-whisper-base.en' / 'snapshots' / ASR_REVISION
+    if not snapshot.is_dir() or not snapshot.resolve().is_relative_to(hub):
+        raise ValueError('Pinned ASR snapshot unavailable inside selected cache')
+    if {path.name for path in snapshot.iterdir()} != set(ASR_ASSETS):
+        raise ValueError('Pinned ASR snapshot must contain exactly the verified assets')
+    for name, (size, expected) in ASR_ASSETS.items():
+        path = snapshot / name
+        if not path.is_file() or not path.resolve().is_relative_to(hub):
+            raise ValueError('Pinned ASR asset outside selected cache: ' + name)
+        if path.stat().st_size != size or digest(path) != expected:
+            raise ValueError('Pinned ASR asset size/hash mismatch: ' + name)
+    return snapshot, {'repository': ASR_REPOSITORY, 'revision': ASR_REVISION,
+                      'files': {name: {'size_bytes': size, 'sha256': sha}
+                                for name, (size, sha) in ASR_ASSETS.items()}}
+
+
 def transcribe_encoded(editorial, output, voice_root):
     """Independent offline recognizer reads the encoded MP4 audio stream."""
+    snapshot, model_identity = pinned_asr_snapshot()
     from faster_whisper import WhisperModel
     def no_network(*args,**kwargs):raise RuntimeError('Network disabled during ASR')
     socket.socket.connect=no_network
@@ -387,7 +420,7 @@ def transcribe_encoded(editorial, output, voice_root):
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     video=output/'video.mp4'; candidate_hash=digest(video)
     samples,duration=module.decode_transcription_audio(video)
-    model=WhisperModel('base.en',device='cpu',compute_type='int8',cpu_threads=2,local_files_only=True)
+    model=WhisperModel(str(snapshot),device='cpu',compute_type='int8',cpu_threads=2,local_files_only=True)
     segments,info=model.transcribe(samples,language='en',beam_size=5,word_timestamps=True,
         vad_filter=True,condition_on_previous_text=True,
         suppress_tokens=module.spoken_number_suppression(model.hf_tokenizer))
@@ -399,7 +432,10 @@ def transcribe_encoded(editorial, output, voice_root):
                           'probability':float(word.probability)})
     actual=' '.join(texts); expected=' '.join(scene['narration'] for scene in editorial['scenes'])
     comparison=compare_transcription(expected,actual,module.norm)
+    if pinned_asr_snapshot()[1] != model_identity:
+        raise ValueError('Pinned ASR identity changed during recognition')
     report={'schema_version':1,'status':'FAIL','engine':'faster-whisper','model':'base.en',
+            'model_identity':model_identity,
             'candidate_sha256':candidate_hash,'editorial_sha256':editorial_digest(editorial),
             'expected_text':expected,'actual_transcript':actual,'words':words,'comparison':comparison,
             'duration_seconds':duration,'helper_sha256':digest(helper),'publication_enabled':False,

@@ -183,3 +183,8 @@ was made for the motion candidate. See
 [the recovery receipt](cycle-recovery-proof-20261121.json) for its external archive
 hash, durable version identity and limits. This recovered review state; it did
 not reprovision Kokoro/ASR runtimes or grant audiovisual/phone acceptance.
+
+For recreating missing free voice/ASR environments, use the tested
+[free runtime setup](free-runtime-setup.md). Fresh caption verification now
+requires the exact four-file ASR snapshot and records its verified identity;
+mutable cached model names cannot silently select a different model.
