@@ -149,7 +149,12 @@ def make_timeline(run, frames, cues, run_sha):
     return timeline
 
 
-def verify_roundtrip(timeline, frames, cues, candidate):
+def verify_roundtrip(timeline, frames, cues, run, run_sha):
+    candidate = run['candidate_sha256']
+    meta = timeline.metadata.get('cyzor', {})
+    require(all(meta.get(k) is False for k in ('publication_enabled', 'production_approved', 'full_av_review')), 'roundtrip approval flags mismatch')
+    require(meta.get('candidate_sha256') == candidate and meta.get('caption_sha256') == run['caption_sha256'] and meta.get('run_sha256') == run_sha, 'roundtrip provenance mismatch')
+    require(meta.get('caption_sidecar') == 'captions.vtt', 'caption sidecar mismatch')
     require(len(timeline.tracks) == 2, 'track count mismatch')
     video, audio = timeline.tracks
     require(video.kind == 'Video' and audio.kind == 'Audio' and len(video) == 18 and len(audio) == 1, 'track structure mismatch')
@@ -166,6 +171,7 @@ def verify_roundtrip(timeline, frames, cues, candidate):
 
 def export(packet, output, expected_run_sha256):
     require(importlib.metadata.version('opentimelineio') == VERSION, 'pinned OTIO runtime required')
+    require(not Path(packet).is_symlink(), 'review directory symlink refused')
     packet = Path(packet).resolve(strict=True)
     output = Path(output).absolute()
     require(not output.exists() and not output.is_symlink(), 'output already exists')
@@ -173,14 +179,14 @@ def export(packet, output, expected_run_sha256):
     media = verify_media(packet/'video.mp4')
     timeline = make_timeline(run,frames,cues,expected_run_sha256)
     encoded = otio.core.serialize_json_to_string(timeline)
-    verify_roundtrip(otio.core.deserialize_json_from_string(encoded),frames,cues,run['candidate_sha256'])
+    verify_roundtrip(otio.core.deserialize_json_from_string(encoded),frames,cues,run,expected_run_sha256)
     output.mkdir()  # Collision-safe; never overwrite, including races.
     try:
         for name in ('video.mp4','captions.vtt','run.json','video.mp4.json'):
             shutil.copyfile(packet/name,output/name)
         validate_packet(output, expected_run_sha256)  # Check copied bytes, including source mutation during copy.
         (output/'timeline.otio').write_text(encoded)
-        verify_roundtrip(otio.core.deserialize_json_from_string((output/'timeline.otio').read_text()),frames,cues,run['candidate_sha256'])
+        verify_roundtrip(otio.core.deserialize_json_from_string((output/'timeline.otio').read_text()),frames,cues,run,expected_run_sha256)
         receipt = {'schema_version':1, 'status':'INTERCHANGE_VERIFIED', 'verified_at':datetime.now(timezone.utc).isoformat(),
             'scope':SCOPE, 'opentimelineio_version':VERSION, 'upstream_revision':UPSTREAM,
             'input_run_sha256':expected_run_sha256, 'candidate_sha256':run['candidate_sha256'],

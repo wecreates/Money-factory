@@ -61,7 +61,7 @@ class ExportTest(unittest.TestCase):
         moved=self.root/'relocated'
         (self.root/'output').rename(moved)
         timeline=otio.core.deserialize_json_from_string((moved/'timeline.otio').read_text())
-        m.verify_roundtrip(timeline,self.frames,m.caption_markers(moved/'captions.vtt'),self.run['candidate_sha256'])
+        m.verify_roundtrip(timeline,self.frames,m.caption_markers(moved/'captions.vtt'),self.run,self.sha)
         for track in timeline.tracks:
             for clip in track:
                 self.assertEqual(m.digest(moved/clip.media_reference.target_url),receipt['candidate_sha256'])
@@ -140,14 +140,29 @@ class ExportTest(unittest.TestCase):
         self.assertFalse((self.root/'output').exists())
         self.assertTrue((self.packet/'video.mp4').exists())
 
+    def test_review_directory_symlink_refused(self):
+        link=self.root/'packet-link'
+        link.symlink_to(self.packet, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError,'directory symlink'):
+            m.export(link,self.root/'output',self.sha)
+
+    def test_roundtrip_metadata_corruption_rejected(self):
+        run,frames,cues=m.validate_packet(self.packet,self.sha)
+        for key,value in (('production_approved',True),('publication_enabled',True),('full_av_review',True),
+                          ('candidate_sha256','0'*64),('caption_sha256','0'*64),('run_sha256','0'*64),
+                          ('caption_sidecar','/elsewhere/captions.vtt')):
+            tl=m.make_timeline(run,frames,cues,self.sha)
+            tl.metadata['cyzor'][key]=value
+            with self.assertRaises(ValueError): m.verify_roundtrip(tl,frames,cues,run,self.sha)
+
     def test_native_roundtrip_detects_cut_and_caption_corruption(self):
         run,frames,cues=m.validate_packet(self.packet,self.sha)
         tl=m.make_timeline(run,frames,cues,self.sha)
         tl.tracks[0][0].source_range=m.time_range(1,39)
-        with self.assertRaises(ValueError):m.verify_roundtrip(tl,frames,cues,run['candidate_sha256'])
+        with self.assertRaises(ValueError):m.verify_roundtrip(tl,frames,cues,run,self.sha)
         tl=m.make_timeline(run,frames,cues,self.sha)
         tl.tracks[0].markers[0].name='Altered'
-        with self.assertRaisesRegex(ValueError,'caption roundtrip'):m.verify_roundtrip(tl,frames,cues,run['candidate_sha256'])
+        with self.assertRaisesRegex(ValueError,'caption roundtrip'):m.verify_roundtrip(tl,frames,cues,run,self.sha)
 
 
 if __name__ == '__main__': unittest.main()

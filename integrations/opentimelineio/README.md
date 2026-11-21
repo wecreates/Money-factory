@@ -30,7 +30,7 @@ Validation binds the exact caller-supplied run hash to the copied video, caption
 
 ## Executed evidence
 
-[Actual picture roundtrip](actual-picture-roundtrip-20261121.json), **2026-11-21 01:46:35 UTC**: real previously generated candidate `79bbf8abe422e6ff1ef8ee0e2224a952a3114ac435c6b49a8154725ee4dc0053`; 18 cuts, 720 frames at 24fps, nine caption markers, H264/AAC, all package hashes bound. The original producer run was `AWAITING_REVIEW`; publication and production approval remain false. This is a workspace runtime result, not installation on the user's PC or an NLE acceptance result.
+[Actual picture roundtrip](actual-picture-roundtrip-20261121.json), **2026-11-21 01:50:11 UTC**: real previously generated candidate `79bbf8abe422e6ff1ef8ee0e2224a952a3114ac435c6b49a8154725ee4dc0053`; 18 cuts, 720 frames at 24fps, nine caption markers, H264/AAC, all package hashes bound. The original producer run was `AWAITING_REVIEW`; publication and production approval remain false. This is a workspace runtime result, not installation on the user's PC or an NLE acceptance result.
 
 Run focused tests with:
 

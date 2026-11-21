@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "status": "INTERCHANGE_VERIFIED",
-  "verified_at": "2026-11-21T01:46:35.143218+00:00",
+  "verified_at": "2026-11-21T01:50:11.952707+00:00",
   "scope": "Trimmed rendered MP4 with continuous original mixed audio. Captions remain burned in; markers are editorial metadata. No recovered artwork, separated audio stems, new render, creative acceptance or NLE import verification.",
   "opentimelineio_version": "0.18.1",
   "upstream_revision": "44236713c1db295a6ffc66189ae98dbdfd0cb9c4",
