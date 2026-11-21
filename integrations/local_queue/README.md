@@ -82,11 +82,16 @@ Back up a stopped queue directory if durable host storage/backups are needed.
 
 ## Verified scope and remaining host work
 
-`python -m unittest integrations.test_local_agent_queue -v` uses real separate
+`python -m unittest integrations.test_local_agent_queue integrations.test_local_queue_process_recovery -v` uses real separate
 processes and SIGKILL to exercise live-lock contention, interrupted recovery,
 committed receipt retention, and rollback of a partial transaction. Model calls
 in those tests are fixtures; they do not prove model inference or host uptime.
 The adapter boundary tests verify that the guarded public entry points are used.
+The combined Linux regression freezes the process guardian, kills the queue
+consumer, verifies interrupted recovery without replay while admission remains
+held, resumes cleanup, and explicitly retries with both attempt receipts retained.
+That regression requires the owned-process guardian; missing implementation fails
+the CI import rather than silently skipping the dependency.
 
 This implementation does not establish 24/7 readiness on an unavailable user
 machine, validate VPN reachability, install a stronger model, approve output,

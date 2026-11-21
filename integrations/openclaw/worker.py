@@ -10,22 +10,23 @@ import os
 from pathlib import Path
 import re
 import shutil
-import signal
 import subprocess
 import tempfile
 import time
+import sys
 from urllib.parse import urlsplit
 
 VERSION = '2026.11.6'
 MAX_OUTPUT = 1024 * 1024
 
 
-def execute(argv, cwd, env, timeout):
+def execute(argv, cwd, env, timeout, lease_fd=None):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from owned_process import owned_process
     with tempfile.TemporaryFile() as out:
-        process = subprocess.Popen(argv, cwd=cwd, env=env, stdout=out,
-                                   stderr=subprocess.DEVNULL, start_new_session=os.name != 'nt')
-        deadline = time.monotonic() + timeout
-        try:
+        with owned_process(argv, timeout=timeout, lease_fd=lease_fd, cwd=cwd,
+                           env=env, stdout=out, stderr=subprocess.DEVNULL) as process:
+            deadline = time.monotonic() + timeout
             while process.poll() is None:
                 if time.monotonic() >= deadline or os.fstat(out.fileno()).st_size > MAX_OUTPUT:
                     raise RuntimeError('OPENCLAW_TIMEOUT_OR_OUTPUT_LIMIT')
@@ -37,13 +38,6 @@ def execute(argv, cwd, env, timeout):
             if len(data) > MAX_OUTPUT:
                 raise RuntimeError('OPENCLAW_OUTPUT_LIMIT')
             return data.decode('utf-8')
-        finally:
-            if process.poll() is None:
-                if os.name != 'nt':
-                    os.killpg(process.pid, signal.SIGKILL)
-                else:
-                    process.kill()
-                process.wait()
 
 
 def validate(job):
@@ -126,12 +120,12 @@ def check_local_model(job):
         connection.close()
 
 
-def run_isolated(job, executable):
+def run_isolated(job, executable, lease_fd=None):
     with tempfile.TemporaryDirectory(prefix='cyzor-openclaw-') as temporary:
         directory = Path(temporary)
         (directory / 'workspace').mkdir()
         env = environment(directory)
-        version = execute([executable, '--version'], directory, env, 15).strip()
+        version = execute([executable, '--version'], directory, env, 15, lease_fd=lease_fd).strip()
         if not re.search(r'(?<![\d.])' + re.escape(VERSION) + r'(?![\d.])', version):
             raise RuntimeError('OPENCLAW_VERSION_MISMATCH')
         if job['operation'] == 'doctor':
@@ -144,7 +138,7 @@ def run_isolated(job, executable):
         raw = execute([executable, 'agent', '--local', '--agent', 'main', '--model',
                        'ollama/' + job['model'], '--message-file', str(prompt), '--json',
                        '--timeout', str(job.get('timeout_seconds', 120))],
-                      directory, env, job.get('timeout_seconds', 120) + 10)
+                      directory, env, job.get('timeout_seconds', 120) + 10, lease_fd=lease_fd)
         result = json.loads(raw)
         meta = result.get('meta', {}) if isinstance(result, dict) else {}
         agent = meta.get('agentMeta', {})
@@ -190,8 +184,9 @@ def dispatch(job, runtime):
               'tools_enabled': False, 'delivery_enabled': False, 'production_ready': False,
               'verified_agents': 0, 'scope': 'One isolated local text turn only; not host capacity or production readiness'}
     from agent_capacity import shared_admission_lock, recommend_capacity, collect_snapshot, AdmissionBusy
+    from owned_process import interruptible_processes
     try:
-        with shared_admission_lock():
+        with interruptible_processes(), shared_admission_lock() as lease_fd:
             if executable is None:
                 report.update(status='BLOCKED', blockers=['OPENCLAW_NOT_INSTALLED'], model_execution_verified=False)
             else:
@@ -206,7 +201,7 @@ def dispatch(job, runtime):
                             raise RuntimeError('OPENCLAW_CAPACITY_BLOCKED')
                         check_local_model(job)
                         report['local_model_metadata_verified'] = True
-                    report.update(run_isolated(job, executable))
+                    report.update(run_isolated(job, executable, lease_fd=lease_fd))
                     report['verified_agents'] = int(report['model_execution_verified'])
                 except (RuntimeError, OSError, ValueError, TypeError, AttributeError) as exc:
                     code = str(exc) if str(exc).startswith('OPENCLAW_') else 'OPENCLAW_EXECUTION_FAILED'

@@ -4,6 +4,8 @@ on:
     paths:
       - 'integrations/ruflo/**'
       - 'integrations/agent_capacity.py'
+      - 'integrations/owned_process.py'
+      - 'integrations/test_owned_process.py'
       - '.github/workflows/ruflo-local-tests.yml'
 permissions:
   contents: read
@@ -20,4 +22,5 @@ jobs:
         with:
           node-version: '22'
       - run: python -m unittest discover -s integrations/ruflo -p 'test*.py' -v
+      - run: python -m unittest -v integrations.test_owned_process integrations.test_agent_capacity
       - run: node --check integrations/ruflo/execute.mjs

@@ -51,48 +51,54 @@ def child_environment(home):
             'CLAUDE_FLOW_RUN_TRANSCRIPTS': '0', 'PUBLICATION_ENABLED': 'false'}
 
 
-def execute_task(task, batch, runtime, node):
+def execute_task(task, batch, runtime, node, lease_fd=None):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from owned_process import owned_process
     with tempfile.TemporaryDirectory(prefix='cyzor-ruflo-') as tmp:
         home = Path(tmp); work = home / 'work'; work.mkdir()
         payload = {**task, **{k: batch[k] for k in ('endpoint', 'model', 'max_tokens', 'timeout_seconds')}, 'runtime': str(runtime)}
+        proc = reader = None
         try:
-            proc = subprocess.Popen([node, str(Path(__file__).with_name('execute.mjs'))],
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                cwd=work, env=child_environment(home))
-            output = bytearray()
-            oversized = threading.Event()
-            def drain():
-                while True:
-                    chunk = proc.stdout.read(65536)
-                    if not chunk:
-                        break
-                    if len(output) + len(chunk) > 2_000_000:
-                        oversized.set()
-                        proc.kill()
-                        break
-                    output.extend(chunk)
-            reader = threading.Thread(target=drain, daemon=True)
-            reader.start()
-            try:
+            with owned_process([node, str(Path(__file__).with_name('execute.mjs'))],
+                    timeout=batch['timeout_seconds'] + 20, lease_fd=lease_fd,
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                    cwd=work, env=child_environment(home)) as proc:
+                output = bytearray()
+                oversized = threading.Event()
+                def drain():
+                    while True:
+                        chunk = proc.stdout.read(65536)
+                        if not chunk:
+                            break
+                        if len(output) + len(chunk) > 2_000_000:
+                            oversized.set()
+                            proc.terminate()  # Guardian cleans its owned group.
+                            break
+                        output.extend(chunk)
+                reader = threading.Thread(target=drain, daemon=True)
+                reader.start()
                 proc.stdin.write(json.dumps(payload).encode())
                 proc.stdin.close()
                 proc.wait(timeout=batch['timeout_seconds'] + 20)
-            finally:
-                if proc.poll() is None:
-                    proc.kill()
-                proc.wait()
                 reader.join(timeout=5)
-                proc.stdout.close()
-            if oversized.is_set() or reader.is_alive():
-                raise ValueError('Oversized runtime output')
-            marker = '\nCYZOR_RESULT='
-            result = json.loads(output.decode().rsplit(marker, 1)[1])
-            if proc.returncode or result.get('status') != 'PASS':
-                raise ValueError('Local Ruflo inference failed')
-            result['output_sha256'] = hashlib.sha256(result['output'].encode()).hexdigest()
-            return result
+                if oversized.is_set() or reader.is_alive():
+                    raise ValueError('Oversized runtime output')
+                marker = '\nCYZOR_RESULT='
+                result = json.loads(output.decode().rsplit(marker, 1)[1])
+                if proc.returncode or result.get('status') != 'PASS':
+                    raise ValueError('Local Ruflo inference failed')
+                result['output_sha256'] = hashlib.sha256(result['output'].encode()).hexdigest()
+                return result
         except (subprocess.TimeoutExpired, OSError, ValueError, IndexError):
             return {'id': task['id'], 'status': 'FAIL', 'reason': 'Local execution failed or exceeded its deadline', 'publication_enabled': False}
+        finally:
+            if reader is not None:
+                reader.join(timeout=5)
+            if proc is not None:
+                if proc.stdin is not None:
+                    proc.stdin.close()
+                if proc.stdout is not None:
+                    proc.stdout.close()
 
 
 def run_batch(batch, runtime, node=None):
@@ -100,11 +106,12 @@ def run_batch(batch, runtime, node=None):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     try:
         from agent_capacity import shared_admission_lock, AdmissionBusy
+        from owned_process import interruptible_processes
     except ImportError:
         return blocked('Host admission module is unavailable')
     try:
-        with shared_admission_lock():
-            return admitted_batch(batch, runtime, node)
+        with interruptible_processes(), shared_admission_lock() as lease_fd:
+            return admitted_batch(batch, runtime, node, lease_fd)
     except (AdmissionBusy, OSError):
         return blocked('Another local batch holds admission or the host lock is unavailable')
 
@@ -138,7 +145,7 @@ def verify_local_model(batch):
     return metadata
 
 
-def admitted_batch(batch, runtime, node=None):
+def admitted_batch(batch, runtime, node=None, lease_fd=None):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     try:
         from agent_capacity import collect_snapshot, recommend_capacity
@@ -160,7 +167,7 @@ def admitted_batch(batch, runtime, node=None):
     if not node:
         raise ValueError('Node runtime is unavailable')
     with concurrent.futures.ThreadPoolExecutor(max_workers=batch['workers']) as pool:
-        results = list(pool.map(lambda t: execute_task(t, batch, runtime, node), batch['tasks']))
+        results = list(pool.map(lambda t: execute_task(t, batch, runtime, node, lease_fd), batch['tasks']))
     passed = sum(r['status'] == 'PASS' for r in results)
     return {'status': 'PASS' if passed == len(results) else 'FAIL', 'executed_tasks': passed,
             'requested_tasks': len(results), 'concurrency_limit': batch['workers'],
