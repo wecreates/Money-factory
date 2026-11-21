@@ -1,0 +1,27 @@
+name: OpenTimelineIO review interchange
+on:
+  pull_request:
+    paths:
+      - 'integrations/opentimelineio/**'
+      - '.github/workflows/opentimelineio-export.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/opentimelineio/**'
+      - '.github/workflows/opentimelineio-export.yml'
+permissions:
+  contents: read
+jobs:
+  native-roundtrip:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --require-hashes --only-binary=:all: -r integrations/opentimelineio/requirements.lock
+      - run: ffmpeg -version && ffprobe -version
+      - run: python -m unittest integrations.opentimelineio.test_export_review -v

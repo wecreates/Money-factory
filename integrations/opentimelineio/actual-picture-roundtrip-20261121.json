@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "status": "INTERCHANGE_VERIFIED",
+  "verified_at": "2026-11-21T01:46:35.143218+00:00",
+  "scope": "Trimmed rendered MP4 with continuous original mixed audio. Captions remain burned in; markers are editorial metadata. No recovered artwork, separated audio stems, new render, creative acceptance or NLE import verification.",
+  "opentimelineio_version": "0.18.1",
+  "upstream_revision": "44236713c1db295a6ffc66189ae98dbdfd0cb9c4",
+  "input_run_sha256": "7574ea8418d95693ada0829280dfcf92e74285ea73c0209a078eb70c293cf520",
+  "candidate_sha256": "79bbf8abe422e6ff1ef8ee0e2224a952a3114ac435c6b49a8154725ee4dc0053",
+  "cuts": 18,
+  "caption_markers": 9,
+  "media": {
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "fps": 24,
+    "frames": 720
+  },
+  "roundtrip_verified": true,
+  "nle_import_verified": false,
+  "production_approved": false,
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "files_sha256": {
+    "captions.vtt": "d79b0a9a6d05c65e88d39d80d921dd034e02734454eb685d3fafd38ddf6de0b9",
+    "run.json": "7574ea8418d95693ada0829280dfcf92e74285ea73c0209a078eb70c293cf520",
+    "timeline.otio": "e1c592a35ea02b2243efe799dd08d5ced6d0bccbb5a33cedf5c8cbd46cea94e8",
+    "video.mp4": "79bbf8abe422e6ff1ef8ee0e2224a952a3114ac435c6b49a8154725ee4dc0053",
+    "video.mp4.json": "60ca30c9cb6ab5f5d6cc9ffc41e575a697619af61ae8c931e99b3fcc186db78d"
+  }
+}
