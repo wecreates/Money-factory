@@ -25,6 +25,17 @@ def write(path,value):
     path.write_text(json.dumps(value,indent=2,sort_keys=True,allow_nan=False)+'\n')
 
 
+def execute_stage(result,output,name,command,runner,deadline):
+    entry={'name':name,'status':'RUNNING','log':name+'.log'}
+    result['steps'].append(entry);write(output/'bundle.json',result)
+    try:
+        runner(list(map(str,command)),cwd=ROOT,log=output/entry['log'],deadline=deadline,env=os.environ)
+    except BaseException:
+        entry['status']='BLOCKED';write(output/'bundle.json',result)
+        raise
+    entry['status']='PASS';write(output/'bundle.json',result)
+
+
 def produce_bundle(output,*,content_control_root,source_commit,source_manifest_sha256,
                    video_python,picture_python,otio_python,timeout=900,
                    dnsmos_python=None,dnsmos_model=None):
@@ -65,10 +76,7 @@ def produce_bundle(output,*,content_control_root,source_commit,source_manifest_s
             def run(name,command):
                 nonlocal stage
                 stage=name
-                entry={'name':name,'status':'RUNNING','log':name+'.log'}
-                result['steps'].append(entry); write(output/'bundle.json',result)
-                runner(list(map(str,command)),cwd=ROOT,log=output/entry['log'],deadline=deadline,env=os.environ)
-                entry['status']='PASS'
+                execute_stage(result,output,name,command,runner,deadline)
             source=describe_source(source_root,expected_commit=source_commit,lease_fd=lease,deadline=deadline)
             runtime=inspect_runtime(source_root,video_python,picture_python,lease_fd=lease,deadline=deadline)
             write(output/'prerequisites.json',{'source':source,'runtime':runtime})

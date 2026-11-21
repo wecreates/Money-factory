@@ -21,6 +21,14 @@ class BundleTest(unittest.TestCase):
         self.output=Path(self.temp.name)/'bundle'
         self.options={'content_control_root':Path(self.temp.name),'source_commit':'a'*40,'source_manifest_sha256':'b'*64,
             'video_python':sys.executable,'picture_python':sys.executable,'otio_python':sys.executable,'timeout':30}
+    def test_optional_stage_failure_is_persisted_as_blocked(self):
+        self.output.mkdir();result={'steps':[]}
+        def failing(*args,**kwargs):raise RuntimeError('optional diagnostic unavailable')
+        with self.assertRaises(RuntimeError):
+            m.execute_stage(result,self.output,'speech-diagnostic',['synthetic'],failing,time.monotonic()+1)
+        self.assertEqual(result['steps'][0]['status'],'BLOCKED')
+        self.assertEqual(json.loads((self.output/'bundle.json').read_text())['steps'][0]['status'],'BLOCKED')
+
     def test_partial_optional_diagnostic_configuration_blocked(self):
         result=m.produce_bundle(self.output,**self.options,dnsmos_python=sys.executable)
         self.assertEqual(result['status'],'BLOCKED');self.assertIn('both runtime',result['reason'])
