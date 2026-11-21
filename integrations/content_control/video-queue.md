@@ -73,3 +73,33 @@ into success. Inspect its receipts, explicitly retry if appropriate, and retain
 the earlier attempt. Re-enqueuing an already completed identical job does not
 render again. These are queue dispatch guarantees, not exactly-once rendering
 across a crash or a claim of unattended 24/7 service.
+
+## Retrieve a private playable review package
+
+After the worker completes, use the immutable job ID to check delivery readiness:
+
+```sh
+python -m integrations.content_control.review_delivery --queue /local/queue --id episode1-review-001 status
+python -m integrations.content_control.review_delivery --queue /local/queue --id episode1-review-001 export --output /local/new-private-review
+```
+
+Open `new-private-review/review/index.html` or the adjacent `video.mp4` in a
+local video player. The ZIP is the same portable package used by the standalone
+producer. It contains the original video bytes, caption timing, producer evidence
+and source/job hashes. No server starts and no file is uploaded. Browser codec
+and local-file playback support must be observed; package creation alone does
+not prove playback. Captions are burned into the picture; the VTT remains
+available as text/timing rather than relying on a browser's local caption track.
+
+The delivery command reads SQLite without creating or migrating it. It requires
+the latest attempt to have durable success and rechecks the immutable request,
+adapter receipt, producer receipt, source manifest and every artifact hash.
+Interrupted, blocked, failed, missing or changed results cannot be exported, even
+when an MP4 exists. Output must be a new directory; originals and all previous
+attempts remain unchanged. A blocked status exits with code 2 and explains the
+next action. Resolve its cause and use the queue's explicit `retry` only after
+reviewing the retained attempt; status/export never retries or renders.
+
+`delivery_ready=true` means identity-verified technical completion only. The
+package remains `AWAITING_REVIEW`; full audiovisual/creative acceptance,
+production readiness and publishing approval remain false.

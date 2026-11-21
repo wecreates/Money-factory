@@ -1,0 +1,37 @@
+{
+  "artifact_id": 14711707664,
+  "artifact_sha256": "9776dd9ae59e33e83237b69bbb127b90dd40d25ecef0166b3134b8fd191ee568",
+  "attempt": 1,
+  "candidate_sha256": "30fa21d818450fe8a5862c5559701bd73720d9bb4c6039134153cbd4f8ad0dc6",
+  "checks": {
+    "artifact_download_hash_match": true,
+    "durable_succeeded_attempt": true,
+    "queue_database_unchanged": true,
+    "same_candidate_bytes_in_folder_and_zip": true,
+    "status_delivery_ready": true,
+    "zip_crc_verified": true
+  },
+  "delivery_archive_sha256": "a36022fc21844f2dd0ed06db0dcfadf1ff9f34f2267bb0c2724b228f6944c222",
+  "full_av_review": false,
+  "job_digest": "298abdd304bcace97e5d596f9e5419b33de3523e2b897979100758d5c96b23d1",
+  "job_id": "hosted-episode1-review",
+  "observed_at": "2026-11-21T15:01:33.828042+00:00",
+  "paid_generation_enabled": false,
+  "pipeline_receipt_sha256": "56e3ead8f2be3e8455b2d6e836e0e91d7850f22f33442cf30cc50f8ced1d0eb1",
+  "playback_observed": false,
+  "production_approved": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "queue_database_sha256_after": "9d3bd32f811fc64549ef04779cd3e1d4d352c0e05db6adf0faa123bd05985325",
+  "queue_database_sha256_before": "9d3bd32f811fc64549ef04779cd3e1d4d352c0e05db6adf0faa123bd05985325",
+  "schema_version": 1,
+  "scope": "Actual hosted admitted queue artifact reopened read-only and exported through the shared packager. Engineering identity proof only; browser playback, listening, creative acceptance, PC/VPN execution and continuous uptime are not asserted.",
+  "source_commit": "7a1caa4c6ffdc241681b2c69664c74e737784bd3",
+  "source_manifest_sha256": "7c28f2b84f8133093a61486396fa06f6f0b8f29880a5cd7d01895abbf8db78d4",
+  "source_sha256": {
+    "integrations/content_control/review_delivery.py": "ca6fac2512bf7c26ad4b3163d743e8f91710763d49221cfa8dc17b6d47d4bfff",
+    "integrations/content_control/review_package.py": "fe4d916f5d7bf23e50124281ae6e96660504834f301de8075c1770bb9f3cbe21"
+  },
+  "status": "QUEUED_DELIVERY_VERIFIED",
+  "workflow_run": "https://github.com/wecreates/Money-factory/actions/runs/44916639093"
+}
