@@ -174,3 +174,12 @@ unsupported platforms fail closed. A destination created by another process
 while validation runs is never replaced. Keep the returned checkpoint hash
 outside the ZIP; restore does not treat an archive's own manifest as external
 proof of its identity.
+
+Actual recovery was verified on November 21 using the retained motion video's
+saved package and exact hash-matching metadata recovered from repository evidence.
+The new checkpoint was saved, retrieved into a separate directory, restored and
+checked against every original source hash. A new thumbnail-selection record
+was made for the motion candidate. See
+[the recovery receipt](cycle-recovery-proof-20261121.json) for its external archive
+hash, durable version identity and limits. This recovered review state; it did
+not reprovision Kokoro/ASR runtimes or grant audiovisual/phone acceptance.
