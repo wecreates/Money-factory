@@ -66,7 +66,11 @@ allowing internal workers inside the admitted batch. It raises `AdmissionBusy`
 immediately if another batch holds the budget. The persistent file is never
 unlinked; POSIX flock/Windows byte-range OS locks release on process exit,
 including crashes. Both adapters must use it before sampling capacity and hold
-it until every worker has joined. Different OS accounts are not coordinated.
+it until every worker has joined. The context yields its file descriptor for
+trusted POSIX guardians: they retain the same lease after parent death until the
+owned worker group is stopped. The adapters wait for guardian cleanup before
+normal unlock; never explicitly unlock an inherited lease from a child. Different
+OS accounts are not coordinated.
 The standalone diagnostic CLI does not acquire or create this lock. A numeric
 recommendation alone is not a reservation. Reports older than 60 seconds, future-dated reports, unknown
 metrics, and nonfinite values are rejected. No success implies model execution,
