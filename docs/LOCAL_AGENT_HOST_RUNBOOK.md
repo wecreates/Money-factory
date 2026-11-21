@@ -190,8 +190,12 @@ ps -u "$(id -u)" -o pid,ppid,pgid,comm,etime,rss,pcpu
 Record the adapter and its worker PIDs at launch; omit process arguments and
 environment dumps from reports. Prefer letting the bounded 120-second request
 finish. To interrupt a foreground run, press Ctrl-C once, then verify its worker
-processes actually exit. The normal timeout paths clean up child execution, but
-abrupt parent termination is **not** proof of child cleanup. If an owned child
+processes actually exit. On Linux/WSL2, the adapter guardian watches parent
+liveness, stops its owned worker process group and retains admission until cleanup
+finishes, including after parent SIGKILL. Ruflo foreground interruption also stops
+pending tasks from starting. These paths have subprocess regression tests, but
+still verify the actual host; no Windows process-tree or model-server inference
+cancellation guarantee is made. If an owned child
 remains, verify its PID, user and start time belong to this run before stopping
 that exact process with `kill -TERM <verified-owned-PID>`; recheck afterward.
 Never use broad `pkill node/python`, terminate an unrelated model server, or
