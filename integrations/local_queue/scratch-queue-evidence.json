@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-11-21T00:16:01.064283+00:00",
+  "scope": "Scratch CLI queue persistence; not actual user host or model inference",
+  "commands": [
+    "enqueue integrations/local_queue/ruflo-example.json",
+    "work --ruflo-runtime /tmp/cyzor-ruflo-runtime",
+    "status --id storyboard-example"
+  ],
+  "separate_cli_processes": true,
+  "job_state": "blocked",
+  "attempts": 1,
+  "adapter_receipt": {
+    "capacity": {
+      "admitted_workers": 0,
+      "publication_enabled": false,
+      "reasons": [
+        "fresh_cpu_and_memory_snapshot_required"
+      ],
+      "requested_workers": 1,
+      "scope": "resource_budget_only_not_model_readiness",
+      "status": "BLOCKED"
+    },
+    "executed_tasks": 0,
+    "production_ready": false,
+    "publication_enabled": false,
+    "reason": "Host capacity did not admit the requested batch",
+    "status": "BLOCKED"
+  },
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false
+}
