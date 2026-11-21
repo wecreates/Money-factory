@@ -25,6 +25,9 @@ import wave
 VOICE_ASSIGNMENTS = {'dave': 'am_fenrir', 'points_monk': 'am_michael', 'narrator': 'am_adam'}
 KINDS = {'card', 'receipt', 'balance', 'checklist', 'comparison'}
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+MOTION_FRAMES = 24
+MOTION_FPS = 8
+MOTION_SCOPE = 'Deterministic three-second arm-gesture loop; static diagrams and typography. No lip sync or full character animation.'
 
 
 def digest(path):
@@ -127,8 +130,15 @@ def synthesize(editorial, output, voice_root):
           'production_approved': False, 'full_av_review': False, 'voice_assignments': VOICE_ASSIGNMENTS})
 
 
-def draw_panel(scene, path, index, count):
-    """Fresh diagram and character composition; no generative image claims."""
+def draw_panel(scene, path, index, count, phase=0.0):
+    """Fresh diagram and character composition with a bounded periodic gesture.
+
+    Phase is a fraction of one loop. Zero preserves the representative pose;
+    only the arms move, leaving labels, diagrams and character identity fixed.
+    """
+    if type(phase) not in (int, float) or not math.isfinite(phase):
+        raise ValueError('Finite numeric motion phase required')
+    gesture = math.sin(2 * math.pi * (phase % 1.0)) * .18
     from PIL import Image, ImageDraw, ImageFont
     image = Image.new('RGB', (720, 1280), '#f7f1e6')
     draw = ImageDraw.Draw(image)
@@ -202,8 +212,12 @@ def draw_panel(scene, path, index, count):
     draw.line((x-10,y-48,x+12,y-48),fill=ink,width=4)
     draw.line((x,y-24,x,y+80),fill=ink,width=7)
     pose=index%3
-    draw.line((x,y+10,x-65,y+(35 if pose else -25)),fill=ink,width=7)
-    draw.line((x,y+10,x+65,y+(-35 if pose else 35)),fill=ink,width=7)
+    for dx, dy, angle in ((-65, 25 if pose else -35, gesture),
+                          (65, -45 if pose else 25, -gesture)):
+        # Rotate fixed-length arms about the shoulders, rather than stretching.
+        hand_x = x + round(dx * math.cos(angle) - dy * math.sin(angle))
+        hand_y = y + 10 + round(dx * math.sin(angle) + dy * math.cos(angle))
+        draw.line((x,y+10,hand_x,hand_y),fill=ink,width=7)
     draw.line((x,y+80,x-45,y+140),fill=ink,width=7)
     draw.line((x,y+80,x+45,y+140),fill=ink,width=7)
     speaker=scene.get('speaker','narrator').replace('_',' ').upper()
@@ -236,7 +250,10 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
              'publication_enabled':False,'paid_generation_enabled':False,'production_approved':False,
              'full_av_review':False,'editorial_sha256':editorial_digest(editorial),
              'started_at':datetime.now(timezone.utc).isoformat(),
-             'scope':'Fresh offline speech and original diagram-based picture video; technical verification only.'}
+             'scope':'Fresh offline speech and original diagram-based picture video; technical verification only.',
+             'motion':{'kind':'periodic_arm_gesture','frame_count':MOTION_FRAMES,
+                       'source_fps':MOTION_FPS,'loop_seconds':MOTION_FRAMES/MOTION_FPS,
+                       'output_fps':24,'scope':MOTION_SCOPE}}
     deadline=time.monotonic()+timeout
     write(output/'render.json',receipt); write(output/'editorial.json',editorial)
     try:
@@ -255,10 +272,21 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
             duration=math.ceil((clip['duration_seconds']+.28)*24)/24
             if start+duration>600: raise ValueError('Video exceeds ten minute limit')
             panel=output/f'panel-{index:02d}.png'; draw_panel(scene,panel,index,len(scenes))
+            motion_dir=output/f'motion-{index:02d}'; motion_dir.mkdir()
+            motion_hashes={}
+            for frame_index in range(MOTION_FRAMES):
+                if time.monotonic() >= deadline: raise TimeoutError('Cycle render deadline exceeded during motion frames')
+                frame=motion_dir/f'frame-{frame_index:02d}.png'
+                if frame_index == 0:
+                    frame.write_bytes(panel.read_bytes())
+                else:
+                    draw_panel(scene,frame,index,len(scenes),phase=frame_index/MOTION_FRAMES)
+                motion_hashes[frame.name]=digest(frame)
             segment=output/f'segment-{index:02d}.mp4'
             run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-n','-threads','2',
-                 '-loop','1','-framerate','24','-i',panel,'-i',wav,'-t',f'{duration:.6f}',
-                 '-vf','scale=720:1280,setsar=1','-af','apad','-c:v','libx264','-preset','veryfast',
+                 '-stream_loop','-1','-framerate',str(MOTION_FPS),'-start_number','0',
+                 '-i',motion_dir/'frame-%02d.png','-i',wav,'-t',f'{duration:.6f}',
+                 '-vf','scale=720:1280,setsar=1,fps=24','-af','apad','-c:v','libx264','-preset','veryfast',
                  '-crf','20','-threads','2','-pix_fmt','yuv420p','-c:a','aac','-ar','24000','-ac','1',
                  '-movflags','+faststart',segment],output/f'encode-{index:02d}.log',deadline)
             # Caption groups are evenly timed within the measured clip. They are
@@ -269,7 +297,8 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                 captions.extend([f'{timestamp(a)} --> {timestamp(b)}',html.escape(' '.join(group)),''])
             rows.append({'scene_id':scene['id'],'start':start,'end':start+duration,
                          'narration_end':start+clip['duration_seconds'],'panel':panel.name,
-                         'panel_sha256':digest(panel),'voice_sha256':digest(wav),'segment_sha256':digest(segment)})
+                         'panel_sha256':digest(panel),'voice_sha256':digest(wav),'segment_sha256':digest(segment),
+                         'motion_directory':motion_dir.name,'motion_frames_sha256':motion_hashes})
             segments.append(segment.name);start+=duration
         (output/'segments.txt').write_text(''.join("file '"+name+"'\n" for name in segments))
         run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-n','-f','concat','-safe','1',

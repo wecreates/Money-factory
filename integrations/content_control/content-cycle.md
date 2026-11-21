@@ -119,3 +119,23 @@ visual inspection of the actual unpublished candidate's three PNGs and selection
 of variant 1. No audience metrics, full audiovisual approval or phone playback
 acceptance was available. C08 remains open for a real learning consumer and
 available verified performance evidence.
+
+### Character motion in picture scenes
+
+Each scene now uses a bounded three-second arm gesture loop: 24 deterministic
+panels sampled at 8 fps and encoded at 24 fps. Typography, diagrams, character
+faces and labels stay fixed; fixed-length arms rotate subtly around the
+shoulders. The representative `panel-XX.png` remains the zero-phase image.
+Render receipts retain loop settings and every source frame hash alongside each
+encoded scene hash. Frame generation observes the same render deadline and
+FFmpeg remains under the existing owned-process/resource controls.
+
+This is limited procedural gesture animation, not lip synchronization or full
+interpretation of arbitrary scene directions. Existing voice assignments and
+publication/creative-review gates are unchanged. New media requires a new
+selection and full audiovisual review; old candidate approvals do not transfer.
+
+The [November 21 actual motion-cycle receipt](cycle-motion-proof-20261121.json)
+records a fresh six-scene, 34.585-second Kokoro/ASR run completed at 19:23:13 UTC.
+The candidate changed; all full audiovisual, listening, reference-comparison and
+phone-playback gates remain open.
