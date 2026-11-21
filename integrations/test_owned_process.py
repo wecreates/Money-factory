@@ -193,6 +193,8 @@ local_batch.run_batch(batch, Path(sys.argv[1]).parent, node=sys.argv[1])
                     os.kill(guardian, signal.SIGSTOP)
                     parent.send_signal(sig)
                     time.sleep(.1)
+                    parent.send_signal(sig)
+                    time.sleep(.1)
                     self.assertIsNone(parent.poll(), 'Parent must wait for guardian cleanup')
                     with self.assertRaises(AdmissionBusy):
                         with _admission_lock_at(lock):
