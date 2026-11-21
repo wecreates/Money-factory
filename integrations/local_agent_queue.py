@@ -1,18 +1,21 @@
-"""Durable foreground queue for the existing bounded local text adapters.
+"""Durable foreground queue for bounded local text and unpublished video adapters.
 
 SQLite receipts are authoritative. A crashed RUNNING attempt is INTERRUPTED,
-never silently replayed: local inference may have finished before its receipt.
+never silently replayed: adapter execution may have finished before its receipt.
 """
 import argparse
 from contextlib import contextmanager
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
 import sqlite3
 import sys
 import time
+import threading
+import uuid
 
 MAX_JSON = 4 * 1024 * 1024
 
@@ -45,8 +48,11 @@ def validate(spec):
         validate_adapter(request)
         if any(set(task) != {'id', 'prompt'} for task in request['tasks']):
             raise ValueError('Unknown Ruflo task options')
+    elif spec['adapter'] == 'content-control-video':
+        from integrations.content_control.video_job import validate as validate_adapter
+        validate_adapter(request)
     else:
-        raise ValueError('Only existing OpenClaw and Ruflo local text adapters are supported')
+        raise ValueError('Only documented bounded local adapters are supported')
     return spec
 
 
@@ -70,6 +76,11 @@ class Queue:
                 id TEXT PRIMARY KEY, digest TEXT NOT NULL, spec TEXT NOT NULL,
                 state TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
                 max_attempts INTEGER NOT NULL, created REAL NOT NULL, updated REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS worker_runs (
+                id TEXT PRIMARY KEY, state TEXT NOT NULL, started REAL NOT NULL,
+                heartbeat REAL NOT NULL, finished REAL, stop_requested REAL,
+                active_job TEXT, processed INTEGER NOT NULL, config TEXT NOT NULL,
+                exit_reason TEXT);
             CREATE TABLE IF NOT EXISTS attempts (
                 job_id TEXT NOT NULL REFERENCES jobs(id), number INTEGER NOT NULL,
                 state TEXT NOT NULL, started REAL NOT NULL, finished REAL,
@@ -142,16 +153,22 @@ class Queue:
     def recover(self):
         self._require_owner()
         now = time.time()
-        receipt = canonical({'status': 'INTERRUPTED', 'reason': 'Consumer stopped before durable completion; inference outcome is unknown. Review raw attempt artifacts before explicit retry.', 'publication_enabled': False, 'paid_generation_enabled': False, 'production_ready': False})
+        receipt = canonical({'status': 'INTERRUPTED', 'reason': 'Consumer stopped before durable completion; adapter outcome is unknown. Review raw attempt artifacts before explicit retry.', 'publication_enabled': False, 'paid_generation_enabled': False, 'production_ready': False})
         with self.transaction():
             ids = [r[0] for r in self.db.execute("SELECT id FROM jobs WHERE state='running'")]
             self.db.execute("UPDATE attempts SET state='interrupted',finished=?,receipt=? WHERE state='running'", (now, receipt))
             self.db.execute("UPDATE jobs SET state='interrupted',updated=? WHERE state='running'", (now,))
         return ids
 
-    def claim(self):
+    def claim(self, run_id=None, deadline=None):
         self._require_owner()
         with self.transaction():
+            if deadline is not None and time.monotonic() >= deadline:
+                return None
+            if run_id is not None:
+                run = self.db.execute('SELECT stop_requested FROM worker_runs WHERE id=? AND finished IS NULL', (run_id,)).fetchone()
+                if run is None or run['stop_requested'] is not None:
+                    return None
             row = self.db.execute("SELECT * FROM jobs WHERE state='queued' ORDER BY created,id LIMIT 1").fetchone()
             if row is None:
                 return None
@@ -161,6 +178,8 @@ class Queue:
             now = time.time()
             self.db.execute("UPDATE jobs SET state='running',attempts=?,updated=? WHERE id=?", (number, now, row['id']))
             self.db.execute('INSERT INTO attempts VALUES (?,?,?,?,?,?)', (row['id'], number, 'running', now, None, None))
+            if run_id is not None:
+                self.db.execute("UPDATE worker_runs SET state='executing',active_job=?,heartbeat=? WHERE id=?", (row['id'], now, run_id))
         return {'id': row['id'], 'number': number, 'spec': json.loads(row['spec'])}
 
     def finish(self, attempt, receipt):
@@ -192,12 +211,117 @@ class Queue:
         return self.get(job_id)
 
 
-def execute_adapter(queue, attempt, *, ruflo_runtime=None, openclaw_runtime=None):
+    def start_run(self, config):
+        self._require_owner()
+        now = time.time()
+        run_id = uuid.uuid4().hex
+        with self.transaction():
+            # Owning the OS consumer lock proves these earlier runs have ended.
+            self.db.execute("UPDATE worker_runs SET state='interrupted',finished=?,exit_reason='consumer_lost' WHERE finished IS NULL", (now,))
+            self.db.execute('INSERT INTO worker_runs VALUES (?,?,?,?,?,?,?,?,?,?)',
+                (run_id, 'watching', now, now, None, None, None, 0, canonical(config), None))
+        return run_id
+
+    def update_run(self, run_id, *, processed, finished=False, reason=None):
+        self._require_owner()
+        now = time.time()
+        state = 'finished' if finished else 'watching'
+        if finished and reason in ('interrupted', 'error'):
+            state = reason
+        self.db.execute('UPDATE worker_runs SET state=?,heartbeat=?,finished=?,active_job=NULL,processed=?,exit_reason=? WHERE id=?',
+                        (state, now, now if finished else None, processed, reason, run_id))
+
+    def request_stop(self, run_id=None):
+        with self.transaction():
+            row = self.db.execute('SELECT id FROM worker_runs WHERE finished IS NULL ORDER BY started DESC LIMIT 1').fetchone()
+            if row is None or (run_id is not None and row['id'] != run_id):
+                return {'status': 'NO_ACTIVE_MATCH', 'run_id': run_id, 'stopped': False}
+            target = row['id']
+            self.db.execute('UPDATE worker_runs SET stop_requested=COALESCE(stop_requested,?) WHERE id=?', (time.time(), target))
+        return {'status': 'STOP_REQUESTED', 'run_id': target, 'stopped': False,
+                'scope': 'Finish the current bounded attempt; do not claim another job'}
+
+    def stop_requested(self, run_id):
+        row = self.db.execute('SELECT stop_requested FROM worker_runs WHERE id=?', (run_id,)).fetchone()
+        return row is not None and row['stop_requested'] is not None
+
+    def consumer_lock_held(self):
+        if os.name != 'posix':
+            return None
+        if getattr(self, '_owned', False):
+            return True
+        import fcntl
+        path = self.root / 'consumer.lock'
+        if not path.exists():
+            return False
+        if path.is_symlink():
+            raise ValueError('Symlink consumer lock is forbidden')
+        fd = os.open(path, os.O_RDWR)
+        try:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return False
+            except BlockingIOError:
+                return True
+        finally:
+            os.close(fd)
+
+    def health(self, run_id=None):
+        row = self.db.execute('SELECT * FROM worker_runs WHERE id=?', (run_id,)).fetchone() if run_id else self.db.execute('SELECT * FROM worker_runs ORDER BY started DESC LIMIT 1').fetchone()
+        run = dict(row) if row else None
+        held = self.consumer_lock_held()
+        if run:
+            run['config'] = json.loads(run['config'])
+            run['heartbeat_age_seconds'] = max(0, time.time() - run['heartbeat'])
+            run['heartbeat_fresh'] = run['finished'] is None and run['heartbeat_age_seconds'] <= max(5, run['config']['poll_seconds'] * 3)
+            run['observed_state'] = 'interrupted_unrecovered' if run['finished'] is None and held is False else run['state']
+        return {'run': run, 'consumer_lock_held': held,
+                'job_counts': {r['state']: r['n'] for r in self.db.execute('SELECT state,COUNT(*) n FROM jobs GROUP BY state')},
+                'scope': 'Foreground process liveness and queue state only; not model, VPN, video quality, or production health',
+                'publication_enabled': False, 'paid_generation_enabled': False, 'production_ready': False}
+
+
+class RunHeartbeat:
+    """Independent bounded-rate pulse while an adapter blocks the main thread."""
+    def __init__(self, queue, run_id, interval):
+        self.database = queue.root / 'queue.sqlite3'
+        self.run_id, self.interval = run_id, interval
+        self.stop = threading.Event()
+        self.error = None
+        self.thread = threading.Thread(target=self.pulse, daemon=True)
+
+    def pulse(self):
+        db = None
+        try:
+            db = sqlite3.connect(self.database, timeout=1, isolation_level=None)
+            db.execute('PRAGMA synchronous=FULL')
+            while not self.stop.wait(self.interval):
+                db.execute('UPDATE worker_runs SET heartbeat=? WHERE id=? AND finished IS NULL', (time.time(), self.run_id))
+        except Exception as exc:
+            self.error = type(exc).__name__
+        finally:
+            if db is not None:
+                db.close()
+
+    def __enter__(self):
+        self.thread.start()
+        return self
+
+    def __exit__(self, *_):
+        self.stop.set()
+        self.thread.join(timeout=2)
+
+
+def execute_adapter(queue, attempt, *, ruflo_runtime=None, openclaw_runtime=None, content_control_root=None, video_python=None, picture_python=None):
     spec = attempt['spec']
     validate(spec)  # Revalidate persisted input immediately before execution.
     directory = queue.root / 'attempts' / attempt['id'] / str(attempt['number'])
     directory.mkdir(parents=True, mode=0o700)  # Never reuse or overwrite an attempt.
     request = spec['request']
+    if spec['adapter'] == 'content-control-video':
+        from integrations.content_control.video_job import run_job
+        return run_job(request, directory, content_control_root=content_control_root,
+                       video_python=video_python, picture_python=picture_python)
     if spec['adapter'] == 'ruflo':
         if ruflo_runtime is None:
             return {'status': 'BLOCKED', 'reason': 'Explicit pinned Ruflo runtime path required', 'publication_enabled': False, 'paid_generation_enabled': False}
@@ -210,28 +334,54 @@ def execute_adapter(queue, attempt, *, ruflo_runtime=None, openclaw_runtime=None
                     Path(openclaw_runtime) if openclaw_runtime else directory / 'runtime')
 
 
-def work(queue, *, max_jobs=1, watch_seconds=0, executor=None, **runtimes):
+def work(queue, *, max_jobs=1, watch_seconds=0, poll_seconds=1, executor=None, **runtimes):
     if type(max_jobs) is not int or not 1 <= max_jobs <= 1000 or type(watch_seconds) is not int or not 0 <= watch_seconds <= 86400:
         raise ValueError('Bound work to 1..1000 jobs and 0..86400 foreground watch seconds')
+    if type(poll_seconds) not in (int, float) or not math.isfinite(poll_seconds) or not .2 <= poll_seconds <= 60:
+        raise ValueError('Polling interval must be finite, between .2 and 60 seconds')
     processed = []
     deadline = time.monotonic() + watch_seconds
     with queue.consumer():
         recovered = queue.recover()
-        while len(processed) < max_jobs:
-            attempt = queue.claim()
-            if attempt is None:
-                if time.monotonic() >= deadline:
-                    break
-                time.sleep(min(1, max(0, deadline - time.monotonic())))
-                continue
-            try:
-                receipt = executor(attempt) if executor else execute_adapter(queue, attempt, **runtimes)
-                queue.finish(attempt, receipt)
-            except Exception as exc:
-                # Do not persist potentially sensitive exception strings or overwrite raw adapter artifacts.
-                queue.finish(attempt, {'status': 'ERROR', 'reason': 'Adapter failed before durable completion', 'exception_type': type(exc).__name__, 'publication_enabled': False, 'paid_generation_enabled': False, 'production_ready': False})
-            processed.append(queue.get(attempt['id']))
+        run_id = queue.start_run({'max_jobs': max_jobs, 'watch_seconds': watch_seconds, 'poll_seconds': poll_seconds})
+        reason = 'job_limit'
+        try:
+            with RunHeartbeat(queue, run_id, poll_seconds) as heartbeat:
+                while len(processed) < max_jobs:
+                    if heartbeat.error:
+                        raise RuntimeError('Worker heartbeat could not persist')
+                    if queue.stop_requested(run_id):
+                        reason = 'stop_requested'
+                        break
+                    if watch_seconds and time.monotonic() >= deadline:
+                        reason = 'watch_deadline'
+                        break
+                    # Stop and claim are serialized in the same SQLite transaction.
+                    attempt = queue.claim(run_id, deadline if watch_seconds else None)
+                    if attempt is None:
+                        if queue.stop_requested(run_id):
+                            reason = 'stop_requested'
+                            break
+                        if not watch_seconds or time.monotonic() >= deadline:
+                            reason = 'watch_deadline' if watch_seconds else 'drained'
+                            break
+                        time.sleep(min(poll_seconds, max(0, deadline - time.monotonic())))
+                        continue
+                    try:
+                        receipt = executor(attempt) if executor else execute_adapter(queue, attempt, **runtimes)
+                        queue.finish(attempt, receipt)
+                    except Exception as exc:
+                        queue.finish(attempt, {'status': 'ERROR', 'reason': 'Adapter failed before durable completion', 'exception_type': type(exc).__name__, 'publication_enabled': False, 'paid_generation_enabled': False, 'production_ready': False})
+                    completed = queue.get(attempt['id'])
+                    processed.append({key: completed[key] for key in ('id', 'state', 'attempts')})
+                    queue.update_run(run_id, processed=len(processed))
+        except BaseException as exc:
+            reason = 'interrupted' if isinstance(exc, (KeyboardInterrupt, SystemExit)) else 'error'
+            raise
+        finally:
+            queue.update_run(run_id, processed=len(processed), finished=True, reason=reason)
     return {'processed': processed, 'recovered_interrupted_ids': recovered,
+            'worker': queue.health(run_id)['run'],
             'publication_enabled': False, 'paid_generation_enabled': False, 'production_ready': False}
 
 
@@ -242,10 +392,14 @@ def main(argv=None):
     enqueue = commands.add_parser('enqueue'); enqueue.add_argument('file')
     status = commands.add_parser('status'); status.add_argument('--id')
     retry = commands.add_parser('retry'); retry.add_argument('id')
+    commands.add_parser('health')
+    stop = commands.add_parser('stop'); stop.add_argument('--run-id')
     run = commands.add_parser('work')
     run.add_argument('--max-jobs', type=int, default=1)
     run.add_argument('--watch-seconds', type=int, default=0)
+    run.add_argument('--poll-seconds', type=float, default=1)
     run.add_argument('--ruflo-runtime'); run.add_argument('--openclaw-runtime')
+    run.add_argument('--content-control-root'); run.add_argument('--video-python'); run.add_argument('--picture-python')
     args = parser.parse_args(argv)
     queue = Queue(args.queue)
     try:
@@ -257,11 +411,16 @@ def main(argv=None):
             report = queue.enqueue(json.loads(raw))
         elif args.command == 'retry':
             report = queue.retry(args.id)
+        elif args.command == 'health':
+            report = queue.health()
+        elif args.command == 'stop':
+            report = queue.request_stop(args.run_id)
         elif args.command == 'status':
             report = queue.get(args.id) if args.id else [dict(r) for r in queue.db.execute('SELECT id,state,attempts,max_attempts FROM jobs ORDER BY created,id')]
         else:
-            report = work(queue, max_jobs=args.max_jobs, watch_seconds=args.watch_seconds,
-                          ruflo_runtime=args.ruflo_runtime, openclaw_runtime=args.openclaw_runtime)
+            report = work(queue, max_jobs=args.max_jobs, watch_seconds=args.watch_seconds, poll_seconds=args.poll_seconds,
+                          ruflo_runtime=args.ruflo_runtime, openclaw_runtime=args.openclaw_runtime,
+                          content_control_root=args.content_control_root, video_python=args.video_python, picture_python=args.picture_python)
         print(json.dumps(report, indent=2))
         if args.command == 'work':
             return 2 if report['recovered_interrupted_ids'] or any(job['state'] != 'succeeded' for job in report['processed']) else 0
