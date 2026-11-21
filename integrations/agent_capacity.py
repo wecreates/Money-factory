@@ -188,7 +188,9 @@ def _admission_lock_at(path):
             locked = True
         except OSError as exc:
             raise AdmissionBusy('Another local agent batch owns the shared host budget') from exc
-        yield
+        # Trusted child guardians may retain this same open-file description
+        # through parent-death cleanup. Existing callers may ignore the value.
+        yield fd
     finally:
         try:
             if locked:
