@@ -69,8 +69,15 @@ files are never overwritten. Review the actual generated text before using it.
 Each run uses a fresh private temporary home/config/state/workspace, only the
 Ollama provider plugin, disabled memory plugins, no model fallback, wildcard
 tool denial, disabled tool-search bridges, and `agent --local` without `--deliver`.
-Bootstrap files are disabled. The child process group is terminated on timeout;
-response output is bounded to 1 MiB. State is removed after the turn. The model
+Bootstrap files are disabled. On Linux/WSL2, an independent guardian stops the
+owned child process group on timeout, parent death or interrupted execution. It
+retains the shared admission lease until cleanup completes, including after
+parent SIGKILL, so another adapter cannot immediately borrow an orphan's budget.
+This is not containment against malicious children escaping their process group.
+Client cleanup does not establish cancellation inside the separately managed
+model server; interrupted tasks require review before retry.
+Response output is bounded to 1 MiB. State is removed after a normally unwound
+turn; abrupt parent death may leave its private temporary directory. The model
 server is separately managed and is not started or stopped by the adapter.
 
 For a VPN host, run the worker on that host against its local model server. A VPN
