@@ -50,6 +50,22 @@ This registers an operation, not an always-on daemon. A tested PC/VPN/VPS worker
 
 A technical pass does not imply good storytelling, factual correctness, natural voice delivery or competitor parity. Record evidence for the exact candidate using `cycle_review`:
 
+The installed REA Video analyzer can first collect separate, candidate-bound
+diagnostics through this same review entry point:
+
+```sh
+REA_VIDEO_MODELS=/absolute/cached-rea-models python -m integrations.content_control.cycle_review \
+  --cycle-dir /absolute/attempt --analyze \
+  --rea-runtime /absolute/rea-video/.venv/bin/python --output /absolute/new-analysis
+```
+
+This checks the completed cycle before and after analysis and preserves the
+original review package. It uses the pinned installed analyzer and cached face
+model, with OCR enabled and provider inference, ASR, stem separation and downloads
+disabled. Scene/OCR diagnostics are neither full audiovisual observation nor a
+review attestation. Inspect the generated evidence before recording judgments.
+See [the analyzer adapter](../rea_video/README.md) for runtime and evidence scope.
+
 ```sh
 python -m integrations.content_control.cycle_review \
   --cycle-dir /absolute/attempt --review /absolute/reviewer-observations.json \
