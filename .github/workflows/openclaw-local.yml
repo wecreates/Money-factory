@@ -4,12 +4,18 @@ on:
     paths:
       - 'integrations/openclaw/**'
       - 'integrations/run.py'
+      - 'integrations/agent_capacity.py'
+      - 'integrations/owned_process.py'
+      - 'integrations/test_owned_process.py'
       - '.github/workflows/openclaw-local.yml'
   push:
     branches: [main]
     paths:
       - 'integrations/openclaw/**'
       - 'integrations/run.py'
+      - 'integrations/agent_capacity.py'
+      - 'integrations/owned_process.py'
+      - 'integrations/test_owned_process.py'
       - '.github/workflows/openclaw-local.yml'
 permissions:
   contents: read
