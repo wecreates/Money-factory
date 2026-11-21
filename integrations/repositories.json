@@ -206,6 +206,29 @@
       "blockers": [
         "Optional native decompiler and platform-specific providers are not installed or verified"
       ]
+    },
+    {
+      "id": "obscura",
+      "repository": "https://github.com/h4ckf0r0day/obscura",
+      "path": "integrations/obscura",
+      "source_type": "github-release",
+      "version": "0.2.7",
+      "revision": "0ecc41770da5c5300227dd83a15bfa1e5100d5d4",
+      "release_manifest": "integrations/obscura/release-pin.json",
+      "capability": "local_web_inspection",
+      "integration_target": "Money Factory private engineering diagnostics and local MCP",
+      "source_status": "pinned",
+      "runtime_status": "workspace_cli_and_native_mcp_verified",
+      "enabled": true,
+      "registered_operations": [
+        "inspect-local-web-page",
+        "inspect-public-page"
+      ],
+      "required_for_production": false,
+      "blockers": [
+        "Arbitrary-site compatibility, authenticated workflows, media playback and actual user-host uptime are not verified"
+      ],
+      "verification_report": "integrations/obscura/cli-runtime-proof.json"
     }
   ],
   "media_tools": [

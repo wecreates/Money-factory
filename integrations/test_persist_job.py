@@ -125,6 +125,60 @@ class PersistenceTests(unittest.TestCase):
                 self.run_persist()
             self.assertFalse((self.root/'integrations/results').exists())
 
+    def prepare_obscura_fixture(self):
+        # Synthetic valid PNG and a real temporary Git history; no browser claim.
+        import struct,zlib
+        from obscura.runtime import PIN
+        from obscura.adapter import png_metadata
+        self.job.update(tool='obscura',operation='inspect-public-page',input='public.json')
+        request=b'{"url":"https://example.com/"}'
+        (self.root/'integrations/jobs/public.json').write_bytes(request)
+        (self.root/'integrations/jobs/audit.job.json').write_text(json.dumps(self.job))
+        (self.root/'integrations/obscura').mkdir()
+        (self.root/'integrations/obscura/release-pin.json').write_text(json.dumps(PIN))
+        (self.root/'integrations/repositories.json').write_text(json.dumps({'repositories':[],
+            'engineering_tools':[{'id':'obscura','revision':PIN['revision']}]}))
+        subprocess.run(['git','add','.'],cwd=self.root,check=True)
+        subprocess.run(['git','-c','user.name=Test','-c','user.email=test@example.com','commit','-qm','obscura fixture'],cwd=self.root,check=True)
+        self.revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=self.root,text=True).strip()
+        def chunk(tag,data):return struct.pack('>I',len(data))+tag+data+struct.pack('>I',zlib.crc32(tag+data)&0xffffffff)
+        png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',1280,720,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(bytes(720*(1+1280*4))))+chunk(b'IEND',b'')
+        (self.artifact/'result.png').write_bytes(png)
+        self.obscura_result={'tool':'obscura','operation':self.job['operation'],'version':PIN['version'],'status':'PASS',
+            'input_sha256':hashlib.sha256(request).hexdigest(),'upstream_revision':PIN['revision'],
+            'archive_sha256':PIN['archive_sha256'],'binary_sha256':PIN['files']['obscura']['sha256'],
+            'publication_enabled':False,'paid_generation_enabled':False,'production_ready':False,
+            'screenshot':dict(png_metadata(self.artifact/'result.png'),file='result.png')}
+        self.receipt.update(tool='obscura',operation=self.job['operation'],revision=PIN['revision'])
+        self.evidence.update(repository_revision=self.revision,execution_engine='money-factory',content_control_revision=None,
+            job_sha256=hashlib.sha256(json.dumps(self.job).encode()).hexdigest())
+        self.write_obscura()
+
+    def write_obscura(self):
+        self.data=json.dumps(self.obscura_result).encode()
+        self.receipt['output_sha256']=hashlib.sha256(self.data).hexdigest()
+        self.write()
+
+    def test_obscura_direct_evidence_accepts_bound_png_without_committing_it(self):
+        self.prepare_obscura_fixture()
+        destination=self.run_persist()
+        self.assertTrue((destination/'result.json').exists())
+        self.assertFalse((destination/'result.png').exists())
+        (self.artifact/'result.png').write_bytes(b'corrupt')
+        with self.assertRaises(ValueError):self.run_persist()
+
+    def test_obscura_inner_identity_tampering_is_rejected(self):
+        self.prepare_obscura_fixture()
+        for field,value in [('input_sha256','0'*64),('archive_sha256','0'*64),('binary_sha256','0'*64),
+                            ('tool','rea'),('operation','scrape'),('version','latest'),('production_ready',True)]:
+            old=self.obscura_result[field];self.obscura_result[field]=value;self.write_obscura()
+            with self.subTest(field=field),self.assertRaisesRegex(ValueError,'Obscura'):
+                self.run_persist()
+            self.assertFalse((self.root/'integrations/results').exists())
+            self.obscura_result[field]=old
+        self.obscura_result['screenshot']['sha256']='0'*64;self.write_obscura()
+        with self.assertRaisesRegex(ValueError,'screenshot'):self.run_persist()
+
     def test_conflicting_replay_rejected(self):
         target=self.run_persist()
         (target/'record.json').write_text('{}')

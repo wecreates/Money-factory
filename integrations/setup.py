@@ -28,7 +28,10 @@ def setup(tool, runtime, browser=False):
     def pip(python, *args):
         cmd([python, '-m', 'pip', 'install', '--disable-pip-version-check', *args])
 
-    if tool == 'youtube-agent-skill':
+    if tool == 'obscura':
+        from obscura.runtime import install
+        print(install(runtime / 'obscura'))
+    elif tool == 'youtube-agent-skill':
         from youtube_skill.install import verify_skills
         verify_skills(ROOT, upstream)
         print('Verified eleven project-local skills; six tools require Python standard library only.')
