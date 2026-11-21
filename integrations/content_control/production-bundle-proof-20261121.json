@@ -1,0 +1,266 @@
+{
+  "candidate_sha256": "509e5bf5627ccbe3b7b867d1390e8d82b0112f686076767290ee236920af633c",
+  "cpu_affinity": [
+    0,
+    1
+  ],
+  "delivery": {
+    "archive_sha256": "9b2330576b6c8f6026af82214b33e4513fd3f0374e513d566b13d48a418de46d",
+    "browser_playback_verified": false,
+    "files_sha256": {
+      "REVIEW.md": "6f56328fa276068cebac65ba0f4c26244f9be3c0cabbaaaca5c9aa24489054db",
+      "audio-verification.json": "75c0366cde6eabb5c61dd1e2eb3c092bfe2db1bc7c8911f8090624ada8b216b8",
+      "audio.log": "f625395137f22fe426a3a38ce5975b30a26ece7153a6610d7c5464a5bc645e47",
+      "captions.log": "17a9a75a48f6f01adf3248e612075ab6d5b2bfd40037ee331719ddccdd250c60",
+      "captions.vtt": "0562876d7ddc0abcba997fa1c5f1ddb59fdd41869aa10cbd1fdcfa5dab74c9c5",
+      "decode.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diagnostics/isolated-narration.wav": "7eed17f951669f3a90ba6082505deae142eea5ebf52495fa42e9c6246d3915d8",
+      "diagnostics/speech-diagnostic.json": "cf0e6130d8f5add759fecff3c886c27d94d34869b6d9abe9422737a1f1f0eccf",
+      "encoded-transcription.json": "9532f743cef6a72f833a8b105ccd403059ac0c21f709ebedd21933b021fd101a",
+      "encoded-transcription.log": "74acd215fefccddb00d091102d6c675bb23b5ccecd6a228fc89ae4d232eeefba",
+      "encoded-verification.json": "fc2589223e3dbfe171fd7159e8a0140332f129b055fe76a1a75d8325c8013009",
+      "encoded-verification.log": "9de402cc52c81624cb50d2d9ae9c05a4d173972792d3ce1291a5a6f37d58ad27",
+      "export-receipt.json": "c3c4c708f8f2cf750fa8a643ed53382f90461e02703171844ffeb22f92d1ac0d",
+      "ffmpeg.log": "b241942a091ee91966e5b04017a34f1f2a3bcfb1cf80a195e274db03874459d9",
+      "index.html": "bc3c156c36e4deed062dde7b70c1f461349c1cd22aea0f8b284fdbe7b8851139",
+      "mobile-verification.json": "48903c1247af5fe9108aa8ae6f5c66d29ce3b62fdfb146b4d98fb40424a195f2",
+      "mobile.log": "9d0ff97821708af3cad06944914c85316c756ae713432f3c1e72598f0a8c9697",
+      "narration-transcription.json": "eeda4333b5337277becc92b31f0033970143e7cfff63c0a6710c64ecf1f511cb",
+      "narration.log": "8d71dc32f48965d3dd774c7596956d8404f25ea8c043da71301038f435e40a16",
+      "node.log": "4409d3bfa08b82f385bd424eeda65fc63b756129f0e89e82df77f1fecafccc14",
+      "render.log": "c0922c1a3219894177eb1dd3f6f4641ef6683bf581013ed514e401c3c06233b1",
+      "run.json": "aa583f0c8b84c33a824006da89f926003bede119afb32111e2aa6881c507b518",
+      "runtime.log": "5b5558a79645e533eceeea3e1c32cdd7a669c88e69d0216a24e056c96c13a334",
+      "source-sync.json": "098c1523b6b241c0e2bdd9629a2e771383347ca87103b14b2863f0a190b6d79d",
+      "source-sync.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeline.otio": "6e3719b9299c598219658b903ed9dde5c26329655f4224abfe1941556c6c48b7",
+      "video.mp4": "509e5bf5627ccbe3b7b867d1390e8d82b0112f686076767290ee236920af633c",
+      "video.mp4.json": "28e6f675ced6580fa8402ea2ed39d86411e1417028add825a834efa33028e8cb"
+    },
+    "single_mp4_copy_verified": true
+  },
+  "execution_mode": "standalone_serialized_artifact_run",
+  "finished_at": "2026-11-21T15:01:17.034337+00:00",
+  "full_av_review": false,
+  "interchange": {
+    "caption_markers": 9,
+    "cuts": 18,
+    "media": {
+      "audio_codec": "aac",
+      "fps": 24,
+      "frames": 720,
+      "video_codec": "h264"
+    },
+    "nle_import_verified": false,
+    "roundtrip_verified": true,
+    "status": "INTERCHANGE_VERIFIED"
+  },
+  "paid_generation_enabled": false,
+  "producer_steps": [
+    {
+      "name": "runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "node",
+      "status": "PASS"
+    },
+    {
+      "name": "ffmpeg",
+      "status": "PASS"
+    },
+    {
+      "name": "source-sync",
+      "status": "PASS"
+    },
+    {
+      "name": "narration",
+      "status": "PASS"
+    },
+    {
+      "name": "captions",
+      "status": "PASS"
+    },
+    {
+      "name": "render",
+      "status": "PASS"
+    },
+    {
+      "name": "decode",
+      "status": "PASS"
+    },
+    {
+      "name": "mobile",
+      "status": "PASS"
+    },
+    {
+      "name": "audio",
+      "status": "PASS"
+    },
+    {
+      "name": "encoded-transcription",
+      "status": "PASS"
+    },
+    {
+      "name": "encoded-verification",
+      "status": "PASS"
+    }
+  ],
+  "production_approved": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "queue_capacity_admission_verified": false,
+  "run_sha256": "aa583f0c8b84c33a824006da89f926003bede119afb32111e2aa6881c507b518",
+  "runtime": {
+    "blockers": [],
+    "checks": {
+      "cached_asr": true,
+      "caption_font": true,
+      "ffmpeg": true,
+      "node": true,
+      "npm_packages": true,
+      "picture_python": true,
+      "transcription_python": true
+    },
+    "details": {
+      "cached_asr": {
+        "files": {
+          "config.json": {
+            "sha256": "f3bc3821e9fc76a27bae538e11ae5b677dcdd352b4600429ce7951d398569aeb",
+            "size_bytes": 2227
+          },
+          "model.bin": {
+            "sha256": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef",
+            "size_bytes": 145216508
+          },
+          "tokenizer.json": {
+            "sha256": "929c5252409436dce1b38a75d1abbcb5e132d170d8e324e4e04ed915fa2d22df",
+            "size_bytes": 2128466
+          },
+          "vocabulary.txt": {
+            "sha256": "ff77588746d3a2595d32ab5b69ffd7b95ce2441ac57533cb66fc3eb575a115cf",
+            "size_bytes": 422309
+          }
+        },
+        "model": "Systran/faster-whisper-base.en",
+        "revision": "3d3d5dee26484f91867d81cb899cfcf72b96be6c",
+        "scope": "Cached file identity only; no model load or inference"
+      },
+      "caption_font": {
+        "family": "DejaVu Sans"
+      },
+      "ffmpeg": {
+        "encoders": [
+          "libx264",
+          "aac"
+        ],
+        "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+        "ffprobe": "ffprobe version 7.1.5-0+deb13u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "filters": [
+          "subtitles",
+          "amix",
+          "adelay",
+          "tpad",
+          "fps",
+          "volumedetect",
+          "ebur128",
+          "astats",
+          "silencedetect"
+        ]
+      },
+      "node": {
+        "scope": "Shared Node version compatible with pinned agent adapters",
+        "version": "v24.22.3"
+      },
+      "npm_packages": {
+        "scope": "Required package versions match lock; installed dependency bytes are not reauthenticated",
+        "versions": {
+          "esbuild": "0.28.1",
+          "react": "19.1.1",
+          "react-dom": "19.1.1",
+          "remotion": "4.0.540"
+        }
+      },
+      "picture_python": {
+        "python": [
+          3,
+          12,
+          14
+        ],
+        "version": "2.9.1"
+      },
+      "transcription_python": {
+        "python": [
+          3,
+          12,
+          14
+        ],
+        "version": "1.2.1"
+      }
+    },
+    "scope": "Offline runtime prerequisites only; no inference or rendering verified",
+    "status": "PASS"
+  },
+  "schema_version": 1,
+  "scope": "Actual fresh standalone production and portable delivery only. Synthetic tests are separate; no creative/production approval or user-PC installation claim.",
+  "source": {
+    "source_commit": "7a1caa4c6ffdc241681b2c69664c74e737784bd3",
+    "source_count": 22,
+    "source_files": {
+      "package-lock.json": "7ee2bbf928f98846905dec41c0ae18fbbbefba71efd437228b038c6da1f43cf6",
+      "package.json": "c8bd0286ca32b1c012b0591b432dd2f08dcdffd7743c85b5e07b6c8cc99d8597",
+      "public/audio/episode1-music.mp3": "793a326d5072d3b4c2116a74f29bd631fe4d4003edb071110dbc4df6a72d0d40",
+      "public/audio/episode1-narration.mp3": "77ae2168527509c49a02ab08d9e54f8c04fd5774309bba82e8eefa88974074fb",
+      "public/audio/episode1-sfx-1.mp3": "3f0f191065173c87c654a3ac66cc6a1738be71aa7ab832ec7695d4ac305b3d30",
+      "public/audio/episode1-sfx-2.mp3": "b01175ca689242371869320806d52f2935686cfd77eabfd9eda691eb2fc30d40",
+      "remotion/V9ArticulatedVisual.jsx": "f64e7813e0a514e9d6dc03e027b3fb1132c8e340a7ee9ecef727a8501ac0e7da",
+      "remotion/episode1-picture-timeline.mjs": "1d09327ad19611c3020b911b9a29b78fb47d3ee96355c4b7256857ae093e0eaf",
+      "requirements-picture-render.txt": "a8581a661599bab0ffda997eae74cbb5bb08972fc55125151bf22507af5cd112",
+      "requirements-transcription.txt": "a0e33d44fb0f6e7b348f475f40b9395baa4f2c9739a6bdba663835169f600c84",
+      "scripts/build_verified_captions.py": "9882ad156a7a803800c02390411f074a57c677a0f33bc21027ba7dfc4c65f063",
+      "scripts/caption_contract.py": "54278d63c3b46b989cb44fa04f2a63925e88e5288f859f1ddd2a1eaeef8612bf",
+      "scripts/free_audio_qa.py": "cf1e5d05ace24c308c8a3b0738a5807e9c21960d01f6ff281bf6ac405c6ae4f4",
+      "scripts/free_mobile_compat_qa.py": "0d4c15674419e8d5c1e7f30c3dfddfe3aa20cdda21bf7a691f1d10b3c2b689d6",
+      "scripts/free_transcription_qa.py": "ec22e95628168c3bd76f3aefc92db3aee8ead2540b36fdbe737c9eaa985b418b",
+      "scripts/produce_episode1_review.py": "bfe16017331b37b51ab831ba93f90720cd2279f0f5534e733c61b3b5c8f10a3e",
+      "scripts/render_episode1_pictures.mjs": "d73aaa4a4586de38be02d8ed182dd1a255b415234a6cd3184365464fee434e40",
+      "scripts/review_smoke_inputs.py": "dc9c682058b65f66ab501ad230d743d9aced42f5f8409f536720f6a24d52dafe",
+      "scripts/verify_episode1_sync.py": "cb8b4fa90441eb0e2eeea3dc02d14561f680022a6ca8bf78e0335b416589eb3a",
+      "scripts/verify_muxed_narration.py": "bd4c60331fdf20af35ecb84fad20286f4a93c56f044e3206542553553838418c",
+      "state/episode1-factual-contract.json": "1c08545af240ce7a22129a39abe333c3c9e799599a97caabd69008111b29a5fc",
+      "state/episode1-sync-contract.json": "bac5dedefb38f543f0ab266bba1681d320df1f627e35cc8867c50134cbe59174"
+    },
+    "source_manifest_sha256": "7c28f2b84f8133093a61486396fa06f6f0b8f29880a5cd7d01895abbf8db78d4"
+  },
+  "source_inputs_unchanged": true,
+  "speech_diagnostic": {
+    "audio_sha256": "7eed17f951669f3a90ba6082505deae142eea5ebf52495fa42e9c6246d3915d8",
+    "model_sha256": "269fbebdb513aa23cddfbb593542ecc540284a91849ac50516870e1ac78f6edd",
+    "runtime_versions": {
+      "numpy": "2.5.5",
+      "onnxruntime": "1.32.0"
+    },
+    "scope": "No-reference speech/noise diagnostic on operator-identified isolated narration; not a listening test, TTS naturalness assessment, music-mix judgment, audiovisual synchronization check or creative/production approval.",
+    "scores": {
+      "BAK": 4.198868871540309,
+      "OVRL": 3.4477925571957613,
+      "SIG": 3.669287059523442
+    },
+    "source_narration_sha256": "77ae2168527509c49a02ab08d9e54f8c04fd5774309bba82e8eefa88974074fb",
+    "status": "DIAGNOSTIC_COMPLETE",
+    "unscored_tail_seconds": 0.1739999999999995,
+    "window_count": 18
+  },
+  "started_at": "2026-11-21T15:00:41.976509+00:00",
+  "status": "AWAITING_REVIEW",
+  "tool_sha256": {
+    "integrations/agent_capacity.py": "6398405fdd1ef7ec38f1f6c95dd76a6bc30948d15426f1d1feb920e93d2ec8f5",
+    "integrations/content_control/produce_review_bundle.py": "98c528ecf8428d64116d924f9e46aac99306f60f4f192275470e4386a90cf44a",
+    "integrations/content_control/review_package.py": "fe4d916f5d7bf23e50124281ae6e96660504834f301de8075c1770bb9f3cbe21",
+    "integrations/content_control/runtime_doctor.py": "ef264b9fddb98a455142837f8d49bf7d983fedaaec8b19180fe4f0d1b9b1d508",
+    "integrations/content_control/video_job.py": "aaf99c689fb80e1c782a43f5d6140597327275e3cf4d90be2517bafadb220062",
+    "integrations/dnsmos/score.py": "e06282e31b62850b24689c7eda4e665db61605cc00bab29ad05ea81fa16a5a77",
+    "integrations/opentimelineio/export_review.py": "fd694a7ced64f70aa5816b0627ffe3f6d541a802fec932485f4c47c5263ddb98",
+    "integrations/owned_process.py": "7b4ec184095ec1a1738160509b6425de9d008330c09a96b25b10500061f577fa"
+  }
+}

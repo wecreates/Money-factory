@@ -51,8 +51,12 @@ def safe_environment():
     return env
 
 
-def probe(command, *, cwd=None, timeout=20, lease_fd=None):
+def probe(command, *, cwd=None, timeout=20, lease_fd=None, deadline=None):
     from integrations.owned_process import owned_process
+    if deadline is not None:
+        timeout = min(timeout, deadline - time.monotonic())
+        if timeout <= 0:
+            raise ValueError('diagnostic_deadline_exhausted')
     with tempfile.TemporaryFile() as output:
         with owned_process(list(map(str, command)), timeout=timeout, cwd=cwd, lease_fd=lease_fd,
                            env=safe_environment(), stdout=output, stderr=subprocess.DEVNULL) as process:
@@ -70,8 +74,8 @@ def probe(command, *, cwd=None, timeout=20, lease_fd=None):
             return raw.decode('utf-8')
 
 
-def git(root, *args, lease_fd=None):
-    return probe(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=/dev/null', '-C', root, *args], lease_fd=lease_fd)
+def git(root, *args, lease_fd=None, deadline=None):
+    return probe(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=/dev/null', '-C', root, *args], lease_fd=lease_fd, deadline=deadline)
 
 
 def regular_source(root, name):
@@ -83,10 +87,10 @@ def regular_source(root, name):
     return path
 
 
-def describe_source(root, expected_commit=None, lease_fd=None):
+def describe_source(root, expected_commit=None, lease_fd=None, deadline=None):
     root = Path(root).absolute()
     def read_git(*args):
-        return git(root, *args, lease_fd=lease_fd)
+        return git(root, *args, lease_fd=lease_fd, deadline=deadline)
     if root.is_symlink() or not root.is_dir():
         raise ValueError('source_root_invalid')
     commit = read_git('rev-parse', '--verify', 'HEAD').strip()
@@ -126,10 +130,10 @@ def describe_source(root, expected_commit=None, lease_fd=None):
             'source_files': source_files, 'source_count': len(source_files)}
 
 
-def inspect_runtime(root, video_python, picture_python, lease_fd=None):
+def inspect_runtime(root, video_python, picture_python, lease_fd=None, deadline=None):
     root = Path(root).absolute()
     def read_probe(command, **kwargs):
-        return probe(command, lease_fd=lease_fd, **kwargs)
+        return probe(command, lease_fd=lease_fd, deadline=deadline, **kwargs)
     checks, details, blockers = {}, {}, []
     def check(name, operation):
         try:
