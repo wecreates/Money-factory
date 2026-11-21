@@ -87,3 +87,35 @@ The resulting `brief.json` is directly runnable, with separate provenance linkin
 ## Verification boundaries
 
 Publishing, paid generation, production approval and full audiovisual approval remain false. A source ID is provenance, not an entailment proof. ASR checks speech consistency, not factual or creative correctness. Fixture tests use explicitly synthetic audio; only separately recorded actual runtime receipts demonstrate Kokoro/ASR execution. All-day autonomous topic discovery, script authorship, live competitor audiovisual access, audience-performance learning and target-host supervision are not supplied by this command.
+
+### Record a thumbnail/title choice
+
+After inspecting the three packaged thumbnail PNGs, record an editorial choice
+without changing the immutable delivery package:
+
+```bash
+python -m integrations.content_control.cycle_selection \
+  --cycle-dir /absolute/path/to/completed-cycle \
+  --selection /absolute/path/to/selection.json \
+  --output /absolute/path/to/new-selection-receipt.json
+```
+
+The input requires `candidate_sha256`, `package_sha256`, `thumbnail` (one of
+`thumbnail-1.png` through `thumbnail-3.png`), `thumbnail_sha256`, the exact packaged
+`title`, `reviewer`, timezone-qualified `reviewed_at`, and `rationale`. Changing
+the title requires a new package because it is embedded in the thumbnails.
+Optional `next_idea_hypotheses` retains up to ten reviewer suggestions; these are
+not automatically consumed by ideation yet.
+
+Omit `performance` or set it to null when analytics are unavailable. The receipt
+keeps impressions, clicks and CTR null, never invented zero values. Optional
+supplied performance must bind the same candidate/title/thumbnail and provide
+integer impressions/clicks, `window_start`, `window_end`, `observed_at`,
+`source_url` and `evidence`; it remains explicitly unverified, even when CTR can
+be calculated. A selection never grants creative or publishing approval.
+
+[The November 21 selection receipt](cycle-selection-proof-20261121.json) records
+visual inspection of the actual unpublished candidate's three PNGs and selection
+of variant 1. No audience metrics, full audiovisual approval or phone playback
+acceptance was available. C08 remains open for a real learning consumer and
+available verified performance evidence.
