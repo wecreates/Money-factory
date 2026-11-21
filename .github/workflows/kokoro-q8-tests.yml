@@ -1,0 +1,25 @@
+name: Kokoro q8 preview boundaries
+on:
+  pull_request:
+    paths:
+      - 'integrations/kokoro/**'
+      - 'integrations/agent_capacity.py'
+      - 'integrations/owned_process.py'
+      - '.github/workflows/kokoro-q8-tests.yml'
+permissions:
+  contents: read
+jobs:
+  preview-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: python -m unittest integrations.kokoro.test_preview -v
+      - run: node --test integrations/kokoro/contract.test.mjs
+      - run: node --check integrations/kokoro/generate.mjs

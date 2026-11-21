@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-11-21T01:56:05.389911+00:00",
+  "status": "OFFLINE_AUDITIONS_GENERATED_PENDING_LISTENING",
+  "source_repository": "https://github.com/wecreates/content-control",
+  "source_commit": "d7f8b5357ed416cf09af9de6c17e1cf738eb33c1",
+  "source_contract": "state/episode1-factual-contract.json",
+  "scope": "Supervised scratch-host single-preset whole-script auditions; no user-host, persistent service, capacity-admitted queue or production voice replacement",
+  "receipts": {
+    "am_adam": {
+      "schema_version": 1,
+      "status": "GENERATED_PENDING_REVIEW",
+      "observed_at": "2026-11-21T01:52:42.942117+00:00",
+      "voice": "am_adam",
+      "contract_sha256": "1c08545af240ce7a22129a39abe333c3c9e799599a97caabd69008111b29a5fc",
+      "text_sha256": "2b5e2343eb00244a60f524f43ccecb6a3e1536fddf841d752158878028628d45",
+      "publication_enabled": false,
+      "paid_generation_enabled": false,
+      "production_approved": false,
+      "production_ready": false,
+      "model_revision": "1939ad2a8e416c0acfeecc08a694d14ef25f2231",
+      "scope": "Whole approved script spoken by one stock preset; no per-character reproduction, capacity-admitted queue, host uptime or creative approval",
+      "resources": {
+        "returncode": 0,
+        "elapsed_seconds": 23.934185002995946,
+        "peak_sampled_process_tree_rss_bytes": 471625728,
+        "cpu_affinity": [
+          0,
+          1
+        ],
+        "cpu_seconds_hard_limit_per_process": 125,
+        "wall_seconds_limit": 180,
+        "rss_stop_threshold_bytes": 1610612736,
+        "rss_limit_scope": "25ms sampled PPid-tree stop threshold, not a kernel memory guarantee"
+      },
+      "audio_sha256": "db7801e19ec31a3372eb85da05d12a989204624e73b1e7691dd19b67da5b86bc",
+      "duration_seconds": 28.725,
+      "process_max_rss_bytes": 461578240
+    },
+    "am_michael": {
+      "schema_version": 1,
+      "status": "GENERATED_PENDING_REVIEW",
+      "observed_at": "2026-11-21T01:56:05.389911+00:00",
+      "voice": "am_michael",
+      "contract_sha256": "1c08545af240ce7a22129a39abe333c3c9e799599a97caabd69008111b29a5fc",
+      "text_sha256": "2b5e2343eb00244a60f524f43ccecb6a3e1536fddf841d752158878028628d45",
+      "publication_enabled": false,
+      "paid_generation_enabled": false,
+      "production_approved": false,
+      "production_ready": false,
+      "model_revision": "1939ad2a8e416c0acfeecc08a694d14ef25f2231",
+      "scope": "Whole approved script spoken by one stock preset; no per-character reproduction, capacity-admitted queue, host uptime or creative approval",
+      "resources": {
+        "returncode": 0,
+        "elapsed_seconds": 25.000053326999478,
+        "peak_sampled_process_tree_rss_bytes": 506085376,
+        "cpu_affinity": [
+          0,
+          1
+        ],
+        "cpu_seconds_hard_limit_per_process": 125,
+        "wall_seconds_limit": 180,
+        "rss_stop_threshold_bytes": 1610612736,
+        "rss_limit_scope": "25ms sampled PPid-tree stop threshold, not a kernel memory guarantee"
+      },
+      "audio_sha256": "436191746f9a12f65b1b6eb9b72b4dcfbe7e1c43975f496a0eafe964c4a25232",
+      "duration_seconds": 32.5,
+      "process_max_rss_bytes": 495984640
+    }
+  },
+  "asr": {
+    "observed_at": "2026-11-21T01:53:40.542738+00:00",
+    "scope": "Independent cached base.en ASR without script prompting; lexical fidelity diagnostic, not listening or production approval",
+    "expected_text_sha256": "2b5e2343eb00244a60f524f43ccecb6a3e1536fddf841d752158878028628d45",
+    "expected_whitespace_tokens": 70,
+    "original_production_unchanged": true,
+    "publication_enabled": false,
+    "production_approved": false,
+    "samples": {
+      "original": {
+        "audio_sha256": "77ae2168527509c49a02ab08d9e54f8c04fd5774309bba82e8eefa88974074fb",
+        "duration_seconds": 26.184,
+        "transcript": "Dave's card charged him six hundred ninety five dollars again. Chad points to a twenty dollar credit after an eighty dollar purchase. But the math is simple. Eighty minus twenty is sixty. Points monk counts only benefits Dave would have bought anyway. Then he compares that real value with the annual fee. If the value is higher, the card may make sense. If the fee is higher, rethink it. Ignore the flex and keep the math.",
+        "ordered_word_similarity": 1.0,
+        "exact_normalized_words": true,
+        "word_edits": [],
+        "segments": [
+          {
+            "start": 0.0,
+            "end": 2.86,
+            "text": "Dave's card charged him six hundred ninety five dollars again."
+          },
+          {
+            "start": 3.76,
+            "end": 7.1,
+            "text": "Chad points to a twenty dollar credit after an eighty dollar purchase."
+          },
+          {
+            "start": 8.12,
+            "end": 8.9,
+            "text": "But the math is simple."
+          },
+          {
+            "start": 9.56,
+            "end": 10.88,
+            "text": "Eighty minus twenty is sixty."
+          },
+          {
+            "start": 12.02,
+            "end": 14.38,
+            "text": "Points monk counts only benefits Dave would have bought anyway."
+          },
+          {
+            "start": 15.28,
+            "end": 17.46,
+            "text": "Then he compares that real value with the annual fee."
+          },
+          {
+            "start": 18.08,
+            "end": 20.32,
+            "text": "If the value is higher, the card may make sense."
+          },
+          {
+            "start": 21.24,
+            "end": 23.3,
+            "text": "If the fee is higher, rethink it."
+          },
+          {
+            "start": 24.2,
+            "end": 25.66,
+            "text": "Ignore the flex and keep the math."
+          }
+        ],
+        "asr_seconds": 7.303258989995811
+      },
+      "am_adam": {
+        "audio_sha256": "db7801e19ec31a3372eb85da05d12a989204624e73b1e7691dd19b67da5b86bc",
+        "duration_seconds": 28.725,
+        "transcript": "Dave's card charged him six hundred ninety-five dollars again Chad points to a twenty dollars credit after an eighty dollars purchase, but the math is simple eighty minus twenty is sixty Points monk counts only benefits Dave would have bought anyway Then he compares that real value with the annual fee If the value is higher the card may make sense If the fee is higher rethink it ignore the flex and keep the math",
+        "ordered_word_similarity": 1.0,
+        "exact_normalized_words": true,
+        "word_edits": [],
+        "segments": [
+          {
+            "start": 0.0,
+            "end": 3.5,
+            "text": "Dave's card charged him six hundred ninety-five dollars again"
+          },
+          {
+            "start": 4.2,
+            "end": 9.4,
+            "text": "Chad points to a twenty dollars credit after an eighty dollars purchase, but the math is simple"
+          },
+          {
+            "start": 10.04,
+            "end": 12.04,
+            "text": "eighty minus twenty is sixty"
+          },
+          {
+            "start": 12.64,
+            "end": 15.86,
+            "text": "Points monk counts only benefits Dave would have bought anyway"
+          },
+          {
+            "start": 16.54,
+            "end": 19.66,
+            "text": "Then he compares that real value with the annual fee"
+          },
+          {
+            "start": 20.28,
+            "end": 22.88,
+            "text": "If the value is higher the card may make sense"
+          },
+          {
+            "start": 23.52,
+            "end": 25.5,
+            "text": "If the fee is higher rethink it"
+          },
+          {
+            "start": 26.24,
+            "end": 27.88,
+            "text": "ignore the flex and keep the math"
+          }
+        ],
+        "asr_seconds": 1.9833460610025213
+      },
+      "am_michael": {
+        "audio_sha256": "436191746f9a12f65b1b6eb9b72b4dcfbe7e1c43975f496a0eafe964c4a25232",
+        "duration_seconds": 32.5,
+        "transcript": "Dave's card charged him six hundred ninety five dollars again. Chad points to a twenty dollars credit after an eighty dollars purchase, but the math is simple. Eighty minus twenty is sixty. Points monk counts only benefits Dave would have bought anyway. Then he compares that real value with the annual fee. If the value is higher, the card may make sense. If the fee is higher, rethink it. Ignore the flex and keep the math.",
+        "ordered_word_similarity": 1.0,
+        "exact_normalized_words": true,
+        "word_edits": [],
+        "segments": [
+          {
+            "start": 0.05,
+            "end": 4.13,
+            "text": "Dave's card charged him six hundred ninety five dollars again."
+          },
+          {
+            "start": 5.11,
+            "end": 10.85,
+            "text": "Chad points to a twenty dollars credit after an eighty dollars purchase, but the math is simple."
+          },
+          {
+            "start": 11.75,
+            "end": 13.57,
+            "text": "Eighty minus twenty is sixty."
+          },
+          {
+            "start": 14.63,
+            "end": 18.01,
+            "text": "Points monk counts only benefits Dave would have bought anyway."
+          },
+          {
+            "start": 19.31,
+            "end": 22.31,
+            "text": "Then he compares that real value with the annual fee."
+          },
+          {
+            "start": 22.95,
+            "end": 26.07,
+            "text": "If the value is higher, the card may make sense."
+          },
+          {
+            "start": 26.83,
+            "end": 28.97,
+            "text": "If the fee is higher, rethink it."
+          },
+          {
+            "start": 30.27,
+            "end": 31.73,
+            "text": "Ignore the flex and keep the math."
+          }
+        ],
+        "asr_seconds": 2.3064052529953187
+      }
+    }
+  },
+  "limitations": [
+    "ASR normalization collapses dollar/dollars; raw auditions say twenty dollars credit/eighty dollars purchase where original ASR uses singular. This is a listening-review flag, not a proven audio defect.",
+    "No naturalness, character-role reproduction, full audiovisual or production approval.",
+    "Original 26.184s, Adam 28.725s, Michael 32.5s: existing caption/timeline would require review.",
+    "Initial one-off Adam RSS measurement 9.8MB was invalid: task children filesystem missing. Superseded here by PPid process-tree monitor and kernel child peak.",
+    "RSS sampling is not a kernel memory guarantee; CPU-time limit is per process, not aggregate."
+  ],
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_approved": false
+}
