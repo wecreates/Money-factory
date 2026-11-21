@@ -1,0 +1,29 @@
+name: Local DNSMOS diagnostics
+on:
+  pull_request:
+    paths:
+      - 'integrations/dnsmos/**'
+      - '.github/workflows/dnsmos.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/dnsmos/**'
+      - '.github/workflows/dnsmos.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r integrations/dnsmos/requirements.txt
+      - name: Fetch pinned public model fixture
+        run: curl --fail --location --max-time 60 https://raw.githubusercontent.com/microsoft/DNS-Challenge/785ab12275d5cf9341c5e946b0eee9f8825ece3b/DNSMOS/DNSMOS/sig_bak_ovr.onnx --output /tmp/dnsmos-p835.onnx
+      - name: Test input guards and real CPU inference
+        env:
+          CYZOR_DNSMOS_TEST_MODEL: /tmp/dnsmos-p835.onnx
+        run: python -m unittest -v integrations.dnsmos.test_score

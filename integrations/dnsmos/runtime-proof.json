@@ -1,0 +1,873 @@
+{
+  "clean": {
+    "audio_sha256": "c04ffceb3605c533ae64616d373ab3ff5420a9a3b7e96404011857a9f99e1554",
+    "channels": 1,
+    "duration_seconds": 35.0416875,
+    "elapsed_seconds": 6.683447,
+    "engine": "DNSMOS-P835-local-CPU",
+    "full_av_review": false,
+    "isolated_speech_asserted_by_operator": true,
+    "max_input_seconds": 120,
+    "model_license": "CC-BY-4.0",
+    "model_sha256": "269fbebdb513aa23cddfbb593542ecc540284a91849ac50516870e1ac78f6edd",
+    "network_requests_by_adapter": 0,
+    "observed_at": "2026-11-21T01:45:14.950619+00:00",
+    "onnx_inter_op_threads": 1,
+    "onnx_intra_op_threads": 1,
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "providers": [
+      "CPUExecutionProvider"
+    ],
+    "publication_enabled": false,
+    "runtime_versions": {
+      "numpy": "2.5.5",
+      "onnxruntime": "1.32.0"
+    },
+    "sample_rate": 16000,
+    "schema_version": 1,
+    "scope": "No-reference speech/noise diagnostic on operator-identified isolated narration; not a listening test, TTS naturalness assessment, music-mix judgment, audiovisual synchronization check or creative/production approval.",
+    "scores": {
+      "BAK": 4.19611841881003,
+      "OVRL": 3.4603091143005344,
+      "SIG": 3.6706872254693828
+    },
+    "source_revision": "785ab12275d5cf9341c5e946b0eee9f8825ece3b",
+    "status": "DIAGNOSTIC_COMPLETE",
+    "unscored_tail_seconds": 0.031687500000003865,
+    "window_count": 27,
+    "windows": [
+      {
+        "end_seconds": 9.01,
+        "raw": {
+          "BAK": 4.5903472900390625,
+          "OVRL": 4.077759265899658,
+          "SIG": 4.221116065979004
+        },
+        "scores": {
+          "BAK": 4.216102553016203,
+          "OVRL": 3.4695160852039515,
+          "SIG": 3.6623373043814382
+        },
+        "start_seconds": 0.0
+      },
+      {
+        "end_seconds": 10.01,
+        "raw": {
+          "BAK": 4.544988632202148,
+          "OVRL": 3.951728343963623,
+          "SIG": 4.122564315795898
+        },
+        "scores": {
+          "BAK": 4.197672618628211,
+          "OVRL": 3.397405372764786,
+          "SIG": 3.611070931014206
+        },
+        "start_seconds": 1.0
+      },
+      {
+        "end_seconds": 11.01,
+        "raw": {
+          "BAK": 4.548460960388184,
+          "OVRL": 3.9983882904052734,
+          "SIG": 4.192400932312012
+        },
+        "scores": {
+          "BAK": 4.199102630381288,
+          "OVRL": 3.4243532317697083,
+          "SIG": 3.647568160146518
+        },
+        "start_seconds": 2.0
+      },
+      {
+        "end_seconds": 12.01,
+        "raw": {
+          "BAK": 4.575656890869141,
+          "OVRL": 4.040585041046143,
+          "SIG": 4.223699569702148
+        },
+        "scores": {
+          "BAK": 4.210192933974685,
+          "OVRL": 3.448469729430748,
+          "SIG": 3.6636592958556546
+        },
+        "start_seconds": 3.0
+      },
+      {
+        "end_seconds": 13.01,
+        "raw": {
+          "BAK": 4.5370378494262695,
+          "OVRL": 3.9935998916625977,
+          "SIG": 4.184764385223389
+        },
+        "scores": {
+          "BAK": 4.194386282743616,
+          "OVRL": 3.42160131917743,
+          "SIG": 3.643617120116364
+        },
+        "start_seconds": 4.0
+      },
+      {
+        "end_seconds": 14.01,
+        "raw": {
+          "BAK": 4.534554958343506,
+          "OVRL": 4.0503458976745605,
+          "SIG": 4.22245454788208
+        },
+        "scores": {
+          "BAK": 4.193356606272054,
+          "OVRL": 3.4540139877023694,
+          "SIG": 3.6630223520445666
+        },
+        "start_seconds": 5.0
+      },
+      {
+        "end_seconds": 15.01,
+        "raw": {
+          "BAK": 4.557163715362549,
+          "OVRL": 4.135775089263916,
+          "SIG": 4.316900730133057
+        },
+        "scores": {
+          "BAK": 4.202672741862207,
+          "OVRL": 3.5019883364289157,
+          "SIG": 3.710601139571833
+        },
+        "start_seconds": 6.0
+      },
+      {
+        "end_seconds": 16.01,
+        "raw": {
+          "BAK": 4.583804607391357,
+          "OVRL": 4.160178184509277,
+          "SIG": 4.304071426391602
+        },
+        "scores": {
+          "BAK": 4.2134775971059355,
+          "OVRL": 3.5155109945152567,
+          "SIG": 3.7042260977695376
+        },
+        "start_seconds": 7.0
+      },
+      {
+        "end_seconds": 17.01,
+        "raw": {
+          "BAK": 4.551389694213867,
+          "OVRL": 4.145194053649902,
+          "SIG": 4.326388359069824
+        },
+        "scores": {
+          "BAK": 4.200306304827538,
+          "OVRL": 3.5072172827272343,
+          "SIG": 3.71529788132898
+        },
+        "start_seconds": 8.0
+      },
+      {
+        "end_seconds": 18.01,
+        "raw": {
+          "BAK": 4.525054931640625,
+          "OVRL": 4.076492786407471,
+          "SIG": 4.231245517730713
+        },
+        "scores": {
+          "BAK": 4.189401873856793,
+          "OVRL": 3.4688021391666988,
+          "SIG": 3.6675141757499494
+        },
+        "start_seconds": 9.0
+      },
+      {
+        "end_seconds": 19.01,
+        "raw": {
+          "BAK": 4.516770362854004,
+          "OVRL": 4.118812561035156,
+          "SIG": 4.298705577850342
+        },
+        "scores": {
+          "BAK": 4.185933720315157,
+          "OVRL": 3.4925412951796106,
+          "SIG": 3.7015515419194296
+        },
+        "start_seconds": 10.0
+      },
+      {
+        "end_seconds": 20.01,
+        "raw": {
+          "BAK": 4.476050853729248,
+          "OVRL": 4.015410900115967,
+          "SIG": 4.212668418884277
+        },
+        "scores": {
+          "BAK": 4.168624653363225,
+          "OVRL": 3.434111074208011,
+          "SIG": 3.658006776906614
+        },
+        "start_seconds": 11.0
+      },
+      {
+        "end_seconds": 21.01,
+        "raw": {
+          "BAK": 4.505344867706299,
+          "OVRL": 4.139517784118652,
+          "SIG": 4.341090202331543
+        },
+        "scores": {
+          "BAK": 4.181121035175163,
+          "OVRL": 3.5040675342095984,
+          "SIG": 3.7225459967866374
+        },
+        "start_seconds": 12.0
+      },
+      {
+        "end_seconds": 22.01,
+        "raw": {
+          "BAK": 4.597433090209961,
+          "OVRL": 4.188299179077148,
+          "SIG": 4.357694625854492
+        },
+        "scores": {
+          "BAK": 4.218932695209249,
+          "OVRL": 3.5309939381874265,
+          "SIG": 3.730688447183578
+        },
+        "start_seconds": 13.0
+      },
+      {
+        "end_seconds": 23.01,
+        "raw": {
+          "BAK": 4.451160430908203,
+          "OVRL": 3.9911954402923584,
+          "SIG": 4.225545406341553
+        },
+        "scores": {
+          "BAK": 4.157829198377046,
+          "OVRL": 3.420218300795997,
+          "SIG": 3.6646031329320916
+        },
+        "start_seconds": 14.0
+      },
+      {
+        "end_seconds": 24.01,
+        "raw": {
+          "BAK": 4.578776836395264,
+          "OVRL": 4.08994197845459,
+          "SIG": 4.273730754852295
+        },
+        "scores": {
+          "BAK": 4.211452771422855,
+          "OVRL": 3.47637269734269,
+          "SIG": 3.6890394498065677
+        },
+        "start_seconds": 15.0
+      },
+      {
+        "end_seconds": 25.01,
+        "raw": {
+          "BAK": 4.485612869262695,
+          "OVRL": 4.017411708831787,
+          "SIG": 4.234959125518799
+        },
+        "scores": {
+          "BAK": 4.172728507059865,
+          "OVRL": 3.4352554190846645,
+          "SIG": 3.6694077770039204
+        },
+        "start_seconds": 16.0
+      },
+      {
+        "end_seconds": 26.01,
+        "raw": {
+          "BAK": 4.5292067527771,
+          "OVRL": 4.038653373718262,
+          "SIG": 4.232668876647949
+        },
+        "scores": {
+          "BAK": 4.191133144429527,
+          "OVRL": 3.4473709960026397,
+          "SIG": 3.668240232711599
+        },
+        "start_seconds": 17.0
+      },
+      {
+        "end_seconds": 27.01,
+        "raw": {
+          "BAK": 4.443689346313477,
+          "OVRL": 3.8485920429229736,
+          "SIG": 4.030785083770752
+        },
+        "scores": {
+          "BAK": 4.1545570110124705,
+          "OVRL": 3.3367949607783713,
+          "SIG": 3.561860731868415
+        },
+        "start_seconds": 18.0
+      },
+      {
+        "end_seconds": 28.01,
+        "raw": {
+          "BAK": 4.4532151222229,
+          "OVRL": 3.8625540733337402,
+          "SIG": 4.038699150085449
+        },
+        "scores": {
+          "BAK": 4.158726535462903,
+          "OVRL": 3.345084311935649,
+          "SIG": 3.5661598308022944
+        },
+        "start_seconds": 19.0
+      },
+      {
+        "end_seconds": 29.01,
+        "raw": {
+          "BAK": 4.545429229736328,
+          "OVRL": 4.082577705383301,
+          "SIG": 4.252175807952881
+        },
+        "scores": {
+          "BAK": 4.197854246150337,
+          "OVRL": 3.472230375704738,
+          "SIG": 3.6781564551079766
+        },
+        "start_seconds": 20.0
+      },
+      {
+        "end_seconds": 30.01,
+        "raw": {
+          "BAK": 4.579780101776123,
+          "OVRL": 4.105159759521484,
+          "SIG": 4.274284362792969
+        },
+        "scores": {
+          "BAK": 4.2118573464200155,
+          "OVRL": 3.4849092775709676,
+          "SIG": 3.6893179361566086
+        },
+        "start_seconds": 21.0
+      },
+      {
+        "end_seconds": 31.01,
+        "raw": {
+          "BAK": 4.6067795753479,
+          "OVRL": 4.122622013092041,
+          "SIG": 4.276919841766357
+        },
+        "scores": {
+          "BAK": 4.2226455562135214,
+          "OVRL": 3.494666306176815,
+          "SIG": 3.690642978926075
+        },
+        "start_seconds": 22.0
+      },
+      {
+        "end_seconds": 32.01,
+        "raw": {
+          "BAK": 4.569219589233398,
+          "OVRL": 4.097641468048096,
+          "SIG": 4.2699198722839355
+        },
+        "scores": {
+          "BAK": 4.207585443817697,
+          "OVRL": 3.480695726786197,
+          "SIG": 3.6871210308076394
+        },
+        "start_seconds": 23.0
+      },
+      {
+        "end_seconds": 33.01,
+        "raw": {
+          "BAK": 4.591757297515869,
+          "OVRL": 4.110904693603516,
+          "SIG": 4.247943878173828
+        },
+        "scores": {
+          "BAK": 4.216666778383313,
+          "OVRL": 3.488123812393449,
+          "SIG": 3.6760106091986646
+        },
+        "start_seconds": 24.0
+      },
+      {
+        "end_seconds": 34.01,
+        "raw": {
+          "BAK": 4.543121337890625,
+          "OVRL": 4.087278842926025,
+          "SIG": 4.25550651550293
+        },
+        "scores": {
+          "BAK": 4.196902296462792,
+          "OVRL": 3.474875560371502,
+          "SIG": 3.6798432113234005
+        },
+        "start_seconds": 25.0
+      },
+      {
+        "end_seconds": 35.01,
+        "raw": {
+          "BAK": 4.610138416290283,
+          "OVRL": 4.134277820587158,
+          "SIG": 4.2685770988464355
+        },
+        "scores": {
+          "BAK": 4.223974225927137,
+          "OVRL": 3.5011560204990113,
+          "SIG": 3.686444490252777
+        },
+        "start_seconds": 26.0
+      }
+    ]
+  },
+  "decoded_16k_mono_sha256": "fa0dbdafbabe9fba95bf4d0f50ad50e5dcea99bd9ff98d5c7f2ff4cf8c4c4cbf",
+  "degraded": {
+    "audio_sha256": "bf57bce8c7e7aa8e7bb87041e3ec258ff2ed875f2f810b00ab012ccea29e8c30",
+    "channels": 1,
+    "duration_seconds": 35.0416875,
+    "elapsed_seconds": 5.932028,
+    "engine": "DNSMOS-P835-local-CPU",
+    "full_av_review": false,
+    "isolated_speech_asserted_by_operator": true,
+    "max_input_seconds": 120,
+    "model_license": "CC-BY-4.0",
+    "model_sha256": "269fbebdb513aa23cddfbb593542ecc540284a91849ac50516870e1ac78f6edd",
+    "network_requests_by_adapter": 0,
+    "observed_at": "2026-11-21T01:45:21.643653+00:00",
+    "onnx_inter_op_threads": 1,
+    "onnx_intra_op_threads": 1,
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "providers": [
+      "CPUExecutionProvider"
+    ],
+    "publication_enabled": false,
+    "runtime_versions": {
+      "numpy": "2.5.5",
+      "onnxruntime": "1.32.0"
+    },
+    "sample_rate": 16000,
+    "schema_version": 1,
+    "scope": "No-reference speech/noise diagnostic on operator-identified isolated narration; not a listening test, TTS naturalness assessment, music-mix judgment, audiovisual synchronization check or creative/production approval.",
+    "scores": {
+      "BAK": 1.6081767758744387,
+      "OVRL": 1.72943099126292,
+      "SIG": 3.168616821933957
+    },
+    "source_revision": "785ab12275d5cf9341c5e946b0eee9f8825ece3b",
+    "status": "DIAGNOSTIC_COMPLETE",
+    "unscored_tail_seconds": 0.031687500000003865,
+    "window_count": 27,
+    "windows": [
+      {
+        "end_seconds": 9.01,
+        "raw": {
+          "BAK": 1.3365836143493652,
+          "OVRL": 1.5014907121658325,
+          "SIG": 3.285419464111328
+        },
+        "scores": {
+          "BAK": 1.5195043042252643,
+          "OVRL": 1.5683410914955849,
+          "SIG": 3.1098132579492757
+        },
+        "start_seconds": 0.0
+      },
+      {
+        "end_seconds": 10.01,
+        "raw": {
+          "BAK": 1.1861722469329834,
+          "OVRL": 1.2975515127182007,
+          "SIG": 1.896355152130127
+        },
+        "scores": {
+          "BAK": 1.327430988320497,
+          "OVRL": 1.379478390677605,
+          "SIG": 2.0184094396998735
+        },
+        "start_seconds": 1.0
+      },
+      {
+        "end_seconds": 11.01,
+        "raw": {
+          "BAK": 1.3240679502487183,
+          "OVRL": 1.4233566522598267,
+          "SIG": 2.531351089477539
+        },
+        "scores": {
+          "BAK": 1.5037492091781963,
+          "OVRL": 1.496648307382952,
+          "SIG": 2.557541772571586
+        },
+        "start_seconds": 2.0
+      },
+      {
+        "end_seconds": 12.01,
+        "raw": {
+          "BAK": 1.21143639087677,
+          "OVRL": 1.2992669343948364,
+          "SIG": 1.9323060512542725
+        },
+        "scores": {
+          "BAK": 1.360109266585974,
+          "OVRL": 1.3810904695112098,
+          "SIG": 2.0507413848871687
+        },
+        "start_seconds": 3.0
+      },
+      {
+        "end_seconds": 13.01,
+        "raw": {
+          "BAK": 1.3183276653289795,
+          "OVRL": 1.485127329826355,
+          "SIG": 3.2449963092803955
+        },
+        "scores": {
+          "BAK": 1.4965093674209746,
+          "OVRL": 1.5533950783159582,
+          "SIG": 3.0826302077336734
+        },
+        "start_seconds": 4.0
+      },
+      {
+        "end_seconds": 14.01,
+        "raw": {
+          "BAK": 1.535968542098999,
+          "OVRL": 1.8612582683563232,
+          "SIG": 3.726846933364868
+        },
+        "scores": {
+          "BAK": 1.7649330766638214,
+          "OVRL": 1.8877900615628473,
+          "SIG": 3.388795430216814
+        },
+        "start_seconds": 5.0
+      },
+      {
+        "end_seconds": 15.01,
+        "raw": {
+          "BAK": 1.4312812089920044,
+          "OVRL": 1.774640440940857,
+          "SIG": 3.7185866832733154
+        },
+        "scores": {
+          "BAK": 1.6373756766792484,
+          "OVRL": 1.8124802362341705,
+          "SIG": 3.3838754123881616
+        },
+        "start_seconds": 6.0
+      },
+      {
+        "end_seconds": 16.01,
+        "raw": {
+          "BAK": 1.4446773529052734,
+          "OVRL": 1.779583215713501,
+          "SIG": 3.682435989379883
+        },
+        "scores": {
+          "BAK": 1.6538593758610507,
+          "OVRL": 1.8168050447869732,
+          "SIG": 3.3622083103093723
+        },
+        "start_seconds": 7.0
+      },
+      {
+        "end_seconds": 17.01,
+        "raw": {
+          "BAK": 1.3654873371124268,
+          "OVRL": 1.695298671722412,
+          "SIG": 3.648627996444702
+        },
+        "scores": {
+          "BAK": 1.5557315506406018,
+          "OVRL": 1.7426056237388767,
+          "SIG": 3.3417467086593255
+        },
+        "start_seconds": 8.0
+      },
+      {
+        "end_seconds": 18.01,
+        "raw": {
+          "BAK": 1.4449189901351929,
+          "OVRL": 1.7431634664535522,
+          "SIG": 3.5922293663024902
+        },
+        "scores": {
+          "BAK": 1.6541562719554708,
+          "OVRL": 1.7848610762070343,
+          "SIG": 3.30718536824209
+        },
+        "start_seconds": 9.0
+      },
+      {
+        "end_seconds": 19.01,
+        "raw": {
+          "BAK": 1.4400620460510254,
+          "OVRL": 1.7286741733551025,
+          "SIG": 3.575387716293335
+        },
+        "scores": {
+          "BAK": 1.6481856649889817,
+          "OVRL": 1.772102524532765,
+          "SIG": 3.296761148169441
+        },
+        "start_seconds": 10.0
+      },
+      {
+        "end_seconds": 20.01,
+        "raw": {
+          "BAK": 1.4960920810699463,
+          "OVRL": 1.797311782836914,
+          "SIG": 3.6176578998565674
+        },
+        "scores": {
+          "BAK": 1.7166854652681536,
+          "OVRL": 1.83228991710746,
+          "SIG": 3.3228342213616093
+        },
+        "start_seconds": 11.0
+      },
+      {
+        "end_seconds": 21.01,
+        "raw": {
+          "BAK": 1.3858873844146729,
+          "OVRL": 1.6822402477264404,
+          "SIG": 3.5444326400756836
+        },
+        "scores": {
+          "BAK": 1.581168057744956,
+          "OVRL": 1.7310237047975796,
+          "SIG": 3.277477113198394
+        },
+        "start_seconds": 12.0
+      },
+      {
+        "end_seconds": 22.01,
+        "raw": {
+          "BAK": 1.3948978185653687,
+          "OVRL": 1.6283334493637085,
+          "SIG": 3.3014395236968994
+        },
+        "scores": {
+          "BAK": 1.592368137923492,
+          "OVRL": 1.6829678481902397,
+          "SIG": 3.120510214898511
+        },
+        "start_seconds": 13.0
+      },
+      {
+        "end_seconds": 23.01,
+        "raw": {
+          "BAK": 1.3927401304244995,
+          "OVRL": 1.6302013397216797,
+          "SIG": 3.368886947631836
+        },
+        "scores": {
+          "BAK": 1.589688051964208,
+          "OVRL": 1.684639578296246,
+          "SIG": 3.165073650080375
+        },
+        "start_seconds": 14.0
+      },
+      {
+        "end_seconds": 24.01,
+        "raw": {
+          "BAK": 1.4236067533493042,
+          "OVRL": 1.7340081930160522,
+          "SIG": 3.705904245376587
+        },
+        "scores": {
+          "BAK": 1.6279111140477849,
+          "OVRL": 1.776802701526329,
+          "SIG": 3.376299122004169
+        },
+        "start_seconds": 15.0
+      },
+      {
+        "end_seconds": 25.01,
+        "raw": {
+          "BAK": 1.4385989904403687,
+          "OVRL": 1.7349634170532227,
+          "SIG": 3.529571056365967
+        },
+        "scores": {
+          "BAK": 1.646385923610201,
+          "OVRL": 1.777644009598485,
+          "SIG": 3.2681616381043126
+        },
+        "start_seconds": 16.0
+      },
+      {
+        "end_seconds": 26.01,
+        "raw": {
+          "BAK": 1.4355316162109375,
+          "OVRL": 1.7481099367141724,
+          "SIG": 3.6701040267944336
+        },
+        "scores": {
+          "BAK": 1.6426108399458206,
+          "OVRL": 1.7892101871799067,
+          "SIG": 3.3547668796957426
+        },
+        "start_seconds": 17.0
+      },
+      {
+        "end_seconds": 27.01,
+        "raw": {
+          "BAK": 1.3902602195739746,
+          "OVRL": 1.726072072982788,
+          "SIG": 3.58453631401062
+        },
+        "scores": {
+          "BAK": 1.5866062156619245,
+          "OVRL": 1.7698082350129654,
+          "SIG": 3.30242962667591
+        },
+        "start_seconds": 18.0
+      },
+      {
+        "end_seconds": 28.01,
+        "raw": {
+          "BAK": 1.4417073726654053,
+          "OVRL": 1.8058497905731201,
+          "SIG": 3.7347259521484375
+        },
+        "scores": {
+          "BAK": 1.650208949103462,
+          "OVRL": 1.8397321959579993,
+          "SIG": 3.393477698740475
+        },
+        "start_seconds": 19.0
+      },
+      {
+        "end_seconds": 29.01,
+        "raw": {
+          "BAK": 1.3412986993789673,
+          "OVRL": 1.65945303440094,
+          "SIG": 3.6227755546569824
+        },
+        "scores": {
+          "BAK": 1.5254290979532068,
+          "OVRL": 1.7107577540802381,
+          "SIG": 3.325970525975645
+        },
+        "start_seconds": 20.0
+      },
+      {
+        "end_seconds": 30.01,
+        "raw": {
+          "BAK": 1.463842511177063,
+          "OVRL": 1.7740070819854736,
+          "SIG": 3.687959909439087
+        },
+        "scores": {
+          "BAK": 1.677359570028498,
+          "OVRL": 1.811925823480075,
+          "SIG": 3.365533306368093
+        },
+        "start_seconds": 21.0
+      },
+      {
+        "end_seconds": 31.01,
+        "raw": {
+          "BAK": 1.4524227380752563,
+          "OVRL": 1.7977731227874756,
+          "SIG": 3.714944839477539
+        },
+        "scores": {
+          "BAK": 1.6633683636693262,
+          "OVRL": 1.8326923029153113,
+          "SIG": 3.381702596522042
+        },
+        "start_seconds": 22.0
+      },
+      {
+        "end_seconds": 32.01,
+        "raw": {
+          "BAK": 1.4690005779266357,
+          "OVRL": 1.7932476997375488,
+          "SIG": 3.512129306793213
+        },
+        "scores": {
+          "BAK": 1.683667839112921,
+          "OVRL": 1.8287439344404224,
+          "SIG": 3.257181561845972
+        },
+        "start_seconds": 23.0
+      },
+      {
+        "end_seconds": 33.01,
+        "raw": {
+          "BAK": 1.4463444948196411,
+          "OVRL": 1.745434045791626,
+          "SIG": 3.5237090587615967
+        },
+        "scores": {
+          "BAK": 1.655907455587103,
+          "OVRL": 1.7868578606864498,
+          "SIG": 3.2644770443931215
+        },
+        "start_seconds": 24.0
+      },
+      {
+        "end_seconds": 34.01,
+        "raw": {
+          "BAK": 1.540335774421692,
+          "OVRL": 1.849152684211731,
+          "SIG": 3.496068239212036
+        },
+        "scores": {
+          "BAK": 1.7701916680741354,
+          "OVRL": 1.8773259005135645,
+          "SIG": 3.2470254790795554
+        },
+        "start_seconds": 25.0
+      },
+      {
+        "end_seconds": 35.01,
+        "raw": {
+          "BAK": 1.4739148616790771,
+          "OVRL": 1.722454309463501,
+          "SIG": 3.4693353176116943
+        },
+        "scores": {
+          "BAK": 1.6896714463945701,
+          "OVRL": 1.766616905869591,
+          "SIG": 3.2300250724461264
+        },
+        "start_seconds": 26.0
+      }
+    ]
+  },
+  "delta_noisy_minus_clean": {
+    "BAK": -2.587941642935591,
+    "OVRL": -1.7308781230376145,
+    "SIG": -0.5020704035354258
+  },
+  "fixture": {
+    "common_gain": 1.346937656999315,
+    "noise": "NumPy default_rng standard_normal; noise RMS matched to full-clip speech RMS before common scaling",
+    "purpose": "Controlled severe noise sensitivity check, not universal quality calibration",
+    "seed": 20261121,
+    "snr_db": 0
+  },
+  "full_av_review": false,
+  "host_scope": "Transient workspace only; actual PC/VPS not accessed",
+  "limitations": [
+    "DNSMOS noise-suppression domain does not certify TTS naturalness or artistic voice delivery.",
+    "Scores are observations; no approval threshold or automatic publishing decision.",
+    "Narration includes dialogue pauses; mixed music was not scored.",
+    "CPU timing is this workspace only, not intended host throughput."
+  ],
+  "measurement": {
+    "combined_process_cpu_seconds": 12.611956397,
+    "combined_wall_seconds": 12.639985743997386,
+    "process_peak_rss_kib": 278676,
+    "scope": "One Python process, two sequential scores; RSS includes Python and imported runtime, not a host minimum"
+  },
+  "network_guard": "Python socket connect/create_connection blocked in this smoke; adapter has no network code",
+  "observed_at": "2026-11-21T01:45:14.950619+00:00",
+  "production_approved": false,
+  "publication_enabled": false,
+  "schema_version": 1,
+  "source_original_duration_seconds": 35.041678,
+  "source_original_voice_sha256": "e324ef9ed317b801ebab275d6cef5334dc77482da4bc4003d5641e5dde535be3",
+  "status": "LOCAL_DIAGNOSTIC_EXECUTION_VERIFIED"
+}
