@@ -145,6 +145,30 @@ class RenderValidationTests(unittest.TestCase):
                 hashes.append(render.digest(path))
             self.assertEqual(len(set(hashes)),len(render.KINDS))
 
+    @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
+    def test_gesture_moves_only_arms_and_loops_without_changing_layout(self):
+        try:
+            from PIL import Image, ImageChops
+        except ImportError:
+            self.skipTest('Pillow unavailable')
+        with tempfile.TemporaryDirectory() as td:
+            paths=[Path(td)/f'phase-{i}.png' for i in range(4)]
+            scene=brief()['scenes'][0]
+            for path,phase in zip(paths,(0,.25,.75,1)):
+                render.draw_panel(scene,path,0,1,phase=phase)
+            with Image.open(paths[0]) as start, Image.open(paths[1]) as peak, Image.open(paths[2]) as opposite, Image.open(paths[3]) as end:
+                self.assertIsNone(ImageChops.difference(start,end).getbbox())
+                bounds=ImageChops.difference(start,peak).getbbox()
+                self.assertIsNotNone(bounds)
+                self.assertGreaterEqual(bounds[0],280); self.assertLessEqual(bounds[2],440)
+                self.assertGreaterEqual(bounds[1],910); self.assertLessEqual(bounds[3],1040)
+                self.assertIsNotNone(ImageChops.difference(peak,opposite).getbbox())
+                # Diagrams/headlines, face, feet and speaker label stay identical.
+                self.assertEqual(start.crop((0,0,720,910)).tobytes(),peak.crop((0,0,720,910)).tobytes())
+                self.assertEqual(start.crop((0,1040,720,1280)).tobytes(),peak.crop((0,1040,720,1280)).tobytes())
+            for phase in (True,float('nan'),float('inf'),'0'):
+                with self.assertRaises(ValueError):render.draw_panel(scene,paths[0],0,1,phase=phase)
+
     @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe') and Path(render.FONT).is_file(),'Media runtime unavailable')
     def test_actual_mux_and_decode_with_explicit_synthetic_voice_fixture(self):
         try:
@@ -172,6 +196,20 @@ class RenderValidationTests(unittest.TestCase):
             self.assertFalse(result['independent_transcription_verified'])
             self.assertFalse(result['full_av_review']);self.assertFalse(result['production_approved'])
             self.assertFalse(result['publication_enabled']);self.assertEqual(len(result['scenes']),1)
+            self.assertEqual(result['motion']['loop_seconds'],3)
+            self.assertEqual(result['motion']['output_fps'],24)
+            row=result['scenes'][0]
+            self.assertEqual(len(row['motion_frames_sha256']),24)
+            self.assertEqual(row['motion_frames_sha256']['frame-00.png'],row['panel_sha256'])
+            for filename,expected in row['motion_frames_sha256'].items():
+                self.assertEqual(render.digest(out/row['motion_directory']/filename),expected)
+            # Decode two encoded frames to prove actual output contains movement.
+            frames=subprocess.check_output(['ffmpeg','-v','error','-i',str(out/'video.mp4'),
+                '-vf',r'select=eq(n\,0)+eq(n\,18)','-vsync','0','-frames:v','2',
+                '-f','rawvideo','-pix_fmt','rgb24','-threads','1','-'])
+            frame_bytes=720*1280*3
+            self.assertEqual(len(frames),frame_bytes*2)
+            self.assertNotEqual(frames[:frame_bytes],frames[frame_bytes:])
 
 
 if __name__=='__main__':unittest.main()
