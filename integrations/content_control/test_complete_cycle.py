@@ -94,4 +94,39 @@ class CompleteCycleTest(unittest.TestCase):
         self.assertEqual(marker.read_text(), 'unchanged')
 
 
+class CheckpointCLITests(unittest.TestCase):
+    def invoke(self, status, checkpoint_error=None):
+        import contextlib
+        import io
+        args = ['complete_cycle', '--brief', '/brief', '--output', '/cycle',
+                '--voice-python', '/python', '--voice-root', '/voice', '--checkpoint', '/backup.zip']
+        result = {'status': status, 'publication_enabled': False}
+        stream = io.StringIO()
+        with patch('sys.argv', args), patch.object(m, 'run_cycle', return_value=result), \
+                patch('integrations.content_control.cycle_checkpoint.create_checkpoint',
+                      side_effect=checkpoint_error, return_value={'status': 'CHECKPOINT_CREATED'}) as backup, \
+                contextlib.redirect_stdout(stream):
+            code = m.main()
+        return code, json.loads(stream.getvalue()), backup, result
+
+    def test_completed_cycle_requests_backup_without_mutating_receipt(self):
+        code, output, backup, original = self.invoke('AWAITING_REVIEW')
+        self.assertEqual(code, 0)
+        backup.assert_called_once_with('/cycle', '/backup.zip')
+        self.assertNotIn('checkpoint', original)
+        self.assertFalse(output['publication_enabled'])
+
+    def test_failed_cycle_does_not_attempt_checkpoint(self):
+        code, output, backup, original = self.invoke('BLOCKED')
+        self.assertEqual(code, 2)
+        backup.assert_not_called()
+
+    def test_backup_failure_is_visible_without_relabeling_completed_media(self):
+        code, output, backup, original = self.invoke('AWAITING_REVIEW', ValueError('disk full'))
+        self.assertEqual(code, 2)
+        self.assertEqual(output['status'], 'AWAITING_REVIEW')
+        self.assertEqual(output['checkpoint']['status'], 'BLOCKED')
+        self.assertNotIn('checkpoint', original)
+
+
 if __name__ == '__main__': unittest.main()

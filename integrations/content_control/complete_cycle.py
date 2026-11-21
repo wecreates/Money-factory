@@ -125,10 +125,20 @@ def main():
     parser.add_argument('--voice-root', required=True)
     parser.add_argument('--transcription-python')
     parser.add_argument('--timeout', type=int, default=900)
+    parser.add_argument('--checkpoint', help='Optional new ZIP outside the cycle for exact-state recovery.')
     args = parser.parse_args()
     result = run_cycle(args.brief, args.output, voice_python=args.voice_python,
                        voice_root=args.voice_root, timeout=args.timeout,
                        transcription_python=args.transcription_python)
+    if args.checkpoint and result['status'] == 'AWAITING_REVIEW':
+        from integrations.content_control.cycle_checkpoint import create_checkpoint
+        try:
+            result = dict(result, checkpoint=create_checkpoint(args.output, args.checkpoint))
+        except (OSError, ValueError, RuntimeError) as error:
+            # Preserve the completed immutable cycle even if backup fails.
+            result = dict(result, checkpoint={'status': 'BLOCKED', 'reason': str(error)})
+            print(json.dumps(result, indent=2))
+            return 2
     print(json.dumps(result, indent=2))
     return 0 if result['status'] == 'AWAITING_REVIEW' else 2
 
