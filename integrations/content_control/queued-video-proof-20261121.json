@@ -1,0 +1,41 @@
+{
+  "adapter_status": "BLOCKED",
+  "attempts_after_second_work": 1,
+  "attempts_after_work": 1,
+  "blocker": "Fresh host capacity does not admit video production",
+  "capacity": {
+    "admitted_workers": 0,
+    "publication_enabled": false,
+    "reasons": [
+      "fresh_cpu_and_memory_snapshot_required"
+    ],
+    "requested_workers": 1,
+    "scope": "resource_budget_only_not_model_readiness",
+    "status": "BLOCKED"
+  },
+  "duplicate_enqueue_same_digest": true,
+  "full_av_review": false,
+  "initial_state": "queued",
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "re_enqueue_preserves_state": true,
+  "review_directory_created": false,
+  "runtime_checks": {
+    "cached_asr": true,
+    "caption_font": true,
+    "ffmpeg": true,
+    "node": true,
+    "npm_packages": true,
+    "picture_python": true,
+    "transcription_python": true
+  },
+  "runtime_prerequisites_status": "PASS",
+  "schema_version": 1,
+  "scope": "Actual durable queue dispatch with real pinned source/runtime probes; video inference correctly blocked by unavailable host capacity",
+  "second_work_processed": 0,
+  "source_commit": "d7f8b5357ed416cf09af9de6c17e1cf738eb33c1",
+  "source_manifest_sha256": "7c28f2b84f8133093a61486396fa06f6f0b8f29880a5cd7d01895abbf8db78d4",
+  "state": "blocked",
+  "verified_at": "2026-11-21T01:21:25.593140+00:00"
+}

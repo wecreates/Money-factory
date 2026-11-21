@@ -229,3 +229,51 @@ SSH/Tailscale worker route; the named Host Probe is only public DNS/TLS/HTTP.
 Details: [capacity](../integrations/AGENT_CAPACITY.md),
 [Ruflo](../integrations/ruflo/README.md),
 [OpenClaw](../integrations/openclaw/README.md).
+
+## Cross-repository picture production preflight
+
+The local queue and Content Control use separate checkouts and runtimes. Before
+an operator queues a picture-production job, inspect a clean Content Control
+checkout at its intended full commit SHA. Keep its existing `node_modules` and
+Python environments; this command does not install dependencies or load a model:
+
+```bash
+python3 -m integrations.content_control.runtime_doctor \
+  --content-control-root /path/to/content-control \
+  --expected-commit FULL_CONTENT_CONTROL_COMMIT_SHA \
+  --video-python /path/to/transcription-venv/bin/python \
+  --picture-python /path/to/picture-venv/bin/python
+```
+
+Use the virtual environment's `bin/python` entry path as shown; resolving that
+symlink to a base interpreter can lose the environment's dependencies. The doctor
+prints JSON and exits nonzero when blocked. `PREREQUISITES_VERIFIED` means the
+22 input files match the clean Git commit, the trusted process-runner interface
+exists, publication contracts are disabled, and the offline runtime checks pass.
+It does **not** prove resource admission, a render, model inference, creative
+acceptance, persistent agents, or the availability of another host.
+
+The returned `source_commit`, `source_files` and `source_manifest_sha256` bind the
+queue request to the code and assets. The manifest digest is SHA-256 over the
+UTF-8 JSON mapping of relative filenames to file SHA-256 values, with sorted keys
+and compact separators. A changed input or commit needs a newly inspected job;
+do not carry an earlier manifest forward. `--describe-only` produces this source
+identity without probing runtimes. Source inspection parses the orchestrator's
+literal allowlist and never imports its code.
+
+Runtime checks require Python 3.11+ (the video path uses `hashlib.file_digest`),
+`faster-whisper==1.2.1`, `CairoSVG==2.9.1`, the shared Node version above, installed
+React/React DOM/Remotion/esbuild versions matching the Content Control lock,
+FFmpeg/FFprobe with the used audio/video filters and H.264/AAC encoders, and the
+DejaVu Sans caption font. The CairoSVG probe converts one in-memory pixel; it
+writes no media file. Existing `base.en` ASR cache files are hashed and reported
+without loading weights or fetching them. Python transitive dependencies and
+installed npm file integrity are not certified by these version checks; the
+source requirements and npm lock are included in the source manifest.
+
+Treat an absent cached ASR model or dependency as a concrete runtime gap. An
+unavailable LLM endpoint is a separate text-agent blocker: this picture flow uses
+existing narration and does not require a text-generation model. Run fresh host
+admission and the bounded queue production command after preflight; the doctor
+is evidence, not a resource reservation. This workspace's successful prerequisites
+cannot establish readiness on your PC or VPS.

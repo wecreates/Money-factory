@@ -1,0 +1,90 @@
+{
+  "verified_at": "2026-11-21T01:14:52.752887+00:00",
+  "scope": "Real foreground CLI enqueue/work/health/stop processes in scratch; no user-host or 24h claim",
+  "worker_exit_code": 2,
+  "live_health": {
+    "run": {
+      "id": "2f4eaf1c8ef841dca16a55df222b327d",
+      "state": "watching",
+      "started": 1795223692.4055579,
+      "heartbeat": 1795223692.4367697,
+      "finished": null,
+      "stop_requested": null,
+      "active_job": null,
+      "processed": 1,
+      "config": {
+        "max_jobs": 10,
+        "poll_seconds": 0.2,
+        "watch_seconds": 15
+      },
+      "exit_reason": null,
+      "heartbeat_age_seconds": 0.09784293174743652,
+      "heartbeat_fresh": true,
+      "observed_state": "watching"
+    },
+    "consumer_lock_held": true,
+    "job_counts": {
+      "blocked": 1
+    },
+    "scope": "Foreground process liveness and queue state only; not model, VPN, video quality, or production health",
+    "publication_enabled": false,
+    "paid_generation_enabled": false,
+    "production_ready": false
+  },
+  "stop_request": {
+    "status": "STOP_REQUESTED",
+    "run_id": "2f4eaf1c8ef841dca16a55df222b327d",
+    "stopped": false,
+    "scope": "Finish the current bounded attempt; do not claim another job"
+  },
+  "final_health": {
+    "run": {
+      "id": "2f4eaf1c8ef841dca16a55df222b327d",
+      "state": "finished",
+      "started": 1795223692.4055579,
+      "heartbeat": 1795223692.6373777,
+      "finished": 1795223692.6373777,
+      "stop_requested": 1795223692.5892534,
+      "active_job": null,
+      "processed": 1,
+      "config": {
+        "max_jobs": 10,
+        "poll_seconds": 0.2,
+        "watch_seconds": 15
+      },
+      "exit_reason": "stop_requested",
+      "heartbeat_age_seconds": 0.0423436164855957,
+      "heartbeat_fresh": false,
+      "observed_state": "finished"
+    },
+    "consumer_lock_held": false,
+    "job_counts": {
+      "blocked": 1
+    },
+    "scope": "Foreground process liveness and queue state only; not model, VPN, video quality, or production health",
+    "publication_enabled": false,
+    "paid_generation_enabled": false,
+    "production_ready": false
+  },
+  "job_state": "blocked",
+  "adapter_receipt": {
+    "capacity": {
+      "admitted_workers": 0,
+      "publication_enabled": false,
+      "reasons": [
+        "fresh_cpu_and_memory_snapshot_required"
+      ],
+      "requested_workers": 1,
+      "scope": "resource_budget_only_not_model_readiness",
+      "status": "BLOCKED"
+    },
+    "executed_tasks": 0,
+    "production_ready": false,
+    "publication_enabled": false,
+    "reason": "Host capacity did not admit the requested batch",
+    "status": "BLOCKED"
+  },
+  "production_ready": false,
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}

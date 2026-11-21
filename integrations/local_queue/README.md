@@ -1,10 +1,13 @@
 # Durable local agent queue
 
-This foreground queue wraps the existing guarded OpenClaw `dispatch` and Ruflo
-`run_batch` adapters. It handles local text tasks only: no shell/computer tools,
-publication, paid generation, network listener, system service, or autostart.
-Both adapters retain their shared host admission lock, real capacity checks,
-local-model metadata checks, pinned runtime checks, and execution bounds.
+This foreground queue wraps the existing guarded OpenClaw `dispatch`, Ruflo
+`run_batch`, and source-pinned Content Control picture-review adapters. It handles
+bounded local text tasks and unpublished video review jobs: no arbitrary shell
+commands, computer actions, publication, paid generation, network listener,
+system service, or autostart.
+The adapters retain shared host admission, real capacity checks, pinned runtime
+checks, and execution bounds. Text adapters also verify local-model metadata;
+the video adapter verifies its pinned source and review artifacts.
 
 The existing `integrations/queue.json` tracks requested repository integrations;
 the browser-farm queue owns browser jobs. Neither is a local model execution
@@ -34,14 +37,81 @@ The runtime path is operator-supplied at execution, never accepted from a job.
 batch, with at most four workers/sixteen tasks under its existing host budget.
 For a bounded foreground drain, use `--max-jobs 16`. Optional
 `--watch-seconds 3600 --max-jobs 1000` waits for incoming jobs up to one hour;
-the watch deadline bounds waiting for work, not an already-running adapter.
-Each adapter still enforces its own execution timeout. Stop with Ctrl+C.
+the watch deadline stops new claims and waiting, not an already-running adapter.
+The deadline is rechecked after acquiring the SQLite write transaction, so
+database contention cannot silently claim a job after that deadline.
+Each adapter still enforces its own execution timeout. Stop with Ctrl+C, or use
+the graceful run-specific stop command below.
 Nothing installs a service or continues after the foreground process exits.
 
 For OpenClaw, enqueue `openclaw-example.json`. The pinned OpenClaw executable
 must be available in PATH. Queue-owned unique attempt paths replace the usual
 `output` field; jobs may not supply an output path. `--openclaw-runtime` is an
 optional operator-owned runtime directory, not an executable or model override.
+
+## Source-bound video review jobs
+
+`adapter: "content-control-video"` uses the existing picture producer through
+`integrations.content_control.video_job`. The request contains only:
+`operation: "produce-episode1-review"`, exact `source_commit` (40 lowercase hex),
+`source_manifest_sha256` (64 lowercase hex), `timeout_seconds` (30–1800), and
+explicit false publication/paid flags. The same immutable queue envelope and
+attempt bound apply. Generate source identities with the runtime doctor; do not
+invent them or use a moving branch name as a commit.
+
+Operator paths are supplied only when starting the worker:
+
+```sh
+python -m integrations.local_agent_queue --queue /path/to/local-agent-queue work --content-control-root /path/to/content-control --video-python /path/to/asr/bin/python --picture-python /path/to/picture/bin/python
+```
+
+Jobs cannot supply executable paths, checkout paths, commands, or output paths.
+The adapter receives a fresh queue-owned attempt directory, applies its existing
+source/runtime/capacity checks and process guardian, and retains its technical
+review receipt. A successful queue job means the adapter completed a technical
+review packet; `review_status: AWAITING_REVIEW`, `full_av_review: false`, and
+`production_ready: false` remain intact. Queue success never grants creative,
+audiovisual, canonical promotion, or publishing approval.
+
+## Foreground health and graceful stop
+
+```sh
+python -m integrations.local_agent_queue --queue /path/to/local-agent-queue work --ruflo-runtime /path/to/pinned/ruflo --watch-seconds 3600 --max-jobs 1000 --poll-seconds 2
+# In another terminal, inspect the exact run ID:
+python -m integrations.local_agent_queue --queue /path/to/local-agent-queue health
+python -m integrations.local_agent_queue --queue /path/to/local-agent-queue stop --run-id RUN_ID_FROM_HEALTH
+```
+
+`--poll-seconds` defaults to 1 and accepts finite values from 0.2 to 60. A
+separate bounded-rate heartbeat persists while the main thread is inside a
+bounded adapter. `health` reports the run ID, phase, active job, processed count,
+last heartbeat, consumer-lock observation, queue counts, and final exit reason.
+This verifies process liveness only, not model availability, VPN reachability,
+video quality, or production readiness. A free consumer lock with an unfinished
+run is reported as `interrupted_unrecovered`, never as a live running worker.
+
+`stop` requests a graceful stop; it does **not** claim that the worker has already
+stopped. The current bounded attempt finishes and its receipt is retained. The
+stop check and next claim are serialized in one transaction, so the worker cannot
+claim another job after the request commits. Idle response latency is up to the
+configured poll interval; active-job latency includes the adapter’s bounded prerequisite checks and
+execution deadlines. A video job’s production timeout does not include its
+separate prerequisite probes.
+Inspect `health` for `finished` and its exit reason. A stale run ID cannot stop a
+later run. Omitting `--run-id` targets the latest unfinished run at request time.
+Ctrl+C interrupts immediately through the existing cleanup and unknown-outcome
+recovery path; it is different from a graceful stop.
+
+Run receipts remain in SQLite across restarts. The final `work` output contains
+compact job summaries to keep a long foreground drain from retaining all model
+outputs in memory; use `status --id` to retrieve full preserved job receipts.
+A failed heartbeat stops new work once the active bounded attempt returns.
+
+The actual CLI smoke in [operator-smoke.json](operator-smoke.json) observed a live
+worker, a persisted capacity-blocked job, a run-specific stop request, and a final
+released consumer lock with `stop_requested`. Zero model tasks ran because this
+scratch environment still could not establish effective host capacity. This is
+not an actual-computer, VPN, or 24-hour availability test.
 
 ## Recovery and retries
 
@@ -53,10 +123,10 @@ consumer's claim. Existing cross-framework admission remains inside the adapters
 Job IDs are immutable idempotency keys. Re-enqueuing an identical document
 returns its current state; changing any payload under that ID is rejected.
 Completed jobs are not rerun. These guarantees prevent duplicate queued dispatch,
-**not exactly-once model inference** across a crash.
+**not exactly-once adapter execution** across a crash.
 
 On the next `work`, a previously running attempt becomes `interrupted`. Its
-inference may have completed without a committed receipt, and backend model
+execution may have completed without a committed receipt, and backend model
 cancellation is not guaranteed. The queue does **not** automatically replay it.
 Review the attempt receipt and any raw files first, then explicitly request:
 
@@ -82,7 +152,7 @@ Back up a stopped queue directory if durable host storage/backups are needed.
 
 ## Verified scope and remaining host work
 
-`python -m unittest integrations.test_local_agent_queue integrations.test_local_queue_process_recovery -v` uses real separate
+`python -m unittest integrations.test_local_agent_queue integrations.test_local_queue_process_recovery integrations.test_local_agent_operator -v` uses real separate
 processes and SIGKILL to exercise live-lock contention, interrupted recovery,
 committed receipt retention, and rollback of a partial transaction. Model calls
 in those tests are fixtures; they do not prove model inference or host uptime.
