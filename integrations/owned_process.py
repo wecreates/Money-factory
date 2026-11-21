@@ -33,6 +33,10 @@ def interruptible_processes():
     _cancelled = False
     def interrupted(signum, frame):
         global _cancelled
+        # A second Ctrl-C/TERM must not interrupt the cleanup wait and release
+        # the parent's explicit flock before its guardians have exited.
+        if _cancelled:
+            return
         _cancelled = True
         for token in list(_writers):
             _close_writer(token)
