@@ -51,7 +51,7 @@ def persist(folder, run_id, attempt, revision, root=ROOT):
     sources={entry['id']:entry['revision'] for entry in registry['repositories'] + registry.get('engineering_tools', []) + registry.get('media_tools', []) + registry.get('agent_tools', [])}
     if receipt.get('status')!='PASS' or receipt.get('publication_enabled') is not False or receipt.get('tool')!=job.get('tool') or receipt.get('operation')!=job.get('operation') or receipt.get('revision')!=sources.get(job.get('tool')) or not re.fullmatch(r'[a-f0-9]{64}',receipt.get('output_sha256','')):
         raise ValueError('Operation receipt mismatch')
-    if job.get('tool') in ('rea', 'voicestudio', 'youtube-agent-skill'):
+    if job.get('tool') in ('rea', 'voicestudio', 'youtube-agent-skill', 'obscura'):
         if evidence.get('execution_engine') != 'money-factory' or evidence.get('content_control_revision') is not None:
             raise ValueError('Direct tool requires Money Factory execution evidence')
     elif not re.fullmatch(r'[a-f0-9]{40}',evidence.get('content_control_revision','')):
@@ -65,6 +65,30 @@ def persist(folder, run_id, attempt, revision, root=ROOT):
         if output.endswith('.json'):
             json.loads(data)
         files[output]=data
+    if job.get('tool') == 'obscura':
+        result = json.loads(files[output])
+        pin = json.loads(blob(root, revision, 'integrations/obscura/release-pin.json'))
+        input_name = job.get('input', '')
+        input_path = PurePosixPath(input_name)
+        if not input_name or input_path.is_absolute() or '..' in input_path.parts:
+            raise ValueError('Reviewed Obscura input required')
+        input_sha = hashlib.sha256(blob(root, revision, 'integrations/jobs/' + input_name)).hexdigest()
+        if (result.get('status') != 'PASS' or result.get('tool') != job['tool']
+                or result.get('operation') != job['operation'] or result.get('version') != pin['version']
+                or result.get('input_sha256') != input_sha
+                or result.get('upstream_revision') != pin['revision']
+                or result.get('archive_sha256') != pin['archive_sha256']
+                or result.get('binary_sha256') != pin['files']['obscura']['sha256']
+                or any(result.get(flag) is not False for flag in ('publication_enabled','paid_generation_enabled','production_ready'))):
+            raise ValueError('Obscura source or result identity mismatch')
+        screenshot = result.get('screenshot', {})
+        if screenshot.get('file') != 'result.png':
+            raise ValueError('Unexpected Obscura screenshot path')
+        from obscura.adapter import png_metadata
+        png = png_metadata(folder / 'result.png')
+        if any(screenshot.get(key) != value for key,value in png.items()):
+            raise ValueError('Obscura screenshot identity mismatch')
+        # PNG stays in the retained job artifact, not implicitly committed to Git.
     if output == 'result.wav':
         audio_path=folder/output
         if audio_path.is_symlink() or not audio_path.is_file() or audio_path.stat().st_size>20*1024*1024:

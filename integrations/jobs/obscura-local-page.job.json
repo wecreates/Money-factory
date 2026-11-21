@@ -1,0 +1,8 @@
+{
+  "tool": "obscura",
+  "operation": "inspect-local-web-page",
+  "input": "obscura-fixture/index.html",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "provenance": {"scope": "Reviewed self-contained local DOM and PNG diagnostic; no external navigation or publication"}
+}

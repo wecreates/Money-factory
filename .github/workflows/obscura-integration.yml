@@ -1,0 +1,87 @@
+name: Obscura local browser integration
+on:
+  pull_request:
+    paths:
+      - 'integrations/obscura/**'
+      - 'integrations/jobs/obscura-**'
+      - 'integrations/jobs/obscura-fixture/**'
+      - 'integrations/run.py'
+      - 'integrations/setup.py'
+      - 'integrations/hosted_job.py'
+      - 'integrations/persist_job.py'
+      - 'integrations/test_hosted_job.py'
+      - 'integrations/test_persist_job.py'
+      - 'integrations/repositories.json'
+      - 'integrations/owned_process.py'
+      - 'integrations/agent_capacity.py'
+      - '.github/workflows/obscura-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PUBLICATION_ENABLED: 'false'
+      PAID_GENERATION_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install hash-pinned public browser release
+        run: python integrations/setup.py obscura --runtime "$RUNNER_TEMP/obscura-runtime"
+      - name: Verify boundaries and actual local DOM execution
+        env:
+          OBSCURA_RUNTIME: ${{ runner.temp }}/obscura-runtime/obscura
+        run: |
+          python -m unittest discover -s integrations/obscura -p 'test_*.py' -v
+          python -m unittest discover -s integrations -p 'test_hosted_job.py' -v
+          python -m unittest discover -s integrations -p 'test_persist_job.py' -v
+      - name: Run reviewed local page through the registered worker
+        run: >-
+          python integrations/hosted_job.py obscura-local-page.job.json
+          --runtime "$RUNNER_TEMP/obscura-runtime"
+          --output "$RUNNER_TEMP/obscura-job"
+      - name: Verify real stdio MCP navigation and interaction
+        run: >-
+          python integrations/obscura/mcp_smoke.py
+          --runtime "$RUNNER_TEMP/obscura-runtime/obscura"
+          --output "$RUNNER_TEMP/obscura-mcp"
+      - name: Collect bounded local proof
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import shutil
+          root = Path(os.environ['RUNNER_TEMP'])
+          selected = []
+          for folder, names in {
+              'obscura-job': ('result.json', 'result.json.receipt.json', 'job-evidence.json', 'result.png'),
+              'obscura-mcp': ('receipt.json', 'fixture.png', 'stderr.log'),
+          }.items():
+              for name in names:
+                  path = root / folder / name
+                  if path.is_symlink():
+                      raise SystemExit('Linked evidence refused')
+                  if path.exists():
+                      if not path.is_file() or path.stat().st_size > 10 * 1024**2:
+                          raise SystemExit('Oversized or nonregular evidence refused')
+                      selected.append((path, folder, name))
+          if sum(path.stat().st_size for path, _, _ in selected) > 20 * 1024**2:
+              raise SystemExit('Evidence exceeds 20 MiB bound')
+          for path, folder, name in selected:
+              destination = root / 'obscura-proof' / folder / name
+              destination.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(path, destination)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: obscura-local-browser-proof
+          path: ${{ runner.temp }}/obscura-proof
+          retention-days: 7
+          if-no-files-found: warn

@@ -48,6 +48,15 @@ def execute(command, cwd, runtime, timeout=600, stdin=None):
 def source(tool):
     entry = TOOLS[tool]
     path = ROOT / entry['path']
+    if entry.get('source_type') == 'github-release':
+        from obscura.runtime import PIN, verify_source_manifest
+        if (tool != 'obscura' or entry['repository'] != PIN['repository']
+                or entry['revision'] != PIN['revision'] or entry['version'] != PIN['version']
+                or entry['path'] != 'integrations/obscura'
+                or entry.get('release_manifest') != 'integrations/obscura/release-pin.json'):
+            raise ValueError('Unrecognized release source pin')
+        verify_source_manifest(path)
+        return path
     if entry.get('source_type') == 'npm':
         package = json.loads((path / 'package.json').read_text())
         lock = json.loads((path / 'package-lock.json').read_text())
@@ -138,7 +147,13 @@ def _run(job, runtime):
         raise ValueError('Output or receipt already exists; use a new job output path')
     output.parent.mkdir(parents=True, exist_ok=True)
     is_media = False
-    if tool == 'youtube-agent-skill':
+    if tool == 'obscura':
+        from obscura.adapter import dispatch
+        result = dispatch(job, runtime / 'obscura')
+        output.write_text(json.dumps(result, indent=2) + '\n')
+        if result.get('status') != 'PASS':
+            return result
+    elif tool == 'youtube-agent-skill':
         from youtube_skill.adapter import dispatch
         result = dispatch(job, upstream)
         if result.get('status') != 'PASS':
@@ -259,6 +274,7 @@ def _run(job, runtime):
                'output_sha256': hashlib.sha256(output.read_bytes()).hexdigest(),
                'media': media, 'publication_enabled': False,
                **({'audio': audio} if tool == 'voicestudio' else {}),
+               **({'paid_generation_enabled': False} if tool == 'obscura' else {}),
                'scope': 'This operation only; not complete product or hosted readiness'}
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
     return receipt

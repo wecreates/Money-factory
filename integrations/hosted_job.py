@@ -11,9 +11,10 @@ import time
 from urllib.request import urlopen
 from run import ROOT, run
 
-DIRECT_TOOLS = ('rea', 'voicestudio', 'youtube-agent-skill')
+DIRECT_TOOLS = ('rea', 'voicestudio', 'youtube-agent-skill', 'obscura')
 
 OPERATIONS = {
+    'obscura': ('inspect-local-web-page', 'inspect-public-page'),
     'youtube-agent-skill': ('hook-score','package-lint','edit-plan','chapters','retention','outliers'),
     'voicestudio': ('synthesize',),
     'rea': ('analyze-javascript-application', 'inspect-artifact', 'mcp-smoke', 'capture-owned-process', 'inspect-local-web-page'),
