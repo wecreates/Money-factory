@@ -139,3 +139,38 @@ The [November 21 actual motion-cycle receipt](cycle-motion-proof-20261121.json)
 records a fresh six-scene, 34.585-second Kokoro/ASR run completed at 19:23:13 UTC.
 The candidate changed; all full audiovisual, listening, reference-comparison and
 phone-playback gates remain open.
+
+### Resume review after workspace loss
+
+The delivery `review-package.zip` is a viewing bundle. It does not contain the
+root brief, cycle receipt and original render layout needed by `inspect_cycle`.
+For future production, add `--checkpoint /absolute/new-cycle-checkpoint.zip` to
+`complete_cycle`. After technical success, this creates a separate recoverable
+snapshot without changing the completed cycle. A backup failure returns exit 2
+and a `checkpoint.status` of `BLOCKED` while preserving the completed media.
+
+Keep the checkpoint ZIP and its returned SHA-256 in durable storage, with the
+expected hash retained separately from the archive. A local checkpoint alone is
+not durable delivery. Restoration must target a new directory and requires that
+external expected hash; it validates the archive and then runs the existing
+exact-cycle inspection before exposing the restored directory. This resumes
+review/revision and selection, not model installations, raw voice stems or
+long-running workers. It cannot reconstruct missing metadata from older
+viewing-only ZIPs or transfer an old review to changed media.
+
+```bash
+python -m integrations.content_control.cycle_checkpoint create \
+  --cycle-dir /absolute/completed-cycle --output /absolute/new-checkpoint.zip
+python -m integrations.content_control.cycle_checkpoint restore \
+  --archive /absolute/checkpoint.zip --expected-sha256 SHA256_FROM_CREATE_RECEIPT \
+  --output /absolute/new-restored-cycle
+```
+
+Checkpoint round-trip tests use explicitly synthetic media; they establish
+recovery and corruption-handling behavior, not actual production-media approval.
+
+Atomic restore currently supports Linux (`renameat2` with no-replace) and Windows;
+unsupported platforms fail closed. A destination created by another process
+while validation runs is never replaced. Keep the returned checkpoint hash
+outside the ZIP; restore does not treat an archive's own manifest as external
+proof of its identity.
