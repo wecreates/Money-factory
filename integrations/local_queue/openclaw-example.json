@@ -1,0 +1,21 @@
+{
+  "id": "storyboard-example",
+  "adapter": "openclaw",
+  "request": {
+    "tool": "openclaw",
+    "operation": "run-text",
+    "publication_enabled": false,
+    "paid_generation_enabled": false,
+    "model": "local-model",
+    "model_url": "http://127.0.0.1:11434",
+    "prompt": "Write three short storyboard beats.",
+    "timeout_seconds": 5,
+    "worker_memory_mb": 512,
+    "shared_model_memory_mb": 1024,
+    "render_memory_mb": 0,
+    "render_cpu": 0
+  },
+  "max_attempts": 1,
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}
