@@ -53,6 +53,31 @@ import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {runWorker} from '../worker.mjs';
 
+test('duplicate normalized IDs reject before requests or state/event writes',async(t)=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-duplicate-'));
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),eventsPath:path.join(dir,'events.json'),intervalMs:0};
+  let requests=0;
+  t.mock.method(globalThis,'fetch',async url=>{
+    requests++;
+    return new Response('fixture',{status:url.includes('failed')?502:200});
+  });
+  const state='{"prior":{"last_error":"retained failure"}}\n';
+  const events='[{"type":"retained-event"}]\n';
+  try{
+    await fs.writeFile(options.statePath,state);await fs.writeFile(options.eventsPath,events);
+    for(const status of ['active','paused']){
+      await fs.writeFile(options.watchesPath,JSON.stringify([
+        {id:'same',targetUrl:'https://failed.invalid/'},
+        {id:' same ',targetUrl:'https://healthy.invalid/',status}
+      ]));
+      await assert.rejects(runWorker(options),/duplicate watch id/);
+      assert.equal(requests,0);
+      assert.equal(await fs.readFile(options.statePath,'utf8'),state);
+      assert.equal(await fs.readFile(options.eventsPath,'utf8'),events);
+    }
+  }finally{await fs.rm(dir,{recursive:true,force:true});}
+});
+
 test('real HTTP failure persists 502, exits nonzero, and recovery clears the error',async()=>{
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-health-'));
   let status=502;

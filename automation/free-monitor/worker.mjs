@@ -102,6 +102,12 @@ export async function runWorker({
   intervalMs=300000
 }={}){
   const rawWatches=JSON.parse(await fs.readFile(watchesPath,'utf8'));
+  const configuredWatches=rawWatches.map(normalizeWatch);
+  // State is keyed by ID. Validate the entire configuration before any fetch
+  // or write so a later duplicate cannot overwrite a failed target's evidence.
+  if(new Set(configuredWatches.map(w=>w.id)).size!==configuredWatches.length){
+    throw new Error('duplicate watch id');
+  }
   const priorState=JSON.parse(await fs.readFile(statePath,'utf8').catch(()=> '{}'));
   const priorEvents=JSON.parse(await fs.readFile(eventsPath,'utf8').catch(()=> '[]'));
   const now=Date.now();
@@ -109,9 +115,8 @@ export async function runWorker({
   const events=[...priorEvents];
   const results=[];
 
-  for(const raw of rawWatches){
-    const configured=normalizeWatch(raw);
-    const base=reconcileWatch(raw,priorState[configured.id]);
+  for(const configured of configuredWatches){
+    const base=reconcileWatch(configured,priorState[configured.id]);
     if(!dueForCheck(base,now,intervalMs)){
       nextState[base.id]=base;
       results.push({id:base.id,checked:false,reason:'not_due'});
