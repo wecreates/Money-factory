@@ -41,6 +41,39 @@ This standalone command creates an explicit artifact attempt; it does not certif
 
 Outputs include the exact brief/editorial, fresh narration stems, original diagram panels, measured scene timeline, MP4, captions, speech-verification receipt, three PNG thumbnail candidates, local review HTML, portable ZIP and bound receipts. Thumbnail variants are frame-derived choices, not measured CTR winners. The webpage exposes reference scope and outstanding review requirements. No posting or publishing APIs exist in this path.
 
+### Review samples from every authored scene
+
+Heuristic shot detection may merge several authored scenes into one representative
+image. Export a separate local gallery from the exact completed cycle when a
+reviewer needs a frame from each authored scene:
+
+```bash
+python -m integrations.content_control.cycle_scene_review \
+  --cycle-dir /absolute/path/to/completed-cycle \
+  --output /absolute/path/to/new-scene-samples
+```
+
+This reads the measured `delivery/render.json` scene intervals, checks their
+contiguous order and identity against the bound editorial, and samples each
+midpoint from the candidate MP4. Planned storyboard durations are not used.
+Actual decoded frame timestamps are recorded and must remain inside the requested
+scene; a low-frame-rate source that skips the scene fails with a blocked receipt.
+Native PNGs, a contact sheet and a local HTML gallery are linked by a hashed
+`scene-review.json` receipt. The source cycle and voices remain unchanged.
+
+Limits are 30 scenes, existing portrait framing, at most 1920×1080 total pixels,
+16 MiB per native frame, and a shared 180-second deadline (configurable 10–600).
+The existing bounded local media-process runner is reused; no models or network
+providers are invoked. Missing/changed source identities or failed decoding do
+not produce a successful sampling receipt. Partial outputs remain diagnostic.
+
+This fills an authored-scene **sampling** gap, not full audiovisual review or
+independent scene detection. The overview is for navigation; open native frames
+for text inspection. External WebVTT captions are not burned into the samples.
+Motion, transitions, pacing, listening, reference comparisons and phone playback
+still require their own exact-candidate evidence. All publishing, paid-generation
+and acceptance flags remain false.
+
 ## Existing durable queue
 
 The adapter name is `content-control-cycle`. Its exact request fields are:
