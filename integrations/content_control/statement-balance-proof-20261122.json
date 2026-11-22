@@ -1,0 +1,144 @@
+{
+  "archive_sha256": "a5b0d884996f7343049a1ecd7b3c2c854da9bf2bf682046f0a947190081736b7",
+  "archive_size_bytes": 9262893,
+  "checkpoint": {
+    "candidate_sha256": "9ef2c49e6711df6da9af5dc304a3d1d30a175842815a464b1872f75dca926ca4",
+    "checkpoint_sha256": "fdb82301cbf3c45d7902946c74e7bd4cbfc516de76c7ffe6f587001b1aee7415",
+    "full_av_review": false,
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "status": "CHECKPOINT_CREATED"
+  },
+  "checkpoint_restored_equal": true,
+  "cycle": {
+    "archive_sha256": "3908c610aa1d5e21e9520cc2259d6a44ac52da535e3d72a9a670f220b110fcb3",
+    "brief_sha256": "c9524d8829bffc47255cd0c8da35b1705dc8d3b7d42f14bc73c5b2767f4b3fb9",
+    "candidate_sha256": "9ef2c49e6711df6da9af5dc304a3d1d30a175842815a464b1872f75dca926ca4",
+    "competitor_comparison": false,
+    "editorial_sha256": "8d29f6bf717cfb4bd51db6f86bb73fa9826d428c98dbfae40f038d4dbdf93b72",
+    "factual_review": false,
+    "finished_at": "2026-11-22T11:24:30.612190+00:00",
+    "full_av_review": false,
+    "package_sha256": "90e7891bc3198cfff7be4caedbec21c9a9edb4df074fdea029702fea6ece82a4",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.",
+    "started_at": "2026-11-22T11:22:44.506519+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "editorial",
+        "status": "PASS"
+      },
+      {
+        "name": "render",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "complete_cycle.py": "48f93523c9994b3b6648a74a4322f7fd3963fa58ce560bbfbae0a8b39602b1bc",
+      "cycle_editorial.py": "ab5d0231e26b55a7b94d4f7c899094e336069a1fc1344a8b6688f20b88e19b73",
+      "cycle_lineage.py": "d6c09d67af7aebaa919794c1beff68972f38d2728a7a69acd2d828fd893978a0",
+      "cycle_package.py": "2e4da6f6126386bea78a496c2dd59b979f0c06a65d767bf39b3ac248560053ef",
+      "cycle_render.py": "ca6676d141a92f8b618fee9185073a14611ab2f68eda23e4bf04e29cea4b1108"
+    }
+  },
+  "excerpt": {
+    "boundary_cue_numbers": [],
+    "candidate_sha256": "eddd78be800706409144bc12bf5a213a5cc1bec4cad946da0c6ca8d7ce808004",
+    "caption_scope": "Intersecting source cues clipped/rebased; whole cue text retained even at cut boundaries. Review boundary words against audio.",
+    "caption_sha256": "77a96fdd283eb90d81443ec16fa549a7997449237c83f373e6e263f6749093ec",
+    "end_seconds": 20.333,
+    "finished_at": "2026-11-22T11:25:41.428252+00:00",
+    "full_av_review": false,
+    "media": {
+      "duration_seconds": 20.333,
+      "height": 1280,
+      "width": 720
+    },
+    "paid_generation_enabled": false,
+    "parent_candidate_sha256": "9ef2c49e6711df6da9af5dc304a3d1d30a175842815a464b1872f75dca926ca4",
+    "parent_cycle_sha256": "0a4a2db38c6611d9b657c0dfa83fdc551f9ae063b40a43e5e12a8e3c99c3ef4e",
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "Unreviewed portrait excerpt; no long-form, creative, listening, phone or publishing acceptance.",
+    "selection_scope": "Explicit supplied time bounds; not automatic editorial selection.",
+    "source_caption_sha256": "bfb4f16485b25c90165052f718ad7eea79efffef38c8f0f027bad12f27a412d9",
+    "start_seconds": 0.0,
+    "started_at": "2026-11-22T11:25:39.209718+00:00",
+    "status": "AWAITING_REVIEW",
+    "technical_status": "PASS"
+  },
+  "full_av_review": false,
+  "known_blockers": [
+    "Caption at27.260-29.320 says than instead of script Then; text mismatch retained for correction, not listening-verified.",
+    "Full audiovisual/listening/reference and phone acceptance absent.",
+    "Intended-host resources/24-hour operation and autonomous unattended discovery remain unverified."
+  ],
+  "library_file_id": "libfile_fde3_f-fd13cf3894d88191aa8348ad2ffaa6b0_389d2c70fb1c8191bcf9b25e87727630",
+  "library_version": 0,
+  "observed_at": "2026-11-22T11:26:00.616681+00:00",
+  "paid_generation_enabled": false,
+  "production_approved": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "render_summary": {
+    "candidate_sha256": "9ef2c49e6711df6da9af5dc304a3d1d30a175842815a464b1872f75dca926ca4",
+    "caption_sha256": "bfb4f16485b25c90165052f718ad7eea79efffef38c8f0f027bad12f27a412d9",
+    "caption_timing": "observed_word_timestamps",
+    "duration_seconds": 139.336333,
+    "editorial_sha256": "83f0615a8eee8541cb0139c38fab4905a0b03bdc63a0a22e3070628e1303f48c",
+    "finished_at": "2026-11-22T11:24:27.778733+00:00",
+    "full_av_review": false,
+    "independent_transcription_verified": true,
+    "motion": {
+      "frame_count": 24,
+      "kind": "periodic_arm_gesture",
+      "loop_seconds": 3.0,
+      "output_fps": 24,
+      "scope": "Deterministic three-second arm-gesture loop; static diagrams and typography. No lip sync or full character animation.",
+      "source_fps": 8
+    },
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "Fresh offline speech and original diagram-based picture video; technical verification only.",
+    "started_at": "2026-11-22T11:22:44.509606+00:00",
+    "status": "AWAITING_REVIEW",
+    "technical_status": "PASS",
+    "timeline_sha256": "4a1671ce63d40dc7d212e251e6b8a5c394e8f9f3a9eac8b2faf2ee6aaca2ce7f",
+    "transcription_receipt_sha256": "d41c3aed46c989b10248029de5893e105d20b054ef21b2a3ec4a9c85ed05e1f2",
+    "voice_model": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "voice_receipt_sha256": "d686621ff2f7c01f076657411a88665dbbc2f990057f34bb4e16522776e244f5"
+  },
+  "review": {
+    "correction": "Clarified original statement snapshot is not a second bill after payment.",
+    "reviewer": "original_fact_review",
+    "sources": "Fresh primary Chase, Capital One and CFPB reads; links/timestamps in statement-balance-research.md.",
+    "static_panels": [
+      3,
+      5,
+      8
+    ],
+    "static_scope": "Native720x1280, no clipping observed on inspected frames; not full visual or phone review.",
+    "voice_assignments_preserved": true
+  },
+  "scene_count": 12,
+  "schema_version": 1,
+  "scope": "Agent-orchestrated fresh primary-source research, original manuscript/storyboard, independent factual revision and offline production; not an unattended discovery service or full audiovisual acceptance.",
+  "script_words": 334,
+  "title": "My Balance Has Two Personalities"
+}
