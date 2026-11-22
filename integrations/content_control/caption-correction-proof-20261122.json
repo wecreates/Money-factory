@@ -1,0 +1,84 @@
+{
+  "archive_sha256": "1e9596b3a97f2799ada3525945b4e70b89f7e88cc69443451d44c8c6908b1414",
+  "archive_size_bytes": 8981276,
+  "checkpoint": {
+    "candidate_sha256": "9ef2c49e6711df6da9af5dc304a3d1d30a175842815a464b1872f75dca926ca4",
+    "checkpoint_sha256": "704296658eb1a1d7b4e0a1084cb9d35f145b19aa89e98d1e50dec1ef470c33be",
+    "full_av_review": false,
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "status": "CHECKPOINT_CREATED"
+  },
+  "cycle": {
+    "archive_sha256": "afeb0d49d5710d0c3603d0e3cae9d9e9ff8167db27a6ecadd07264d33bde5514",
+    "brief_sha256": "c9524d8829bffc47255cd0c8da35b1705dc8d3b7d42f14bc73c5b2767f4b3fb9",
+    "candidate_sha256": "9ef2c49e6711df6da9af5dc304a3d1d30a175842815a464b1872f75dca926ca4",
+    "caption_revision": {
+      "edits_sha256": "d28a43356b0b19d87c6c572f962c81953e53c76524e248817d73e96053bbcfd4",
+      "listening_verified": false,
+      "rationale": "Caption cue13 at27.260-29.320s uses than; the original sourced scene example narration says Then a forty dollar purchase posts. Correct this temporal connector using the unchanged manuscript. No listening-based claim.",
+      "reviewer": "root script-to-caption text review",
+      "scope": "Supplied text correction only; source audio and cue timings unchanged; no listening or new ASR verification.",
+      "source_caption_sha256": "bfb4f16485b25c90165052f718ad7eea79efffef38c8f0f027bad12f27a412d9",
+      "source_cycle_sha256": "0a4a2db38c6611d9b657c0dfa83fdc551f9ae063b40a43e5e12a8e3c99c3ef4e",
+      "source_package_sha256": "90e7891bc3198cfff7be4caedbec21c9a9edb4df074fdea029702fea6ece82a4",
+      "source_render_receipt_sha256": "44d2876bab13579edb44a889ad7488e743c93dc116d4842020c96781a8ed59d1",
+      "submitted_edits_json": "{\n  \"candidate_sha256\": \"9ef2c49e6711df6da9af5dc304a3d1d30a175842815a464b1872f75dca926ca4\",\n  \"caption_sha256\": \"bfb4f16485b25c90165052f718ad7eea79efffef38c8f0f027bad12f27a412d9\",\n  \"reviewer\": \"root script-to-caption text review\",\n  \"rationale\": \"Caption cue13 at27.260-29.320s uses than; the original sourced scene example narration says Then a forty dollar purchase posts. Correct this temporal connector using the unchanged manuscript. No listening-based claim.\",\n  \"edits\": [\n    {\n      \"cue\": 13,\n      \"before\": \"than a forty dollar purchase posts.\",\n      \"after\": \"Then a forty dollar purchase posts.\"\n    }\n  ]\n}\n"
+    },
+    "competitor_comparison": false,
+    "editorial_sha256": "8d29f6bf717cfb4bd51db6f86bb73fa9826d428c98dbfae40f038d4dbdf93b72",
+    "factual_review": false,
+    "finished_at": "2026-11-22T11:42:37.567773+00:00",
+    "full_av_review": false,
+    "operation": "caption_text_revision",
+    "package_sha256": "b776e398b982b74053d958a40cfa8b6067a613fbf2c7e53309366bb8842e7ab1",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "New review package for unchanged media with explicit caption correction; no fresh synthesis or creative approval.",
+    "started_at": "2026-11-22T11:42:35.051074+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "caption_text_revision",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "cycle_caption_revision.py": "8369368deb31f555204488bfb3fb84bf61062aff95a02e64b3e3be14e08e4f34"
+    }
+  },
+  "full_av_review": false,
+  "library_file_id": "libfile_fde3_f-99b34c42d43c81918e601f9c070db373_389d2c70fb1c8191bcf9b25e87727630",
+  "library_version": 0,
+  "new_caption_sha256": "0ff96b742c466798b04c879f0e3a1a4ebe5de588e077e5b632e4b7e4abe921b9",
+  "observed_at": "2026-11-22T11:43:32.309530+00:00",
+  "old_caption_sha256": "bfb4f16485b25c90165052f718ad7eea79efffef38c8f0f027bad12f27a412d9",
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "schema_version": 1,
+  "scope": "Actual immutable text-only caption correction and checkpoint restoration; not listening or full audiovisual acceptance.",
+  "source_cycle_sha256": "0a4a2db38c6611d9b657c0dfa83fdc551f9ae063b40a43e5e12a8e3c99c3ef4e",
+  "tests": {
+    "independent_focused": 30,
+    "local_regression": 135
+  },
+  "verification": {
+    "all_timing_lines_identical": true,
+    "independent_transcription_verified": false,
+    "new_checkpoint_restores_equal": true,
+    "old_cycle_inspection_passes": true,
+    "only_intended_text_change": true,
+    "video_sha256_unchanged": true
+  }
+}
