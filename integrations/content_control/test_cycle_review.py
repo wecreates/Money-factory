@@ -102,6 +102,23 @@ class ReviewTests(unittest.TestCase):
         (self.render / 'video.mp4').write_bytes(b'tampered')
         with self.assertRaisesRegex(ValueError, 'Original render'): inspect_cycle(self.root)
 
+    def test_thumbnail_copy_cannot_be_added_to_legacy_package_receipt(self):
+        package = self.delivery / 'package.json'
+        receipt = json.loads(package.read_text())
+        receipt['thumbnail_copy'] = 'Unauthored overlay'
+        write(package, receipt)
+        cycle = json.loads((self.root / 'cycle.json').read_text())
+        cycle['package_sha256'] = digest(package)
+        write(self.root / 'cycle.json', cycle)
+        # Rebind generic receipts deliberately: the semantic copy check should
+        # still enforce the compiled brief's absence of an override.
+        with zipfile.ZipFile(self.delivery / 'review-package.zip', 'w') as archive:
+            for path in self.delivery.iterdir():
+                if path.suffix != '.zip':
+                    archive.write(path, path.name)
+        with self.assertRaisesRegex(ValueError, 'Thumbnail copy differs'):
+            inspect_cycle(self.root)
+
     def test_archive_tamper_is_rejected(self):
         with zipfile.ZipFile(self.delivery / 'review-package.zip', 'a') as archive:
             archive.writestr('extra.txt', 'unexpected')

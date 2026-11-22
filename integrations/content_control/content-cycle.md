@@ -190,8 +190,14 @@ python -m integrations.content_control.cycle_selection \
 
 The input requires `candidate_sha256`, `package_sha256`, `thumbnail` (one of
 `thumbnail-1.png` through `thumbnail-3.png`), `thumbnail_sha256`, the exact packaged
-`title`, `reviewer`, timezone-qualified `reviewed_at`, and `rationale`. Changing
-the title requires a new package because it is embedded in the thumbnails.
+`title`, `reviewer`, timezone-qualified `reviewed_at`, and `rationale`.
+An optional `thumbnail_copy` in a new or revised editorial brief prints separate
+overlay text on all three images while leaving the episode title intact. It
+accepts 1–48 printable characters on one line after normalizing spaces. Without
+it the thumbnails still print the title. The package and recorded selection
+retain supplied overlay text. If the selection also asserts `thumbnail_copy`,
+it must match the existing image copy. Changing the title or copy requires a
+new package, with its own selection and evidence.
 Optional `next_idea_hypotheses` retains up to ten reviewer suggestions; these are
 not automatically consumed by ideation yet.
 

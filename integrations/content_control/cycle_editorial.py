@@ -34,6 +34,13 @@ def _identifier(value, name):
     return value
 
 
+def normalize_thumbnail_copy(value):
+    """Validate literal display text and retain one canonical space between words."""
+    if not isinstance(value, str) or not value.isprintable():
+        raise ValueError('thumbnail_copy: printable single-line text required')
+    return _text(' '.join(value.split()), 'thumbnail_copy', 48)
+
+
 def _url(value, name):
     value = _text(value, name, 2048)
     try:
@@ -181,6 +188,8 @@ def compile_editorial(brief, *, validate_visual_shapes=False):
               'script_scope': 'Supplied original scene brief; this compiler does not autonomously research or write a new script.',
               'publication_enabled': False, 'paid_generation_enabled': False,
               'production_approved': False, 'full_av_review': False}
+    if 'thumbnail_copy' in brief:
+        result['thumbnail_copy'] = normalize_thumbnail_copy(brief['thumbnail_copy'])
     result['editorial_sha256'] = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(',', ':'),
                                                          allow_nan=False).encode()).hexdigest()
     return result

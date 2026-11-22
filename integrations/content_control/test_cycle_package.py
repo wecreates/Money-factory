@@ -92,6 +92,26 @@ class CyclePackageTest(unittest.TestCase):
         self.assertIn('omits source headline, scene counter, character and speaker label',
                       m._page(self.editorial, [focused], self.receipt['candidate_sha256']))
 
+    def test_independent_copy_changes_thumbnail_and_preserves_title_and_media(self):
+        baseline = self.export()
+        self.assertNotIn('thumbnail_copy', baseline)
+        self.editorial['thumbnail_copy'] = 'Fee < Myth?'
+        self.receipt['editorial_sha256'] = m.editorial_digest(self.editorial)
+        self.save_receipt()
+        revised_path = self.root / 'revised'
+        with patch.object(m, 'make_thumbnail', wraps=m.make_thumbnail) as draw_overlay:
+            revised = self.export(revised_path)
+        self.assertEqual([call.args[2] for call in draw_overlay.call_args_list], ['Fee < Myth?'] * 3)
+        self.assertEqual(revised['thumbnail_copy'], 'Fee < Myth?')
+        self.assertEqual(revised['candidate_sha256'], baseline['candidate_sha256'])
+        self.assertEqual(revised['caption_sha256'], baseline['caption_sha256'])
+        for old, new in zip(baseline['thumbnails'], revised['thumbnails']):
+            self.assertNotEqual(old['sha256'], new['sha256'])
+            self.assertEqual(new['sha256'], m.digest(revised_path / new['file']))
+        page = (revised_path / 'index.html').read_text()
+        self.assertIn('<h1>The fee trap</h1>', page)
+        self.assertIn('Thumbnail copy: Fee &lt; Myth?', page)
+
     def test_explicit_crop_enlarges_diagram_and_rejects_out_of_bounds(self):
         from PIL import Image, ImageDraw
         source = self.root / 'panel.png'

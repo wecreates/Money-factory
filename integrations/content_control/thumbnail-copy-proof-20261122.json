@@ -1,0 +1,58 @@
+{
+  "verified_at": "2026-11-22T23:11:05.427193+00:00",
+  "issue": "https://github.com/wecreates/Money-factory/issues/543",
+  "prior_issue": "https://github.com/wecreates/Money-factory/issues/543#issuecomment-7086651893",
+  "candidate_sha256": "73071b5c079d14e5a8e435b44039d2ad87239bc6af1a6ed6a972159a90eb18f7",
+  "prior_candidate_sha256": "fea7f3bb45ca3dd5e252a7d6ef2656afe15e28b3679d944366043e3329255c50",
+  "render_package_sha256": "e5cf811f4788cf9d1368bba709948a26dc745b04dc95170bc526c7701b9d89f4",
+  "corrected_package_sha256": "f6e4c02accb61632431e0432a4bad2112c233f5bb885d04dd29b849d89bc4bd7",
+  "corrected_caption_sha256": "a33ffb4d7dbad09591418d13870b05df2f946dd53acf8a57e86a81ac3ab8d9b3",
+  "thumbnail": "thumbnail-3.png",
+  "thumbnail_sha256": "536d9d50351ac8afe8172928d3097b097a895ef30ef5964f1a6ed4d5da01ec2d",
+  "title": "Why Pending Card Charges Change",
+  "thumbnail_copy": "Two Totals?",
+  "scope": "Fresh render with identical script, scenes, sources and voice assignments. Caption correction preserved fresh media and cue timing. Prior delivery stays authoritative for its own candidate.",
+  "tools_sha256": {
+    "complete_cycle.py": "40d620af0ab5adba1029314e0c0d74b8c37bea51094314fad470a21e5ba61f15",
+    "cycle_editorial.py": "a8e69a7e956c4421ab75c281c835ecfcda1e1cd2e0dca6a903535bfc50624d2c",
+    "cycle_lineage.py": "d6c09d67af7aebaa919794c1beff68972f38d2728a7a69acd2d828fd893978a0",
+    "cycle_package.py": "ee165485767b2f0111a862bd87e7ad29dee3af900b3d5af81840edca7499303e",
+    "cycle_render.py": "833e798dbcafd9d26fcfc6cd8c8d82470c757a8967a133f4fb4cdfaa7d46fe83"
+  },
+  "lint": {
+    "tool": "youtube-agent-skill/package-lint",
+    "upstream_revision": "a2feb2104981a375ffd4f87ee04f4f5344ac43c6",
+    "original_score": 62,
+    "updated_score": 94,
+    "remaining_findings": [
+      [
+        "no-number",
+        "no number, date or name - the most reliable single fix"
+      ]
+    ],
+    "receipt_sha256": "995de02ece3dfd875ee5dedc9e81f31aca6a8b9d13e0951df9760275acf1ce78",
+    "scope": "Left headline copy and episode title. Advisory heuristic, no audience performance."
+  },
+  "verification": {
+    "caption_cues": 34,
+    "caption_text_changes": 7,
+    "caption_times_preserved": true,
+    "independent_transcription_verified_for_correction": false,
+    "asr_original_score": 0.9771428571428571,
+    "independently_viewed_native_thumbnail": true,
+    "voice_assignments_preserved": true
+  },
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_approved": false,
+  "full_av_review": false,
+  "phone_verified": false,
+  "audience_performance": {
+    "status": "UNAVAILABLE",
+    "impressions": null,
+    "clicks": null,
+    "ctr": null,
+    "independently_verified": false,
+    "scope": "No audience evidence supplied; no performance winner inferred."
+  }
+}
