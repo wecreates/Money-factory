@@ -74,6 +74,43 @@ class CyclePackageTest(unittest.TestCase):
             self.assertIn('package.json', archive.namelist())
             self.assertNotIn('review-package.zip', archive.namelist())
 
+    def test_focus_crop_requires_known_renderer_and_records_fallback(self):
+        media = {'width': 720, 'height': 1280}
+        receipt = {'scope': 'Fresh offline speech and original diagram-based picture video; technical verification only.'}
+        editorial = {'scenes': [{'visual_spec': {'kind': 'comparison'}}]}
+        self.assertEqual(m.diagram_thumbnail_crop(editorial, receipt, media), (45, 300, 675, 870))
+        for unknown in ({}, {'scope': 'unrelated portrait renderer'}):
+            self.assertIsNone(m.diagram_thumbnail_crop(editorial, unknown, media))
+        self.assertIsNone(m.diagram_thumbnail_crop(editorial, receipt, {'width': 1280, 'height': 720}))
+        self.assertIsNone(m.diagram_thumbnail_crop({'scenes': [{}]}, receipt, media))
+        result = self.export()
+        self.assertTrue(all(t['framing'] == 'full_frame' and t['source_crop_pixels'] is None
+                            and t['source_frame_size'] == [160, 240] and t['source_crop_omissions'] == []
+                            for t in result['thumbnails']))
+        self.assertIn('(complete frame)', (self.root / 'package/index.html').read_text())
+        focused = dict(result['thumbnails'][0], framing='diagram_focus')
+        self.assertIn('omits source headline, scene counter, character and speaker label',
+                      m._page(self.editorial, [focused], self.receipt['candidate_sha256']))
+
+    def test_explicit_crop_enlarges_diagram_and_rejects_out_of_bounds(self):
+        from PIL import Image, ImageDraw
+        source = self.root / 'panel.png'
+        image = Image.new('RGB', (720, 1280), 'red')
+        ImageDraw.Draw(image).rectangle((45, 300, 674, 869), fill='blue')
+        image.save(source)
+        full, focused = self.root / 'full.png', self.root / 'focused.png'
+        m.make_thumbnail(source, full, 'A title', 0)
+        m.make_thumbnail(source, focused, 'A title', 0, source_crop=(45, 300, 675, 870))
+        with Image.open(full) as a, Image.open(focused) as b:
+            # Known diagram fills more pixels; header/background is not retained.
+            blue_a = sum(pixel == (0, 0, 255) for pixel in a.getdata())
+            blue_b = sum(pixel == (0, 0, 255) for pixel in b.getdata())
+            self.assertGreater(blue_b, blue_a * 3)
+            self.assertNotIn((255, 0, 0), b.getdata())
+        for crop in ((-1, 0, 720, 1280), (0, 0, 721, 1280), (0, 0, 0, 10)):
+            with self.assertRaisesRegex(ValueError, 'crop'):
+                m.make_thumbnail(source, focused, 'A title', 0, source_crop=crop)
+
     def test_modified_video_captions_or_editorial_rejected(self):
         for target, expected in [('video.mp4', 'Candidate'), ('captions.vtt', 'Caption')]:
             path = self.render / target
