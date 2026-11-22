@@ -203,3 +203,17 @@ The 35.919-second candidate has ASR-verified speech/caption text correspondence 
 a supplied brief; no unattended discovery service or complete watch/listen and
 creative revision acceptance is established. Publishing and paid generation remain
 disabled. Issue #543 remains the sole completion checklist.
+
+## Caption media-end validation (2026-11-21)
+
+Observed ASR word timestamps are now bounded by freshly probed encoded container
+duration, rather than padded decoded audio duration. A word ending beyond that
+bound fails before caption replacement; no timestamp is silently clamped. The
+transcription receipt retains `duration_seconds` for decoded ASR compatibility and
+adds `encoded_media_duration_seconds` for the actual caption bound.
+
+[Actual replay evidence](caption-bound-proof-20261121.json) verifies the existing
+minimum-payment candidate still passes with byte-identical captions. The original
+cycle was not modified. This closes a validation gap, not full timing, listening,
+or creative acceptance; cross-sentence caption grouping remains a separate review
+issue.

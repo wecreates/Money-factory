@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import wave
@@ -95,6 +96,48 @@ class RenderValidationTests(unittest.TestCase):
         self.assertIn('Hello &lt;world&gt;',vtt)
         words[1]['start']=.1
         with self.assertRaises(ValueError):render.observed_captions(words,1)
+
+    def test_observed_captions_reject_invalid_or_padded_duration_bounds(self):
+        words=[{'word':'final','start':35.8,'end':36.0}]
+        # A padded ASR decode can accept words beyond the actual video end.
+        self.assertIn('00:00:36.000',render.observed_captions(words,36.2666875))
+        with self.assertRaisesRegex(ValueError,'word timing'):
+            render.observed_captions(words,35.918667)
+        for duration in (True,0,-1,float('nan'),float('inf'),'36'):
+            with self.subTest(duration=duration),self.assertRaisesRegex(ValueError,'media duration'):
+                render.observed_captions(words,duration)
+        # No hidden grace interval may place the cue outside playable media.
+        with self.assertRaises(ValueError):
+            render.observed_captions([{'word':'end','start':.9,'end':1.01}],1)
+
+    def test_encoded_duration_comes_from_video_and_rejects_nonfinite_values(self):
+        with patch.object(render.subprocess,'check_output',return_value=b'{"format":{"duration":"35.918667"}}') as probe:
+            self.assertEqual(render.encoded_media_duration(Path('/tmp/candidate.mp4')),35.918667)
+            self.assertEqual(probe.call_args.args[0][-1],'/tmp/candidate.mp4')
+            self.assertEqual(probe.call_args.kwargs['timeout'],20)
+        for duration in ('nan','inf','0','-1'):
+            with patch.object(render.subprocess,'check_output',return_value=json.dumps({'format':{'duration':duration}}).encode()):
+                with self.assertRaisesRegex(ValueError,'media duration'):
+                    render.encoded_media_duration(Path('/tmp/candidate.mp4'))
+
+    def test_transcription_blocks_word_beyond_encoded_end_before_caption_write(self):
+        word=SimpleNamespace(word='hello',start=.9,end=1.1,probability=1.0)
+        model=SimpleNamespace(hf_tokenizer=None,transcribe=lambda *a,**k:([SimpleNamespace(text='hello',words=[word])],None))
+        with tempfile.TemporaryDirectory() as td:
+            out=Path(td);(out/'video.mp4').write_bytes(b'explicit synthetic video fixture')
+            (out/'captions.vtt').write_text('original captions')
+            scripts=out/'scripts';scripts.mkdir()
+            (scripts/'free_transcription_qa.py').write_text(
+                "def decode_transcription_audio(video):return [],1.5\n"
+                "def spoken_number_suppression(tokenizer):return []\n"
+                "def norm(text):return text.lower()\n")
+            with patch.object(render,'pinned_asr_snapshot',return_value=(out,{})), \
+                 patch.object(render,'encoded_media_duration',return_value=1.0), \
+                 patch.dict(sys.modules,{'faster_whisper':SimpleNamespace(WhisperModel=lambda *a,**k:model)}), \
+                 patch.object(render.socket.socket,'connect'):
+                with self.assertRaisesRegex(ValueError,'word timing'):
+                    render.transcribe_encoded({'scenes':[{'narration':'hello'}]},out,out)
+            self.assertEqual((out/'captions.vtt').read_text(),'original captions')
 
     def test_parent_approval_claims_are_rejected(self):
         for key in ['production_approved','full_av_review']:
