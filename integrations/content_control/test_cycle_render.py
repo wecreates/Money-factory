@@ -110,8 +110,15 @@ class RenderValidationTests(unittest.TestCase):
                for i,w in enumerate(['Dr.', 'A.', 'Smith', 'paid', '$3.14', 'in', 'U.S.', 'fees.'])]
         cues=render.observed_captions(words,2).strip().split('\n\n')[1:]
         self.assertEqual([c.splitlines()[1] for c in cues],
-                         ['Dr. A. Smith paid $3.14 in U.S.', 'fees.'])
+                         ['Dr. A. Smith paid $3.14 in', 'U.S. fees.'])
         self.assertTrue(render._caption_sentence_end('$3.14.'))
+
+    def test_caption_tail_rebalancing_preserves_scene_boundary(self):
+        words = [{'word': str(i), 'start': i / 4, 'end': (i + 1) / 4} for i in range(8)]
+        self.assertIn('00:00:01.500 --> 00:00:02.000\n6 7',
+                      render.observed_captions(words, 2))
+        self.assertIn('00:00:01.750 --> 00:00:02.000\n7',
+                      render.observed_captions(words, 2, scene_boundaries=(1.75,)))
 
     def test_caption_groups_break_at_half_second_pause(self):
         words=[{'word':'before','start':0,'end':.5},
@@ -169,7 +176,11 @@ class RenderValidationTests(unittest.TestCase):
                  patch.object(render.socket.socket,'connect'):
                 with self.assertRaisesRegex(ValueError,'word timing'):
                     render.transcribe_encoded({'scenes':[{'narration':'hello'}]},out,out)
-            self.assertEqual((out/'captions.vtt').read_text(),'original captions')
+                self.assertEqual((out/'captions.vtt').read_text(),'original captions')
+                word.end = 1.0
+                render.transcribe_encoded({'scenes':[{'narration':'hello'}]},out,out)
+            self.assertIn('00:00:00.900 --> 00:00:01.000\nhello', (out/'captions.vtt').read_text())
+            self.assertIsNone(json.loads((out/'transcription.json').read_text())['timeline_sha256'])
 
     def test_parent_approval_claims_are_rejected(self):
         for key in ['production_approved','full_av_review']:

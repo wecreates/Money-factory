@@ -377,13 +377,17 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
         write(output/'timeline.json',{'scenes':rows,'duration_seconds':start,'publication_enabled':False})
         asr=None
         if transcription_python:
+            timeline_sha = digest(output/'timeline.json')
             asr_env=dict(env,HF_HOME=os.environ.get('CYZOR_ASR_HF_HOME',str(Path.home()/'.cache/huggingface')))
             run([transcription_python,Path(__file__).resolve(),'--transcribe','--editorial',output/'editorial.json',
-                 '--output',output,'--voice-root',Path(voice_root).resolve()],output/'transcription.log',deadline,asr_env)
+                 '--output',output,'--voice-root',Path(voice_root).resolve(),'--timeline',output/'timeline.json'],
+                output/'transcription.log',deadline,asr_env)
             asr=json.loads((output/'transcription.json').read_text())
             if (asr.get('status')!='PASS' or asr.get('candidate_sha256')!=digest(output/'video.mp4')
                     or asr.get('editorial_sha256')!=editorial_digest(editorial)
-                    or asr.get('caption_sha256')!=digest(output/'captions.vtt')):
+                    or asr.get('caption_sha256')!=digest(output/'captions.vtt')
+                    or asr.get('timeline_sha256')!=timeline_sha
+                    or digest(output/'timeline.json')!=timeline_sha):
                 raise ValueError('Encoded transcription receipt identity mismatch')
         receipt.update(status='AWAITING_REVIEW',technical_status='PASS',candidate_sha256=digest(output/'video.mp4'),
                        caption_sha256=digest(output/'captions.vtt'),voice_receipt_sha256=digest(output/'voice.json'),
@@ -434,7 +438,7 @@ def _caption_sentence_end(text):
     return not all(len(part) == 1 and part.isalpha() for part in parts)
 
 
-def observed_captions(words, duration):
+def observed_captions(words, duration, *, scene_boundaries=()):
     """Group observed words at punctuation/0.5s pauses, with a seven-word cap.
 
     This heuristic preserves recognized text and timestamps. It does not prove
@@ -464,6 +468,22 @@ def observed_captions(words, duration):
         if len(group) == 7:
             groups.append(group); group=[]
     if group: groups.append(group)
+    # Borrow one word from a capped cue when the following cue is a short tail.
+    for index in range(1, len(groups)) if scene_boundaries is not None else ():
+        prior, tail = groups[index - 1], groups[index]
+        if len(prior) != 7 or len(tail) != 1:
+            continue
+        last = prior[-1]
+        if (_caption_sentence_end(last['word']) or _caption_sentence_end(prior[-2]['word'])
+                or not 0 <= tail[0]['start'] - last['end'] < .5
+                or not 0 <= last['start'] - prior[-2]['end'] < .5):
+            continue
+        if any(last['start'] < boundary < tail[0]['end'] for boundary in scene_boundaries):
+            continue
+        original_min = min(last['end'] - prior[0]['start'], tail[0]['end'] - tail[0]['start'])
+        rebalanced_min = min(prior[-2]['end'] - prior[0]['start'], tail[0]['end'] - last['start'])
+        if rebalanced_min > max(0, original_min):
+            tail.insert(0, prior.pop())
     lines=['WEBVTT','']
     for group in groups:
         start,end=group[0]['start'],group[-1]['end']
@@ -508,7 +528,7 @@ def encoded_media_duration(video):
     return duration
 
 
-def transcribe_encoded(editorial, output, voice_root):
+def transcribe_encoded(editorial, output, voice_root, *, timeline=None):
     """Independent offline recognizer reads the encoded MP4 audio stream."""
     snapshot, model_identity = pinned_asr_snapshot()
     from faster_whisper import WhisperModel
@@ -519,6 +539,19 @@ def transcribe_encoded(editorial, output, voice_root):
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     video=output/'video.mp4'; candidate_hash=digest(video)
     media_duration=encoded_media_duration(video)
+    timeline_sha = None
+    boundaries = None
+    if timeline is not None:
+        timeline = Path(timeline)
+        raw_timeline = timeline.read_bytes()
+        timeline_sha = hashlib.sha256(raw_timeline).hexdigest()
+        scenes = json.loads(raw_timeline)['scenes']
+        starts = [scene['start'] for scene in scenes]
+        if (not starts or len(starts) != len(editorial['scenes']) or starts[0] != 0
+                or any(type(start) not in (int, float) or not 0 <= start < media_duration for start in starts)
+                or any(a >= b for a,b in zip(starts, starts[1:]))):
+            raise ValueError('Invalid measured scene starts')
+        boundaries = tuple(starts[1:])
     samples,duration=module.decode_transcription_audio(video)
     model=WhisperModel(str(snapshot),device='cpu',compute_type='int8',cpu_threads=2,local_files_only=True)
     segments,info=model.transcribe(samples,language='en',beam_size=5,word_timestamps=True,
@@ -542,10 +575,12 @@ def transcribe_encoded(editorial, output, voice_root):
             'production_approved':False,'full_av_review':False,
             'scope':'Encoded speech recognition and observed word timing; not semantic equivalence, factual, creative or listening approval.'}
     if comparison['passed']:
-        captions=observed_captions(words,media_duration)
+        captions=observed_captions(words,media_duration,scene_boundaries=boundaries)
         if digest(video)!=candidate_hash:raise ValueError('Candidate changed during ASR')
+        if timeline is not None and digest(timeline) != timeline_sha:
+            raise ValueError('Scene timeline changed during ASR')
         (output/'captions.vtt').write_text(captions)
-        report.update(status='PASS',caption_sha256=digest(output/'captions.vtt'))
+        report.update(status='PASS',caption_sha256=digest(output/'captions.vtt'),timeline_sha256=timeline_sha)
     write(output/'transcription.json',report)
     if report['status']!='PASS':raise ValueError('Independent encoded speech comparison failed')
 
@@ -554,5 +589,11 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser();mode=parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--synthesize',action='store_true');mode.add_argument('--transcribe',action='store_true')
     parser.add_argument('--editorial',required=True);parser.add_argument('--output',required=True);parser.add_argument('--voice-root',required=True)
-    args=parser.parse_args();function=synthesize if args.synthesize else transcribe_encoded
-    function(json.loads(Path(args.editorial).read_text()),Path(args.output),args.voice_root)
+    parser.add_argument('--timeline',type=Path)
+    args=parser.parse_args()
+    editorial=json.loads(Path(args.editorial).read_text())
+    if args.synthesize:
+        if args.timeline is not None: parser.error('--timeline requires --transcribe')
+        synthesize(editorial,Path(args.output),args.voice_root)
+    else:
+        transcribe_encoded(editorial,Path(args.output),args.voice_root,timeline=args.timeline)
