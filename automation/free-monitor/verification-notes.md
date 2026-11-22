@@ -77,3 +77,19 @@ reactivated watches, label updates, unchanged history and kind resets. These are
 regressions for configuration handling, not evidence of a production retarget,
 website recovery or complete unattended operation. No configured target was
 changed while implementing this behavior.
+
+## Unique watch identity
+
+The worker rejects duplicate normalized watch IDs before fetching targets or
+writing state/events, including collisions between active and paused entries.
+Previously, two targets sharing an ID could overwrite each other's state: a
+later healthy target could hide an earlier failed target and make the overall
+worker report healthy. Configuration must give each watch a distinct ID.
+
+The regression is reproduced with isolated local fixtures; it is not an observed
+production collision. The configured production watches already have distinct
+IDs. Retained hosted state at `488cabef7d916a32e6efffa57fe0194a541d8857`
+still records the website timeout at 2026-11-22T15:43:02.034Z and repository
+HTTP 200 at 15:43:22.666Z. A separate public fetch on November 22 also timed out.
+Neither this fix nor the repository response establishes website recovery,
+self-serve onboarding, intended-host operation or 24-hour acceptance.
