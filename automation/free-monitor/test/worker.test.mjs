@@ -79,3 +79,70 @@ test('real HTTP failure persists 502, exits nonzero, and recovery clears the err
     assert.equal(JSON.parse(await fs.readFile(options.statePath,'utf8')).fixture.last_status,null);
   }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
 });
+
+import crypto from 'node:crypto';
+import {gzipSync} from 'node:zlib';
+import {MAX_RESPONSE_BYTES} from '../worker.mjs';
+
+test('decoded body ceiling preserves baseline on declared, chunked and gzip overflow, then recovers',async()=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-limit-'));
+  const exact=Buffer.alloc(MAX_RESPONSE_BYTES,97);
+  const overflow=Buffer.alloc(MAX_RESPONSE_BYTES+1,98);
+  let mode='exact';
+  const server=http.createServer((req,res)=>{
+    if(mode==='gzip'){
+      const compressed=gzipSync(overflow);
+      res.writeHead(200,{'content-encoding':'gzip','content-length':compressed.length});
+      res.end(compressed);
+    }else if(mode==='chunked'){
+      res.writeHead(200,{'transfer-encoding':'chunked'});
+      res.write(overflow.subarray(0,MAX_RESPONSE_BYTES));res.end(overflow.subarray(MAX_RESPONSE_BYTES));
+    }else{
+      const body=mode==='exact'?exact:overflow;
+      res.writeHead(200,{'content-length':body.length});res.end(body);
+    }
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),eventsPath:path.join(dir,'events.json'),intervalMs:0};
+  try{
+    await fs.writeFile(options.watchesPath,JSON.stringify([{id:'bounded',targetUrl:'http://127.0.0.1:'+server.address().port}]));
+    const first=await runWorker(options);
+    assert.equal(first.ok,true);
+    assert.equal(first.results[0].response_bytes,MAX_RESPONSE_BYTES);
+    assert.equal(first.results[0].response_limit_bytes,MAX_RESPONSE_BYTES);
+    const baseline=JSON.parse(await fs.readFile(options.statePath,'utf8')).bounded;
+    assert.equal(baseline.last_value,crypto.createHash('sha256').update(exact).digest('hex'));
+    for(mode of ['declared','chunked','gzip']){
+      const failed=await runWorker(options);
+      assert.equal(failed.ok,false,mode);
+      assert.match(failed.results[0].error,/Decoded response exceeds 2097152 byte limit/);
+      const state=JSON.parse(await fs.readFile(options.statePath,'utf8')).bounded;
+      assert.equal(state.last_value,baseline.last_value);
+      assert.equal(state.last_change_at,baseline.last_change_at);
+      assert.equal(state.last_status,null);
+      assert.deepEqual(JSON.parse(await fs.readFile(options.eventsPath,'utf8')),[]);
+    }
+    mode='exact';
+    assert.equal((await runWorker(options)).ok,true);
+    const recovered=JSON.parse(await fs.readFile(options.statePath,'utf8')).bounded;
+    assert.equal(recovered.last_error,null);assert.equal(recovered.last_value,baseline.last_value);
+  }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
+});
+
+test('overflow cancels the response reader and never reads or hashes remaining body',async(t)=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-cancel-'));
+  let reads=0,canceled=false,released=false;
+  const reader={
+    async read(){reads++;return {done:false,value:new Uint8Array(MAX_RESPONSE_BYTES+1)};},
+    async cancel(){canceled=true;},
+    releaseLock(){released=true;}
+  };
+  t.mock.method(globalThis,'fetch',async()=>({ok:true,status:200,body:{getReader:()=>reader}}));
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),eventsPath:path.join(dir,'events.json'),intervalMs:0};
+  try{
+    await fs.writeFile(options.watchesPath,JSON.stringify([{id:'bounded',targetUrl:'http://fixture.invalid'}]));
+    const report=await runWorker(options);
+    assert.equal(report.ok,false);assert.equal(reads,1);assert.equal(canceled,true);assert.equal(released,true);
+    assert.equal(JSON.parse(await fs.readFile(options.statePath,'utf8')).bounded.last_value,null);
+  }finally{await fs.rm(dir,{recursive:true,force:true});}
+});

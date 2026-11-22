@@ -38,3 +38,27 @@ whole cycle's `ok` value, incorrectly marking the repository's health false due
 to the website failure. Per-watch health now describes that target's own check;
 overall acceptance still requires both complete cycles to be healthy. The
 original failed report remains historical evidence and is not rewritten locally.
+
+## Response resource ceiling
+
+The worker hashes decoded response chunks incrementally instead of buffering the
+entire body. A response exceeding 2 MiB is cancelled and recorded as a failed
+check; no partial digest replaces the previous successful hash and no change
+event is emitted for overflow. The existing 20-second request timeout remains.
+Chunked and compressed responses are bounded by decoded bytes, independent of
+Content-Length. Successful worker results report `response_bytes` and
+`response_limit_bytes`.
+
+This bounds application-level response processing, not total process memory or
+all resource use inside the HTTP stack. Overflow/recovery fixtures are local
+technical evidence, not deployed overload/24-hour acceptance. The website timeout
+remains a separate unresolved integration failure.
+
+One ordinary workspace GET on November 21 at 7:50:19 PM Pacific also timed out
+(curl exit 28; 20.000777 seconds; HTTP 000; zero response bytes). On that configured
+network path, curl reported connection at 0.000128 seconds and TLS completion at
+4.904375 seconds, but no first response byte. This narrows the local observation
+to waiting after TLS; it does not locate the fault in the origin application,
+reverse proxy or upstream. The normal workspace network may mediate DNS/connect
+measurements. No retries, proxy overrides or settings changes were used. Actual
+deployment/network logs remain needed to identify and safely resolve the cause.
