@@ -1,33 +1,68 @@
 {
-  "checked_at": "2026-10-07T16:25:29.463Z",
-  "before_last_checked_at": 1791390152588,
-  "first_cycle_last_checked_at": 1791390329421,
-  "second_cycle_last_checked_at": 1791390329462,
+  "checked_at": "2026-11-22T02:40:08.954Z",
+  "scope": "Two immediate checks of configured active targets; not continuous uptime or a 24-hour soak.",
+  "active_watch_count": 2,
+  "watches": [
+    {
+      "id": "cyzor-website",
+      "before_last_checked_at": 1795315138851,
+      "first_cycle_last_checked_at": 1795315168365,
+      "second_cycle_last_checked_at": 1795315188931,
+      "advanced_first_cycle": true,
+      "advanced_second_cycle": true,
+      "first_cycle_healthy": false,
+      "second_cycle_healthy": false,
+      "pass": false
+    },
+    {
+      "id": "money-factory-repository",
+      "before_last_checked_at": 1795315159350,
+      "first_cycle_last_checked_at": 1795315188903,
+      "second_cycle_last_checked_at": 1795315208952,
+      "advanced_first_cycle": true,
+      "advanced_second_cycle": true,
+      "first_cycle_healthy": false,
+      "second_cycle_healthy": false,
+      "pass": false
+    }
+  ],
+  "pass": false,
   "first_cycle": {
-    "ran_at": "2026-10-07T16:25:29.341Z",
+    "ran_at": "2026-11-22T02:39:28.365Z",
+    "ok": false,
     "results": [
       {
-        "id": "cyzor-free-monitor-smoke",
+        "id": "cyzor-website",
         "checked": true,
-        "changed": false,
+        "error": "TimeoutError: The operation was aborted due to timeout",
+        "last_checked_at": 1795315168365
+      },
+      {
+        "id": "money-factory-repository",
+        "checked": true,
+        "changed": true,
         "status": 200,
-        "last_checked_at": 1791390329421
+        "last_checked_at": 1795315188903
       }
     ]
   },
   "second_cycle": {
-    "ran_at": "2026-10-07T16:25:29.448Z",
+    "ran_at": "2026-11-22T02:39:48.931Z",
+    "ok": false,
     "results": [
       {
-        "id": "cyzor-free-monitor-smoke",
+        "id": "cyzor-website",
         "checked": true,
-        "changed": false,
+        "error": "TimeoutError: The operation was aborted due to timeout",
+        "last_checked_at": 1795315188931
+      },
+      {
+        "id": "money-factory-repository",
+        "checked": true,
+        "changed": true,
         "status": 200,
-        "last_checked_at": 1791390329462
+        "last_checked_at": 1795315208952
       }
     ]
-  },
-  "advanced_first_cycle": true,
-  "advanced_second_cycle": true,
-  "pass": true
+  }
 }
