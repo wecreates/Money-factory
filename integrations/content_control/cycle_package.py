@@ -61,7 +61,23 @@ def _link(url):
     return html.escape(url, quote=True)
 
 
-def make_thumbnail(frame, target, title, variant):
+def diagram_thumbnail_crop(editorial, receipt, media):
+    """Opt in only to the known picture renderer's diagram region.
+
+    Portrait geometry alone is not evidence of this layout. Unknown renderer
+    receipts or scene specifications retain the complete source frame.
+    """
+    scope = 'Fresh offline speech and original diagram-based picture video; technical verification only.'
+    scenes = editorial.get('scenes', [])
+    if (receipt.get('scope') == scope and (media.get('width'), media.get('height')) == (720, 1280)
+            and scenes and all(isinstance(scene, dict) and isinstance(scene.get('visual_spec'), dict) and
+                scene['visual_spec'].get('kind') in {'card', 'receipt', 'balance', 'checklist', 'comparison'}
+                for scene in scenes)):
+        return (45, 300, 675, 870)
+    return None
+
+
+def make_thumbnail(frame, target, title, variant, *, source_crop=None):
     from PIL import Image, ImageDraw, ImageFont, ImageOps
     colors = [(255, 205, 66), (133, 225, 197), (163, 190, 255)]
     canvas = Image.new('RGB', (1280, 720), '#121820')
@@ -69,7 +85,14 @@ def make_thumbnail(frame, target, title, variant):
     draw.rectangle((0, 0, 18, 720), fill=colors[variant])
     with Image.open(frame) as image:
         image.load()
-        fitted = ImageOps.contain(image.convert('RGB'), (640, 680))
+        image = image.convert('RGB')
+        if source_crop is not None:
+            require(len(source_crop) == 4 and all(type(v) is int for v in source_crop), 'Invalid thumbnail crop')
+            left, top, right, bottom = source_crop
+            require(0 <= left < right <= image.width and 0 <= top < bottom <= image.height,
+                    'Thumbnail crop outside source frame')
+            image = image.crop(source_crop)
+        fitted = ImageOps.contain(image, (640, 680))
         canvas.paste(fitted, (620 + (640 - fitted.width) // 2, (720 - fitted.height) // 2))
     font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
     def font(size):
@@ -116,7 +139,9 @@ def _page(editorial, thumbnails, candidate):
                      '<p>Visual: ' + esc(s['visual']) + '</p></li>' for s in editorial['scenes'])
     thumbs = ''.join('<figure><img src="' + t['file'] + '" alt="Thumbnail review variant ' + str(i + 1) +
                      '"><figcaption>Variant ' + str(i + 1) + ', source frame at ' +
-                     format(t['source_timestamp_seconds'], '.2f') + ' seconds</figcaption></figure>'
+                     format(t['source_timestamp_seconds'], '.2f') + ' seconds' +
+                     (' (diagram crop; omits source headline, scene counter, character and speaker label)'
+                      if t.get('framing') == 'diagram_focus' else ' (complete frame)') + '</figcaption></figure>'
                      for i, t in enumerate(thumbnails))
     return '''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
@@ -172,6 +197,7 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
         require(digest(output / 'video.mp4', deadline) == candidate and digest(output / 'captions.vtt', deadline) == captions and
                 digest(output / 'render.json', deadline) == render_receipt_sha, 'Copied render changed during packaging')
         thumbnails = []
+        source_crop = diagram_thumbnail_crop(editorial, receipt, media)
         for index, fraction in enumerate((0.2, 0.5, 0.8)):
             timestamp = media['duration_seconds'] * fraction
             raw = output / ('frame-' + str(index + 1) + '.png')
@@ -179,10 +205,14 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
                  '-threads', '2', '-ss', format(timestamp, '.6f'), '-f', 'mov', '-i', str(output / 'video.mp4'),
                  '-frames:v', '1', '-threads', '1', str(raw)], 60, deadline=deadline)
             filename = 'thumbnail-' + str(index + 1) + '.png'
-            make_thumbnail(raw, output / filename, editorial['title'], index)
+            make_thumbnail(raw, output / filename, editorial['title'], index, source_crop=source_crop)
             check_deadline(deadline)
             raw.unlink()
             thumbnails.append({'file': filename, 'source_timestamp_seconds': timestamp,
+                               'framing': 'diagram_focus' if source_crop else 'full_frame',
+                               'source_crop_pixels': list(source_crop) if source_crop else None,
+                               'source_crop_omissions': ['headline', 'scene counter', 'character', 'speaker label'] if source_crop else [],
+                               'source_frame_size': [media['width'], media['height']],
                                'sha256': digest(output / filename, deadline), 'width': 1280, 'height': 720})
         (output / 'editorial.json').write_text(json.dumps(editorial, indent=2, sort_keys=True, allow_nan=False) + '\n')
         (output / 'index.html').write_text(_page(editorial, thumbnails, candidate))

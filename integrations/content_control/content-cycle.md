@@ -230,3 +230,18 @@ tokens can join a positive cue; invalid zero-duration cues still fail closed.
 caption text and the saved checkpoint for a fresh same-brief candidate. The
 previous package is untouched. The observed cross-sentence bridges are removed,
 but playback/readability/listening and full creative acceptance remain open.
+
+## Diagram-focused thumbnails (2026-11-21)
+
+Known 720x1280 picture-renderer outputs now use the declared diagram crop
+`[45, 300, 675, 870]` when building the right-hand thumbnail inset. This enlarges
+diagram labels while retaining the title. Unknown media retains full-frame
+containment. Each thumbnail records framing, source dimensions, crop and exact
+frame timestamp; the preview identifies cropped variants.
+
+[Actual repackaging evidence](thumbnail-focus-proof-20261121.json) retains new
+package/thumbnail hashes and a saved viewing ZIP. Video, captions, voices and
+original cycle remain unchanged. This ZIP is a viewing package, not a replacement
+for the earlier exact-cycle recovery checkpoint. Previous package selections
+are not transferred. Visual readability review does not establish CTR, mobile
+playback, full audiovisual or creative acceptance.

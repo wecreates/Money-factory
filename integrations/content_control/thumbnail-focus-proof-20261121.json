@@ -1,0 +1,125 @@
+{
+  "observed_at": "2026-11-22T05:47:02.580834+00:00",
+  "scope": "Actual repackaging of unchanged video/captions with larger diagram thumbnails; not a new video production or full audiovisual approval",
+  "base_commit": "26eb24e",
+  "candidate_sha256": "e57dbaa44970570e0268b6879cbc061e1ad9bba1f496cd7965718b915377a372",
+  "prior_package_sha256": "0f54353c4b6bf3576eee8219f41ce755de671318c67bd1019b962c73cb497952",
+  "new_package_sha256": "fb5de7a03307cc4d1a2fb81504b59d5591f6aaa9e3ba988c09662af1f1fdb292",
+  "package_module_sha256": "2e4da6f6126386bea78a496c2dd59b979f0c06a65d767bf39b3ac248560053ef",
+  "archive_sha256": "84cecd8630f1e001734cd6a0f993acfacc2e26960924aaf43665f02bb1814b85",
+  "video_and_captions_unchanged": true,
+  "original_cycle_inspection": "PASS",
+  "new_package_status": "AWAITING_REVIEW",
+  "media": {
+    "decode": "PASS",
+    "duration_seconds": 35.918667,
+    "height": 1280,
+    "width": 720
+  },
+  "thumbnails": [
+    {
+      "file": "thumbnail-1.png",
+      "framing": "diagram_focus",
+      "height": 720,
+      "sha256": "821733115e00db2e200fe040c0490f62a6813237aa106542cea0399468803704",
+      "source_crop_omissions": [
+        "headline",
+        "scene counter",
+        "character",
+        "speaker label"
+      ],
+      "source_crop_pixels": [
+        45,
+        300,
+        675,
+        870
+      ],
+      "source_frame_size": [
+        720,
+        1280
+      ],
+      "source_timestamp_seconds": 7.1837334,
+      "width": 1280
+    },
+    {
+      "file": "thumbnail-2.png",
+      "framing": "diagram_focus",
+      "height": 720,
+      "sha256": "fcef222c045229d5e0cfb8cb165e38a7f143235d1dff492fd9a26fa00aca889b",
+      "source_crop_omissions": [
+        "headline",
+        "scene counter",
+        "character",
+        "speaker label"
+      ],
+      "source_crop_pixels": [
+        45,
+        300,
+        675,
+        870
+      ],
+      "source_frame_size": [
+        720,
+        1280
+      ],
+      "source_timestamp_seconds": 17.9593335,
+      "width": 1280
+    },
+    {
+      "file": "thumbnail-3.png",
+      "framing": "diagram_focus",
+      "height": 720,
+      "sha256": "7f89ec7b6130084b1681a9bee166cc625ac234ab3d1f828052d864731100e926",
+      "source_crop_omissions": [
+        "headline",
+        "scene counter",
+        "character",
+        "speaker label"
+      ],
+      "source_crop_pixels": [
+        45,
+        300,
+        675,
+        870
+      ],
+      "source_frame_size": [
+        720,
+        1280
+      ],
+      "source_timestamp_seconds": 28.7349336,
+      "width": 1280
+    }
+  ],
+  "visual_observation": {
+    "reviewer": "root",
+    "scope": "Actual thumbnail2 at1280x720 only",
+    "observations": [
+      "MINIMUM and IN FULL labels substantially enlarged",
+      "PAYMENT DUE / BALANCE PAID label remains intact",
+      "Title unchanged; redundant source headline and character intentionally outside declared crop"
+    ]
+  },
+  "local_tests": 108,
+  "library": {
+    "id": "libfile_fde3_f-4a4fdf23953c8191bbd5b2044a047339_389d2c70fb1c8191bcf9b25e87727630",
+    "version": 1,
+    "bytes": 737990,
+    "url": "https://chatgpt.com/library?file_id=libfile_fde3_f-4a4fdf23953c8191bbd5b2044a047339_389d2c70fb1c8191bcf9b25e87727630&account_id=personal"
+  },
+  "remaining": [
+    "Full video watch/listen and creative acceptance",
+    "Mobile playback/legibility verification",
+    "Audience metrics unavailable; no CTR winner",
+    "Previous selection is not automatically transferred to new package"
+  ],
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "independent_review": {
+    "reviewer": "focus_review",
+    "scope": "All three original/revised thumbnail pairs plus code/11 tests",
+    "result": "No blocking findings; diagram labels and all three grace-period conditions intact and larger",
+    "preference": "thumbnail-2.png",
+    "limits": "Editorial preference only; no AV/mobile/CTR acceptance"
+  }
+}
