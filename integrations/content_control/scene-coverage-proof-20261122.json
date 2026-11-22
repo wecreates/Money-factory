@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-22T18:02:00Z",
+  "issue": "https://github.com/wecreates/Money-factory/issues/543",
+  "prior_evidence": "https://github.com/wecreates/Money-factory/issues/543#issuecomment-7082265652",
+  "base_commit": "89fada267131377e775bb7c19856fccb45762812",
+  "scope": "Authoritative authored-scene sampling coverage only; not independent shot detection or full audiovisual acceptance.",
+  "problem": "Prior exact-candidate REA storyboard contained one opening representative image for twelve authored scenes.",
+  "implementation": {
+    "module": "integrations/content_control/cycle_scene_review.py",
+    "sha256": "8ad4007f24542bafe40609697a53d0eed2de6f5ef0314dc7f8816984a374891e",
+    "timing_source": "Bound render.json measured scene intervals, not planned editorial durations",
+    "limits": "1..30 contiguous ordered scenes; <=1920x1080 pixels; 10..600 second total deadline; local file/pipe decoding; bounded logs; owned subprocess cleanup",
+    "review_fix": "Independent reviewer reproduced 1 FPS midpoint seek selecting the following scene. Actual decoded PTS is now recorded and must be inside the intended interval; real regression retained."
+  },
+  "runtime": {
+    "started_at": "2026-11-22T18:00:22.739745+00:00",
+    "finished_at": "2026-11-22T18:00:27.131234+00:00",
+    "status": "SCENE_SAMPLES_READY",
+    "sampled_scene_count": 12,
+    "candidate_sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+    "package_sha256": "0e0743edfff5c9f4004af800c77bb1cac04e3855218befe177b803803b423196",
+    "receipt_sha256": "6f80867a036dd0c5b1beb1d47a33dd0c860fb220c598f0b9edb18beaf17a19ad",
+    "source_unchanged": true,
+    "earlier_pre_fix_export": "Retained locally; excluded from authoritative evidence."
+  },
+  "independent_verification": {
+    "at": "2026-11-22T18:00:57.470476Z",
+    "source_manifest_matches": true,
+    "artifact_hashes_verified": 14,
+    "decoded_source_frame_timestamps": 3343,
+    "sample_pts_matches_first_frame_at_or_after_midpoint": 12,
+    "independent_output_seek_native_pixel_matches": 12,
+    "dimensions": [
+      720,
+      1280
+    ],
+    "visual_scope": "Viewed twelve-scene contact sheet and native frames 3,9,10. Sampled counters match ordered scene identities; titles/cards unclipped; $500,+$40,$540 labels paired; grace-period conditions/exceptions readable. Not full watching/listening.",
+    "full_av_review": false
+  },
+  "validation": {
+    "local_cycle_tests": 130,
+    "local_complete_cycle_and_rea_tests": 21,
+    "independent_focused_tests": 28,
+    "new_tests": 9,
+    "diff_check": "PASS",
+    "hosted_ci": "Pending at proof creation; final exact-head result will be linked in issue543."
+  },
+  "delivery": {
+    "library_url": "https://chatgpt.com/library?file_id=libfile_fde3_f-b010bf4645548191a477e906d4e08434_389d2c70fb1c8191bcf9b25e87727630&account_id=personal",
+    "library_file_id": "libfile_fde3_f-b010bf4645548191a477e906d4e08434_389d2c70fb1c8191bcf9b25e87727630",
+    "file_id": "file_00000000414c81f597b29fc3323a10e5",
+    "version": 0,
+    "file_name": "CYZOR-All-Scene-Review.zip",
+    "bytes": 3642056,
+    "sha256": "84b62ae70b1c1e368d651a0eacb7d4aa1f813cdcffd810f6b7dc19f296aca5c6",
+    "manifest_entries_verified": 17,
+    "contents": "Twelve native PNGs, contact sheet, local HTML, scene receipt, original unchanged review-package.zip, README, manifest",
+    "deployed": false,
+    "phone_verified": false
+  },
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_approved": false,
+  "full_av_review": false,
+  "all_twelve_complete": false,
+  "remaining_blockers": [
+    "Full exact-output watch/listen/reference comparison and phone acceptance",
+    "Actual-host authoritative capacity, useful Ruflo/OpenClaw work, restart and 24-hour soak",
+    "Autonomous unsupplied-script research-to-revision complete run",
+    "Deployed website recovery and self-serve first job",
+    "Canonical SIM/runtime installations, remaining model-driven consumers and measured audience learning"
+  ],
+  "signals": {
+    "content_control_render_yaml_blob": "360e7dd10df9bd42ce4568fda3d7f1d7d89f21b4",
+    "publication_flags": "Repository configuration false; live settings unavailable.",
+    "retained_monitor": "Unchanged16:22:12.073UTC worker_code2/okfalse, bothnot_due; retains website timeout16:21:39.687UTC. No new recovery signal.",
+    "new_main_pr521": "Disposable-test workflow/fixture/docs changes only; documented rollout metadata is not fresh independent live telemetry."
+  }
+}
