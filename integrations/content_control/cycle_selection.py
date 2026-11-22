@@ -29,9 +29,12 @@ def record_selection(cycle_dir, selection_path, output):
     thumbnail_hash = snapshot['files_sha256']['delivery/' + thumbnail]
     require(selection.get('thumbnail_sha256') == thumbnail_hash, 'Selected thumbnail identity mismatch')
     title = _text(selection.get('title'), 'title', 120)
-    # Package thumbnails contain the original title: a different title requires
-    # a fresh package, preventing a selection from silently relabeling artifacts.
+    # A different episode title requires a fresh package, even when the image
+    # prints independent thumbnail copy.
     require(title == snapshot['editorial']['title'], 'Title must match this package; repackage title changes')
+    if 'thumbnail_copy' in selection:
+        require(selection['thumbnail_copy'] == snapshot['editorial'].get('thumbnail_copy', ' '.join(title.split())),
+                'Thumbnail copy must match this package')
     reviewer = _text(selection.get('reviewer'), 'reviewer', 200)
     reviewed_at = _timestamp(selection.get('reviewed_at'), 'reviewed_at')
     require(datetime.fromisoformat(reviewed_at) >= datetime.fromisoformat(snapshot['cycle']['finished_at']), 'Selection predates completed cycle')
@@ -72,6 +75,8 @@ def record_selection(cycle_dir, selection_path, output):
               'learning_scope': 'Reviewer hypotheses for subsequent ideation; not proven audience preferences or autonomous learning.',
               'independent_verification': False, 'publication_enabled': False, 'paid_generation_enabled': False,
               'production_approved': False, 'full_av_review': False, 'production_ready': False}
+    if 'thumbnail_copy' in snapshot['editorial']:
+        result['thumbnail_copy'] = snapshot['editorial']['thumbnail_copy']
     require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(source) == source_hash,
             'Selection inputs changed while recording')
     destination = _new_output(output, root, source)

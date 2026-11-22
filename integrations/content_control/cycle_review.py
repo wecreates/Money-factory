@@ -87,6 +87,9 @@ def inspect_cycle(cycle_dir):
     require(editorial_digest(editorial) == package.get('editorial_sha256'), 'Editorial canonical binding mismatch')
     require(digest(_regular(root / 'brief.json')) == cycle.get('brief_sha256'), 'Cycle brief changed')
     require(compile_editorial(_load(root / 'brief.json')) == editorial, 'Brief no longer compiles to this editorial')
+    require(('thumbnail_copy' in package) == ('thumbnail_copy' in editorial)
+            and package.get('thumbnail_copy') == editorial.get('thumbnail_copy'),
+            'Thumbnail copy differs from compiled editorial')
     candidate = digest(delivery / 'video.mp4')
     require(candidate == cycle.get('candidate_sha256') == package.get('candidate_sha256'), 'Candidate mismatch')
     render = _load(delivery / 'render.json')

@@ -38,16 +38,30 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(result['production_approved'])
         self.assertFalse(result['publication_enabled'])
         self.assertFalse(result['independent_verification'])
+        self.assertNotIn('thumbnail_copy', result)
         self.assertEqual(inspect_cycle(self.root), before)
 
     def test_stale_identity_title_and_timestamp_rejected(self):
         for key, value in [('candidate_sha256','0'*64), ('package_sha256','0'*64),
                            ('thumbnail_sha256','0'*64), ('thumbnail','../../file'),
-                           ('title','Different title'), ('reviewed_at','2026-01-01T00:00:00Z')]:
+                           ('title','Different title'), ('thumbnail_copy','Different copy'),
+                           ('reviewed_at','2026-01-01T00:00:00Z')]:
             with self.subTest(key=key):
                 selection = self.selection(); selection[key] = value
                 with self.assertRaises(ValueError): self.record(selection)
                 self.assertFalse(self.recorded.exists())
+
+    def test_independent_thumbnail_copy_does_not_relabel_selected_title(self):
+        selection = self.selection()
+        snapshot = inspect_cycle(self.root)
+        snapshot['editorial']['thumbnail_copy'] = 'Two Totals?'
+        with patch('integrations.content_control.cycle_selection.inspect_cycle', return_value=snapshot):
+            wrong_title = dict(selection, title='Two Totals?')
+            with self.assertRaisesRegex(ValueError, 'Title must match'):
+                self.record(wrong_title)
+            result = self.record(dict(selection, thumbnail_copy='Two Totals?'))
+        self.assertEqual(result['title'], selection['title'])
+        self.assertEqual(result['thumbnail_copy'], 'Two Totals?')
 
     def performance(self, selection, impressions=100, clicks=5):
         return dict(candidate_sha256=self.candidate, thumbnail_sha256=selection['thumbnail_sha256'],

@@ -45,6 +45,22 @@ class EditorialTests(unittest.TestCase):
         data = brief(); data['sources'][0]['excerpt'] += ' Updated.'
         self.assertNotEqual(first, compile_editorial(data)['editorial_sha256'])
 
+    def test_optional_thumbnail_copy_preserves_legacy_identity_and_binds_new_copy(self):
+        original = compile_editorial(brief())
+        self.assertNotIn('thumbnail_copy', original)
+        self.assertEqual(original['editorial_sha256'],
+                         '5b92fc9051c46f4e920876ba278ca35458514fba51c864ad16ca6ef626f9d541')
+        revised = compile_editorial(dict(brief(), thumbnail_copy='  Two  Totals? '))
+        self.assertEqual(revised['thumbnail_copy'], 'Two Totals?')
+        self.assertEqual(revised['title'], original['title'])
+        self.assertEqual(revised['scenes'], original['scenes'])
+        self.assertNotEqual(revised['editorial_sha256'], original['editorial_sha256'])
+
+    def test_thumbnail_copy_rejects_multiline_controls_and_oversize(self):
+        for value in (None, 3, '', '  ', 'One\nTwo', 'One\tTwo', 'One\u202eTwo', 'a' * 49):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'thumbnail_copy'):
+                compile_editorial(dict(brief(), thumbnail_copy=value))
+
     def test_factual_scene_cannot_have_missing_unknown_or_duplicate_citations(self):
         for citations in ([], ['missing'], ['source1', 'source1'], [None]):
             with self.subTest(citations=citations), self.assertRaises(ValueError):

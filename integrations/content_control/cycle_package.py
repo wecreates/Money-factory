@@ -16,6 +16,7 @@ import time
 from urllib.parse import urlsplit
 import zipfile
 
+from integrations.content_control.cycle_editorial import normalize_thumbnail_copy
 from integrations.content_control.review_package import check_deadline, copy_chunks, copy_file, digest, no_symlinks, require
 
 
@@ -143,13 +144,15 @@ def _page(editorial, thumbnails, candidate):
                      (' (diagram crop; omits source headline, scene counter, character and speaker label)'
                       if t.get('framing') == 'diagram_focus' else ' (complete frame)') + '</figcaption></figure>'
                      for i, t in enumerate(thumbnails))
+    overlay_note = ('<p>Thumbnail copy: ' + esc(editorial['thumbnail_copy']) + '</p>'
+                    if 'thumbnail_copy' in editorial else '')
     return '''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>CYZOR unpublished review</title><style>body{font:18px system-ui;background:#101722;color:#edf4fa;max-width:1000px;margin:32px auto;padding:0 20px}video{max-height:75vh;max-width:100%;display:block;margin:auto}a{color:#9ed4ff}img{max-width:100%}small{display:block}code{overflow-wrap:anywhere}li{margin:14px 0}figure{margin:24px 0}</style></head><body><h1>''' + esc(editorial['title']) + '''</h1>
 <p>Unpublished review candidate. Watch and listen to the complete video. Factual review, audiovisual quality and competitor comparison remain pending. Publishing is disabled.</p>
 <video controls playsinline preload="metadata" src="video.mp4"><track kind="captions" src="captions.vtt" srclang="en" label="English"></video>
 <p><a href="video.mp4">Video</a> · <a href="captions.vtt">Captions</a> · <a href="editorial.json">Editorial evidence</a> · <a href="package.json">Verification receipt</a></p><p>Caption timings may be approximate groups distributed over measured speech duration. Check the receipt for independent transcription status; technical media checks do not verify spoken-word accuracy or synchronization.</p>
-<h2>Thumbnail choices</h2><p>Frame-derived alternatives for review. No click-through performance has been measured.</p>''' + thumbs + '''<h2>Script and storyboard</h2><ol>''' + script + '''</ol><h2>Research sources</h2><ul>''' + sources + '''</ul><h2>Reference observation scope</h2><ul>''' + references + '''</ul><p>A transcript or metadata observation does not verify a reference video's visuals, pacing or audio.</p><p>Candidate SHA-256: <code>''' + candidate + '</code></p></body></html>\n'
+<h2>Thumbnail choices</h2><p>Frame-derived alternatives for review. No click-through performance has been measured.</p>''' + overlay_note + thumbs + '''<h2>Script and storyboard</h2><ol>''' + script + '''</ol><h2>Research sources</h2><ul>''' + sources + '''</ul><h2>Reference observation scope</h2><ul>''' + references + '''</ul><p>A transcript or metadata observation does not verify a reference video's visuals, pacing or audio.</p><p>Candidate SHA-256: <code>''' + candidate + '</code></p></body></html>\n'
 
 
 def package_cycle(editorial, render_dir, output, *, deadline=None):
@@ -164,6 +167,10 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
             'Publishing and paid generation must remain disabled')
     require(editorial.get('paid_generation_enabled', False) is False,
             'Paid generation forbidden')
+    overlay = editorial['title']
+    if 'thumbnail_copy' in editorial:
+        overlay = normalize_thumbnail_copy(editorial['thumbnail_copy'])
+        require(overlay == editorial['thumbnail_copy'], 'Thumbnail copy is not canonical')
     render_dir, output = Path(render_dir).absolute(), Path(output).absolute()
     no_symlinks(render_dir); no_symlinks(output)
     require(render_dir.is_dir(), 'Render directory required')
@@ -205,7 +212,7 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
                  '-threads', '2', '-ss', format(timestamp, '.6f'), '-f', 'mov', '-i', str(output / 'video.mp4'),
                  '-frames:v', '1', '-threads', '1', str(raw)], 60, deadline=deadline)
             filename = 'thumbnail-' + str(index + 1) + '.png'
-            make_thumbnail(raw, output / filename, editorial['title'], index, source_crop=source_crop)
+            make_thumbnail(raw, output / filename, overlay, index, source_crop=source_crop)
             check_deadline(deadline)
             raw.unlink()
             thumbnails.append({'file': filename, 'source_timestamp_seconds': timestamp,
@@ -226,6 +233,8 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
                   'independent_transcription_verified': receipt.get('independent_transcription_verified') is True,
                   'review_required': ['factual_accuracy', 'full_audiovisual_quality', 'competitor_comparison', 'thumbnail_selection'],
                   'files_sha256': {p.name: digest(p, deadline) for p in sorted(output.iterdir()) if p.is_file()}}
+        if 'thumbnail_copy' in editorial:
+            result['thumbnail_copy'] = overlay
         (output / 'package.json').write_text(json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + '\n')
         with zipfile.ZipFile(output / 'review-package.zip', 'x', zipfile.ZIP_DEFLATED) as archive:
             for path in sorted(output.iterdir()):
