@@ -1,0 +1,30 @@
+{
+  "verified_at": "2026-11-22T19:30:51.636748+00:00",
+  "issue": "https://github.com/wecreates/Money-factory/issues/543",
+  "renderer_sha256": "833e798dbcafd9d26fcfc6cd8c8d82470c757a8967a133f4fb4cdfaa7d46fe83",
+  "candidate_sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+  "render_receipt_sha256": "8bd133ec68ec6cbafb881250d90e2af18e031a714acb4acd9949a69274811917",
+  "timeline_sha256": "a788bda445e5664bed65bb9fb4d3c87481b65054387217a25af56cc679b7d02e",
+  "timeline_source": "Reconstructed scene rows from immutable candidate render receipt",
+  "asr_receipt_sha256": "a408007d387c21431147b9005de394e6b7f0fcc968ce370e1cb7367a3e4a1d3f",
+  "raw_caption_sha256": "b47b0e69bdfb6e7f45ac62ba85edc18a47009e0322cb3188be4b35044ff5bc60",
+  "corrected_trial_sha256": "33077b51a4249adc489bf29f49a3e374090067dfed6a21289a114011f108dbc2",
+  "cues": 63,
+  "subsecond_cues": [
+    12,
+    12
+  ],
+  "single_words_under_half_second": [
+    6,
+    1
+  ],
+  "source_media_changed": false,
+  "text_preserved_after_existing_correction": true,
+  "overlaps": 0,
+  "measured_scene_crossings": 0,
+  "full_av_review": false,
+  "listening_verified": false,
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "scope": "Exact-video offline caption grouping trial. The corrected trial is not a replacement delivery package. Isolated fantastic cue remains 0.16s."
+}
