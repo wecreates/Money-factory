@@ -27,6 +27,21 @@ export function normalizeWatch(raw){
   };
 }
 
+const OBSERVATION_FIELDS=['last_value','last_checked_at','last_change_at','last_status','last_error'];
+
+export function reconcileWatch(raw,prior){
+  const current=normalizeWatch(raw);
+  // Configuration owns identity and controls. Only observations from the same
+  // normalized target and kind may survive; a retarget needs a fresh baseline.
+  for(const field of OBSERVATION_FIELDS) current[field]=null;
+  let previous;
+  try{ previous=normalizeWatch(prior); }catch{ return current; }
+  if(previous.id===current.id && previous.targetUrl===current.targetUrl && previous.kind===current.kind){
+    for(const field of OBSERVATION_FIELDS) current[field]=previous[field];
+  }
+  return current;
+}
+
 export function dueForCheck(watch,now=Date.now(),intervalMs=300000){
   if(watch.status!=='active') return false;
   if(!watch.last_checked_at) return true;
@@ -95,7 +110,8 @@ export async function runWorker({
   const results=[];
 
   for(const raw of rawWatches){
-    const base=normalizeWatch({...raw,...priorState[raw.id]});
+    const configured=normalizeWatch(raw);
+    const base=reconcileWatch(raw,priorState[configured.id]);
     if(!dueForCheck(base,now,intervalMs)){
       nextState[base.id]=base;
       results.push({id:base.id,checked:false,reason:'not_due'});
