@@ -1,0 +1,80 @@
+{
+  "archive_sha256": "bf9da20d60e0b8c1645d40a4fdbd3f9278c8ead7a281bf45c2ad95be946e0490",
+  "archive_size": 632027,
+  "full_av_review": false,
+  "library_file_id": "libfile_fde3_f-2fdeaf7446b881919da70913778297c3_389d2c70fb1c8191bcf9b25e87727630",
+  "library_version": 0,
+  "observed_at": "2026-11-22T09:13:54.160045+00:00",
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "receipts": [
+    {
+      "boundary_cue_numbers": [],
+      "candidate_sha256": "e1967a0a80c7c0405f0a52b96617bead577b7b5d79f3b19d8e0261c9ac9d35cd",
+      "caption_scope": "Intersecting source cues clipped/rebased; whole cue text retained even at cut boundaries. Review boundary words against audio.",
+      "caption_sha256": "1aed4696faf104548f3a8c8fdb497a43bb44d070280f3a64f3a1bcbeaa56593b",
+      "end_seconds": 33.84,
+      "finished_at": "2026-11-22T09:13:34.348414+00:00",
+      "full_av_review": false,
+      "media": {
+        "duration_seconds": 33.874349,
+        "height": 1280,
+        "width": 720
+      },
+      "paid_generation_enabled": false,
+      "parent_candidate_sha256": "4109d22a1b404074af0e979e7230f266daafa81a476e95c918be4adc31e285e7",
+      "parent_cycle_sha256": "74ca9e1fac23bae4d1ee5b8fcf164a6b04f4d5546ce9d902d3b13a834853e775",
+      "production_approved": false,
+      "production_ready": false,
+      "publication_enabled": false,
+      "schema_version": 1,
+      "scope": "Unreviewed portrait excerpt; no long-form, creative, listening, phone or publishing acceptance.",
+      "selection_scope": "Explicit supplied time bounds; not automatic editorial selection.",
+      "source_caption_sha256": "184b117e93da84880ff64674e91b9e6c18f449639c4e515276ae9d89f13958ad",
+      "start_seconds": 0.0,
+      "started_at": "2026-11-22T09:13:30.912768+00:00",
+      "status": "AWAITING_REVIEW",
+      "technical_status": "PASS"
+    },
+    {
+      "boundary_cue_numbers": [],
+      "candidate_sha256": "728c1b6cd6343714eb2ed74b62525dc76f9cf8bd0cf03793f6937854987d9685",
+      "caption_scope": "Intersecting source cues clipped/rebased; whole cue text retained even at cut boundaries. Review boundary words against audio.",
+      "caption_sha256": "6f282cdc7f85177b6077b027cbabac2f2f8b936af004f6f6bab7f95907c3a89b",
+      "end_seconds": 33.84,
+      "finished_at": "2026-11-22T09:13:36.262047+00:00",
+      "full_av_review": false,
+      "media": {
+        "duration_seconds": 10.124349,
+        "height": 1280,
+        "width": 720
+      },
+      "paid_generation_enabled": false,
+      "parent_candidate_sha256": "4109d22a1b404074af0e979e7230f266daafa81a476e95c918be4adc31e285e7",
+      "parent_cycle_sha256": "74ca9e1fac23bae4d1ee5b8fcf164a6b04f4d5546ce9d902d3b13a834853e775",
+      "production_approved": false,
+      "production_ready": false,
+      "publication_enabled": false,
+      "schema_version": 1,
+      "scope": "Unreviewed portrait excerpt; no long-form, creative, listening, phone or publishing acceptance.",
+      "selection_scope": "Explicit supplied time bounds; not automatic editorial selection.",
+      "source_caption_sha256": "184b117e93da84880ff64674e91b9e6c18f449639c4e515276ae9d89f13958ad",
+      "start_seconds": 23.72,
+      "started_at": "2026-11-22T09:13:34.502980+00:00",
+      "status": "AWAITING_REVIEW",
+      "technical_status": "PASS"
+    }
+  ],
+  "remaining": [
+    "Full audiovisual/listening/phone acceptance",
+    "Long-form source and editorially selected derivatives",
+    "Actual-host authoritative resources and 24-hour execution"
+  ],
+  "schema_version": 1,
+  "scope": "Two actual standalone FFmpeg exports from retained old portrait source. Full tail-trim and nonzero-start diagnostic excerpt, not long-form production or editorial selection. No voice inference or queue admission used.",
+  "tests": {
+    "independent_focused": 8,
+    "local_regression": 130
+  }
+}
