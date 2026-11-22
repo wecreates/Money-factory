@@ -9,7 +9,7 @@ export function evaluateVerification(watches,before,mid,after,first,second){
   const healthy=(state,cycle,id,targetUrl)=>{
     const results=cycle.results?.filter(r=>r.id===id)??[];
     const result=results[0];
-    return cycle.ok===true && results.length===1 && result.checked===true && !result.error &&
+    return results.length===1 && result.checked===true && !result.error &&
       typeof result.status==='number' && result.status>=200 && result.status<300 &&
       state?.status==='active' && state.targetUrl===targetUrl && !state.last_error && state.last_status===result.status &&
       state.last_checked_at===result.last_checked_at;
@@ -27,7 +27,7 @@ export function evaluateVerification(watches,before,mid,after,first,second){
       second_cycle_healthy:secondHealthy,pass:advancedFirst && advancedSecond && firstHealthy && secondHealthy};
   });
   return {active_watch_count:active.length,watches:checks,
-    pass:active.length>0 && checks.every(check=>check.pass)};
+    pass:first.ok===true && second.ok===true && active.length>0 && checks.every(check=>check.pass)};
 }
 
 export async function runVerification({watchesPath='FREE_MONITOR_WATCHES.json',
