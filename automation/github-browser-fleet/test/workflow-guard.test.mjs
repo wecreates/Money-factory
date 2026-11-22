@@ -48,3 +48,13 @@ test('all shared monitor state writers serialize and check out current main',asy
     assert.match(workflow,/with:\n          ref: main\n          fetch-depth: 0/);
   }
 });
+
+
+test('failed monitor verification is persisted before the job fails',async()=>{
+  const workflow=await fs.readFile(new URL('../../../.github/workflows/free-monitor-verify.yml',import.meta.url),'utf8');
+  assert.match(workflow,/name: Verify two monitor cycles\n        id: verify\n        continue-on-error: true/);
+  const persist=workflow.indexOf('- name: Persist verification');
+  const fail=workflow.indexOf('- name: Fail on unsuccessful verification');
+  assert.ok(persist>0 && fail>persist);
+  assert.match(workflow,/if: steps\.verify\.outcome == 'failure'\n        run: exit 1/);
+});
