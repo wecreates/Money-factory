@@ -1,0 +1,302 @@
+{
+  "paid_generation_enabled": false,
+  "publication_enabled": false,
+  "reference_observations": [
+    {
+      "observation_type": "metadata",
+      "observed_at": "2026-11-22T11:21:24.826236+00:00",
+      "patterns": [
+        "User-selected creative preference only; this run did not watch or listen to the account, and no audiovisual comparison or copied script is claimed."
+      ],
+      "url": "https://www.instagram.com/oddsofmind/"
+    }
+  ],
+  "scenes": [
+    {
+      "duration_seconds": 12,
+      "factual": false,
+      "id": "twins",
+      "narration": "My credit card has two balances. Fantastic. Even my debt has started a group chat, and neither member is explaining the assignment.",
+      "source_ids": [],
+      "speaker": "dave",
+      "visual": "Two balances. One card. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "TWO BALANCES. ONE CARD.",
+        "kind": "comparison",
+        "labels": [
+          "STATEMENT",
+          "CURRENT"
+        ],
+        "values": [
+          "THEN",
+          "NOW"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": true,
+      "id": "snapshot",
+      "narration": "The statement balance records what you owed when the last billing cycle ended. Think of a dated snapshot, rather than a number that follows every later purchase.",
+      "source_ids": [
+        "chase_balances"
+      ],
+      "speaker": "points_monk",
+      "visual": "A snapshot at cycle end. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "A SNAPSHOT AT CYCLE END",
+        "kind": "comparison",
+        "labels": [
+          "STATEMENT",
+          "CURRENT"
+        ],
+        "values": [
+          "CYCLE END",
+          "UPDATES"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": true,
+      "id": "example",
+      "narration": "Here is a simplified example with no fees, interest, or other activity. A statement closes at five hundred dollars. Then a forty dollar purchase posts.",
+      "source_ids": [
+        "capitalone_balances"
+      ],
+      "speaker": "narrator",
+      "visual": "Illustrative example. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "ILLUSTRATIVE EXAMPLE",
+        "kind": "receipt",
+        "labels": [
+          "STATEMENT AT CLOSE",
+          "NEW POSTED PURCHASE"
+        ],
+        "values": [
+          "$500",
+          "+$40"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": true,
+      "id": "purchase",
+      "narration": "The current balance is now five hundred forty dollars. The issued statement still records five hundred. That newer purchase did not travel backward into the old statement.",
+      "source_ids": [
+        "chase_balances"
+      ],
+      "speaker": "points_monk",
+      "visual": "New activity, different total. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "NEW ACTIVITY, DIFFERENT TOTAL",
+        "kind": "comparison",
+        "labels": [
+          "STATEMENT",
+          "CURRENT"
+        ],
+        "values": [
+          "$500",
+          "$540"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": false,
+      "id": "time_machine",
+      "narration": "So my grocery run did not invent time travel? Disappointing. I was about to demand a refund from last Tuesday and retire on the paradox.",
+      "source_ids": [],
+      "speaker": "dave",
+      "visual": "No grocery time machine. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "NO GROCERY TIME MACHINE",
+        "kind": "card",
+        "labels": [
+          "DAVE CHECKS THE DATES"
+        ],
+        "values": [
+          "NO PARADOX"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": true,
+      "id": "payment",
+      "narration": "Continue the example: a one hundred dollar payment posts, with nothing else changing. Current balance becomes four hundred forty dollars. The original statement remains a historical record. Check the remaining amount due after payments; the old snapshot is not a second bill.",
+      "source_ids": [
+        "capitalone_balances"
+      ],
+      "speaker": "narrator",
+      "visual": "Payments change the live total. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "PAYMENTS CHANGE THE LIVE TOTAL",
+        "kind": "comparison",
+        "labels": [
+          "ORIGINAL STATEMENT",
+          "CURRENT"
+        ],
+        "values": [
+          "$500",
+          "$440"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": false,
+      "id": "which_one",
+      "narration": "Now the current number is smaller. My first plan was to pick whichever number looked friendliest. Apparently, a payment strategy needs more than excellent vibes.",
+      "source_ids": [],
+      "speaker": "dave",
+      "visual": "Smaller does not explain why. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "SMALLER DOES NOT EXPLAIN WHY",
+        "kind": "comparison",
+        "labels": [
+          "COMPARE THE DATES",
+          "CHECK ACTIVITY"
+        ],
+        "values": []
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": true,
+      "id": "dates",
+      "narration": "The closing date and payment due date are different landmarks. A grace period, when offered, sits between the billing cycle ending and the payment becoming due.",
+      "source_ids": [
+        "cfpb_grace"
+      ],
+      "speaker": "points_monk",
+      "visual": "Closing date / due date. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "CLOSING DATE / DUE DATE",
+        "kind": "comparison",
+        "labels": [
+          "CYCLE ENDS",
+          "PAYMENT DUE"
+        ],
+        "values": [
+          "SNAPSHOT",
+          "DEADLINE"
+        ]
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": true,
+      "id": "conditions",
+      "narration": "The conditions matter: if your card offers a grace period and you are not carrying a balance, paying your bill in full by the due date can avoid interest on new purchases.",
+      "source_ids": [
+        "cfpb_grace"
+      ],
+      "speaker": "narrator",
+      "visual": "Keep all the conditions. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "KEEP ALL THE CONDITIONS",
+        "kind": "checklist",
+        "labels": [
+          "GRACE PERIOD OFFERED",
+          "NO CARRIED BALANCE",
+          "FULL BILL BY DUE DATE"
+        ],
+        "values": []
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": true,
+      "id": "exceptions",
+      "narration": "That is not a blanket promise about every transaction. Grace periods usually concern purchases. Cash advances generally start accruing interest immediately. Your agreement explains the terms for your card.",
+      "source_ids": [
+        "cfpb_grace"
+      ],
+      "speaker": "points_monk",
+      "visual": "Not every transaction. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "NOT EVERY TRANSACTION",
+        "kind": "checklist",
+        "labels": [
+          "PURCHASE CONDITIONS",
+          "CASH ADVANCES DIFFER",
+          "READ YOUR AGREEMENT"
+        ],
+        "values": []
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": true,
+      "id": "check",
+      "narration": "Read the statement date, payment due date, and transactions since closing together. A changed current balance describes activity; the two labels alone do not explain every charge.",
+      "source_ids": [
+        "chase_balances",
+        "cfpb_grace"
+      ],
+      "speaker": "narrator",
+      "visual": "Read the timeline. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "READ THE TIMELINE",
+        "kind": "checklist",
+        "labels": [
+          "STATEMENT DATE",
+          "PAYMENT DUE DATE",
+          "ACTIVITY SINCE CLOSING"
+        ],
+        "values": []
+      }
+    },
+    {
+      "duration_seconds": 12,
+      "factual": true,
+      "id": "payoff",
+      "narration": "One number is a snapshot. The other keeps updating. Great. My debt group chat finally has names, and I can stop asking a photograph for live updates.",
+      "source_ids": [
+        "capitalone_balances"
+      ],
+      "speaker": "dave",
+      "visual": "Snapshot / updating total. Keep both balance labels visibly distinct; existing character gestures only.",
+      "visual_spec": {
+        "headline": "SNAPSHOT / UPDATING TOTAL",
+        "kind": "comparison",
+        "labels": [
+          "STATEMENT",
+          "CURRENT"
+        ],
+        "values": [
+          "THEN",
+          "NOW"
+        ]
+      }
+    }
+  ],
+  "schema_version": 1,
+  "sources": [
+    {
+      "claim": "Statement balance records the last cycle-end amount; later purchases and payments change current balance. Numeric examples are original illustrative arithmetic, not an account observation.",
+      "excerpt": "your statement balance is a record of your balance on a given date.",
+      "id": "chase_balances",
+      "retrieved_at": "2026-11-22T11:21:24.826236+00:00",
+      "url": "https://www.chase.com/personal/credit-cards/education/basics/statement-balance-vs-current-balance"
+    },
+    {
+      "claim": "Grace periods run between cycle end and payment due date, are not mandatory, and have conditions. With a grace period and no carried balance, full on-time payment can avoid interest on new purchases. Cash advances generally accrue interest immediately.",
+      "excerpt": "Credit card companies are not required to give a grace period.",
+      "id": "cfpb_grace",
+      "retrieved_at": "2026-11-22T11:21:24.826236+00:00",
+      "url": "https://www.consumerfinance.gov/ask-cfpb/what-is-a-grace-period-for-a-credit-card-en-47/"
+    },
+    {
+      "claim": "The original statement remains a cycle-end snapshot; later payments reduce current balance. Example amounts are invented arithmetic, not a real account.",
+      "excerpt": "But your payment should reduce your current balance.",
+      "id": "capitalone_balances",
+      "retrieved_at": "2026-11-22T11:22:11.545292+00:00",
+      "url": "https://www.capitalone.com/learn-grow/money-management/statement-balance-vs-current-balance/"
+    }
+  ],
+  "title": "My Balance Has Two Personalities",
+  "topic": "Statement versus current credit-card balance: an agent-selected original story using a fictional arithmetic example and explicit purchase-interest limitations. No trend or audience-performance claim."
+}
