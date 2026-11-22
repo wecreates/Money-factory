@@ -217,3 +217,16 @@ minimum-payment candidate still passes with byte-identical captions. The origina
 cycle was not modified. This closes a validation gap, not full timing, listening,
 or creative acceptance; cross-sentence caption grouping remains a separate review
 issue.
+
+## Sentence and pause caption grouping (2026-11-21)
+
+Observed captions now break after recognized terminal punctuation and pauses of
+at least 0.5 seconds, retaining the seven-token cap and original word timestamps.
+Common English abbreviation/initial exceptions avoid some false sentence breaks;
+this is a heuristic, not guaranteed sentence or scene segmentation. Zero-duration
+tokens can join a positive cue; invalid zero-duration cues still fail closed.
+
+[Actual production evidence](sentence-caption-proof-20261121.json) retains before/after
+caption text and the saved checkpoint for a fresh same-brief candidate. The
+previous package is untouched. The observed cross-sentence bridges are removed,
+but playback/readability/listening and full creative acceptance remain open.

@@ -97,6 +97,38 @@ class RenderValidationTests(unittest.TestCase):
         words[1]['start']=.1
         with self.assertRaises(ValueError):render.observed_captions(words,1)
 
+    def test_caption_groups_break_sentences_and_preserve_timestamps(self):
+        words=[{'word':w,'start':i*.2,'end':(i+1)*.2}
+               for i,w in enumerate(['Interest','disappears.', 'Paying','more','helps!', 'Really?”', 'Yes.'])]
+        cues=render.observed_captions(words,2).strip().split('\n\n')[1:]
+        self.assertEqual([c.splitlines()[1] for c in cues],
+                         ['Interest disappears.', 'Paying more helps!', 'Really?”', 'Yes.'])
+        self.assertTrue(cues[1].startswith('00:00:00.400 --> 00:00:01.000'))
+
+    def test_caption_groups_keep_decimals_and_common_abbreviations(self):
+        words=[{'word':w,'start':i*.2,'end':(i+1)*.2}
+               for i,w in enumerate(['Dr.', 'A.', 'Smith', 'paid', '$3.14', 'in', 'U.S.', 'fees.'])]
+        cues=render.observed_captions(words,2).strip().split('\n\n')[1:]
+        self.assertEqual([c.splitlines()[1] for c in cues],
+                         ['Dr. A. Smith paid $3.14 in U.S.', 'fees.'])
+        self.assertTrue(render._caption_sentence_end('$3.14.'))
+
+    def test_caption_groups_break_at_half_second_pause(self):
+        words=[{'word':'before','start':0,'end':.5},
+               {'word':'after','start':1,'end':1.4}]
+        cues=render.observed_captions(words,2).strip().split('\n\n')[1:]
+        self.assertEqual(len(cues),2)
+        self.assertIn('00:00:00.000 --> 00:00:00.500\nbefore',cues[0])
+        self.assertIn('00:00:01.000 --> 00:00:01.400\nafter',cues[1])
+        words[1]['start']=.99
+        self.assertEqual(len(render.observed_captions(words,2).strip().split('\n\n')[1:]),1)
+
+    def test_caption_zero_duration_tokens_do_not_get_invented_time(self):
+        words=[{'word':'Oh!','start':0,'end':0},{'word':'Hello.','start':0,'end':.5}]
+        self.assertIn('00:00:00.000 --> 00:00:00.500\nOh! Hello.',render.observed_captions(words,1))
+        with self.assertRaisesRegex(ValueError,'Empty observed caption duration'):
+            render.observed_captions([{'word':'Oh!','start':0,'end':0}],1)
+
     def test_observed_captions_reject_invalid_or_padded_duration_bounds(self):
         words=[{'word':'final','start':35.8,'end':36.0}]
         # A padded ASR decode can accept words beyond the actual video end.
