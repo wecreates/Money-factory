@@ -71,11 +71,13 @@
         "kind": "receipt",
         "labels": [
           "STATEMENT AT CLOSE",
-          "NEW POSTED PURCHASE"
+          "NEW POSTED PURCHASE",
+          "CURRENT AFTER PURCHASE"
         ],
         "values": [
           "$500",
-          "+$40"
+          "+$40",
+          "$540"
         ]
       }
     },

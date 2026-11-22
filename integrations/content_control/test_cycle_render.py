@@ -220,6 +220,75 @@ class RenderValidationTests(unittest.TestCase):
                 hashes.append(render.digest(path))
             self.assertEqual(len(set(hashes)),len(render.KINDS))
 
+    def _panel_text(self, spec):
+        from PIL import ImageDraw
+        original = ImageDraw.ImageDraw.text
+        calls = []
+        def capture(draw, xy, text, *args, **kwargs):
+            if 300 <= xy[1] < 800:
+                calls.append((text, draw.textbbox(xy, text, font=kwargs['font'], anchor=kwargs.get('anchor'))))
+            return original(draw, xy, text, *args, **kwargs)
+        with tempfile.TemporaryDirectory() as td, patch.object(ImageDraw.ImageDraw, 'text', capture):
+            scene = brief()['scenes'][0]
+            scene['visual_spec'] = dict(spec, headline='Check the math')
+            render.draw_panel(scene, Path(td)/'panel.png', 0, 1)
+        return calls
+
+    @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
+    def test_receipt_preserves_each_labeled_amount_in_its_own_row(self):
+        calls = self._panel_text({'kind':'receipt',
+            'labels':['STATEMENT AT CLOSE', 'NEW POSTED PURCHASE', 'CURRENT AFTER PURCHASE'],
+            'values':['$500', '+$40', '$540']})
+        self.assertEqual([text for text, _ in calls],
+            ['STATEMENT AT CLOSE', '$500', 'NEW POSTED PURCHASE', '+$40', 'CURRENT AFTER PURCHASE', '$540'])
+        for (_, a), (_, b) in zip(calls, calls[1:]):
+            self.assertLessEqual(a[3], b[1], 'Semantic fields must not overlap')
+        for _, box in calls:
+            self.assertGreaterEqual(box[0],105); self.assertLessEqual(box[2],615)
+            self.assertGreaterEqual(box[1],350); self.assertLessEqual(box[3],740)
+
+    @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
+    def test_comparison_labels_stay_in_their_corresponding_cards(self):
+        for values in ([], ['$500', '$540']):
+            calls = self._panel_text({'kind':'comparison', 'labels':['STATEMENT AT CLOSE','CURRENT BALANCE'], 'values':values})
+            left = [(text, box) for text, box in calls if box[2] < 360]
+            right = [(text, box) for text, box in calls if box[0] > 360]
+            self.assertEqual(len(left)+len(right),len(calls))
+            self.assertEqual(' '.join(text for text,_ in left), 'STATEMENT AT CLOSE'+(' $500' if values else ''))
+            self.assertEqual(' '.join(text for text,_ in right), 'CURRENT BALANCE'+(' $540' if values else ''))
+            for items, x in ((left,60),(right,375)):
+                for _, box in items:
+                    self.assertGreaterEqual(box[0],x+16); self.assertLessEqual(box[2],x+269)
+                    self.assertGreaterEqual(box[1],340); self.assertLessEqual(box[3],710)
+
+    @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
+    def test_receipt_and_card_retain_four_fields_and_unpaired_labels(self):
+        for kind in ('receipt', 'card'):
+            calls = self._panel_text({'kind':kind,'labels':['ONE','TWO','THREE','FOUR'],'values':['1','2']})
+            self.assertEqual([text for text,_ in calls], ['ONE','1','TWO','2','THREE','FOUR'])
+            for _,box in calls:
+                self.assertGreaterEqual(box[0],105); self.assertLessEqual(box[2],615)
+                self.assertLessEqual(box[3],740)
+        for kind in ('receipt', 'card'):
+            calls = self._panel_text({'kind':kind,'labels':['ONE','TWO','THREE','FOUR'],'values':['1','2','3','4']})
+            self.assertEqual([text for text,_ in calls], ['ONE','1','TWO','2','THREE','3','FOUR','4'])
+        with self.assertRaisesRegex(ValueError,'at most two'):
+            self._panel_text({'kind':'comparison','labels':['A','B','C']})
+        with self.assertRaisesRegex(ValueError,'readable panel bounds'):
+            self._panel_text({'kind':'comparison','labels':['W'*50,'B']})
+
+    @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
+    def test_every_repository_example_scene_renders_with_bounded_fields(self):
+        examples = Path(__file__).parent/'examples'
+        with tempfile.TemporaryDirectory() as td:
+            count = 0
+            for source in sorted(examples.glob('*.json')):
+                scenes = json.loads(source.read_text()).get('scenes', [])
+                for index,scene in enumerate(scenes):
+                    render.draw_panel(scene,Path(td)/f'{source.stem}-{index}.png',index,len(scenes))
+                    count += 1
+            self.assertGreaterEqual(count, 30)
+
     @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
     def test_gesture_moves_only_arms_and_loops_without_changing_layout(self):
         try:
