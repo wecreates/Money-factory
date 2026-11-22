@@ -1,0 +1,30 @@
+name: Wholesale offline acceptance
+on:
+  pull_request:
+    paths:
+      - 'integrations/wholesale/**'
+      - 'integrations/test_wholesale_*.py'
+      - 'integrations/run.py'
+      - '.github/workflows/wholesale-offline.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PUBLICATION_ENABLED: 'false'
+      PAID_GENERATION_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Offline tests only (optional recovered core is not in repository)
+        run: |
+          node --test integrations/wholesale/*.test.mjs
+          python -m unittest discover -s integrations -p 'test_wholesale_*.py'
+          python integrations/wholesale/doctor.py

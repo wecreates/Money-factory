@@ -1,0 +1,85 @@
+{
+  "mode": "sandbox",
+  "live_enabled": false,
+  "fixture_data": true,
+  "now": 1792587600000,
+  "channels": [
+    "amazon",
+    "walmart",
+    "ebay"
+  ],
+  "catalog": [
+    {
+      "supplier_id": "SYNTHETIC-ONLY",
+      "sku": "DEMO-001",
+      "currency": "USD",
+      "price_cents": 3000,
+      "cost_cents": 1000,
+      "shipping_cents": 400,
+      "handling_cents": 100,
+      "tax_cents": 50,
+      "fee_bps": 1500,
+      "fixed_fee_cents": 30,
+      "min_fee_cents": 0,
+      "return_reserve_bps": 500,
+      "quote_expires_at_ms": 1792674000000,
+      "safety_stock": 2,
+      "unit": "EACH",
+      "variant_id": "SYNTHETIC-SINGLE"
+    }
+  ],
+  "suppliers": [
+    {
+      "authorization": {
+        "evidence_id": "SIMULATED-NOT-REAL-APPROVAL",
+        "expires_at_ms": 1792674000000,
+        "channels": [
+          "amazon",
+          "walmart",
+          "ebay"
+        ],
+        "skus": [
+          "DEMO-001"
+        ]
+      },
+      "seller_of_record": true,
+      "id": "SYNTHETIC-ONLY",
+      "neutral_packaging": true,
+      "relationship": "wholesale",
+      "returns": {
+        "evidence_id": "SIMULATED-RETURNS",
+        "expires_at_ms": 1792674000000
+      }
+    }
+  ],
+  "accounts": [],
+  "origins": [],
+  "feeds": [
+    {
+      "permission": null,
+      "max_age_ms": 300000,
+      "snapshot_semantics": "full",
+      "supplier_id": "SYNTHETIC-ONLY",
+      "field_map": {
+        "sku": "code",
+        "observed_at_ms": "updated",
+        "quantity": "stock",
+        "currency": "currency",
+        "unit": "unit",
+        "variant_id": "variant"
+      },
+      "records": [
+        {
+          "code": "DEMO-001",
+          "stock": 10,
+          "updated": 1792587600000,
+          "currency": "USD",
+          "unit": "EACH",
+          "variant": "SYNTHETIC-SINGLE"
+        }
+      ],
+      "quantity_semantics": "total_before_local_reservations",
+      "classification": "fixture"
+    }
+  ]
+}

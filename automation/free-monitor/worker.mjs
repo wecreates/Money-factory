@@ -27,6 +27,21 @@ export function normalizeWatch(raw){
   };
 }
 
+const OBSERVATION_FIELDS=['last_value','last_checked_at','last_change_at','last_status','last_error'];
+
+export function reconcileWatch(raw,prior){
+  const current=normalizeWatch(raw);
+  // Configuration owns identity and controls. Only observations from the same
+  // normalized target and kind may survive; a retarget needs a fresh baseline.
+  for(const field of OBSERVATION_FIELDS) current[field]=null;
+  let previous;
+  try{ previous=normalizeWatch(prior); }catch{ return current; }
+  if(previous.id===current.id && previous.targetUrl===current.targetUrl && previous.kind===current.kind){
+    for(const field of OBSERVATION_FIELDS) current[field]=previous[field];
+  }
+  return current;
+}
+
 export function dueForCheck(watch,now=Date.now(),intervalMs=300000){
   if(watch.status!=='active') return false;
   if(!watch.last_checked_at) return true;
@@ -48,12 +63,36 @@ export function evaluateCheck(watch,check){
   };
 }
 
+export const MAX_RESPONSE_BYTES=2*1024*1024;
+
 async function fetchHash(url){
   const r=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(20000),headers:{'user-agent':'CYZOR-Free-Monitor/1.0'}});
   if(!r.ok){ await r.body?.cancel(); throw Object.assign(new Error(`HTTP ${r.status} from monitored URL`),{status:r.status}); }
-  const body=await r.arrayBuffer();
-  const hash=crypto.createHash('sha256').update(Buffer.from(body)).digest('hex');
-  return {hash,checkedAt:Date.now(),status:r.status};
+  // Fetch exposes decoded bytes, so compressed and chunked responses share the
+  // same ceiling. Never trust Content-Length or retain the whole response.
+  const hash=crypto.createHash('sha256');
+  let bytes=0;
+  const reader=r.body?.getReader();
+  if(reader){
+    try{
+      while(true){
+        const {done,value}=await reader.read();
+        if(done) break;
+        bytes+=value.byteLength;
+        if(bytes>MAX_RESPONSE_BYTES){
+          throw new Error(`Decoded response exceeds ${MAX_RESPONSE_BYTES} byte limit`);
+        }
+        hash.update(value);
+      }
+    }catch(error){
+      await reader.cancel().catch(()=>{});
+      throw error;
+    }finally{
+      reader.releaseLock();
+    }
+  }
+  return {hash:hash.digest('hex'),checkedAt:Date.now(),status:r.status,
+    response_bytes:bytes,response_limit_bytes:MAX_RESPONSE_BYTES};
 }
 
 export async function runWorker({
@@ -63,6 +102,12 @@ export async function runWorker({
   intervalMs=300000
 }={}){
   const rawWatches=JSON.parse(await fs.readFile(watchesPath,'utf8'));
+  const configuredWatches=rawWatches.map(normalizeWatch);
+  // State is keyed by ID. Validate the entire configuration before any fetch
+  // or write so a later duplicate cannot overwrite a failed target's evidence.
+  if(new Set(configuredWatches.map(w=>w.id)).size!==configuredWatches.length){
+    throw new Error('duplicate watch id');
+  }
   const priorState=JSON.parse(await fs.readFile(statePath,'utf8').catch(()=> '{}'));
   const priorEvents=JSON.parse(await fs.readFile(eventsPath,'utf8').catch(()=> '[]'));
   const now=Date.now();
@@ -70,8 +115,8 @@ export async function runWorker({
   const events=[...priorEvents];
   const results=[];
 
-  for(const raw of rawWatches){
-    const base=normalizeWatch({...raw,...priorState[raw.id]});
+  for(const configured of configuredWatches){
+    const base=reconcileWatch(configured,priorState[configured.id]);
     if(!dueForCheck(base,now,intervalMs)){
       nextState[base.id]=base;
       results.push({id:base.id,checked:false,reason:'not_due'});
@@ -84,7 +129,8 @@ export async function runWorker({
       if(changed){
         events.push({id:crypto.randomUUID(),watch_id:base.id,at:check.checkedAt,type:'change',label:base.label,target_url:base.targetUrl});
       }
-      results.push({id:base.id,checked:true,changed,status:check.status,last_checked_at:check.checkedAt});
+      results.push({id:base.id,checked:true,changed,status:check.status,last_checked_at:check.checkedAt,
+        response_bytes:check.response_bytes,response_limit_bytes:check.response_limit_bytes});
     }catch(error){
       nextState[base.id]={...base,last_checked_at:now,last_status:error.status??null,last_error:String(error)};
       results.push({id:base.id,checked:true,error:String(error),last_checked_at:now});

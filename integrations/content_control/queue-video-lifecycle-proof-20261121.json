@@ -1,0 +1,17 @@
+{
+  "actual_producer_stage": "runtime",
+  "attempts": 1,
+  "consumer_sigkill": true,
+  "full_av_review": false,
+  "lease_held_while_guardian_paused": true,
+  "nested_children_terminated_before_lease_release": true,
+  "partial_pipeline_status": "BLOCKED",
+  "production_approved": false,
+  "publication_enabled": false,
+  "queue_state": "interrupted",
+  "recovered_without_replay": true,
+  "scope": "Actual durable queue consumer plus pinned Content Control producer and real stage guardian; stage command is an explicit synthetic sleeping worker/child, not media inference",
+  "source_commit": "d7f8b5357ed416cf09af9de6c17e1cf738eb33c1",
+  "stage_cpu_affinity_two": true,
+  "verified_at": "2026-11-21T01:22:35.709394+00:00"
+}

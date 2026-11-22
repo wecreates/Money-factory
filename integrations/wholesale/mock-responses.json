@@ -1,0 +1,107 @@
+{
+  "classification": "AUTHORED_MOCKS_NOT_PROVIDER_RECORDINGS",
+  "checked_at": "2026-10-21",
+  "note": "Minimal schema subsets based on sources in marketplaces.mjs. Values invented for tests. No personal data, real inventory, account access or live success implied.",
+  "amazon": {
+    "orders": [
+      {
+        "orderId": "000-0000000-0000001",
+        "fulfillment": {
+          "fulfillmentStatus": "UNSHIPPED",
+          "fulfilledBy": "MERCHANT"
+        },
+        "orderItems": [
+          {
+            "orderItemId": "mock-line-1",
+            "product": {
+              "sellerSku": "DEMO-001"
+            },
+            "quantityOrdered": 2
+          }
+        ]
+      }
+    ],
+    "pagination": {
+      "nextToken": "MOCK-TOKEN+/="
+    }
+  },
+  "walmart": {
+    "list": {
+      "meta": {
+        "nextCursor": "?limit=100&hasMoreElements=true&soIndex=1&poIndex=1"
+      },
+      "elements": {
+        "order": [
+          {
+            "purchaseOrderId": "MOCK-PO-1",
+            "orderLines": {
+              "orderLine": [
+                {
+                  "lineNumber": "1",
+                  "item": {
+                    "sku": "DEMO-001"
+                  },
+                  "orderLineQuantity": {
+                    "unitOfMeasurement": "EACH",
+                    "amount": "2"
+                  },
+                  "orderLineStatuses": {
+                    "orderLineStatus": [
+                      {
+                        "status": "Acknowledged",
+                        "statusQuantity": {
+                          "unitOfMeasurement": "EACH",
+                          "amount": "2"
+                        }
+                      }
+                    ]
+                  },
+                  "charges": {
+                    "charge": [
+                      {
+                        "chargeType": "PRODUCT",
+                        "chargeAmount": {
+                          "currency": "USD",
+                          "amount": 30
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "shipNode": {
+              "type": "SellerFulfilled"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "ebay": {
+    "orders": [
+      {
+        "orderId": "MOCK-EBAY-1",
+        "orderFulfillmentStatus": "NOT_STARTED",
+        "lineItems": [
+          {
+            "lineItemId": "mock-line-1",
+            "sku": "DEMO-001",
+            "quantity": 2
+          }
+        ],
+        "pricingSummary": {
+          "total": {
+            "currency": "USD",
+            "value": "60.00"
+          }
+        },
+        "orderPaymentStatus": "PAID",
+        "cancelStatus": {
+          "cancelState": "NONE_REQUESTED"
+        }
+      }
+    ],
+    "next": "https://api.ebay.com/sell/fulfillment/v1/order?offset=1&limit=1"
+  }
+}

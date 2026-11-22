@@ -1,0 +1,130 @@
+{
+  "blockers": [],
+  "host_scope": "Current execution host only",
+  "observed_at": "2026-11-21T01:22:21.099949+00:00",
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "runtime": {
+    "blockers": [],
+    "checks": {
+      "cached_asr": true,
+      "caption_font": true,
+      "ffmpeg": true,
+      "node": true,
+      "npm_packages": true,
+      "picture_python": true,
+      "transcription_python": true
+    },
+    "details": {
+      "cached_asr": {
+        "files": {
+          "config.json": {
+            "sha256": "f3bc3821e9fc76a27bae538e11ae5b677dcdd352b4600429ce7951d398569aeb",
+            "size_bytes": 2227
+          },
+          "model.bin": {
+            "sha256": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef",
+            "size_bytes": 145216508
+          },
+          "tokenizer.json": {
+            "sha256": "929c5252409436dce1b38a75d1abbcb5e132d170d8e324e4e04ed915fa2d22df",
+            "size_bytes": 2128466
+          },
+          "vocabulary.txt": {
+            "sha256": "ff77588746d3a2595d32ab5b69ffd7b95ce2441ac57533cb66fc3eb575a115cf",
+            "size_bytes": 422309
+          }
+        },
+        "model": "Systran/faster-whisper-base.en",
+        "revision": "3d3d5dee26484f91867d81cb899cfcf72b96be6c",
+        "scope": "Cached file identity only; no model load or inference"
+      },
+      "caption_font": {
+        "family": "DejaVu Sans"
+      },
+      "ffmpeg": {
+        "encoders": [
+          "libx264",
+          "aac"
+        ],
+        "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+        "ffprobe": "ffprobe version 7.1.5-0+deb13u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "filters": [
+          "subtitles",
+          "amix",
+          "adelay",
+          "tpad",
+          "fps",
+          "volumedetect",
+          "ebur128",
+          "astats",
+          "silencedetect"
+        ]
+      },
+      "node": {
+        "scope": "Shared Node version compatible with pinned agent adapters",
+        "version": "v24.22.3"
+      },
+      "npm_packages": {
+        "scope": "Required package versions match lock; installed dependency bytes are not reauthenticated",
+        "versions": {
+          "esbuild": "0.28.1",
+          "react": "19.1.1",
+          "react-dom": "19.1.1",
+          "remotion": "4.0.540"
+        }
+      },
+      "picture_python": {
+        "python": [
+          3,
+          12,
+          14
+        ],
+        "version": "2.9.1"
+      },
+      "transcription_python": {
+        "python": [
+          3,
+          12,
+          14
+        ],
+        "version": "1.2.1"
+      }
+    },
+    "scope": "Offline runtime prerequisites only; no inference or rendering verified",
+    "status": "PASS"
+  },
+  "schema_version": 1,
+  "scope": "Read-only source identity and offline runtime prerequisites; no capacity admission, model inference, rendering, audiovisual approval or persistent worker verified",
+  "source": {
+    "source_commit": "d7f8b5357ed416cf09af9de6c17e1cf738eb33c1",
+    "source_count": 22,
+    "source_files": {
+      "package-lock.json": "7ee2bbf928f98846905dec41c0ae18fbbbefba71efd437228b038c6da1f43cf6",
+      "package.json": "c8bd0286ca32b1c012b0591b432dd2f08dcdffd7743c85b5e07b6c8cc99d8597",
+      "public/audio/episode1-music.mp3": "793a326d5072d3b4c2116a74f29bd631fe4d4003edb071110dbc4df6a72d0d40",
+      "public/audio/episode1-narration.mp3": "77ae2168527509c49a02ab08d9e54f8c04fd5774309bba82e8eefa88974074fb",
+      "public/audio/episode1-sfx-1.mp3": "3f0f191065173c87c654a3ac66cc6a1738be71aa7ab832ec7695d4ac305b3d30",
+      "public/audio/episode1-sfx-2.mp3": "b01175ca689242371869320806d52f2935686cfd77eabfd9eda691eb2fc30d40",
+      "remotion/V9ArticulatedVisual.jsx": "f64e7813e0a514e9d6dc03e027b3fb1132c8e340a7ee9ecef727a8501ac0e7da",
+      "remotion/episode1-picture-timeline.mjs": "1d09327ad19611c3020b911b9a29b78fb47d3ee96355c4b7256857ae093e0eaf",
+      "requirements-picture-render.txt": "a8581a661599bab0ffda997eae74cbb5bb08972fc55125151bf22507af5cd112",
+      "requirements-transcription.txt": "a0e33d44fb0f6e7b348f475f40b9395baa4f2c9739a6bdba663835169f600c84",
+      "scripts/build_verified_captions.py": "9882ad156a7a803800c02390411f074a57c677a0f33bc21027ba7dfc4c65f063",
+      "scripts/caption_contract.py": "54278d63c3b46b989cb44fa04f2a63925e88e5288f859f1ddd2a1eaeef8612bf",
+      "scripts/free_audio_qa.py": "cf1e5d05ace24c308c8a3b0738a5807e9c21960d01f6ff281bf6ac405c6ae4f4",
+      "scripts/free_mobile_compat_qa.py": "0d4c15674419e8d5c1e7f30c3dfddfe3aa20cdda21bf7a691f1d10b3c2b689d6",
+      "scripts/free_transcription_qa.py": "ec22e95628168c3bd76f3aefc92db3aee8ead2540b36fdbe737c9eaa985b418b",
+      "scripts/produce_episode1_review.py": "bfe16017331b37b51ab831ba93f90720cd2279f0f5534e733c61b3b5c8f10a3e",
+      "scripts/render_episode1_pictures.mjs": "d73aaa4a4586de38be02d8ed182dd1a255b415234a6cd3184365464fee434e40",
+      "scripts/review_smoke_inputs.py": "dc9c682058b65f66ab501ad230d743d9aced42f5f8409f536720f6a24d52dafe",
+      "scripts/verify_episode1_sync.py": "cb8b4fa90441eb0e2eeea3dc02d14561f680022a6ca8bf78e0335b416589eb3a",
+      "scripts/verify_muxed_narration.py": "bd4c60331fdf20af35ecb84fad20286f4a93c56f044e3206542553553838418c",
+      "state/episode1-factual-contract.json": "1c08545af240ce7a22129a39abe333c3c9e799599a97caabd69008111b29a5fc",
+      "state/episode1-sync-contract.json": "bac5dedefb38f543f0ab266bba1681d320df1f627e35cc8867c50134cbe59174"
+    },
+    "source_manifest_sha256": "7c28f2b84f8133093a61486396fa06f6f0b8f29880a5cd7d01895abbf8db78d4"
+  },
+  "status": "PREREQUISITES_VERIFIED"
+}

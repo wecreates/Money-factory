@@ -6,7 +6,10 @@ Jobs have tool, operation, input, output and operation-specific fields.
 Outputs must be new files. Invoke from an authenticated worker, not a public shell API.
 """
 import argparse
-import fcntl
+try:
+    import fcntl
+except ImportError:  # Offline wholesale can run on Windows; upstream jobs cannot.
+    fcntl = None
 import hashlib
 import json
 import math
@@ -45,6 +48,15 @@ def execute(command, cwd, runtime, timeout=600, stdin=None):
 def source(tool):
     entry = TOOLS[tool]
     path = ROOT / entry['path']
+    if entry.get('source_type') == 'github-release':
+        from obscura.runtime import PIN, verify_source_manifest
+        if (tool != 'obscura' or entry['repository'] != PIN['repository']
+                or entry['revision'] != PIN['revision'] or entry['version'] != PIN['version']
+                or entry['path'] != 'integrations/obscura'
+                or entry.get('release_manifest') != 'integrations/obscura/release-pin.json'):
+            raise ValueError('Unrecognized release source pin')
+        verify_source_manifest(path)
+        return path
     if entry.get('source_type') == 'npm':
         package = json.loads((path / 'package.json').read_text())
         lock = json.loads((path / 'package-lock.json').read_text())
@@ -109,6 +121,14 @@ def media_probe(output, runtime):
 
 
 def run(job, runtime):
+    if job.get('tool') == 'openclaw':
+        from openclaw.worker import dispatch
+        return dispatch(job, runtime)
+    if job.get("tool") == "wholesale":
+        from wholesale.worker import dispatch
+        return dispatch(job, ROOT)
+    if fcntl is None:
+        raise RuntimeError("This upstream worker requires POSIX file locking")
     runtime.mkdir(parents=True, exist_ok=True)
     # Serialize media/ML operations on small workers to avoid memory exhaustion.
     with (runtime / 'worker.lock').open('a') as lock:
@@ -127,7 +147,13 @@ def _run(job, runtime):
         raise ValueError('Output or receipt already exists; use a new job output path')
     output.parent.mkdir(parents=True, exist_ok=True)
     is_media = False
-    if tool == 'youtube-agent-skill':
+    if tool == 'obscura':
+        from obscura.adapter import dispatch
+        result = dispatch(job, runtime / 'obscura')
+        output.write_text(json.dumps(result, indent=2) + '\n')
+        if result.get('status') != 'PASS':
+            return result
+    elif tool == 'youtube-agent-skill':
         from youtube_skill.adapter import dispatch
         result = dispatch(job, upstream)
         if result.get('status') != 'PASS':
@@ -146,7 +172,9 @@ def _run(job, runtime):
         result = dispatch(job, runtime / 'rea')
         if not isinstance(result, dict) or result.get('status') not in ('PASS', 'BLOCKED'):
             raise ValueError('Invalid REA adapter result')
-        output.write_text(json.dumps(result, indent=2) + '\n')
+        # Preserve every evidence field without whitespace inflation beyond the
+        # persistence layer's unchanged 1 MiB evidence limit (reuse PR170 for PR522).
+        output.write_text(json.dumps(result, separators=(',', ':')) + '\n')
         if result['status'] != 'PASS':
             return result
     elif (tool, operation) == ('youtube-clipper-skill', 'clip'):
@@ -246,6 +274,7 @@ def _run(job, runtime):
                'output_sha256': hashlib.sha256(output.read_bytes()).hexdigest(),
                'media': media, 'publication_enabled': False,
                **({'audio': audio} if tool == 'voicestudio' else {}),
+               **({'paid_generation_enabled': False} if tool == 'obscura' else {}),
                'scope': 'This operation only; not complete product or hosted readiness'}
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
     return receipt

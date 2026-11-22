@@ -1,0 +1,21 @@
+name: Agent host capacity regression tests
+on:
+  pull_request:
+    paths:
+      - 'integrations/agent_capacity.py'
+      - 'integrations/test_agent_capacity.py'
+      - '.github/workflows/agent-capacity.yml'
+permissions:
+  contents: read
+jobs:
+  capacity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest -v integrations.test_agent_capacity

@@ -1,0 +1,12 @@
+# Direct compatibility pins, not a complete transitive lock.
+# Install CPU torch separately from https://download.pytorch.org/whl/cpu first.
+torch==2.9.1+cpu
+kokoro==0.9.4
+misaki[en]==0.9.4
+transformers==5.24.0
+huggingface-hub==2.4.0
+# Supports environments whose configured download transport uses SOCKS.
+socksio==1.0.0
+numpy==2.5.5
+soundfile==0.14.0
+spacy==3.8.18

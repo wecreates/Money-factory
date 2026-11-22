@@ -1,0 +1,48 @@
+{
+  "candidate_sha256": "49b913dd3f1452748275fa648326ae784c36464ae472e58fd2b9097086785087",
+  "full_av_review": false,
+  "independent_verification": false,
+  "learning_scope": "Reviewer hypotheses for subsequent ideation; not proven audience preferences or autonomous learning.",
+  "next_idea_hypotheses": [
+    "Test a future thumbnail with one larger value-versus-cost visual and less small text; this is a visual-design hypothesis, not measured audience preference."
+  ],
+  "package_sha256": "2e27949cc73c809698973797cd97402e09a5563cbd234d4d69e3029a3a7240e6",
+  "paid_generation_enabled": false,
+  "performance": {
+    "clicks": null,
+    "ctr": null,
+    "impressions": null,
+    "independently_verified": false,
+    "scope": "No audience evidence supplied; no performance winner inferred.",
+    "status": "UNAVAILABLE"
+  },
+  "production_approved": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "rationale": "All three original 1280x720 PNGs were visually inspected. Variant 1 pairs the large readable Perks or Payments? title with VALUE / COST and a stick figure; this communicates the comparison directly. Variant 2 has ambiguous question marks and variant 3 relies on small checklist text. Variant 1 is the editorial preference among these existing options, not an audience-tested winner. No full video, phone-size readability, or voice approval is implied.",
+  "recorded_at": "2026-11-21T19:14:11.792198+00:00",
+  "reviewed_at": "2026-11-21T19:14:11.783791+00:00",
+  "reviewer": "Codex visual review of all three original PNGs",
+  "schema_version": 1,
+  "source_files_sha256": {
+    "brief.json": "6ed60f11fed042cf56310741aaa7d8df547fc161458c019be278de1e2e4f3e1a",
+    "cycle.json": "ed333cd4d71b5e89d4b2368c5851d067619a2eaaa86d3f070ccee30157d2e260",
+    "delivery/captions.vtt": "951656ace1acc950172c11475ec6a822f38e5dbeed9d73bf2e2f54171f1f8cf1",
+    "delivery/editorial.json": "4bcf01639fd668429402dedd972037688845185517a2c5c25c72ad3fef961359",
+    "delivery/index.html": "65c7c30c928cecb9862747b3ff79ba1b90f43f695f1b183a2fe4d70bbf2fdaaf",
+    "delivery/package.json": "2e27949cc73c809698973797cd97402e09a5563cbd234d4d69e3029a3a7240e6",
+    "delivery/render.json": "cee206f2717c59470f35c00f92390e6800b0bf57c5cc6f3c34495be4c6fbe474",
+    "delivery/review-package.zip": "2728103dec14422bd790177250f86f45a5951f7877a5f56998cd6372c36819e5",
+    "delivery/thumbnail-1.png": "e15cc99abbbb054a7d6ec79a78bb8d09c929c03b63c8054bb06d58637113d48f",
+    "delivery/thumbnail-2.png": "cbcf950c813a6642e8d4904e15a77ce2a450f54c5aa099c5c7c55b5654e55ffb",
+    "delivery/thumbnail-3.png": "218a7f7ed29ef6bf10b483c411f889e49cdc7939e471c3646f2f1b2c84eec11c",
+    "delivery/video.mp4": "49b913dd3f1452748275fa648326ae784c36464ae472e58fd2b9097086785087",
+    "editorial.json": "4bcf01639fd668429402dedd972037688845185517a2c5c25c72ad3fef961359",
+    "render/render.json": "cee206f2717c59470f35c00f92390e6800b0bf57c5cc6f3c34495be4c6fbe474"
+  },
+  "status": "PACKAGE_SELECTION_RECORDED",
+  "submitted_selection_sha256": "f088cd188f28e15dd27c2f987e02df8eef7360c28e9d8e31a2e0b58104560843",
+  "thumbnail": "thumbnail-1.png",
+  "thumbnail_sha256": "e15cc99abbbb054a7d6ec79a78bb8d09c929c03b63c8054bb06d58637113d48f",
+  "title": "Perks or Payments?"
+}

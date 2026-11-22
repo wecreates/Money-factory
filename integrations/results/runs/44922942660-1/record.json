@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "workflow_run_id": "44922942660",
+  "workflow_run_attempt": "1",
+  "source_revision": "afc332bb6dd35d0ec1011cf1b456abacfd6f76bc",
+  "job": "rea-project.job.json",
+  "tool": "rea",
+  "operation": "analyze-javascript-application",
+  "operation_status": "PASS",
+  "result_persisted": true,
+  "output_sha256": "fa51cbe5c70503129017bdc4d405529b3b940cb8c0cf2d958279a17040a29da7",
+  "workflow_url": "https://github.com/wecreates/Money-factory/actions/runs/44922942660",
+  "publication_enabled": false,
+  "production_ready": false,
+  "scope": "Operation execution evidence; findings and content approval are separate"
+}

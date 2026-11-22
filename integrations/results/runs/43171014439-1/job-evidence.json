@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "job": "rea-project.job.json",
+  "job_sha256": "d23ee1ff5dc51a1f89ca5ad70943d31743fb047983ed1107137f777f3b9fb885",
+  "repository_revision": "9acff0009522c402576dbb4c92b63986847e63a1",
+  "execution_engine": "money-factory",
+  "content_control_revision": null,
+  "output": "result.json",
+  "publication_enabled": false,
+  "paid_generation_enabled": false
+}

@@ -62,3 +62,36 @@ publication holds. Close clients before dropping only that generated database.
 No production role/schema/resource changes. Syntax check passes locally; the
 real fixture is unexecuted locally without PostgreSQL and must pass hosted CI.
 Reuse PR521; do not bypass the failed step or declare skipped tests successful.
+
+
+## November 22 resumed verification on current source
+
+Current CC main/deployed revision 7d213cdd3b1bcb767dd29b8db1dd0b7201478e8d; current MF main
+13ed557e3cfe208d363a2c4e607cf41fea4cd1de. Former corrected-source run43095819706 is now
+COMPLETED/CANCELLED with zero jobs; cancellation is not a test pass. Its prior
+queue-only recovery blocker has materially changed. Reuse PR521, preserving the
+exact corrected event-roundtrip fixture and every concurrent main-tree change.
+Refresh the workflow's immutable CC checkout pin to the actual current deployed
+source so the bridge, review, current server startup and PostgreSQL contracts are
+verified together, not against the ten-day-old candidate. Every existing step,
+assertion, dependency pin, timeout, local disposable DB guard and both false
+publication settings is retained. Incorporate current MF main as a merge parent,
+without resetting/overwriting concurrent wholesale,content-cycle,agent,monitor or
+integration evidence. No new PR,manual dispatch or duplicate running job.
+
+Local YAML/static verification requires the only workflow-byte change to be the
+exact CC commit pin; every named Node/Python test path must exist in that pinned
+tree. Actual corrected PostgreSQL/full hosted verification still must pass on the
+new exact head before merge. No hosted pass is claimed in this source update.
+Prior326Node/90Python local passes remain historical,not new test execution.
+
+Current dedicated POD modules,checklist/free-deployment and implementation-status
+blob identities are unchanged. Local snapshots were removed by workspace
+maintenance; current source is retrieved from the existing repos,not reconstructed
+as acceptance. Render lists dep-dc11jtm0tbcc73a8pph0 LIVE on 7d213cdd3b1bcb767dd29b8db1dd0b7201478e8d,finished
+2026-11-21T22:24:51.494361Z. This is rollout metadata,not fresh POD public telemetry,
+production preflight,backup or live acceptance. Preserve the current free plan and
+all environment settings. No changed DB-admin access path; no live SQL retry.
+All24 live acceptance areas remain OPEN. Publication remains held false; no
+credentials,rights,QA approvals,provider adapter success,revenue,capacity or
+continuous worker are invented. A passing video smoke is not POD acceptance.

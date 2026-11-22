@@ -1,0 +1,163 @@
+{
+  "checkpoint": {
+    "candidate_sha256": "b4369ef7f610dee2bab62514e23c8362984671c6c0082774bbd7dbe00cefa0bf",
+    "checkpoint_sha256": "004b731b83667c8c4aae3397ea3e88ded5ebc85cc82a627e0a52d9ee3b79ecf3",
+    "full_av_review": false,
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "status": "CHECKPOINT_CREATED"
+  },
+  "content_control_commit": "7d213cdd3b1bcb767dd29b8db1dd0b7201478e8d",
+  "cycle": {
+    "archive_sha256": "f116d61e21d00f5e963f5132ef476f62a1c5df5b011c42eff91ca7f554faff5f",
+    "brief_sha256": "6ed60f11fed042cf56310741aaa7d8df547fc161458c019be278de1e2e4f3e1a",
+    "candidate_sha256": "b4369ef7f610dee2bab62514e23c8362984671c6c0082774bbd7dbe00cefa0bf",
+    "competitor_comparison": false,
+    "editorial_sha256": "4bcf01639fd668429402dedd972037688845185517a2c5c25c72ad3fef961359",
+    "factual_review": false,
+    "finished_at": "2026-11-21T22:47:10.452948+00:00",
+    "full_av_review": false,
+    "package_sha256": "c904c3c23afc1dc454f69983ab77c556579e0599f8e54056f7d60ed327afd4f7",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.",
+    "started_at": "2026-11-21T22:46:34.645177+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "editorial",
+        "status": "PASS"
+      },
+      {
+        "name": "render",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "complete_cycle.py": "d8da6bb363a4fdfcc2e01e8281bb7054efba5237883a98843cd297769976b8f4",
+      "cycle_editorial.py": "ab5d0231e26b55a7b94d4f7c899094e336069a1fc1344a8b6688f20b88e19b73",
+      "cycle_package.py": "226b4c5e24a66509ee97e3314bf01bf8117f17cd2bb09037ef3117afe62ba513",
+      "cycle_render.py": "0194961109f686db700143194bc1504796dbb4d8e3979555745f2541f0da692c"
+    }
+  },
+  "duration_seconds": 34.585,
+  "full_av_review": false,
+  "library": {
+    "current_version_number": 0,
+    "file_id": "file_0000000037bc81fdbc1f9a785dd1f6e4",
+    "file_name": "CYZOR-Restored-Runtime-Checkpoint.zip",
+    "file_size_bytes": 1804553,
+    "library_file_id": "libfile_fde3_f-6df3f42d8c148191bb5ebad1e3ee3171_389d2c70fb1c8191bcf9b25e87727630"
+  },
+  "paid_generation_enabled": false,
+  "production_approved": false,
+  "publication_enabled": false,
+  "runtime": {
+    "cuda_build": null,
+    "python": "3.12.14",
+    "versions": {
+      "en_core_web_sm": "3.8.0",
+      "huggingface_hub": "2.4.0",
+      "kokoro": "0.9.4",
+      "misaki": "0.9.4",
+      "socksio": "1.0.0",
+      "torch": "2.9.1+cpu",
+      "transformers": "5.24.0"
+    }
+  },
+  "schema_version": 1,
+  "scope": "Fresh same-brief production with restored offline runtimes and saved checkpoint in cloud workspace, not autonomous topic discovery, creative acceptance or actual PC/VPN worker.",
+  "source_files_sha256": {
+    "brief.json": "6ed60f11fed042cf56310741aaa7d8df547fc161458c019be278de1e2e4f3e1a",
+    "cycle.json": "4ad52b90ceacc7de87623403b021fb5574c41502076476ded34ce32319b7ea10",
+    "delivery/captions.vtt": "f57f33b43abc588d7d657ca389c141383d6216c365d5c6258ccf37a67506211b",
+    "delivery/editorial.json": "4bcf01639fd668429402dedd972037688845185517a2c5c25c72ad3fef961359",
+    "delivery/index.html": "b00939d383a19c6a2aa7c8f5bb88e32265b84494b5bf51f59dfcf37383d3b5da",
+    "delivery/package.json": "c904c3c23afc1dc454f69983ab77c556579e0599f8e54056f7d60ed327afd4f7",
+    "delivery/render.json": "3cc1c7d589f6b9b7b5e8cd4539d5c657757855a6665aa47d4b4e57fca2ad0b4e",
+    "delivery/review-package.zip": "f116d61e21d00f5e963f5132ef476f62a1c5df5b011c42eff91ca7f554faff5f",
+    "delivery/thumbnail-1.png": "3b7a4582f785a7262efbec0ea55e5bd8e84316cd2b0ebfedb81014a1f7911594",
+    "delivery/thumbnail-2.png": "20e319fd8e97158ac96bf1c435df3686f93ea9f1e3bc2ebc77d9a8b133f44492",
+    "delivery/thumbnail-3.png": "58584600dbb8d80730aaf384f2f61662c53de682a62c29764a8771ff0cd14999",
+    "delivery/video.mp4": "b4369ef7f610dee2bab62514e23c8362984671c6c0082774bbd7dbe00cefa0bf",
+    "editorial.json": "4bcf01639fd668429402dedd972037688845185517a2c5c25c72ad3fef961359",
+    "render/render.json": "3cc1c7d589f6b9b7b5e8cd4539d5c657757855a6665aa47d4b4e57fca2ad0b4e"
+  },
+  "transcription": {
+    "actual_transcript": "My rewards card deserves a trophy, so why is my wallet asking for a fire extinguisher? Because the trophy is not paying the bill, compare benefits you actually use with the annual fee. But it comes with perks and a very impressive rectangle. Carrying a balance changes the math, interest and fees can outweigh the rewards. Check the fee, the interest rate and the benefits you will use. Judge the card by the numbers. Okay, the trophy can stay, the card has to earn its spot.",
+    "candidate_sha256": "b4369ef7f610dee2bab62514e23c8362984671c6c0082774bbd7dbe00cefa0bf",
+    "caption_sha256": "f57f33b43abc588d7d657ca389c141383d6216c365d5c6258ccf37a67506211b",
+    "comparison": {
+      "critical_numeric_and_negation_tokens_match": true,
+      "ordered_word_similarity": 1.0,
+      "passed": true,
+      "word_recall": 1.0
+    },
+    "duration_seconds": 34.944,
+    "editorial_sha256": "28bfad355e3454dca5197e1db899f7f64e061fbf8c3596a091a4ec8207e4dc7d",
+    "engine": "faster-whisper",
+    "expected_text": "My rewards card deserves a trophy. So why is my wallet asking for a fire extinguisher? Because the trophy is not paying the bill. Compare benefits you actually use with the annual fee. But it comes with perks. And a very impressive rectangle. Carrying a balance changes the math. Interest and fees can outweigh the rewards. Check the fee, the interest rate, and the benefits you will use. Judge the card by the numbers. Okay. The trophy can stay. The card has to earn its spot.",
+    "full_av_review": false,
+    "helper_sha256": "ec22e95628168c3bd76f3aefc92db3aee8ead2540b36fdbe737c9eaa985b418b",
+    "model": "base.en",
+    "model_identity": {
+      "files": {
+        "config.json": {
+          "sha256": "f3bc3821e9fc76a27bae538e11ae5b677dcdd352b4600429ce7951d398569aeb",
+          "size_bytes": 2227
+        },
+        "model.bin": {
+          "sha256": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef",
+          "size_bytes": 145216508
+        },
+        "tokenizer.json": {
+          "sha256": "929c5252409436dce1b38a75d1abbcb5e132d170d8e324e4e04ed915fa2d22df",
+          "size_bytes": 2128466
+        },
+        "vocabulary.txt": {
+          "sha256": "ff77588746d3a2595d32ab5b69ffd7b95ce2441ac57533cb66fc3eb575a115cf",
+          "size_bytes": 422309
+        }
+      },
+      "repository": "Systran/faster-whisper-base.en",
+      "revision": "3d3d5dee26484f91867d81cb899cfcf72b96be6c"
+    },
+    "production_approved": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "Encoded speech recognition and observed word timing; not semantic equivalence, factual, creative or listening approval.",
+    "status": "PASS"
+  },
+  "validation": {
+    "independent_review": "Passed model/candidate/caption/checkpoint identities; full audiovisual quality not reviewed",
+    "local_tests": 99,
+    "requirements_dry_run": "Would make no changes"
+  },
+  "verified_at": "2026-11-21T22:48:10.969153+00:00",
+  "voice_model": {
+    "generator_sha256": "24501e664095ecc9701751c9665615d8f0c0bd8dccec9e388ef2e0736aef54a8",
+    "model_asset_sha256": {
+      "config.json": "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f",
+      "kokoro-v1_0.pth": "496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4",
+      "voices/am_adam.pt": "ced7e284aba12472891be1da3ab34db84cc05cc02b5889535796dbf2d8b0cb34",
+      "voices/am_fenrir.pt": "98e507eca1db08230ae3b6232d59c10aec9630022d19accac4f5d12fcec3c37a",
+      "voices/am_michael.pt": "9a443b79a4b22489a5b0ab7c651a0bcd1a30bef675c28333f06971abbd47bd37"
+    },
+    "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "voice_assignments": {
+      "dave": "am_fenrir",
+      "narrator": "am_adam",
+      "points_monk": "am_michael"
+    }
+  }
+}

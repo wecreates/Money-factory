@@ -1,0 +1,2 @@
+"supplier_id","sku","currency","price_cents","cost_cents","shipping_cents","handling_cents","tax_cents","fee_bps","fixed_fee_cents","min_fee_cents","return_reserve_bps","quote_expires_at_ms","safety_stock"
+"SYNTHETIC-ONLY","DEMO-001","USD","3000","1000","400","100","50","1500","30","0","500","1792674000000","2"

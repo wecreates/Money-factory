@@ -1,0 +1,5 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+MODEL_LOADED localhost:18743 rss_kb=843924
+REQUEST_RECEIVED
+The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+127.0.0.1 - - [20/Nov/2026 13:30:27] "POST /v1/chat/completions HTTP/1.1" 200 -

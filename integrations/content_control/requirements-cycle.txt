@@ -1,0 +1,2 @@
+# Drawing/packaging runtime. Voice and optional ASR use existing isolated runtimes.
+Pillow==13.0.0

@@ -1,0 +1,63 @@
+{
+  "observed_at": "2026-11-22T00:44:11.680687+00:00",
+  "scope": "Actual offline transcription replay of separate copy of existing candidate, plus regression tests; not new production or AV acceptance",
+  "base_commit": "a3ff9978550996e7889b4318d874eb201bc13616",
+  "candidate_sha256": "5adc0a937921e87404186d583ae787f619f9c4d47d91ace8942a6ef29ea8c8de",
+  "status": "PASS",
+  "decoded_asr_duration_seconds": 36.2666875,
+  "encoded_media_duration_seconds": 35.918667,
+  "last_word_end_seconds": 35.02,
+  "comparison": {
+    "critical_numeric_and_negation_tokens_match": true,
+    "ordered_word_similarity": 1.0,
+    "passed": true,
+    "word_recall": 1.0
+  },
+  "model_identity": {
+    "files": {
+      "config.json": {
+        "sha256": "f3bc3821e9fc76a27bae538e11ae5b677dcdd352b4600429ce7951d398569aeb",
+        "size_bytes": 2227
+      },
+      "model.bin": {
+        "sha256": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef",
+        "size_bytes": 145216508
+      },
+      "tokenizer.json": {
+        "sha256": "929c5252409436dce1b38a75d1abbcb5e132d170d8e324e4e04ed915fa2d22df",
+        "size_bytes": 2128466
+      },
+      "vocabulary.txt": {
+        "sha256": "ff77588746d3a2595d32ab5b69ffd7b95ce2441ac57533cb66fc3eb575a115cf",
+        "size_bytes": 422309
+      }
+    },
+    "repository": "Systran/faster-whisper-base.en",
+    "revision": "3d3d5dee26484f91867d81cb899cfcf72b96be6c"
+  },
+  "caption_sha256": "0ca23fff0e187aee9f95d734c33c535c057f7e07106829b3a11ecbcd99103927",
+  "captions_byte_identical_to_original": true,
+  "original_cycle_inspection": "PASS; untouched original candidate/package remains bound",
+  "renderer_sha256": "3d5dceece77384fc297c58f55b587681fb11d23c054b4e86ee11e9405ae9bcc3",
+  "transcription_receipt_sha256": "19969b47bb088c2794087104a305514152168aa1c831f778aa6df2c32b10dc49",
+  "local_tests": {
+    "cycle_tests": 84,
+    "complete_cycle_and_rea_tests": 18,
+    "total": 102
+  },
+  "independent_review": {
+    "reviewer": "timing_review",
+    "findings": "No blocking findings; independently passed 25 renderer tests",
+    "scope": "Code and regression review; no AV acceptance"
+  },
+  "regression": "Synthetic decoded duration 1.5 seconds with word ending 1.1 seconds and encoded duration 1.0 seconds now rejected before captions overwrite. Actual candidate was already within bounds.",
+  "remaining": [
+    "Full watch/listen and creative acceptance",
+    "Cross-sentence caption grouping requires separate quality revision",
+    "Actual-host access and 24-hour soak",
+    "Live deployment settings unavailable: Render workspace selection unresolved; DigitalOcean droplet list empty"
+  ],
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false
+}

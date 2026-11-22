@@ -1,0 +1,91 @@
+name: One queued unpublished video review
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/queued-video-review.yml'
+      - 'integrations/content_control/hosted_queue.py'
+      - 'integrations/content_control/test_hosted_queue.py'
+permissions:
+  contents: read
+concurrency:
+  group: queued-video-review
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'wecreates/Money-factory' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest -v integrations.content_control.test_hosted_queue
+  one-queued-packet:
+    needs: verify
+    if: >-
+      github.repository == 'wecreates/Money-factory' && github.event.repository.private == false &&
+      github.actor == github.repository_owner &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      CONTENT_CONTROL_COMMIT: '7a1caa4c6ffdc241681b2c69664c74e737784bd3'
+      PUBLICATION_ENABLED: 'false'
+      PAID_GENERATION_ENABLED: 'false'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: money-factory
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: wecreates/content-control
+          ref: ${{ env.CONTENT_CONTROL_COMMIT }}
+          path: content-control
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.3'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing free CPU and picture runtimes
+        working-directory: content-control
+        run: |
+          bash scripts/ci_media_tools.sh
+          timeout 180s sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=30 update -qq
+          timeout 180s sudo apt-get -o DPkg::Lock::Timeout=30 install -y --no-install-recommends libcairo2 fonts-dejavu-core fontconfig
+          npm ci --ignore-scripts
+          python -m pip install -r requirements-transcription.txt -r requirements-picture-render.txt
+      - name: Cache public speech model before offline production
+        run: python -c 'from faster_whisper import WhisperModel; WhisperModel("base.en", device="cpu", compute_type="int8")'
+      - name: Persist one immutable queue request and observed host signals
+        id: prepare
+        working-directory: money-factory
+        run: >-
+          python -m integrations.content_control.hosted_queue --output "$RUNNER_TEMP/queued-video-proof" prepare
+          --content-control-root "$GITHUB_WORKSPACE/content-control" --source-commit "$CONTENT_CONTROL_COMMIT"
+      - name: Execute through real capacity admission and durable queue
+        working-directory: money-factory
+        run: |
+          python -m integrations.local_agent_queue --queue "$RUNNER_TEMP/queued-video-proof/queue" work \
+            --max-jobs 1 --content-control-root "$GITHUB_WORKSPACE/content-control" \
+            --video-python "$(command -v python)" --picture-python "$(command -v python)" \
+            > "$RUNNER_TEMP/queued-video-proof/worker-result.json"
+      - name: Reopen durable state and verify exact packet identities
+        if: always() && steps.prepare.outcome == 'success'
+        working-directory: money-factory
+        run: python -m integrations.content_control.hosted_queue --output "$RUNNER_TEMP/queued-video-proof" verify
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.prepare.outcome == 'success'
+        with:
+          name: queued-unpublished-video-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/queued-video-proof/
+          retention-days: 30
+          if-no-files-found: error

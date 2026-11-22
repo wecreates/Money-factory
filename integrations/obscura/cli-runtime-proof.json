@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "tool": "obscura",
+  "operation": "inspect-local-web-page",
+  "observed_at": "2026-11-21T15:57:45.564545+00:00",
+  "upstream_revision": "0ecc41770da5c5300227dd83a15bfa1e5100d5d4",
+  "version": "0.2.7",
+  "archive_sha256": "11b53d27cd743e00e196e216920e7f3f794cf378e3f1792b8d25d3beabaf9cad",
+  "binary_sha256": "547f9d8a60048983f0e45c310f160d1239575af062af28e4f6755e361f8abcbf",
+  "input_sha256": "ff23f3592020760b6211b88448eee81eb871f517d86390b39c1608d61f37b9f3",
+  "observed": {
+    "title": "CYZOR private review",
+    "before": "Waiting for inspection",
+    "after": "Review ready",
+    "javascript": "javascript-ready",
+    "text": "CYZOR unpublished review\n\nPublishing disabled. Paid generation disabled.\n\nInspect review\n\nReview ready"
+  },
+  "screenshot": {
+    "width": 1280,
+    "height": 720,
+    "color_type": 6,
+    "sha256": "1c6f10a31ce52bc40f083c7fb8b02373fc94d510baf994081b50e47fcbddf1d8",
+    "bytes": 32170,
+    "png_verified": true,
+    "file": "result.png"
+  },
+  "elapsed_seconds": 0.15401332500005083,
+  "network_mode": "self-contained data URL; no listener or external resources",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "scope": "Real local DOM, JavaScript mutation and PNG diagnostic only; no arbitrary website, login, media playback, rendering parity or continuous-agent claim"
+}

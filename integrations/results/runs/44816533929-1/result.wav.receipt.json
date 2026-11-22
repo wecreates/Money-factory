@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "tool": "voicestudio",
+  "operation": "synthesize",
+  "revision": "4df5033e5a1a92e22936fb4d7d2d39e03cf10a91",
+  "status": "PASS",
+  "verified_at": "2026-11-20T21:03:49Z",
+  "output_sha256": "b82ce4d6460eb404e27985db86fa238b42cea485f67c8551cfde2af0d6af2cfc",
+  "media": null,
+  "publication_enabled": false,
+  "audio": {
+    "duration_seconds": 14.475,
+    "sample_rate": 24000,
+    "channels": 1,
+    "sample_width_bytes": 2,
+    "rms": 0.09984187738487374,
+    "clipped_fraction": 0.0,
+    "scope": "Technical waveform validation; not listening or pronunciation approval"
+  },
+  "scope": "This operation only; not complete product or hosted readiness"
+}

@@ -1,0 +1,20 @@
+{
+  "repository": "https://github.com/h4ckf0r0day/obscura",
+  "version": "0.2.7",
+  "revision": "0ecc41770da5c5300227dd83a15bfa1e5100d5d4",
+  "platform": "x86_64-linux",
+  "features": "render,non-stealth",
+  "url": "https://github.com/h4ckf0r0day/obscura/releases/download/v0.2.7/obscura-x86_64-linux.tar.gz",
+  "archive_size": 72018118,
+  "archive_sha256": "11b53d27cd743e00e196e216920e7f3f794cf378e3f1792b8d25d3beabaf9cad",
+  "files": {
+    "obscura": {
+      "size": 80903256,
+      "sha256": "547f9d8a60048983f0e45c310f160d1239575af062af28e4f6755e361f8abcbf"
+    },
+    "obscura-worker": {
+      "size": 75983952,
+      "sha256": "6956274a7e517666386493962866f95a39ace2f71d864ad2e3bac7640145c311"
+    }
+  }
+}

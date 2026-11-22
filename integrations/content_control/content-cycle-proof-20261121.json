@@ -1,0 +1,263 @@
+{
+  "cycle": {
+    "archive_sha256": "2728103dec14422bd790177250f86f45a5951f7877a5f56998cd6372c36819e5",
+    "brief_sha256": "6ed60f11fed042cf56310741aaa7d8df547fc161458c019be278de1e2e4f3e1a",
+    "candidate_sha256": "49b913dd3f1452748275fa648326ae784c36464ae472e58fd2b9097086785087",
+    "competitor_comparison": false,
+    "editorial_sha256": "4bcf01639fd668429402dedd972037688845185517a2c5c25c72ad3fef961359",
+    "factual_review": false,
+    "finished_at": "2026-11-21T17:03:59.540317+00:00",
+    "full_av_review": false,
+    "package_sha256": "2e27949cc73c809698973797cd97402e09a5563cbd234d4d69e3029a3a7240e6",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.",
+    "started_at": "2026-11-21T17:03:22.782969+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "editorial",
+        "status": "PASS"
+      },
+      {
+        "name": "render",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "complete_cycle.py": "e7dc02851080bd6678d9a1c058ba271e74834adbdfbb4170a0a45226bb8d1e6f",
+      "cycle_editorial.py": "ab5d0231e26b55a7b94d4f7c899094e336069a1fc1344a8b6688f20b88e19b73",
+      "cycle_package.py": "226b4c5e24a66509ee97e3314bf01bf8117f17cd2bb09037ef3117afe62ba513",
+      "cycle_render.py": "1f39b5e3d4f4b9008a5ae90e263c95e7ff0c0cd25e1d417b9712bc9f3e0072d1"
+    }
+  },
+  "full_av_review": false,
+  "prior_cycle": {
+    "candidate_sha256": "141a0fba2ca770b107ab8a23d7aa287090a084c9c54db85b81e5bbe9d27e0b4a",
+    "finished_at": "2026-11-21T17:00:52.860214+00:00",
+    "started_at": "2026-11-21T17:00:17.909434+00:00"
+  },
+  "production_approved": false,
+  "publication_enabled": false,
+  "queue_probe": {
+    "health": {
+      "consumer_lock_held": false,
+      "job_counts": {
+        "blocked": 1
+      },
+      "paid_generation_enabled": false,
+      "production_ready": false,
+      "publication_enabled": false,
+      "run": {
+        "active_job": null,
+        "config": {
+          "max_jobs": 1,
+          "poll_seconds": 1,
+          "watch_seconds": 0
+        },
+        "exit_reason": "job_limit",
+        "finished": 1795280359.7077212,
+        "heartbeat": 1795280359.7077212,
+        "heartbeat_age_seconds": 0.00022840499877929688,
+        "heartbeat_fresh": false,
+        "id": "b61985e9117142efb5de81e839d4eafa",
+        "observed_state": "finished",
+        "processed": 1,
+        "started": 1795280359.7052956,
+        "state": "finished",
+        "stop_requested": null
+      },
+      "scope": "Foreground process liveness and queue state only; not model, VPN, video quality, or production health"
+    },
+    "production_ready": false,
+    "publication_enabled": false,
+    "result": {
+      "paid_generation_enabled": false,
+      "processed": [
+        {
+          "attempts": 1,
+          "id": "fresh-rewards-cycle",
+          "state": "blocked"
+        }
+      ],
+      "production_ready": false,
+      "publication_enabled": false,
+      "recovered_interrupted_ids": [],
+      "worker": {
+        "active_job": null,
+        "config": {
+          "max_jobs": 1,
+          "poll_seconds": 1,
+          "watch_seconds": 0
+        },
+        "exit_reason": "job_limit",
+        "finished": 1795280359.7077212,
+        "heartbeat": 1795280359.7077212,
+        "heartbeat_age_seconds": 9.632110595703125e-05,
+        "heartbeat_fresh": false,
+        "id": "b61985e9117142efb5de81e839d4eafa",
+        "observed_state": "finished",
+        "processed": 1,
+        "started": 1795280359.7052956,
+        "state": "finished",
+        "stop_requested": null
+      }
+    },
+    "scope": "Actual fresh brief queued and drained through SQLite; host capacity blocks render before subprocess",
+    "state": {
+      "attempts": 1,
+      "created": 1795280359.7050748,
+      "digest": "9d21198ba35bc71f07113185831133f1deb35ce7f3c19ad913f0a94cc87a48ac",
+      "id": "fresh-rewards-cycle",
+      "max_attempts": 1,
+      "receipts": [
+        {
+          "finished": 1795280359.7073421,
+          "number": 1,
+          "receipt": {
+            "blocker": "Fresh host capacity does not admit a content cycle",
+            "brief_sha256": "93a83d6bfa94d4162dd82b16f95e2556a7277c8f141847afff090ff7ff8b59a0",
+            "capacity": {
+              "admitted_workers": 0,
+              "publication_enabled": false,
+              "reasons": [
+                "fresh_cpu_and_memory_snapshot_required"
+              ],
+              "requested_workers": 1,
+              "scope": "resource_budget_only_not_model_readiness",
+              "status": "BLOCKED"
+            },
+            "full_av_review": false,
+            "operation": "produce-content-cycle",
+            "paid_generation_enabled": false,
+            "production_approved": false,
+            "production_ready": false,
+            "publication_enabled": false,
+            "schema_version": 1,
+            "scope": "One admitted unpublished cycle; no unattended service or creative approval",
+            "status": "BLOCKED"
+          },
+          "started": 1795280359.7059135,
+          "state": "blocked"
+        }
+      ],
+      "state": "blocked",
+      "updated": 1795280359.7073421
+    }
+  },
+  "render": {
+    "candidate_sha256": "49b913dd3f1452748275fa648326ae784c36464ae472e58fd2b9097086785087",
+    "caption_sha256": "951656ace1acc950172c11475ec6a822f38e5dbeed9d73bf2e2f54171f1f8cf1",
+    "caption_timing": "observed_word_timestamps",
+    "duration_seconds": 34.585,
+    "independent_transcription_verified": true,
+    "timeline_sha256": "b0c4ec1ab923fb308ad11167913f1d9db032837a2056e14776ce91a2c8719e92",
+    "voice_model": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "voice_receipt_sha256": "25519e2c2f3a8bcc6b33a64040ba5aeeea0412dfc532d22fc65486102fcbfcae"
+  },
+  "review": {
+    "feedback_items": 5,
+    "revision": {
+      "brief_sha256": "6ed60f11fed042cf56310741aaa7d8df547fc161458c019be278de1e2e4f3e1a",
+      "feedback": [
+        {
+          "action": "Replace ambiguous opening Fine with Okay and regenerate/recognize the new encoded speech; complete audiovisual viewing separately.",
+          "check": "full_audiovisual"
+        },
+        {
+          "action": "Complete and document the voice naturalness review.",
+          "check": "voice_naturalness"
+        },
+        {
+          "action": "Shorten title to Perks or Payments? and align balance visual direction to supported comparison diagram.",
+          "check": "visual_readability"
+        },
+        {
+          "action": "Complete and document the originality review.",
+          "check": "originality"
+        },
+        {
+          "action": "Obtain permitted live reference observations and compare actual complete outputs before creative approval.",
+          "check": "reference_comparison"
+        }
+      ],
+      "feedback_resolution_verified": false,
+      "full_av_review": false,
+      "paid_generation_enabled": false,
+      "prior_cycle_sha256": "e8146142922a7517ab14ac7a0be2c61681d392d26e2487547feb280ee2327f8e",
+      "production_approved": false,
+      "production_ready": false,
+      "publication_enabled": false,
+      "recorded_review_sha256": "a8fd0d2b991966fd8b77109942de704a152a0d9ccbb74f2b9aaba863bf183aee",
+      "schema_version": 1,
+      "scope": "Revised supplied brief; previous approval statements cannot certify a new render.",
+      "status": "REVISION_BRIEF_READY",
+      "supersedes_candidate_sha256": "141a0fba2ca770b107ab8a23d7aa287090a084c9c54db85b81e5bbe9d27e0b4a"
+    },
+    "stale_review_rejected_for_revision": true,
+    "status": "REVISION_REQUIRED"
+  },
+  "schema_version": 1,
+  "scope": "Actual offline authored-research brief to fresh video and thumbnails, followed by candidate-bound feedback and an actual revised production. Not autonomous discovery or creative approval.",
+  "speech_verification": {
+    "candidate_sha256": "49b913dd3f1452748275fa648326ae784c36464ae472e58fd2b9097086785087",
+    "caption_sha256": "951656ace1acc950172c11475ec6a822f38e5dbeed9d73bf2e2f54171f1f8cf1",
+    "comparison": {
+      "critical_numeric_and_negation_tokens_match": true,
+      "ordered_word_similarity": 1.0,
+      "passed": true,
+      "word_recall": 1.0
+    },
+    "engine": "faster-whisper",
+    "model": "base.en",
+    "scope": "Encoded speech recognition and observed word timing; not semantic equivalence, factual, creative or listening approval.",
+    "status": "PASS"
+  },
+  "thumbnails": [
+    {
+      "file": "thumbnail-1.png",
+      "height": 720,
+      "sha256": "e15cc99abbbb054a7d6ec79a78bb8d09c929c03b63c8054bb06d58637113d48f",
+      "source_timestamp_seconds": 6.917000000000001,
+      "width": 1280
+    },
+    {
+      "file": "thumbnail-2.png",
+      "height": 720,
+      "sha256": "cbcf950c813a6642e8d4904e15a77ce2a450f54c5aa099c5c7c55b5654e55ffb",
+      "source_timestamp_seconds": 17.2925,
+      "width": 1280
+    },
+    {
+      "file": "thumbnail-3.png",
+      "height": 720,
+      "sha256": "218a7f7ed29ef6bf10b483c411f889e49cdc7939e471c3646f2f1b2c84eec11c",
+      "source_timestamp_seconds": 27.668000000000003,
+      "width": 1280
+    }
+  ],
+  "validation": {
+    "focused_tests": 64,
+    "negative_amount_swap_rejected": true,
+    "queue_operator_regression_tests": 24,
+    "total_tests": 88
+  },
+  "voices": {
+    "assignments": {
+      "dave": "am_fenrir",
+      "narrator": "am_adam",
+      "points_monk": "am_michael"
+    },
+    "clips": 6,
+    "generator_sha256": "24501e664095ecc9701751c9665615d8f0c0bd8dccec9e388ef2e0736aef54a8",
+    "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "suppliers": [
+    {
+      "authorization": {
+        "evidence_id": "SIMULATED-NOT-REAL-APPROVAL",
+        "expires_at_ms": 1792674000000,
+        "channels": [
+          "amazon",
+          "walmart",
+          "ebay"
+        ],
+        "skus": [
+          "DEMO-001"
+        ]
+      },
+      "seller_of_record": true,
+      "id": "SYNTHETIC-ONLY",
+      "neutral_packaging": true,
+      "relationship": "wholesale",
+      "returns": {
+        "evidence_id": "SIMULATED-RETURNS",
+        "expires_at_ms": 1792674000000
+      }
+    }
+  ],
+  "commands": [
+    {
+      "order": {
+        "marketplace": "amazon",
+        "quantity": 2,
+        "sku": "DEMO-001",
+        "supplier_id": "SYNTHETIC-ONLY",
+        "id": "DEMO-amazon"
+      },
+      "action": "route"
+    },
+    {
+      "order": {
+        "marketplace": "walmart",
+        "quantity": 2,
+        "sku": "DEMO-001",
+        "supplier_id": "SYNTHETIC-ONLY",
+        "id": "DEMO-walmart"
+      },
+      "action": "route"
+    },
+    {
+      "order": {
+        "marketplace": "ebay",
+        "quantity": 2,
+        "sku": "DEMO-001",
+        "supplier_id": "SYNTHETIC-ONLY",
+        "id": "DEMO-ebay"
+      },
+      "action": "route"
+    },
+    {
+      "action": "accept",
+      "value": "SIM-PO-1",
+      "id": "DEMO-amazon"
+    },
+    {
+      "action": "track",
+      "value": {
+        "tracking_number": "SIM-NOT-A-TRACKING-NUMBER",
+        "carrier": "SIM-CARRIER",
+        "tendered_at_ms": 1792587600000,
+        "evidence_id": "SIM-TENDER"
+      },
+      "id": "DEMO-amazon"
+    },
+    {
+      "id": "DEMO-amazon",
+      "action": "requestReturn"
+    },
+    {
+      "action": "authorizeReturn",
+      "value": "SIM-RMA",
+      "id": "DEMO-amazon"
+    },
+    {
+      "id": "DEMO-amazon",
+      "action": "receiveReturn"
+    },
+    {
+      "id": "DEMO-amazon",
+      "action": "refund"
+    },
+    {
+      "id": "DEMO-walmart",
+      "action": "requestCancel"
+    },
+    {
+      "action": "confirmCancel",
+      "value": "SIM-CANCEL-CONFIRMED",
+      "id": "DEMO-walmart"
+    },
+    {
+      "action": "accept",
+      "value": "SIM-PO-3",
+      "id": "DEMO-ebay"
+    }
+  ],
+  "snapshots": [
+    {
+      "observed_at_ms": 1792587600000,
+      "sku": "DEMO-001",
+      "quantity": 10,
+      "supplier_id": "SYNTHETIC-ONLY",
+      "max_age_ms": 300000
+    }
+  ],
+  "now": 1792587600000,
+  "fixture_data": true,
+  "mode": "sandbox",
+  "catalog": [
+    {
+      "supplier_id": "SYNTHETIC-ONLY",
+      "sku": "DEMO-001",
+      "currency": "USD",
+      "price_cents": 3000,
+      "cost_cents": 1000,
+      "shipping_cents": 400,
+      "handling_cents": 100,
+      "tax_cents": 50,
+      "fee_bps": 1500,
+      "fixed_fee_cents": 30,
+      "min_fee_cents": 0,
+      "return_reserve_bps": 500,
+      "quote_expires_at_ms": 1792674000000,
+      "safety_stock": 2
+    }
+  ]
+}

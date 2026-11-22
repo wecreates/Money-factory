@@ -1,0 +1,30 @@
+name: OpenClaw local adapter
+on:
+  pull_request:
+    paths:
+      - 'integrations/openclaw/**'
+      - 'integrations/run.py'
+      - 'integrations/agent_capacity.py'
+      - 'integrations/owned_process.py'
+      - 'integrations/test_owned_process.py'
+      - '.github/workflows/openclaw-local.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/openclaw/**'
+      - 'integrations/run.py'
+      - 'integrations/agent_capacity.py'
+      - 'integrations/owned_process.py'
+      - 'integrations/test_owned_process.py'
+      - '.github/workflows/openclaw-local.yml'
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s integrations/openclaw -p 'test_*.py' -v

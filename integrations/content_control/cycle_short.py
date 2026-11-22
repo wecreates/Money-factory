@@ -1,0 +1,163 @@
+"""Explicit, unpublished portrait excerpts; selection and creative acceptance stay open."""
+import argparse
+from datetime import datetime, timezone
+import json
+import math
+import os
+from pathlib import Path
+import re
+import subprocess
+import tempfile
+import time
+
+from integrations.content_control.cycle_review import inspect_cycle
+from integrations.content_control.cycle_package import diagram_thumbnail_crop
+from integrations.content_control.review_package import digest, no_symlinks, require
+from integrations.owned_process import owned_process
+
+FLAGS = {k: False for k in ('publication_enabled', 'paid_generation_enabled',
+                           'production_approved', 'full_av_review', 'production_ready')}
+STAMP = r'(\d{2,}):([0-5]\d):([0-5]\d)\.(\d{3})'
+
+
+def _seconds(value):
+    match = re.fullmatch(STAMP, value)
+    require(match is not None, 'Unsupported caption timestamp')
+    h, m, s, ms = map(int, match.groups())
+    return ((h * 60 + m) * 60 + s) * 1000 + ms
+
+
+def _stamp(ms):
+    seconds, millis = divmod(ms, 1000); minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    return f'{hours:02}:{minutes:02}:{seconds:02}.{millis:03}'
+
+
+def clip_captions(text, start_ms, end_ms):
+    """Accept the pipeline's plain WebVTT only; preserve intersecting cue text."""
+    require(text.startswith('WEBVTT\n'), 'Plain WebVTT required')
+    cues, truncated = [], []
+    prior_end = 0
+    for block in re.split(r'\n\s*\n', text.strip())[1:]:
+        lines = block.splitlines()
+        if lines and re.fullmatch(r'\d+', lines[0]): lines = lines[1:]
+        require(len(lines) >= 2 and ' --> ' in lines[0], 'Unsupported caption block')
+        parts = lines[0].split(' --> ')
+        require(len(parts) == 2, 'Unsupported cue settings')
+        a, b = map(_seconds, parts)
+        require(prior_end <= a < b, 'Unordered or overlapping captions')
+        prior_end = b
+        require(all(line.strip() and '-->' not in line for line in lines[1:]), 'Invalid caption text')
+        if b <= start_ms or a >= end_ms: continue
+        if a < start_ms or b > end_ms: truncated.append(len(cues) + 1)
+        cues.append(f'{_stamp(max(a,start_ms)-start_ms)} --> {_stamp(min(b,end_ms)-start_ms)}\n' + '\n'.join(lines[1:]))
+    return 'WEBVTT\n\n' + '\n\n'.join(cues) + ('\n' if cues else ''), truncated
+
+
+def _run(command, deadline):
+    remaining = deadline - time.monotonic()
+    require(remaining > 0, 'Short deadline exhausted')
+    with tempfile.TemporaryFile() as stream:
+        with owned_process(command, timeout=remaining, stdout=stream, stderr=subprocess.STDOUT) as process:
+            while process.poll() is None:
+                require(time.monotonic() < deadline, 'Short deadline exhausted')
+                require(os.fstat(stream.fileno()).st_size <= 1024*1024, 'Media diagnostic output limit')
+                time.sleep(.02)
+            require(process.returncode == 0, 'Media command failed')
+        require(os.fstat(stream.fileno()).st_size <= 1024*1024, 'Media diagnostic output limit')
+        stream.seek(0)
+        return stream.read()
+
+
+def _probe(path, deadline):
+    data = json.loads(_run(['ffprobe','-v','error','-protocol_whitelist','file,pipe','-f','mov',
+                           '-show_streams','-show_format','-of','json',str(path)], deadline))
+    videos = [s for s in data['streams'] if s['codec_type']=='video']
+    audio = [s for s in data['streams'] if s['codec_type']=='audio']
+    require(len(videos)==1 and len(audio)==1, 'Exactly one video and audio stream required')
+    v=videos[0]; width,height=v['width'],v['height']
+    require(16 <= width <= 8192 and 16 <= height <= 8192 and width*16==height*9,
+            'Existing 9:16 portrait framing required; no automatic crop')
+    require(v.get('sample_aspect_ratio','1:1') in ('1:1','N/A') and
+            not any(s.get('rotation',0) for s in v.get('side_data_list',[])), 'Rotated/anamorphic sources unsupported')
+    duration=float(data['format']['duration'])
+    require(math.isfinite(duration) and 0 < duration <= 1800, 'Invalid media duration')
+    return {'width':width,'height':height,'duration_seconds':duration}
+
+
+def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counter=False):
+    require(type(hide_source_counter) is bool, 'hide_source_counter must be boolean')
+    require(type(timeout) is int and 10 <= timeout <= 600, 'Timeout must be 10..600 seconds')
+    require(all(type(v) in (int,float) and math.isfinite(v) for v in (start,end)) and
+            0 <= start < end and end-start <= 60, 'Explicit finite interval of at most 60 seconds required')
+    start_ms,end_ms=round(start*1000),round(end*1000)
+    require(start_ms < end_ms, 'Interval must span at least one millisecond')
+    require(all(os.environ.get(k,'false').lower()=='false' for k in
+                ('PUBLICATION_ENABLED','PAID_GENERATION_ENABLED')), 'Publishing and paid generation must stay disabled')
+    root=Path(os.path.abspath(cycle_dir)); output=Path(os.path.abspath(output))
+    no_symlinks(root);no_symlinks(output)
+    require(not output.exists() and not output.is_relative_to(root), 'Fresh output outside source cycle required')
+    deadline=time.monotonic()+timeout
+    snapshot=inspect_cycle(root)
+    media=root/'delivery/video.mp4'; captions=root/'delivery/captions.vtt'
+    source=_probe(media,deadline)
+    counter_filter=[]
+    counter_action={'action':'preserve'}
+    if hide_source_counter:
+        # inspect_cycle has already verified this exact receipt and editorial.
+        render=json.loads((root/'delivery/render.json').read_text())
+        require(diagram_thumbnail_crop(snapshot['editorial'],render,source) is not None,
+                'Counter removal requires the known 720x1280 picture-renderer layout')
+        counter_filter=['-vf','drawbox=x=570:y=40:w=110:h=45:color=0xf7f1e6:t=fill']
+        counter_action={'action':'hide_source_scene_counter','rectangle_xywh':[570,40,110,45],
+                        'fill_rgb':'#f7f1e6',
+                        'scope':'Known renderer scene-counter region only; no reframing or automatic media cleanup.'}
+    require(end <= source['duration_seconds'] and end_ms/1000 <= source['duration_seconds'], 'Interval exceeds source media')
+    require(captions.stat().st_size <= 1024*1024, 'Caption input oversized')
+    clipped,boundary=clip_captions(captions.read_text(),start_ms,end_ms)
+    output.mkdir(parents=True,exist_ok=False)
+    receipt={'schema_version':1,'status':'BLOCKED','technical_status':'PENDING',**FLAGS,
+             'source_counter':counter_action,'tool_sha256':digest(Path(__file__)),
+             'parent_candidate_sha256':snapshot['candidate_sha256'],
+             'parent_cycle_sha256':snapshot['files_sha256']['cycle.json'],
+             'source_caption_sha256':digest(captions),'start_seconds':start_ms/1000,'end_seconds':end_ms/1000,
+             'boundary_cue_numbers':boundary,'selection_scope':'Explicit supplied time bounds; not automatic editorial selection.',
+             'caption_scope':'Intersecting source cues clipped/rebased; whole cue text retained even at cut boundaries. Review boundary words against audio.',
+             'scope':'Unreviewed portrait excerpt; no long-form, creative, listening, phone or publishing acceptance.',
+             'started_at':datetime.now(timezone.utc).isoformat()}
+    try:
+        _run(['ffmpeg','-v','error','-xerror','-nostdin','-n','-protocol_whitelist','file,pipe','-threads','2',
+              '-f','mov','-i',str(media),'-ss',str(start_ms/1000),'-t',str((end_ms-start_ms)/1000),
+              '-map','0:v:0','-map','0:a:0','-map_metadata','-1',*counter_filter,'-c:v','libx264','-threads','2',
+              '-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart','-fs',str(256*1024*1024),str(output/'video.mp4')],deadline)
+        actual=_probe(output/'video.mp4',deadline)
+        require(abs(actual['duration_seconds']-(end_ms-start_ms)/1000)<=.1,'Encoded duration differs from requested interval')
+        require(actual['width']==source['width'] and actual['height']==source['height'],'Framing changed')
+        _run(['ffmpeg','-v','error','-xerror','-nostdin','-threads','2','-i',str(output/'video.mp4'),'-f','null','-'],deadline)
+        clipped, boundary = clip_captions(captions.read_text(), start_ms, min(end_ms, start_ms + math.floor(actual['duration_seconds']*1000)))
+        receipt['boundary_cue_numbers'] = boundary
+        (output/'captions.vtt').write_text(clipped)
+        require(inspect_cycle(root)==snapshot,'Source cycle changed while clipping')
+        receipt.update(status='AWAITING_REVIEW',technical_status='PASS',media=actual,
+                       candidate_sha256=digest(output/'video.mp4'),caption_sha256=digest(output/'captions.vtt'))
+    except (OSError,ValueError,RuntimeError,TimeoutError,subprocess.SubprocessError,KeyError,TypeError) as error:
+        receipt['reason']=str(error)
+    finally:
+        receipt['finished_at']=datetime.now(timezone.utc).isoformat()
+        (output/'short.json').write_text(json.dumps(receipt,indent=2,sort_keys=True,allow_nan=False)+'\n')
+    return receipt
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--cycle-dir',required=True);parser.add_argument('--output',required=True)
+    parser.add_argument('--start',type=float,required=True);parser.add_argument('--end',type=float,required=True)
+    parser.add_argument('--timeout',type=int,default=180)
+    parser.add_argument('--hide-source-counter',action='store_true',
+                        help='Hide only the known picture renderer scene-counter region; unknown layouts are rejected.')
+    a=parser.parse_args();result=make_short(a.cycle_dir,a.output,start=a.start,end=a.end,timeout=a.timeout,
+                                        hide_source_counter=a.hide_source_counter)
+    print(json.dumps(result,indent=2));return 0 if result['status']=='AWAITING_REVIEW' else 2
+
+
+if __name__=='__main__': raise SystemExit(main())

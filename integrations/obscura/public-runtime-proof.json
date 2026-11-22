@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "tool": "obscura",
+  "operation": "inspect-public-page",
+  "observed_at": "2026-11-21T16:01:26.417867+00:00",
+  "upstream_revision": "0ecc41770da5c5300227dd83a15bfa1e5100d5d4",
+  "version": "0.2.7",
+  "archive_sha256": "11b53d27cd743e00e196e216920e7f3f794cf378e3f1792b8d25d3beabaf9cad",
+  "binary_sha256": "547f9d8a60048983f0e45c310f160d1239575af062af28e4f6755e361f8abcbf",
+  "input_sha256": "84e01a32cfda4c4e7a2549c55e13128c2d19382b1504c26653ae2bc86b9904b9",
+  "observed": {
+    "title": "Example Domain",
+    "url": "https://example.com/",
+    "text_sha256": "aa8c4320fabb468930b605f5f365b1beaf2ac42b081eed50083e26d26cb3c159",
+    "text_characters": 917
+  },
+  "screenshot": {
+    "width": 1280,
+    "height": 720,
+    "color_type": 6,
+    "sha256": "bccd54e4e351d25d4c85cec74dd7e76f6b13ceb8d18c02619511360864143150",
+    "bytes": 63715,
+    "png_verified": true,
+    "file": "result.png"
+  },
+  "elapsed_seconds": 5.62469389800026,
+  "network_mode": "allowlisted public HTTPS; native private-network restrictions retained",
+  "http_status_verified": false,
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "scope": "Bounded DOM/text and PNG inspection only; local fixture additionally verifies JavaScript mutation. HTTP status, arbitrary-site compatibility, login, media playback, rendering parity and continuous-agent operation are not attested",
+  "proof_note": "Public page text is hashed rather than republished; the private actual job result retained extracted text."
+}

@@ -1,0 +1,51 @@
+{
+  "base_commit": "488cabef7d916a32e6efffa57fe0194a541d8857",
+  "defect": "Duplicate normalized watch IDs let a later successful target replace the failed target in keyed state and yield an overall healthy result.",
+  "fresh_external_observation": {
+    "observed_date": "2026-11-22",
+    "result": "Search-service direct page fetch TimeoutError",
+    "scope": "Independent fetch path only; origin fault not localized.",
+    "url": "https://cyzorcreations.com/"
+  },
+  "independent_review": {
+    "baseline_reproduction": "First mocked502 and second200 sharing normalizedID produceoktrue and persisthealthy state.",
+    "blocking_findings": [],
+    "regression": "New test fails against baseline and passes patchedworker.",
+    "reviewer": "monitor_review agent",
+    "scope": "Monitor and browser-fleet local tests; no hosted acceptance.",
+    "tests_passed": 45
+  },
+  "local_regression": {
+    "failed": 0,
+    "passed": 19,
+    "prior_state_and_events_bytes_preserved": true,
+    "requests_for_duplicate_configuration": 0,
+    "scope": "Mocked and local HTTP fixtures only",
+    "tests": 19
+  },
+  "observed_at": "2026-11-22T16:19:55.327526+00:00",
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "publication_scope": "No settings changed; content-control render.yaml declares PUBLICATION_ENABLED=false and POD_PUBLICATION_ENABLED=false, blob360e7dd10df9bd42ce4568fda3d7f1d7d89f21b4. No live settings attestation.",
+  "resolution": "Normalize and validate every configured ID before fetching targets or reading/writing retained state/events. Reject active and paused duplicate collisions.",
+  "retained_hosted_observations": {
+    "configured_ids_are_distinct": true,
+    "repository": {
+      "checked_at": "2026-11-22T15:43:22.666Z",
+      "status": 200
+    },
+    "source": "https://github.com/wecreates/Money-factory/blob/488cabef7d916a32e6efffa57fe0194a541d8857/FREE_MONITOR_STATE.json",
+    "website": {
+      "checked_at": "2026-11-22T15:43:02.034Z",
+      "error": "TimeoutError: The operation was aborted due to timeout",
+      "status": null
+    }
+  },
+  "scope": "Isolated monitor correctness regression plus separately identified live/retained health observations; not production recovery or24-hour acceptance.",
+  "unavailable_signals": [
+    "Render service/log inspection unavailable: no confirmed workspace selected",
+    "IntendedPC/VPN/VPS and24-hour soak",
+    "Full audiovisual/listening/reference/phone acceptance"
+  ]
+}
