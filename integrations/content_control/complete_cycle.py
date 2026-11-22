@@ -50,7 +50,7 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         raise ValueError('Brief must be a regular JSON file no larger than 256 KiB')
     raw = source.read_bytes()
     brief = json.loads(raw)
-    editorial = compile_editorial(brief)
+    editorial = compile_editorial(brief, validate_visual_shapes=True)
     brief_hash = hashlib.sha256(raw).hexdigest()
     revision_source = safe_path(revision_path) if revision_path is not None else None
     lineage = read_revision(revision_source, brief_hash) if revision_source is not None else None

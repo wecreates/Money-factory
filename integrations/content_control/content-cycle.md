@@ -4,7 +4,7 @@ This opt-in route connects a new researched editorial brief to the existing Mone
 
 ## Input and editorial scope
 
-Start with `examples/rewards-card-brief.json`. A brief contains HTTPS source links, retrieval timestamps, short supporting excerpts, explicitly typed reference observations, and original scene writing with claim-to-source IDs. `compile_editorial` validates structure and binds these inputs; it **does not fetch the URLs, invent research, or automatically write the scenes**. This example was researched and written with connected tools. The workflow reel is a transcript observation, while Oddsofmind is only an unobserved user preference. Neither is labeled an audiovisual comparison.
+Start with `examples/statement-balance-brief.json`. A brief contains HTTPS source links, retrieval timestamps, short supporting excerpts, explicitly typed reference observations, and original scene writing with claim-to-source IDs. `compile_editorial` validates structure and binds these inputs; it **does not fetch the URLs, invent research, or automatically write the scenes**. This example was researched and written with connected tools. The workflow reel is a transcript observation, while Oddsofmind is only an unobserved user preference. Neither is labeled an audiovisual comparison.
 
 Supply 1–30 scenes, supported voice names (`dave`, `points_monk`, `narrator`), and typed card/receipt/balance/checklist/comparison visual specifications. Arbitrary prose directions are retained for editorial review but are not interpreted as generated artwork or full character animation. Planning durations are replaced with measured speech durations. Maximum rendered duration is ten minutes. New projects should provide fresh source observations; no scheduled discovery is enabled here.
 
@@ -398,3 +398,23 @@ scope describe the unchanged source media, not a fresh synthesis run. No old
 package selection or approval is transferred. Reinspect the new cycle and create
 a fresh checkpoint with the existing commands. This is a text correction based
 on supplied reviewer judgment, not listening verification or audiovisual approval.
+
+
+## Reject unsupported visual fields before production (2026-11-22)
+
+New `complete_cycle` production validates visual field shapes before creating
+an attempt or synthesizing voices. Balance diagrams support at most two labels
+or two values, and checklists support at most four labels or four values; neither
+layout supports both lists together. Comparison supports at most two paired
+fields. Use card/receipt for up to four pairs, or comparison for two pairs.
+Invalid shapes fail explicitly instead of silently omitting supplied fields.
+Direct rendering enforces the same contract.
+
+Historical `compile_editorial` normalization remains unchanged so existing
+immutable cycles can still be inspected and restored. New production uses
+`validate_visual_shapes=True`; this is a production preflight, not factual or
+creative acceptance. The historical rewards-card brief/revision includes both
+balance labels and values and is now rejected for new production. Create an
+explicit revised brief choosing a supported presentation before rerendering;
+do not edit an existing bound cycle. The current statement-balance and
+minimum-payment examples remain valid, with identical compiled identities.

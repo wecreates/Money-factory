@@ -79,8 +79,11 @@ def _flags(value):
             _flags(item)
 
 
-def compile_editorial(brief):
+def compile_editorial(brief, *, validate_visual_shapes=False):
     """Return deterministic normalized editorial inputs; fail closed on gaps.
+
+    Default normalization preserves historical immutable cycle identities. New
+    production opts into renderer shape checks before any voice work.
 
     Factual scenes require source IDs. Explicit ``factual: false`` is available
     for fictional character dialogue; this declaration is not independently
@@ -155,6 +158,9 @@ def compile_editorial(brief):
                            for label in _list(spec.get('labels', []), 'scene.visual_spec.labels', 0, 4)],
                 'values': [_text(value, 'scene.visual_spec.value', 30)
                            for value in _list(spec.get('values', []), 'scene.visual_spec.values', 0, 4)]}
+        if validate_visual_shapes:
+            from integrations.content_control.cycle_render import validate_visual_shape
+            validate_visual_shape(scene.get('visual_spec', {}))
         cursor += duration
         scenes.append(scene)
     if cursor > 600:
