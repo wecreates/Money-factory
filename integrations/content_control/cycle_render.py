@@ -365,6 +365,8 @@ def compare_transcription(expected, actual, normalize):
 
 
 def observed_captions(words, duration):
+    if type(duration) not in (int, float) or not math.isfinite(duration) or duration <= 0:
+        raise ValueError('Finite positive encoded media duration required')
     if not isinstance(words,list) or not words:
         raise ValueError('Observed ASR word timestamps required')
     lines=['WEBVTT','']; previous=0.0
@@ -374,7 +376,7 @@ def observed_captions(words, duration):
             start,end=word['start'],word['end']
             if (type(start) not in (int,float) or type(end) not in (int,float)
                     or not math.isfinite(start) or not math.isfinite(end)
-                    or not 0 <= start <= end <= duration + .05 or start < previous-.02
+                    or not 0 <= start <= end <= duration or start < previous-.02
                     or not isinstance(word['word'],str) or not word['word'].strip()):
                 raise ValueError('Invalid observed word timing')
             previous=end
@@ -409,6 +411,17 @@ def pinned_asr_snapshot():
                                 for name, (size, sha) in ASR_ASSETS.items()}}
 
 
+def encoded_media_duration(video):
+    """Read the playable container bound, not padded ASR decode length."""
+    result = subprocess.check_output([
+        'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+        '-of', 'json', str(video)], timeout=20)
+    duration = float(json.loads(result)['format']['duration'])
+    if not math.isfinite(duration) or duration <= 0:
+        raise ValueError('Finite positive encoded media duration required')
+    return duration
+
+
 def transcribe_encoded(editorial, output, voice_root):
     """Independent offline recognizer reads the encoded MP4 audio stream."""
     snapshot, model_identity = pinned_asr_snapshot()
@@ -419,6 +432,7 @@ def transcribe_encoded(editorial, output, voice_root):
     spec=importlib.util.spec_from_file_location('cyzor_transcription_helpers',helper)
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     video=output/'video.mp4'; candidate_hash=digest(video)
+    media_duration=encoded_media_duration(video)
     samples,duration=module.decode_transcription_audio(video)
     model=WhisperModel(str(snapshot),device='cpu',compute_type='int8',cpu_threads=2,local_files_only=True)
     segments,info=model.transcribe(samples,language='en',beam_size=5,word_timestamps=True,
@@ -438,11 +452,11 @@ def transcribe_encoded(editorial, output, voice_root):
             'model_identity':model_identity,
             'candidate_sha256':candidate_hash,'editorial_sha256':editorial_digest(editorial),
             'expected_text':expected,'actual_transcript':actual,'words':words,'comparison':comparison,
-            'duration_seconds':duration,'helper_sha256':digest(helper),'publication_enabled':False,
+            'duration_seconds':duration,'encoded_media_duration_seconds':media_duration,'helper_sha256':digest(helper),'publication_enabled':False,
             'production_approved':False,'full_av_review':False,
             'scope':'Encoded speech recognition and observed word timing; not semantic equivalence, factual, creative or listening approval.'}
     if comparison['passed']:
-        captions=observed_captions(words,duration)
+        captions=observed_captions(words,media_duration)
         if digest(video)!=candidate_hash:raise ValueError('Candidate changed during ASR')
         (output/'captions.vtt').write_text(captions)
         report.update(status='PASS',caption_sha256=digest(output/'captions.vtt'))
