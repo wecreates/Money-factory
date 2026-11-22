@@ -17,6 +17,25 @@ class CheckpointTests(unittest.TestCase):
     setUp = fixtures.ReviewTests.setUp
     tearDown = fixtures.ReviewTests.tearDown
 
+    def test_embedded_revision_survives_restore_and_rejects_mutation(self):
+        from integrations.content_control.cycle_lineage import read_revision
+        from integrations.content_control.test_cycle_lineage import handoff
+        cycle = json.loads((self.root / 'cycle.json').read_text())
+        source = self.base / 'revision.json'
+        source.write_text(json.dumps(handoff(cycle['brief_sha256'])))
+        cycle['revision_lineage'] = read_revision(source, cycle['brief_sha256'])
+        fixtures.write(self.root / 'cycle.json', cycle)
+        before = inspect_cycle(self.root)
+        output = self.make()
+        source.unlink()
+        shutil.rmtree(self.root)
+        self.restore(output)
+        self.assertEqual(inspect_cycle(output), before)
+        restored = json.loads((output / 'cycle.json').read_text())
+        restored['revision_lineage']['feedback_resolution_verified'] = True
+        fixtures.write(output / 'cycle.json', restored)
+        with self.assertRaises(ValueError): inspect_cycle(output)
+
     def make(self):
         self.archive = self.base / 'checkpoint.zip'
         self.receipt = create_checkpoint(self.root, self.archive)

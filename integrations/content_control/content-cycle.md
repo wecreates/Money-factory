@@ -84,6 +84,29 @@ python -m integrations.content_control.cycle_review \
 
 The resulting `brief.json` is directly runnable, with separate provenance linking its superseded candidate, review and source evidence. Changed media cannot reuse an old review. Existing sources/reference observations are retained. Each revision gets fresh narration/render/caption/thumbnail checks and a new candidate identity.
 
+Pass that handoff explicitly to production to retain its lineage in the new
+cycle (neighboring files are never auto-detected):
+
+```sh
+python -m integrations.content_control.complete_cycle \
+  --brief /absolute/new-revision-input/brief.json \
+  --revision /absolute/new-revision-input/revision.json \
+  --output /absolute/new-revised-cycle \
+  --voice-python /absolute/kokoro-runtime/bin/python \
+  --voice-root /absolute/reviewed-content-control \
+  --transcription-python /absolute/transcription-runtime/bin/python
+```
+
+The supplied revision must bind the exact brief bytes and keep every approval
+and feedback-resolution flag false. Its exact text and SHA-256 are embedded in
+`cycle.json`; review inspection, queue completion checks and checkpoint recovery
+validate that binding. Mutation during production blocks the attempt. The
+embedded handoff survives checkpoint restoration without the original workspace.
+It records asserted parent/review identities, not independent authentication of
+the parent or reviewer, and does not verify feedback resolution. Standalone
+production still accepts ordinary briefs without a handoff. Queue requests retain
+their existing brief-only interface; they do not yet submit revision handoffs.
+
 ## Verification boundaries
 
 Publishing, paid generation, production approval and full audiovisual approval remain false. A source ID is provenance, not an entailment proof. ASR checks speech consistency, not factual or creative correctness. Fixture tests use explicitly synthetic audio; only separately recorded actual runtime receipts demonstrate Kokoro/ASR execution. All-day autonomous topic discovery, script authorship, live competitor audiovisual access, audience-performance learning and target-host supervision are not supplied by this command.

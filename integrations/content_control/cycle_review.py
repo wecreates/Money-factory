@@ -47,6 +47,9 @@ def inspect_cycle(cycle_dir):
     require(cycle.get('status') == 'AWAITING_REVIEW' and cycle.get('technical_status') == 'PASS',
             'Completed unpublished cycle required')
     _unapproved(cycle)
+    if 'revision_lineage' in cycle:
+        from integrations.content_control.cycle_lineage import validate_lineage
+        validate_lineage(cycle['revision_lineage'], cycle.get('brief_sha256'))
     delivery = root / 'delivery'
     no_symlinks(delivery)
     package = _load(delivery / 'package.json')

@@ -1,0 +1,214 @@
+{
+  "checkpoint": {
+    "library_file_id": "libfile_fde3_f-452ee5814c2081918f344aca32526383_389d2c70fb1c8191bcf9b25e87727630",
+    "sha256": "7b1186a00135c9098d2aad493d975f5b02faecb6e89404843178a44bf5cec479",
+    "size_bytes": 2003879,
+    "version": 0
+  },
+  "cycle": {
+    "archive_sha256": "7a8e7f6a405a6d53039e3b01e842cd5dbc184d94b92e22f31dfd5fba7183fa7c",
+    "brief_sha256": "4433838ca4c36f330966805c2508054b88060c93c90f44f0298f98dc9fd02361",
+    "candidate_sha256": "95a29f50469d77e4a8079f84f6dd6db75d38ddb7c143e84159659b684b995d04",
+    "competitor_comparison": false,
+    "editorial_sha256": "d8577312cd25fe60d1e57cd5c0d00e20a48dfd2576dbb3588fd44b2bfcf45571",
+    "factual_review": false,
+    "finished_at": "2026-11-22T06:39:17.385211+00:00",
+    "full_av_review": false,
+    "package_sha256": "7f066241dcd0b36bb0bbc37cb3e1a7ebd831044dad7c3614a5640d9e128b9693",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "revision_lineage": {
+      "feedback_resolution_verified": false,
+      "parent_evidence_independently_verified": false,
+      "revision_json": "{\n  \"brief_sha256\": \"4433838ca4c36f330966805c2508054b88060c93c90f44f0298f98dc9fd02361\",\n  \"feedback\": [\n    {\n      \"action\": \"Complete and document the factual accuracy review.\",\n      \"check\": \"factual_accuracy\"\n    },\n    {\n      \"action\": \"Complete and document the full audiovisual review.\",\n      \"check\": \"full_audiovisual\"\n    },\n    {\n      \"action\": \"Complete and document the voice naturalness review.\",\n      \"check\": \"voice_naturalness\"\n    },\n    {\n      \"action\": \"Change scene conditions final checklist label to IN FULL BY DUE DATE so the visible condition states the deadline already in the narration. Preserve the other conditions and voices.\",\n      \"check\": \"visual_readability\"\n    },\n    {\n      \"action\": \"Complete and document the originality review.\",\n      \"check\": \"originality\"\n    },\n    {\n      \"action\": \"Complete and document the reference comparison review.\",\n      \"check\": \"reference_comparison\"\n    }\n  ],\n  \"feedback_resolution_verified\": false,\n  \"full_av_review\": false,\n  \"paid_generation_enabled\": false,\n  \"prior_cycle_sha256\": \"e9b21a468791b13da7638fbfba021de896303b3866e5c37858e6a4ada9c2fb7e\",\n  \"production_approved\": false,\n  \"production_ready\": false,\n  \"publication_enabled\": false,\n  \"recorded_review_sha256\": \"d8c8f49d31593e5b5ae8c9d1c67b2aea16991f4df8cbd5e681542759b7e10c4c\",\n  \"schema_version\": 1,\n  \"scope\": \"Revised supplied brief; previous approval statements cannot certify a new render.\",\n  \"status\": \"REVISION_BRIEF_READY\",\n  \"supersedes_candidate_sha256\": \"e57dbaa44970570e0268b6879cbc061e1ad9bba1f496cd7965718b915377a372\"\n}\n",
+      "revision_sha256": "0a26001328d264e5321377d6172d8e40155dae900793cec56535c4b574addd0d",
+      "schema_version": 1,
+      "scope": "Exact supplied revision handoff retained; parent artifacts and review are not independently revalidated here, and feedback resolution is not verified."
+    },
+    "schema_version": 1,
+    "scope": "New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.",
+    "started_at": "2026-11-22T06:38:42.348526+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "editorial",
+        "status": "PASS"
+      },
+      {
+        "name": "render",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "complete_cycle.py": "48f93523c9994b3b6648a74a4322f7fd3963fa58ce560bbfbae0a8b39602b1bc",
+      "cycle_editorial.py": "ab5d0231e26b55a7b94d4f7c899094e336069a1fc1344a8b6688f20b88e19b73",
+      "cycle_lineage.py": "d6c09d67af7aebaa919794c1beff68972f38d2728a7a69acd2d828fd893978a0",
+      "cycle_package.py": "2e4da6f6126386bea78a496c2dd59b979f0c06a65d767bf39b3ac248560053ef",
+      "cycle_render.py": "ca6676d141a92f8b618fee9185073a14611ab2f68eda23e4bf04e29cea4b1108"
+    }
+  },
+  "full_av_review": false,
+  "observed_at": "2026-11-22T06:40:11.978260+00:00",
+  "original_candidate_sha256": "e57dbaa44970570e0268b6879cbc061e1ad9bba1f496cd7965718b915377a372",
+  "paid_generation_enabled": false,
+  "production_approved": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "recorded_review": {
+    "candidate_sha256": "e57dbaa44970570e0268b6879cbc061e1ad9bba1f496cd7965718b915377a372",
+    "checks": {
+      "visual_readability": {
+        "evidence": "Inspected exact source panel-04.png at 720x1280. Three conditions are visible. The last label FULL AND ON TIME leaves the due-date wording less explicit than the unchanged narration. This is still-frame-only feedback, not full watch/listen or mobile approval.",
+        "feedback": "Change scene conditions final checklist label to IN FULL BY DUE DATE so the visible condition states the deadline already in the narration. Preserve the other conditions and voices.",
+        "passed": false
+      }
+    },
+    "feedback": [
+      {
+        "action": "Complete and document the factual accuracy review.",
+        "check": "factual_accuracy"
+      },
+      {
+        "action": "Complete and document the full audiovisual review.",
+        "check": "full_audiovisual"
+      },
+      {
+        "action": "Complete and document the voice naturalness review.",
+        "check": "voice_naturalness"
+      },
+      {
+        "action": "Change scene conditions final checklist label to IN FULL BY DUE DATE so the visible condition states the deadline already in the narration. Preserve the other conditions and voices.",
+        "check": "visual_readability"
+      },
+      {
+        "action": "Complete and document the originality review.",
+        "check": "originality"
+      },
+      {
+        "action": "Complete and document the reference comparison review.",
+        "check": "reference_comparison"
+      }
+    ],
+    "full_av_review": false,
+    "independent_verification": false,
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "recorded_at": "2026-11-22T06:37:11.366020+00:00",
+    "reviewed_at": "2026-11-22T06:37:11.356579+00:00",
+    "reviewer": "root still-frame editorial review",
+    "schema_version": 1,
+    "scope": "Candidate-bound reviewer attestation only; supplied judgments are not independently verified.",
+    "source_files_sha256": {
+      "brief.json": "7aaf9981d0d9ee8885687ddc54e7bc7800e6e66d56b43efb9843e8be9899ec48",
+      "cycle.json": "e9b21a468791b13da7638fbfba021de896303b3866e5c37858e6a4ada9c2fb7e",
+      "delivery/captions.vtt": "1da52726978b864e8df81a6ed090a5c139b738945d86519dc9a9cdaff8080a3b",
+      "delivery/editorial.json": "a4b8a874dc22a7863cb8efbde2b15c21f6774125e28c676382d93b5ca1a0aae6",
+      "delivery/index.html": "22be59b0e2c2f346e3f8fc41d66a5f4be0f3b5d427cb2a3980e0506dbc318bc9",
+      "delivery/package.json": "0f54353c4b6bf3576eee8219f41ce755de671318c67bd1019b962c73cb497952",
+      "delivery/render.json": "28c4194dc5bedf5f7b32bf924d73f38861cd5e49cd228eaec8227b520e686b72",
+      "delivery/review-package.zip": "d8578706cc746f9f724121684c35f5f99c354172503241a47c329d9b3c7519ac",
+      "delivery/thumbnail-1.png": "84b05fd60978715bc2d42480e7f2144ebae4865d70637677f3b88c19d99ed800",
+      "delivery/thumbnail-2.png": "cdb023079059f7c83c575c350e3d58de3c937f5426a2cf4da0fbfe8485f395dc",
+      "delivery/thumbnail-3.png": "6b88ba25661047635f06c4973a2692c1fc03383eb54fe996be47274036b36257",
+      "delivery/video.mp4": "e57dbaa44970570e0268b6879cbc061e1ad9bba1f496cd7965718b915377a372",
+      "editorial.json": "a4b8a874dc22a7863cb8efbde2b15c21f6774125e28c676382d93b5ca1a0aae6",
+      "render/render.json": "28c4194dc5bedf5f7b32bf924d73f38861cd5e49cd228eaec8227b520e686b72"
+    },
+    "status": "REVISION_REQUIRED",
+    "submitted_review_sha256": "82bab51684da6833445728e179da84be70b8da652f3ae0ca00e649315f938c99"
+  },
+  "render_summary": {
+    "candidate_sha256": "95a29f50469d77e4a8079f84f6dd6db75d38ddb7c143e84159659b684b995d04",
+    "caption_sha256": "3ce7c7ea93590878c8c830f9ab1ae1df06b96b8fc6b6edca2217cb0ca4f55ba0",
+    "caption_timing": "observed_word_timestamps",
+    "duration_seconds": 35.918667,
+    "editorial_sha256": "6ba60e4282f8799eb8c369eefbd5c7440c21693c2206cd4d46865e14f0b99d87",
+    "finished_at": "2026-11-22T06:39:16.239080+00:00",
+    "full_av_review": false,
+    "independent_transcription_verified": true,
+    "motion": {
+      "frame_count": 24,
+      "kind": "periodic_arm_gesture",
+      "loop_seconds": 3.0,
+      "output_fps": 24,
+      "scope": "Deterministic three-second arm-gesture loop; static diagrams and typography. No lip sync or full character animation.",
+      "source_fps": 8
+    },
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "Fresh offline speech and original diagram-based picture video; technical verification only.",
+    "started_at": "2026-11-22T06:38:42.349915+00:00",
+    "status": "AWAITING_REVIEW",
+    "technical_status": "PASS",
+    "timeline_sha256": "da9b353ea316299bbbf19e6dc2c2446020d30146aed3973c8b8a2bc89095d7d5",
+    "transcription_receipt_sha256": "6ca619b530c3aa0ad5e9fafdd30fa6a5bfb162227cc630588522b10d7332e9b5",
+    "voice_model": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "voice_receipt_sha256": "d64b17550463f8fe3abd85a17ea3c8724479a55021067bc64f77b26c231b4d3d"
+  },
+  "revision_handoff": {
+    "brief_sha256": "4433838ca4c36f330966805c2508054b88060c93c90f44f0298f98dc9fd02361",
+    "feedback": [
+      {
+        "action": "Complete and document the factual accuracy review.",
+        "check": "factual_accuracy"
+      },
+      {
+        "action": "Complete and document the full audiovisual review.",
+        "check": "full_audiovisual"
+      },
+      {
+        "action": "Complete and document the voice naturalness review.",
+        "check": "voice_naturalness"
+      },
+      {
+        "action": "Change scene conditions final checklist label to IN FULL BY DUE DATE so the visible condition states the deadline already in the narration. Preserve the other conditions and voices.",
+        "check": "visual_readability"
+      },
+      {
+        "action": "Complete and document the originality review.",
+        "check": "originality"
+      },
+      {
+        "action": "Complete and document the reference comparison review.",
+        "check": "reference_comparison"
+      }
+    ],
+    "feedback_resolution_verified": false,
+    "full_av_review": false,
+    "paid_generation_enabled": false,
+    "prior_cycle_sha256": "e9b21a468791b13da7638fbfba021de896303b3866e5c37858e6a4ada9c2fb7e",
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "recorded_review_sha256": "d8c8f49d31593e5b5ae8c9d1c67b2aea16991f4df8cbd5e681542759b7e10c4c",
+    "schema_version": 1,
+    "scope": "Revised supplied brief; previous approval statements cannot certify a new render.",
+    "status": "REVISION_BRIEF_READY",
+    "supersedes_candidate_sha256": "e57dbaa44970570e0268b6879cbc061e1ad9bba1f496cd7965718b915377a372"
+  },
+  "schema_version": 1,
+  "scope": "Actual offline revised supplied-brief production and exact checkpoint roundtrip; not autonomous discovery, independent parent authentication, full audiovisual or listening acceptance.",
+  "tests": {
+    "complete_cycle_and_rea_tests": 21,
+    "cycle_tests": 97,
+    "independent_review_focused_tests": 47
+  },
+  "verified_in_this_run": {
+    "actual_source_inspection_and_record_review_then_revision_brief_used": true,
+    "narration_speakers_and_sources_preserved": true,
+    "restored_cycle_inspection_equal": true,
+    "restored_queue_completion_check": "PASS",
+    "still_frame_observation": "Inspected original and revised panel-04.png at 720x1280. IN FULL BY DUE DATE is fully visible and other two conditions retained. This single frame does not establish full motion, phone or audiovisual quality."
+  }
+}

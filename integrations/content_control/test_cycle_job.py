@@ -74,6 +74,22 @@ def packet(path, expected):
 
 
 class CycleJobTests(unittest.TestCase):
+    def test_completion_validates_optional_revision_lineage(self):
+        from integrations.content_control.cycle_lineage import read_revision
+        from integrations.content_control.test_cycle_lineage import handoff
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / 'cycle'
+            expected = request()['brief_sha256']
+            receipt = packet(root, expected)
+            source = Path(td) / 'revision.json'
+            write(source, handoff(expected))
+            receipt['revision_lineage'] = read_revision(source, expected)
+            write(root / 'cycle.json', receipt)
+            check_completed(root, expected)
+            receipt['revision_lineage']['revision_json'] += ' '
+            write(root / 'cycle.json', receipt)
+            with self.assertRaises(ValueError): check_completed(root, expected)
+
     def test_request_rejects_path_code_payment_and_changed_brief(self):
         validate(request())
         cases = []
