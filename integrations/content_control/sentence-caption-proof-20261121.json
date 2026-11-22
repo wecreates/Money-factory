@@ -1,0 +1,83 @@
+{
+  "observed_at": "2026-11-22T01:24:27.158103+00:00",
+  "scope": "Actual same-brief production rerun after caption grouping revision. Technical/text evidence, not full audiovisual acceptance.",
+  "base_commit": "44880d5a31fb13ee7f3b9c91bdd3325932096e7a",
+  "supersedes_package_for_review": "e544a36ce679d02e98eb42f76d48a00ab101668d3b692d87164c99e80b0cc39c",
+  "prior_candidate_sha256": "5adc0a937921e87404186d583ae787f619f9c4d47d91ace8942a6ef29ea8c8de",
+  "cycle": {
+    "archive_sha256": "d8578706cc746f9f724121684c35f5f99c354172503241a47c329d9b3c7519ac",
+    "brief_sha256": "7aaf9981d0d9ee8885687ddc54e7bc7800e6e66d56b43efb9843e8be9899ec48",
+    "candidate_sha256": "e57dbaa44970570e0268b6879cbc061e1ad9bba1f496cd7965718b915377a372",
+    "competitor_comparison": false,
+    "editorial_sha256": "a4b8a874dc22a7863cb8efbde2b15c21f6774125e28c676382d93b5ca1a0aae6",
+    "factual_review": false,
+    "finished_at": "2026-11-22T01:23:51.966808+00:00",
+    "full_av_review": false,
+    "package_sha256": "0f54353c4b6bf3576eee8219f41ce755de671318c67bd1019b962c73cb497952",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.",
+    "started_at": "2026-11-22T01:23:17.462359+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "editorial",
+        "status": "PASS"
+      },
+      {
+        "name": "render",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "complete_cycle.py": "d8da6bb363a4fdfcc2e01e8281bb7054efba5237883a98843cd297769976b8f4",
+      "cycle_editorial.py": "ab5d0231e26b55a7b94d4f7c899094e336069a1fc1344a8b6688f20b88e19b73",
+      "cycle_package.py": "226b4c5e24a66509ee97e3314bf01bf8117f17cd2bb09037ef3117afe62ba513",
+      "cycle_render.py": "ca6676d141a92f8b618fee9185073a14611ab2f68eda23e4bf04e29cea4b1108"
+    }
+  },
+  "duration_seconds": 35.918667,
+  "asr_comparison": {
+    "critical_numeric_and_negation_tokens_match": true,
+    "ordered_word_similarity": 1.0,
+    "passed": true,
+    "word_recall": 1.0
+  },
+  "caption_sha256": "1da52726978b864e8df81a6ed090a5c139b738945d86519dc9a9cdaff8080a3b",
+  "before_captions": "WEBVTT\n\n00:00:00.000 --> 00:00:01.880\nI paid the minimum, why is my\n\n00:00:01.880 --> 00:00:04.160\nbalance still auditioning for a horror movie?\n\n00:00:05.540 --> 00:00:08.140\nThe minimum is the required payment, not\n\n00:00:08.140 --> 00:00:11.920\na promise that interest disappears. Paying more\n\n00:00:11.920 --> 00:00:13.540\nthan the minimum can cut interest costs\n\n00:00:13.540 --> 00:00:16.740\nand help you finish sooner. So the\n\n00:00:16.740 --> 00:00:18.660\ntiny number on my statement is not\n\n00:00:18.660 --> 00:00:21.980\nthe finish line. If your card offers\n\n00:00:21.980 --> 00:00:24.020\na grace period and you are not\n\n00:00:24.020 --> 00:00:26.820\ncarrying a balance, paying in full by\n\n00:00:26.820 --> 00:00:28.840\nthe due date can avoid interest on\n\n00:00:28.840 --> 00:00:32.200\nnew purchases. Check your statement and agreement.\n\n00:00:32.960 --> 00:00:34.480\nMinimum due and paid in full are\n\n00:00:34.480 --> 00:00:35.020\ndifferent goals.\n\n",
+  "after_captions": "WEBVTT\n\n00:00:00.000 --> 00:00:01.880\nI paid the minimum, why is my\n\n00:00:01.880 --> 00:00:04.160\nbalance still auditioning for a horror movie?\n\n00:00:05.520 --> 00:00:08.140\nThe minimum is the required payment, not\n\n00:00:08.140 --> 00:00:10.000\na promise that interest disappears.\n\n00:00:11.260 --> 00:00:12.880\nPaying more than the minimum can cut\n\n00:00:12.880 --> 00:00:15.080\ninterest costs and help you finish sooner.\n\n00:00:16.380 --> 00:00:17.980\nSo the tiny number on my statement\n\n00:00:17.980 --> 00:00:19.460\nis not the finish line.\n\n00:00:20.500 --> 00:00:22.840\nIf your card offers a grace period\n\n00:00:22.840 --> 00:00:25.020\nand you are not carrying a balance,\n\n00:00:25.020 --> 00:00:27.520\npaying in full by the due date\n\n00:00:27.520 --> 00:00:29.560\ncan avoid interest on new purchases.\n\n00:00:30.800 --> 00:00:32.180\nCheck your statement and agreement.\n\n00:00:32.960 --> 00:00:34.480\nMinimum due and paid in full are\n\n00:00:34.480 --> 00:00:35.020\ndifferent goals.\n\n",
+  "caption_policy": "At most seven ASR tokens; split after recognized terminal punctuation or pause >=0.5s; conservative abbreviation exceptions. Preserve word timestamps. Not guaranteed sentence/scene segmentation.",
+  "validation": {
+    "original_and_new_cycle_inspection": "PASS",
+    "cycle_tests": 88,
+    "complete_cycle_and_rea_tests": 18,
+    "total_tests": 106,
+    "independent_reviewer": "sentence_review",
+    "independent_renderer_tests": 29
+  },
+  "checkpoint": {
+    "sha256": "03ebe3d8bd68d5038e2013c2eed6dd60ed508c3e13ca1e4de64fb0c51e5bdc80",
+    "bytes": 1988023,
+    "library_file_id": "libfile_fde3_f-2db39f80c9a88191a90815bc133795f8_389d2c70fb1c8191bcf9b25e87727630",
+    "version": 0,
+    "url": "https://chatgpt.com/library?file_id=libfile_fde3_f-2db39f80c9a88191a90815bc133795f8_389d2c70fb1c8191bcf9b25e87727630&account_id=personal"
+  },
+  "remaining": [
+    "Full candidate watch/listen and creative acceptance",
+    "ASR punctuation is heuristic, not guaranteed scene alignment",
+    "New candidate requires independent reference/mobile/thumbnail acceptance",
+    "Actual-host access and 24-hour soak",
+    "Live deployment settings and onboarding unverified"
+  ],
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_ready": false
+}

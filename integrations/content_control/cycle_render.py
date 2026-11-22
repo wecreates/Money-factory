@@ -364,22 +364,54 @@ def compare_transcription(expected, actual, normalize):
             'passed': bool(expected_words) and ratio >= .96 and recall >= .96 and critical_match}
 
 
+def _caption_sentence_end(text):
+    """Conservative English ASR punctuation heuristic, not a sentence parser."""
+    token = text.strip().rstrip('"\'’”)]}')
+    if token.endswith(('!', '?')):
+        return True
+    if not token.endswith('.'):
+        return False
+    if token.lower() in {'mr.', 'mrs.', 'ms.', 'dr.', 'prof.', 'sr.', 'jr.',
+                         'st.', 'vs.', 'etc.', 'e.g.', 'i.e.', 'no.', 'fig.',
+                         'approx.', 'inc.', 'ltd.'}:
+        return False
+    # Initials and dotted acronyms (A., U.S.) are ambiguous; do not force a split.
+    parts = token[:-1].split('.')
+    return not all(len(part) == 1 and part.isalpha() for part in parts)
+
+
 def observed_captions(words, duration):
+    """Group observed words at punctuation/0.5s pauses, with a seven-word cap.
+
+    This heuristic preserves recognized text and timestamps. It does not prove
+    sentence or scene alignment, readability, or listening acceptance.
+    """
     if type(duration) not in (int, float) or not math.isfinite(duration) or duration <= 0:
         raise ValueError('Finite positive encoded media duration required')
     if not isinstance(words,list) or not words:
         raise ValueError('Observed ASR word timestamps required')
-    lines=['WEBVTT','']; previous=0.0
-    for i in range(0,len(words),7):
-        group=words[i:i+7]
-        for word in group:
-            start,end=word['start'],word['end']
-            if (type(start) not in (int,float) or type(end) not in (int,float)
-                    or not math.isfinite(start) or not math.isfinite(end)
-                    or not 0 <= start <= end <= duration or start < previous-.02
-                    or not isinstance(word['word'],str) or not word['word'].strip()):
-                raise ValueError('Invalid observed word timing')
-            previous=end
+    previous=0.0
+    for word in words:
+        start,end=word['start'],word['end']
+        if (type(start) not in (int,float) or type(end) not in (int,float)
+                or not math.isfinite(start) or not math.isfinite(end)
+                or not 0 <= start <= end <= duration or start < previous-.02
+                or not isinstance(word['word'],str) or not word['word'].strip()):
+            raise ValueError('Invalid observed word timing')
+        previous=end
+    groups=[]; group=[]
+    for word in words:
+        # Zero-duration tokens may join a positive cue; never invent a duration.
+        if group and group[-1]['end'] > group[0]['start'] and (
+                _caption_sentence_end(group[-1]['word'])
+                or word['start'] - group[-1]['end'] >= .5):
+            groups.append(group); group=[]
+        group.append(word)
+        if len(group) == 7:
+            groups.append(group); group=[]
+    if group: groups.append(group)
+    lines=['WEBVTT','']
+    for group in groups:
         start,end=group[0]['start'],group[-1]['end']
         if end<=start:raise ValueError('Empty observed caption duration')
         text=' '.join(' '.join(w['word'].split()) for w in group)
