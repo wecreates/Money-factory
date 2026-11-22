@@ -1,0 +1,27 @@
+{
+  "attempts": 0,
+  "exact_spec_and_raw_bytes_preserved": true,
+  "full_av_review": false,
+  "monitor": {
+    "commit": "ddedaf9",
+    "repository_checked_at": "2026-11-22T07:53:01.318Z",
+    "repository_status": 200,
+    "website_checked_at": "2026-11-22T07:52:40.629Z",
+    "website_result": "TimeoutError"
+  },
+  "observed_at": "2026-11-22T08:18:06.270183+00:00",
+  "paid_generation_enabled": false,
+  "prior_candidate_sha256": "95a29f50469d77e4a8079f84f6dd6db75d38ddb7c143e84159659b684b995d04",
+  "production_brief_sha256": "4433838ca4c36f330966805c2508054b88060c93c90f44f0298f98dc9fd02361",
+  "production_ready": false,
+  "publication_enabled": false,
+  "request_brief_sha256": "03b648ec2c132f9cbc6c80cd1bf40af44476cbbced19cc47152fa9b4ef08787f",
+  "revision_sha256": "0a26001328d264e5321377d6172d8e40155dae900793cec56535c4b574addd0d",
+  "runtime_blockers": [
+    "Previous local Kokoro/ASR and content-control runtime directories unavailable in this workspace.",
+    "No intended-PC/VPN/VPS access or 24-hour execution established."
+  ],
+  "schema_version": 1,
+  "scope": "Actual SQLite enqueue/close/reopen transport using exact prior revision inputs; no worker or rendering executed. Temporary isolated queue removed after inspection.",
+  "stored_job_state": "queued"
+}

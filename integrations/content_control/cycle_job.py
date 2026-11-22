@@ -29,7 +29,7 @@ def brief_digest(value):
 def validate(request):
     fields = {'operation', 'brief', 'brief_sha256', 'timeout_seconds',
               'publication_enabled', 'paid_generation_enabled'}
-    if not isinstance(request, dict) or set(request) != fields:
+    if not isinstance(request, dict) or set(request) not in (fields, fields | {'revision_input'}):
         raise ValueError('Require the exact documented content-cycle request')
     if request['operation'] != 'produce-content-cycle':
         raise ValueError('Only produce-content-cycle is supported')
@@ -45,7 +45,32 @@ def validate(request):
         raise ValueError('Editorial brief identity mismatch')
     from integrations.content_control.cycle_editorial import compile_editorial
     compile_editorial(request['brief'])
+    production_input(request)
     return request
+
+
+def production_input(request):
+    """Return exact production bytes and optional lineage; paths remain host-owned."""
+    if 'revision_input' not in request:
+        return canonical(request['brief']).encode('utf-8'), None
+    revision = request['revision_input']
+    if not isinstance(revision, dict) or set(revision) != {'brief_json', 'revision_lineage'}:
+        raise ValueError('Require exact inline revision_input fields')
+    raw = revision['brief_json']
+    if not isinstance(raw, str):
+        raise ValueError('Revision brief_json must be UTF-8 text')
+    try:
+        encoded = raw.encode('utf-8')
+    except UnicodeError as error:
+        raise ValueError('Revision brief_json must be UTF-8 text') from error
+    if len(encoded) > 256 * 1024:
+        raise ValueError('Revision brief_json exceeds 256 KiB')
+    from integrations.content_control.cycle_lineage import validate_lineage, _pairs, _constant
+    parsed = json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant)
+    if canonical(parsed) != canonical(request['brief']):
+        raise ValueError('Revision brief differs from queued brief')
+    validate_lineage(revision['revision_lineage'], hashlib.sha256(encoded).hexdigest())
+    return encoded, revision['revision_lineage']
 
 
 def _json(path):
@@ -132,11 +157,14 @@ def check_completed(directory, expected_brief_sha256):
 
 def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcription_python=None):
     validate(request)
+    brief_bytes, lineage = production_input(request)
+    production_hash = hashlib.sha256(brief_bytes).hexdigest()
     attempt_dir = Path(attempt_dir).absolute()
     if not attempt_dir.is_dir() or attempt_dir.is_symlink():
         raise ValueError('A queue-owned attempt directory is required')
     result = {'schema_version': 1, 'status': 'BLOCKED', 'operation': request['operation'],
-              'brief_sha256': request['brief_sha256'], 'publication_enabled': False,
+              'brief_sha256': request['brief_sha256'], 'production_brief_sha256': production_hash,
+              'publication_enabled': False,
               'paid_generation_enabled': False, 'production_ready': False,
               'production_approved': False, 'full_av_review': False,
               'scope': 'One admitted unpublished cycle; no unattended service or creative approval'}
@@ -152,9 +180,15 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
             transcription_python = Path(transcription_python).absolute()
             if not transcription_python.is_file() or not os.access(transcription_python, os.X_OK):
                 raise ValueError('Host transcription runtime must be an executable file')
-        with (attempt_dir/'brief.json').open('x') as stream:
-            stream.write(canonical(request['brief']))
+        with (attempt_dir/'brief.json').open('xb') as stream:
+            stream.write(brief_bytes)
             stream.flush(); os.fsync(stream.fileno())
+        revision_path = None
+        if lineage is not None:
+            revision_path = attempt_dir/'revision.json'
+            with revision_path.open('xb') as stream:
+                stream.write(lineage['revision_json'].encode('utf-8'))
+                stream.flush(); os.fsync(stream.fileno())
         deadline = time.monotonic() + request['timeout_seconds']
         with interruptible_processes(), shared_admission_lock() as lease:
             budget = recommend_capacity(collect_snapshot(), requested_workers=1,
@@ -169,14 +203,18 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
             # Fixed trusted bootstrap; user input is only JSON data and arguments.
             bootstrap = ('import sys;from integrations.content_control.complete_cycle import run_cycle;'
                          'r=run_cycle(sys.argv[1],sys.argv[2],voice_python=sys.argv[3],'
-                         'voice_root=sys.argv[4],timeout=int(sys.argv[5]),transcription_python=sys.argv[6] or None);'
+                         'voice_root=sys.argv[4],timeout=int(sys.argv[5]),transcription_python=sys.argv[6] or None,'
+                         'revision_path=sys.argv[7] or None);'
                          'sys.exit(0 if r.get("status")=="AWAITING_REVIEW" else 2)')
             guarded_runner(lease, cpus)(
                 [sys.executable, '-c', bootstrap, str(attempt_dir/'brief.json'),
                  str(attempt_dir/'cycle'), str(runtime), str(root), str(request['timeout_seconds']),
-                 str(transcription_python) if transcription_python else ''],
+                 str(transcription_python) if transcription_python else '',
+                 str(revision_path) if revision_path else ''],
                 cwd=ROOT, log=attempt_dir/'cycle.log', deadline=deadline, env=os.environ)
-            receipt = check_completed(attempt_dir/'cycle', request['brief_sha256'])
+            receipt = check_completed(attempt_dir/'cycle', production_hash)
+            if receipt.get('revision_lineage') != lineage:
+                raise ValueError('Completed revision lineage differs from queued handoff')
             for directory in sorted((p for p in (attempt_dir/'cycle').rglob('*') if p.is_dir()), reverse=True):
                 sync_packet(directory)
             sync_packet(attempt_dir/'cycle')
