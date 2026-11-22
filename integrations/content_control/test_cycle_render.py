@@ -215,6 +215,7 @@ class RenderValidationTests(unittest.TestCase):
             hashes=[]
             for kind in sorted(render.KINDS):
                 scene=brief()['scenes'][0];scene['visual_spec'].update(kind=kind,labels=['Real cost','Annual fee'],values=['$60','$95'])
+                if kind in ('balance','checklist'): scene['visual_spec']['values']=[]
                 path=Path(td)/(kind+'.png');render.draw_panel(scene,path,0,1)
                 with Image.open(path) as image:self.assertEqual(image.size,(720,1280))
                 hashes.append(render.digest(path))
@@ -281,13 +282,19 @@ class RenderValidationTests(unittest.TestCase):
     def test_every_repository_example_scene_renders_with_bounded_fields(self):
         examples = Path(__file__).parent/'examples'
         with tempfile.TemporaryDirectory() as td:
-            count = 0
+            count = 0; rejected = []
             for source in sorted(examples.glob('*.json')):
                 scenes = json.loads(source.read_text()).get('scenes', [])
                 for index,scene in enumerate(scenes):
+                    if source.name in ('rewards-card-brief.json','rewards-card-revision.json') and scene['id']=='balance':
+                        with self.assertRaisesRegex(ValueError,'paired fields'):
+                            render.draw_panel(scene,Path(td)/f'{source.stem}-{index}.png',index,len(scenes))
+                        rejected.append(source.name)
+                        continue
                     render.draw_panel(scene,Path(td)/f'{source.stem}-{index}.png',index,len(scenes))
                     count += 1
-            self.assertGreaterEqual(count, 30)
+            self.assertGreaterEqual(count, 28)
+            self.assertEqual(sorted(rejected),['rewards-card-brief.json','rewards-card-revision.json'])
 
     @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
     def test_gesture_moves_only_arms_and_loops_without_changing_layout(self):

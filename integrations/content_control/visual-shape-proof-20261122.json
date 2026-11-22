@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "issue": "https://github.com/wecreates/Money-factory/issues/543",
+  "prior_evidence": "https://github.com/wecreates/Money-factory/issues/543#issuecomment-7083319477",
+  "reproduction": {
+    "observed_at": "2026-11-22T18:34:54.982445+00:00",
+    "base_commit": "096c233176c383748bff3434f381d5cd54dea73b",
+    "reproductions": [
+      {
+        "kind": "balance",
+        "baseline_omitted_field_changes_produce_identical_png": true,
+        "baseline_png_sha256": "22a4ec7a1cd2e388cabdb3f996693395d6f8045068ab87d55081d27002310bc1",
+        "fixed_rejection": "balance: at most two fields; use card or receipt for more fields"
+      },
+      {
+        "kind": "checklist",
+        "baseline_omitted_field_changes_produce_identical_png": true,
+        "baseline_png_sha256": "3c8b5de7e97b798817854dbb9d7c0bb51d74b9d9f8294d4e6c2920ac0504b640",
+        "fixed_rejection": "checklist: use labels or values, not both; use card, receipt or comparison for paired fields"
+      }
+    ]
+  },
+  "scope": "Renderer input correctness and preflight; not autonomous production or audiovisual acceptance.",
+  "change": "Reject field shapes that silently omit labels/values before voice generation; share renderer validation across production compilation, renderer entry and direct drawing.",
+  "compatibility": "Default historical compile normalization unchanged. Existing immutable cycles remain inspectable. Ambiguous rewards examples require explicit supported shape for new production; historical examples not edited.",
+  "current_candidate": {
+    "sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+    "verified_at": "2026-11-22T18:34:02.096066+00:00",
+    "inspect_cycle": "PASS",
+    "baseline_vs_fixed_native_panel_png_bytes_identical": 12,
+    "source_media_changed": false
+  },
+  "caption_audit": {
+    "at": "2026-11-22T18:31:56Z",
+    "caption_sha256": "e1f1a31329cfa51c181c019a8f1ad189650cdc1a71466604856848065aa4dcb1",
+    "cues": 63,
+    "normalized_script_words": 334,
+    "text_matches_script": true,
+    "overlaps": 0,
+    "scene_crossings": 0,
+    "subsecond_cues": 12,
+    "unresolved_short_single_word_cues": [
+      {
+        "cue": 2,
+        "text": "fantastic,",
+        "seconds": 0.16
+      },
+      {
+        "cue": 5,
+        "text": "assignment.",
+        "seconds": 0.38
+      },
+      {
+        "cue": 23,
+        "text": "paradox.",
+        "seconds": 0.24
+      },
+      {
+        "cue": 30,
+        "text": "bill.",
+        "seconds": 0.28
+      },
+      {
+        "cue": 46,
+        "text": "purchases.",
+        "seconds": 0.38
+      },
+      {
+        "cue": 52,
+        "text": "card.",
+        "seconds": 0.36
+      }
+    ],
+    "scope": "Read-only text/timing diagnostic; no listening or timing acceptance. Tail rebalancing and isolated-word display hold remain unresolved."
+  },
+  "validation": "Final local/independent/hosted exact-head results will be recorded in issue543 and the PR.",
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "production_approved": false,
+  "full_av_review": false,
+  "all_twelve_complete": false,
+  "live_signals": "No new deployment/phone/24-hour acceptance. Fresh content-control render.yaml blob360e7dd10df9bd42ce4568fda3d7f1d7d89f21b4 declares publication false; live setting unavailable."
+}

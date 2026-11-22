@@ -51,6 +51,26 @@ def write(path, data):
     Path(path).write_text(json.dumps(data, indent=2, sort_keys=True, allow_nan=False) + '\n')
 
 
+def validate_visual_shape(spec):
+    """Reject shapes whose fields the renderer cannot preserve; no normalization."""
+    if not isinstance(spec, dict) or spec.get('kind', 'card') not in KINDS:
+        raise ValueError('Invalid visual specification')
+    if 'headline' in spec and (not isinstance(spec['headline'], str) or len(spec['headline']) > 60):
+        raise ValueError('Invalid headline')
+    for key, limit in [('labels', 50), ('values', 30)]:
+        fields = spec.get(key, [])
+        if not isinstance(fields, list) or any(not isinstance(v, str) or len(v) > limit for v in fields):
+            raise ValueError('Invalid visual ' + key)
+    kind = spec.get('kind', 'card')
+    labels, values = spec.get('labels', []), spec.get('values', [])
+    if max(len(labels), len(values)) > 4:
+        raise ValueError('Visual layouts support at most four fields')
+    if kind in ('balance', 'comparison') and max(len(labels), len(values)) > 2:
+        raise ValueError(kind + ': at most two fields; use card or receipt for more fields')
+    if kind in ('balance', 'checklist') and labels and values:
+        raise ValueError(kind + ': use labels or values, not both; use card, receipt or comparison for paired fields')
+
+
 def validate(editorial):
     if not isinstance(editorial, dict) or editorial.get('publication_enabled') is not False:
         raise ValueError('Explicit disabled publication required')
@@ -72,14 +92,7 @@ def validate(editorial):
         if scene.get('speaker', 'narrator') not in VOICE_ASSIGNMENTS:
             raise ValueError('Unsupported voice assignment')
         spec = scene.get('visual_spec', {})
-        if not isinstance(spec, dict) or spec.get('kind', 'card') not in KINDS:
-            raise ValueError('Invalid visual specification')
-        if 'headline' in spec and (not isinstance(spec['headline'], str) or len(spec['headline']) > 60):
-            raise ValueError('Invalid headline')
-        for key, limit in [('labels', 50), ('values', 30)]:
-            values = spec.get(key, [])
-            if not isinstance(values, list) or len(values) > 4 or any(not isinstance(v, str) or len(v) > limit for v in values):
-                raise ValueError('Invalid visual ' + key)
+        validate_visual_shape(spec)
     return scenes
 
 
@@ -146,6 +159,7 @@ def draw_panel(scene, path, index, count, phase=0.0):
     """
     if type(phase) not in (int, float) or not math.isfinite(phase):
         raise ValueError('Finite numeric motion phase required')
+    validate_visual_shape(scene.get('visual_spec', {}))
     gesture = math.sin(2 * math.pi * (phase % 1.0)) * .18
     from PIL import Image, ImageDraw, ImageFont
     image = Image.new('RGB', (720, 1280), '#f7f1e6')
