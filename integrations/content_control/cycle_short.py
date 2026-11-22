@@ -11,6 +11,7 @@ import tempfile
 import time
 
 from integrations.content_control.cycle_review import inspect_cycle
+from integrations.content_control.cycle_package import diagram_thumbnail_crop
 from integrations.content_control.review_package import digest, no_symlinks, require
 from integrations.owned_process import owned_process
 
@@ -84,7 +85,8 @@ def _probe(path, deadline):
     return {'width':width,'height':height,'duration_seconds':duration}
 
 
-def make_short(cycle_dir, output, *, start, end, timeout=180):
+def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counter=False):
+    require(type(hide_source_counter) is bool, 'hide_source_counter must be boolean')
     require(type(timeout) is int and 10 <= timeout <= 600, 'Timeout must be 10..600 seconds')
     require(all(type(v) in (int,float) and math.isfinite(v) for v in (start,end)) and
             0 <= start < end and end-start <= 60, 'Explicit finite interval of at most 60 seconds required')
@@ -99,11 +101,23 @@ def make_short(cycle_dir, output, *, start, end, timeout=180):
     snapshot=inspect_cycle(root)
     media=root/'delivery/video.mp4'; captions=root/'delivery/captions.vtt'
     source=_probe(media,deadline)
+    counter_filter=[]
+    counter_action={'action':'preserve'}
+    if hide_source_counter:
+        # inspect_cycle has already verified this exact receipt and editorial.
+        render=json.loads((root/'delivery/render.json').read_text())
+        require(diagram_thumbnail_crop(snapshot['editorial'],render,source) is not None,
+                'Counter removal requires the known 720x1280 picture-renderer layout')
+        counter_filter=['-vf','drawbox=x=570:y=40:w=110:h=45:color=0xf7f1e6:t=fill']
+        counter_action={'action':'hide_source_scene_counter','rectangle_xywh':[570,40,110,45],
+                        'fill_rgb':'#f7f1e6',
+                        'scope':'Known renderer scene-counter region only; no reframing or automatic media cleanup.'}
     require(end <= source['duration_seconds'] and end_ms/1000 <= source['duration_seconds'], 'Interval exceeds source media')
     require(captions.stat().st_size <= 1024*1024, 'Caption input oversized')
     clipped,boundary=clip_captions(captions.read_text(),start_ms,end_ms)
     output.mkdir(parents=True,exist_ok=False)
     receipt={'schema_version':1,'status':'BLOCKED','technical_status':'PENDING',**FLAGS,
+             'source_counter':counter_action,'tool_sha256':digest(Path(__file__)),
              'parent_candidate_sha256':snapshot['candidate_sha256'],
              'parent_cycle_sha256':snapshot['files_sha256']['cycle.json'],
              'source_caption_sha256':digest(captions),'start_seconds':start_ms/1000,'end_seconds':end_ms/1000,
@@ -114,7 +128,7 @@ def make_short(cycle_dir, output, *, start, end, timeout=180):
     try:
         _run(['ffmpeg','-v','error','-xerror','-nostdin','-n','-protocol_whitelist','file,pipe','-threads','2',
               '-f','mov','-i',str(media),'-ss',str(start_ms/1000),'-t',str((end_ms-start_ms)/1000),
-              '-map','0:v:0','-map','0:a:0','-map_metadata','-1','-c:v','libx264','-threads','2',
+              '-map','0:v:0','-map','0:a:0','-map_metadata','-1',*counter_filter,'-c:v','libx264','-threads','2',
               '-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart','-fs',str(256*1024*1024),str(output/'video.mp4')],deadline)
         actual=_probe(output/'video.mp4',deadline)
         require(abs(actual['duration_seconds']-(end_ms-start_ms)/1000)<=.1,'Encoded duration differs from requested interval')
@@ -139,7 +153,10 @@ def main():
     parser.add_argument('--cycle-dir',required=True);parser.add_argument('--output',required=True)
     parser.add_argument('--start',type=float,required=True);parser.add_argument('--end',type=float,required=True)
     parser.add_argument('--timeout',type=int,default=180)
-    a=parser.parse_args();result=make_short(a.cycle_dir,a.output,start=a.start,end=a.end,timeout=a.timeout)
+    parser.add_argument('--hide-source-counter',action='store_true',
+                        help='Hide only the known picture renderer scene-counter region; unknown layouts are rejected.')
+    a=parser.parse_args();result=make_short(a.cycle_dir,a.output,start=a.start,end=a.end,timeout=a.timeout,
+                                        hide_source_counter=a.hide_source_counter)
     print(json.dumps(result,indent=2));return 0 if result['status']=='AWAITING_REVIEW' else 2
 
 

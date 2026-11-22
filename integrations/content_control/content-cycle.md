@@ -321,6 +321,16 @@ It validates the source cycle before and after encoding. Fresh output directorie
 owned processes, a bounded deadline, two encoder threads and diagnostic size
 limits remain mandatory. A failed attempt retains a BLOCKED receipt.
 
+For the known 720×1280 picture renderer only, explicitly add
+`--hide-source-counter` to cover its source scene counter in the exported Short.
+The receipt records the exact covered rectangle and background color. Unknown
+layouts fail closed when this option is requested; the default export remains
+unchanged. This is a local presentation edit, not a crop, new narration or
+creative approval. The source video and its original numbering remain intact.
+The [November 22 counter-removal evidence](short-counter-proof-20261122.json)
+records both actual exports, full-frame-count counter-region checks, unchanged
+decoded audio and captions, and independent sampled visual review.
+
 Only the pipeline's plain WebVTT is supported. Intersecting cues retain their
 whole text while timestamps are clipped to the requested and actual media bounds.
 `boundary_cue_numbers` identifies potentially incomplete spoken sentences/words;

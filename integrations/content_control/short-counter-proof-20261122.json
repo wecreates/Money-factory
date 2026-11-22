@@ -1,0 +1,148 @@
+{
+  "archive_sha256": "22692b41e5caf855231ae3e7eabf9d3f57973f11e9c385605f60ece4eef84726",
+  "archive_size_bytes": 2308896,
+  "exports": {
+    "conditions": {
+      "captions_byte_identical_to_prior_short": true,
+      "decoded_pcm_equals_prior_short": true,
+      "decoded_pcm_sha256": "1e333880d74b4bcd4ede8303419dd027c604868b558eade2b6e65d8444932284",
+      "prior_roi_dark_pixels": 335140,
+      "receipt": {
+        "boundary_cue_numbers": [],
+        "candidate_sha256": "107f97df23259583dbfea03fbe571a98833713a76c1be184902996d14f3c4067",
+        "caption_scope": "Intersecting source cues clipped/rebased; whole cue text retained even at cut boundaries. Review boundary words against audio.",
+        "caption_sha256": "ee8d9c3816024d008efedd95b924ce6ad856d73a4377feb78353312bb9bf7c40",
+        "end_seconds": 117.125,
+        "finished_at": "2026-11-22T14:35:53.536545+00:00",
+        "full_av_review": false,
+        "media": {
+          "duration_seconds": 36.958333,
+          "height": 1280,
+          "width": 720
+        },
+        "paid_generation_enabled": false,
+        "parent_candidate_sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+        "parent_cycle_sha256": "52649ce2d9d9e1cf510eda7d5bbf9aa5b689e1ace3932b2999021c1eac792323",
+        "production_approved": false,
+        "production_ready": false,
+        "publication_enabled": false,
+        "schema_version": 1,
+        "scope": "Unreviewed portrait excerpt; no long-form, creative, listening, phone or publishing acceptance.",
+        "selection_scope": "Explicit supplied time bounds; not automatic editorial selection.",
+        "source_caption_sha256": "e1f1a31329cfa51c181c019a8f1ad189650cdc1a71466604856848065aa4dcb1",
+        "source_counter": {
+          "action": "hide_source_scene_counter",
+          "fill_rgb": "#f7f1e6",
+          "rectangle_xywh": [
+            570,
+            40,
+            110,
+            45
+          ],
+          "scope": "Known renderer scene-counter region only; no reframing or automatic media cleanup."
+        },
+        "start_seconds": 80.208,
+        "started_at": "2026-11-22T14:35:48.051257+00:00",
+        "status": "AWAITING_REVIEW",
+        "technical_status": "PASS",
+        "tool_sha256": "0d2efdadf9ffa656b0086b861340e49902ff34ef75cd5d6a198a5a0656afd919"
+      },
+      "roi_all_decoded_frames": 887,
+      "roi_dark_pixels": 0,
+      "roi_scope": "110x44 at570,40; even-height subset covers entire counter glyph bounds, not a full audiovisual review."
+    },
+    "story": {
+      "captions_byte_identical_to_prior_short": true,
+      "decoded_pcm_equals_prior_short": true,
+      "decoded_pcm_sha256": "86b7fe06ac134d514e11ce7d821f6c8a06d5865dce4f3acf2d6b7c0125533d9e",
+      "prior_roi_dark_pixels": 404571,
+      "receipt": {
+        "boundary_cue_numbers": [],
+        "candidate_sha256": "52e01e70c4b5dce3b2e93d5a811af4be83c8aaa5bef05fbf741182e507d46d4d",
+        "caption_scope": "Intersecting source cues clipped/rebased; whole cue text retained even at cut boundaries. Review boundary words against audio.",
+        "caption_sha256": "4ee047e1eb91ca59182a61b2983d52d38ecc394edd2adaaa7489feec6dacf98d",
+        "end_seconds": 52.667,
+        "finished_at": "2026-11-22T14:35:52.701342+00:00",
+        "full_av_review": false,
+        "media": {
+          "duration_seconds": 52.707683,
+          "height": 1280,
+          "width": 720
+        },
+        "paid_generation_enabled": false,
+        "parent_candidate_sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+        "parent_cycle_sha256": "52649ce2d9d9e1cf510eda7d5bbf9aa5b689e1ace3932b2999021c1eac792323",
+        "production_approved": false,
+        "production_ready": false,
+        "publication_enabled": false,
+        "schema_version": 1,
+        "scope": "Unreviewed portrait excerpt; no long-form, creative, listening, phone or publishing acceptance.",
+        "selection_scope": "Explicit supplied time bounds; not automatic editorial selection.",
+        "source_caption_sha256": "e1f1a31329cfa51c181c019a8f1ad189650cdc1a71466604856848065aa4dcb1",
+        "source_counter": {
+          "action": "hide_source_scene_counter",
+          "fill_rgb": "#f7f1e6",
+          "rectangle_xywh": [
+            570,
+            40,
+            110,
+            45
+          ],
+          "scope": "Known renderer scene-counter region only; no reframing or automatic media cleanup."
+        },
+        "start_seconds": 0.0,
+        "started_at": "2026-11-22T14:35:46.744721+00:00",
+        "status": "AWAITING_REVIEW",
+        "technical_status": "PASS",
+        "tool_sha256": "0d2efdadf9ffa656b0086b861340e49902ff34ef75cd5d6a198a5a0656afd919"
+      },
+      "roi_all_decoded_frames": 1265,
+      "roi_dark_pixels": 0,
+      "roi_scope": "110x44 at570,40; even-height subset covers entire counter glyph bounds, not a full audiovisual review."
+    }
+  },
+  "full_av_review": false,
+  "independent_review": {
+    "code": "11 focused tests passed; default encoding unchanged, unknown layouts rejected, maximum counter bounds contained. No blocking findings.",
+    "limits": "No full audiovisual, listening, motion-continuity or phone acceptance.",
+    "observed_at": "2026-11-22T14:36:37Z",
+    "reviewer": "counter_review agent",
+    "runtime": "Both full decodes, identities, false flags, source inspection and unchanged23/17cue captions verified.",
+    "visual": "Viewed6 actual native frames: story1/25/48s and conditions1/15/34s. Counter absent; headlines unclipped; diagram labels and character/speaker identities intact. Conditions/exception labels readable."
+  },
+  "library_file_id": "libfile_fde3_f-81289fd89ec8819190827e62ed7a8d30_389d2c70fb1c8191bcf9b25e87727630",
+  "library_version": 0,
+  "observed_at": "2026-11-22T14:36:17.461097+00:00",
+  "paid_generation_enabled": false,
+  "prior_issue_evidence": "https://github.com/wecreates/Money-factory/issues/543#issuecomment-7080158974",
+  "production_ready": false,
+  "publication_enabled": false,
+  "remaining_acceptance": [
+    "Full watching/listening/pacing/reference comparison",
+    "Phone/caption playback and deployed delivery",
+    "Audience learning",
+    "Actual-host24h and onboarding/operations"
+  ],
+  "scope": "Actual optional counter masking, caption/audio preservation and independent bounded review; not full creative acceptance.",
+  "source_inspection": {
+    "brief.json": "926ec4e8ad9b728004e953f3d3674c9aaa5f6b2c426e600634e5f867972bedcf",
+    "cycle.json": "52649ce2d9d9e1cf510eda7d5bbf9aa5b689e1ace3932b2999021c1eac792323",
+    "delivery/captions.vtt": "e1f1a31329cfa51c181c019a8f1ad189650cdc1a71466604856848065aa4dcb1",
+    "delivery/editorial.json": "41e88b2da9cb1ae9aefce0b71f806d5c60ae6571fefba65ec03d7f1d30630d51",
+    "delivery/index.html": "7425107ef758ca3cfd584a1fdfee7e0159f015750e9b90065a70b962287d932b",
+    "delivery/package.json": "0e0743edfff5c9f4004af800c77bb1cac04e3855218befe177b803803b423196",
+    "delivery/render.json": "8bd133ec68ec6cbafb881250d90e2af18e031a714acb4acd9949a69274811917",
+    "delivery/review-package.zip": "acea58eadfc64a4fb7889877ed9ecaa83b5d4978a7d1a2ac047cc3f2e02e0f33",
+    "delivery/thumbnail-1.png": "a132d5874d629c8e7f2df8eb271360bbf1a0cc53bd11f446509610425bbd214e",
+    "delivery/thumbnail-2.png": "3fde740186ffd1e59dae501d2fb2e5294dc838a347dc074a722569a6d04540eb",
+    "delivery/thumbnail-3.png": "22e92b928cfa1a6752e539cba52df77341a6bf3d35f388dacf3867c49fd6382a",
+    "delivery/video.mp4": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+    "editorial.json": "41e88b2da9cb1ae9aefce0b71f806d5c60ae6571fefba65ec03d7f1d30630d51",
+    "render/render.json": "8bd133ec68ec6cbafb881250d90e2af18e031a714acb4acd9949a69274811917"
+  },
+  "tests": {
+    "complete_and_rea": 21,
+    "cycle": 121,
+    "independent_short": 11
+  }
+}
