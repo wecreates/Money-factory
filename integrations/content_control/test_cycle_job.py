@@ -209,9 +209,96 @@ class CycleJobTests(unittest.TestCase):
             self.assertEqual(result['review_status'], 'AWAITING_REVIEW')
             self.assertEqual(observed[0][0][0:2], [sys.executable, '-c'])
             self.assertEqual(observed[0][0][3], str(attempt/'brief.json'))
-            self.assertEqual(observed[0][0][-2], '60')
+            self.assertEqual(observed[0][0][-3], '60')
             self.assertEqual(observed[0][0][-1], '')
             self.assertEqual(digest(attempt/'brief.json'), request()['brief_sha256'])
+
+
+class QueuedRevisionTests(unittest.TestCase):
+    def request(self, raw=None):
+        from integrations.content_control.cycle_lineage import SCOPE
+        from integrations.content_control.test_cycle_lineage import handoff
+        import hashlib
+        value = request()
+        raw = raw if raw is not None else json.dumps(value['brief'], indent=2) + '\n'
+        receipt = json.dumps(handoff(hashlib.sha256(raw.encode()).hexdigest()), indent=2) + '\n'
+        value['revision_input'] = {'brief_json': raw, 'revision_lineage': {
+            'schema_version': 1, 'revision_json': receipt,
+            'revision_sha256': hashlib.sha256(receipt.encode()).hexdigest(),
+            'parent_evidence_independently_verified': False,
+            'feedback_resolution_verified': False, 'scope': SCOPE}}
+        return value
+
+    def test_whitespace_is_retained_and_old_request_still_works(self):
+        from integrations.content_control.cycle_job import production_input
+        value = self.request()
+        validate(value); validate(request())
+        encoded, lineage = production_input(value)
+        self.assertEqual(encoded, value['revision_input']['brief_json'].encode())
+        import hashlib
+        self.assertNotEqual(hashlib.sha256(encoded).hexdigest(), value['brief_sha256'])
+        self.assertEqual(production_input(request())[1], None)
+
+    def test_invalid_revision_inputs_rejected(self):
+        cases = []
+        v = self.request(); v['revision_input']['path'] = '/not/data'; cases.append(v)
+        v = self.request(); v['revision_input']['brief_json'] += ' '; cases.append(v)
+        v = self.request(); v['revision_input']['brief_json'] = ' ' * (256*1024+1); cases.append(v)
+        v = self.request(); v['revision_input']['revision_lineage']['feedback_resolution_verified'] = True; cases.append(v)
+        v = self.request(); v['revision_input']['brief_json'] = '{"schema_version":1,"schema_version":1}'; cases.append(v)
+        v = self.request(); v['revision_input']['brief_json'] = '\ud800'; cases.append(v)
+        altered = brief(); altered['title'] = 'Different title'
+        cases.append(self.request(json.dumps(altered)))
+        for value in cases:
+            with self.subTest(value=repr(value)[:100]), self.assertRaises(ValueError): validate(value)
+
+    def test_guardian_preserves_handoff_and_rejects_drop_or_substitution(self):
+        from integrations.content_control.cycle_job import production_input
+        import sys
+        for kind in ('match', 'drop', 'substitute'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as td:
+                root = Path(td); source = root/'source'; (source/'scripts').mkdir(parents=True)
+                (source/'scripts/v2_free_voice.py').write_text('')
+                attempt = root/'attempt'; attempt.mkdir()
+                value = self.request(); encoded, lineage = production_input(value)
+                def run(command, **kwargs):
+                    self.assertEqual(command[-1], str(attempt/'revision.json'))
+                    self.assertIn('revision_path=sys.argv[7] or None', command[2])
+                    self.assertEqual((attempt/'brief.json').read_bytes(), encoded)
+                    self.assertEqual((attempt/'revision.json').read_bytes(), lineage['revision_json'].encode())
+                    receipt = packet(attempt/'cycle', digest(attempt/'brief.json'))
+                    (attempt/'cycle/brief.json').write_bytes(encoded)
+                    if kind != 'drop':
+                        receipt['revision_lineage'] = copy.deepcopy(lineage)
+                    if kind == 'substitute':
+                        import hashlib
+                        alternate = json.loads(lineage['revision_json'])
+                        alternate['recorded_review_sha256'] = 'f'*64
+                        raw = json.dumps(alternate)
+                        receipt['revision_lineage']['revision_json'] = raw
+                        receipt['revision_lineage']['revision_sha256'] = hashlib.sha256(raw.encode()).hexdigest()
+                    write(attempt/'cycle/cycle.json', receipt)
+                with patch('integrations.content_control.cycle_job.collect_snapshot', return_value={}), \
+                     patch('integrations.content_control.cycle_job.recommend_capacity', return_value={'admitted_workers': 1}), \
+                     patch('integrations.content_control.cycle_job.guarded_runner', return_value=run):
+                    result = run_job(value, attempt, voice_python=sys.executable, voice_root=source)
+                self.assertEqual(result['status'], 'PASS' if kind == 'match' else 'BLOCKED')
+                self.assertEqual(result['brief_sha256'], value['brief_sha256'])
+                self.assertEqual(result['production_brief_sha256'], digest(attempt/'brief.json'))
+                if kind != 'match': self.assertIn('differs from queued', result['blocker'])
+
+    def test_real_queue_roundtrip_preserves_revision_request(self):
+        with tempfile.TemporaryDirectory() as td:
+            queued = job(); queued['request'] = self.request()
+            queue = Queue(Path(td)/'queue')
+            queue.enqueue(queued); queue.close()
+            queue = Queue(Path(td)/'queue')
+            try:
+                with patch('integrations.content_control.cycle_job.run_job', return_value={
+                        'status': 'BLOCKED', 'publication_enabled': False, 'paid_generation_enabled': False}) as adapter:
+                    work(queue)
+                self.assertEqual(adapter.call_args.args[0], queued['request'])
+            finally: queue.close()
 
 
 if __name__ == '__main__': unittest.main()

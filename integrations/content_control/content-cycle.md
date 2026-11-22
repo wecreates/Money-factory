@@ -44,6 +44,25 @@ The adapter name is `content-control-cycle`. Its exact request fields are:
 
 Replace the brief with a full valid object; compute its hash with `integrations.content_control.cycle_job.brief_digest`. The existing `integrations.local_agent_queue` accepts host-only `--cycle-voice-python`, `--cycle-voice-root` and optional `--cycle-transcription-python` settings. Its owned-process guardian, two-CPU affinity, shared admission lock, fresh memory/CPU admission, SQLite attempts/retries and artifact checking remain in force. Unknown capacity blocks admission; there is no bypass. Successful queue execution verifies the candidate, source brief, editorial, render receipt, captions, package files and ZIP identities before recording technical success.
 
+For a revised brief, retain the standard request fields above, including
+`brief_sha256` computed from the canonical `brief` object, and add an optional
+`revision_input` object with exactly two fields:
+
+- `brief_json`: the exact UTF-8 text of the generated revision `brief.json`.
+- `revision_lineage`: the object returned by `cycle_lineage.read_revision` for
+  the generated `revision.json` and the SHA-256 of those exact brief bytes.
+
+The raw brief must parse to the same canonical object as the request's `brief`.
+Its whitespace is retained because the revision receipt binds the exact bytes,
+not a reserialized copy. The adapter writes both inputs inside its owned attempt,
+passes their paths through the fixed production command, and rejects a completed
+cycle that drops or substitutes the submitted handoff. The adapter receipt keeps
+both the canonical request `brief_sha256` and exact `production_brief_sha256`.
+Inputs contain data only; executable and runtime paths remain host settings.
+The raw brief limit is 256 KiB, handoff 64 KiB, and the existing durable queue's
+150,000-byte total serialized job envelope still takes precedence. This does
+not authenticate the parent/reviewer or verify that feedback was resolved.
+
 This registers an operation, not an always-on daemon. A tested PC/VPN/VPS worker and persistent service supervision are separate deployment requirements.
 
 ## Review, feedback and revision
@@ -104,8 +123,7 @@ validate that binding. Mutation during production blocks the attempt. The
 embedded handoff survives checkpoint restoration without the original workspace.
 It records asserted parent/review identities, not independent authentication of
 the parent or reviewer, and does not verify feedback resolution. Standalone
-production still accepts ordinary briefs without a handoff. Queue requests retain
-their existing brief-only interface; they do not yet submit revision handoffs.
+production still accepts ordinary briefs without a handoff. Queue requests optionally carry the same handoff as described above.
 
 ## Verification boundaries
 
