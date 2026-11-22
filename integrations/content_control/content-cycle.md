@@ -286,3 +286,32 @@ original cycle remain unchanged. This ZIP is a viewing package, not a replacemen
 for the earlier exact-cycle recovery checkpoint. Previous package selections
 are not transferred. Visual readability review does not establish CTR, mobile
 playback, full audiovisual or creative acceptance.
+
+### Explicit portrait Shorts excerpts
+
+The bounded `cycle_short` consumer extracts an explicitly selected interval from
+an already validated cycle without generating new speech or changing voices:
+
+```sh
+python -m integrations.content_control.cycle_short \
+  --cycle-dir /absolute/completed-cycle --output /absolute/new-short \
+  --start 0 --end 30 --timeout 180
+```
+
+The source must already have 9:16 portrait framing and exactly one audio stream;
+landscape, rotated or anamorphic inputs fail instead of receiving an invented
+crop. The interval must be finite, within source duration and at most 60 seconds.
+The consumer re-encodes H.264/AAC, checks decode, dimensions and actual duration,
+and writes `video.mp4`, rebased `captions.vtt`, and candidate-bound `short.json`.
+It validates the source cycle before and after encoding. Fresh output directories,
+owned processes, a bounded deadline, two encoder threads and diagnostic size
+limits remain mandatory. A failed attempt retains a BLOCKED receipt.
+
+Only the pipeline's plain WebVTT is supported. Intersecting cues retain their
+whole text while timestamps are clipped to the requested and actual media bounds.
+`boundary_cue_numbers` identifies potentially incomplete spoken sentences/words;
+review them against the resulting audio. This is not new ASR verification or
+automatic editorial selection. Full watch/listen, factual context, caption
+accuracy, phone playback and long-form-to-Shorts acceptance remain open, including
+when a source already happens to be shorter than a minute. All publishing and
+creative approval flags remain false; prior source approval never transfers.
