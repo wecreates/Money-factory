@@ -26,6 +26,25 @@ test('empty active set, missing checks, skipped checks, failure and stale times 
   a=>a[4].results[0].status=502,a=>a[3]['cyzor-website'].targetUrl='https://stale.example/'];
  for(const mutate of mutations){const args=fixture();mutate(args);assert.equal(evaluateVerification(...args).pass,false);}
 });
+test('one unhealthy target does not mislabel another target while overall verification fails',()=>{
+ const args=fixture();
+ for(const index of [2,3]){
+  args[index]['cyzor-website'].last_status=null;
+  args[index]['cyzor-website'].last_error='timeout';
+ }
+ for(const index of [4,5]){
+  args[index].ok=false;
+  args[index].results[0].status=null;
+  args[index].results[0].error='timeout';
+ }
+ const result=evaluateVerification(...args);
+ assert.equal(result.pass,false);
+ const failed=result.watches.find(w=>w.id==='cyzor-website');
+ const healthy=result.watches.find(w=>w.id==='money-factory-repository');
+ assert.equal(failed.first_cycle_healthy,false);assert.equal(failed.second_cycle_healthy,false);
+ assert.equal(healthy.first_cycle_healthy,true);assert.equal(healthy.second_cycle_healthy,true);
+ assert.equal(healthy.pass,true);
+});
 test('duplicate active IDs reject ambiguous evidence',()=>{
  const args=fixture();args[0].push(args[0][0]);assert.throws(()=>evaluateVerification(...args),/duplicate/);
 });

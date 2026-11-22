@@ -24,3 +24,17 @@ not fresh probes or evidence that the timeout is resolved. Local regression
 fixtures exercise health failures, missing/stale checks, and configured watch
 selection; they do not establish production uptime. Issue #543 remains the
 single source of completion truth and retains actual-host/deployment blockers.
+
+## Hosted observation after the fix
+
+The retained report at commit `df8db63` was written November 21 at 6:40:08 PM
+Pacific. Both current watches advanced through two checks. The website timed out
+both times; the repository returned HTTP 200 both times. Overall `pass:false`
+correctly replaced the historical smoke-test success. This is actual hosted
+failure-retention evidence, not website recovery or a 24-hour soak.
+
+That report also exposed a diagnostic coupling: per-watch health included the
+whole cycle's `ok` value, incorrectly marking the repository's health false due
+to the website failure. Per-watch health now describes that target's own check;
+overall acceptance still requires both complete cycles to be healthy. The
+original failed report remains historical evidence and is not rewritten locally.
