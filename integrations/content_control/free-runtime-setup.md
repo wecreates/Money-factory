@@ -54,3 +54,12 @@ a fresh six-scene cycle completed at 22:47:10 UTC on November 21, 2026, plus
 the saved checkpoint identity. Container duration is 34.585 seconds; the ASR
 helper reports decoded/padded analysis duration separately. Neither duration
 is a listening-quality attestation.
+
+On November 22 the documented isolated setup was repeated after local runtimes
+were lost. All nine pinned assets were independently hash-checked; the latest
+durable checkpoint was recovered and its unchanged brief/lineage re-executed.
+The fresh cycle and an explicit caption-rebased excerpt completed technically,
+and a new checkpoint restored with equal inspection identities. See the
+[dated recovery evidence](runtime-recovery-proof-20261122.json). This is local
+standalone recovery, not intended-host admission, autonomous topic discovery,
+listening approval or 24-hour operation.

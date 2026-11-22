@@ -1,0 +1,178 @@
+{
+  "bundle_sha256": "ad2ce40ef5be8d8d7a9967ae3d053609c3c2cf1d780118fdad2b3532a485ee67",
+  "bundle_size_bytes": 2649817,
+  "checkpoint": {
+    "candidate_sha256": "c771ff6fd4d7bb2056bc7a8a326582ad68dcb2a15a5eb9a426c4b5ad802b9dc8",
+    "checkpoint_sha256": "8ccc91f4f335fdb38e23c29c2fbef51f747d4039d7937d2501acc431bc31672c",
+    "full_av_review": false,
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "status": "CHECKPOINT_CREATED"
+  },
+  "checkpoint_restored_equal": true,
+  "cycle": {
+    "archive_sha256": "c49d76865571b4454b5eddb29f680375495fb8ff64689e6a11d53cc286c9d507",
+    "brief_sha256": "4433838ca4c36f330966805c2508054b88060c93c90f44f0298f98dc9fd02361",
+    "candidate_sha256": "c771ff6fd4d7bb2056bc7a8a326582ad68dcb2a15a5eb9a426c4b5ad802b9dc8",
+    "competitor_comparison": false,
+    "editorial_sha256": "d8577312cd25fe60d1e57cd5c0d00e20a48dfd2576dbb3588fd44b2bfcf45571",
+    "factual_review": false,
+    "finished_at": "2026-11-22T10:18:03.276794+00:00",
+    "full_av_review": false,
+    "package_sha256": "f037d711d3cfd9ca3d620b8834fe9fbaabe141829c939c8b2eb518a4a53df45b",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "revision_lineage": {
+      "feedback_resolution_verified": false,
+      "parent_evidence_independently_verified": false,
+      "revision_json": "{\n  \"brief_sha256\": \"4433838ca4c36f330966805c2508054b88060c93c90f44f0298f98dc9fd02361\",\n  \"feedback\": [\n    {\n      \"action\": \"Complete and document the factual accuracy review.\",\n      \"check\": \"factual_accuracy\"\n    },\n    {\n      \"action\": \"Complete and document the full audiovisual review.\",\n      \"check\": \"full_audiovisual\"\n    },\n    {\n      \"action\": \"Complete and document the voice naturalness review.\",\n      \"check\": \"voice_naturalness\"\n    },\n    {\n      \"action\": \"Change scene conditions final checklist label to IN FULL BY DUE DATE so the visible condition states the deadline already in the narration. Preserve the other conditions and voices.\",\n      \"check\": \"visual_readability\"\n    },\n    {\n      \"action\": \"Complete and document the originality review.\",\n      \"check\": \"originality\"\n    },\n    {\n      \"action\": \"Complete and document the reference comparison review.\",\n      \"check\": \"reference_comparison\"\n    }\n  ],\n  \"feedback_resolution_verified\": false,\n  \"full_av_review\": false,\n  \"paid_generation_enabled\": false,\n  \"prior_cycle_sha256\": \"e9b21a468791b13da7638fbfba021de896303b3866e5c37858e6a4ada9c2fb7e\",\n  \"production_approved\": false,\n  \"production_ready\": false,\n  \"publication_enabled\": false,\n  \"recorded_review_sha256\": \"d8c8f49d31593e5b5ae8c9d1c67b2aea16991f4df8cbd5e681542759b7e10c4c\",\n  \"schema_version\": 1,\n  \"scope\": \"Revised supplied brief; previous approval statements cannot certify a new render.\",\n  \"status\": \"REVISION_BRIEF_READY\",\n  \"supersedes_candidate_sha256\": \"e57dbaa44970570e0268b6879cbc061e1ad9bba1f496cd7965718b915377a372\"\n}\n",
+      "revision_sha256": "0a26001328d264e5321377d6172d8e40155dae900793cec56535c4b574addd0d",
+      "schema_version": 1,
+      "scope": "Exact supplied revision handoff retained; parent artifacts and review are not independently revalidated here, and feedback resolution is not verified."
+    },
+    "schema_version": 1,
+    "scope": "New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.",
+    "started_at": "2026-11-22T10:17:24.050131+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "editorial",
+        "status": "PASS"
+      },
+      {
+        "name": "render",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "complete_cycle.py": "48f93523c9994b3b6648a74a4322f7fd3963fa58ce560bbfbae0a8b39602b1bc",
+      "cycle_editorial.py": "ab5d0231e26b55a7b94d4f7c899094e336069a1fc1344a8b6688f20b88e19b73",
+      "cycle_lineage.py": "d6c09d67af7aebaa919794c1beff68972f38d2728a7a69acd2d828fd893978a0",
+      "cycle_package.py": "2e4da6f6126386bea78a496c2dd59b979f0c06a65d767bf39b3ac248560053ef",
+      "cycle_render.py": "ca6676d141a92f8b618fee9185073a14611ab2f68eda23e4bf04e29cea4b1108"
+    }
+  },
+  "excerpt": {
+    "boundary_cue_numbers": [],
+    "candidate_sha256": "33555125f8d9c24190f7c47a378ab02d64a9f784c4442a679101d307a4a0c2e3",
+    "caption_scope": "Intersecting source cues clipped/rebased; whole cue text retained even at cut boundaries. Review boundary words against audio.",
+    "caption_sha256": "b20af5f31a9ebdef89fd0739d9cb93d0e64fc605afb71b9c891ea981c5834bb3",
+    "end_seconds": 29.56,
+    "finished_at": "2026-11-22T10:18:22.410346+00:00",
+    "full_av_review": false,
+    "media": {
+      "duration_seconds": 9.082683,
+      "height": 1280,
+      "width": 720
+    },
+    "paid_generation_enabled": false,
+    "parent_candidate_sha256": "c771ff6fd4d7bb2056bc7a8a326582ad68dcb2a15a5eb9a426c4b5ad802b9dc8",
+    "parent_cycle_sha256": "a3159aa34040599f9e132473f1dfc3981947d6178ce13606dbcd5175ba328b94",
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "Unreviewed portrait excerpt; no long-form, creative, listening, phone or publishing acceptance.",
+    "selection_scope": "Explicit supplied time bounds; not automatic editorial selection.",
+    "source_caption_sha256": "0bf40adc376f2b977dd8497df82eeb945d2dd16f4c136f1b45cad3f5aa687dbb",
+    "start_seconds": 20.48,
+    "started_at": "2026-11-22T10:18:20.758541+00:00",
+    "status": "AWAITING_REVIEW",
+    "technical_status": "PASS"
+  },
+  "full_av_review": false,
+  "independent_review": "runtime_review verified source/direct pins/all nine asset hashes, actual completed cycle, unchanged brief/editorial/lineage, six voice assignments and false flags. Not listening acceptance.",
+  "library_file_id": "libfile_fde3_f-a8d272d4c44481919a5e07d688f5ea7f_389d2c70fb1c8191bcf9b25e87727630",
+  "library_version": 0,
+  "observed_at": "2026-11-22T10:19:06.844537+00:00",
+  "paid_generation_enabled": false,
+  "prior_checkpoint_verified_sha256": "7b1186a00135c9098d2aad493d975f5b02faecb6e89404843178a44bf5cec479",
+  "production_ready": false,
+  "publication_enabled": false,
+  "recovered_candidate_sha256": "95a29f50469d77e4a8079f84f6dd6db75d38ddb7c143e84159659b684b995d04",
+  "runtime": {
+    "asr_versions": {
+      "ctranslate2": "4.9.1",
+      "faster-whisper": "1.2.1",
+      "huggingface-hub": "2.4.0",
+      "socksio": "1.0.0"
+    },
+    "content_control_commit": "7d213cdd3b1bcb767dd29b8db1dd0b7201478e8d",
+    "models": {
+      "asr-models": {
+        "files": {
+          "config.json": {
+            "sha256": "f3bc3821e9fc76a27bae538e11ae5b677dcdd352b4600429ce7951d398569aeb",
+            "size": 2227
+          },
+          "model.bin": {
+            "sha256": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef",
+            "size": 145216508
+          },
+          "tokenizer.json": {
+            "sha256": "929c5252409436dce1b38a75d1abbcb5e132d170d8e324e4e04ed915fa2d22df",
+            "size": 2128466
+          },
+          "vocabulary.txt": {
+            "sha256": "ff77588746d3a2595d32ab5b69ffd7b95ce2441ac57533cb66fc3eb575a115cf",
+            "size": 422309
+          }
+        },
+        "revision": "3d3d5dee26484f91867d81cb899cfcf72b96be6c"
+      },
+      "kokoro-models": {
+        "files": {
+          "config.json": {
+            "sha256": "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f",
+            "size": 2351
+          },
+          "kokoro-v1_0.pth": {
+            "sha256": "496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4",
+            "size": 327212226
+          },
+          "voices/am_adam.pt": {
+            "sha256": "ced7e284aba12472891be1da3ab34db84cc05cc02b5889535796dbf2d8b0cb34",
+            "size": 523420
+          },
+          "voices/am_fenrir.pt": {
+            "sha256": "98e507eca1db08230ae3b6232d59c10aec9630022d19accac4f5d12fcec3c37a",
+            "size": 523430
+          },
+          "voices/am_michael.pt": {
+            "sha256": "9a443b79a4b22489a5b0ab7c651a0bcd1a30bef675c28333f06971abbd47bd37",
+            "size": 523435
+          }
+        },
+        "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987"
+      }
+    },
+    "observed_at": "2026-11-22T10:17:26.900866+00:00",
+    "paid_generation_enabled": false,
+    "publication_enabled": false,
+    "scope": "Restored local runtime prerequisites, not actual-host or creative acceptance",
+    "torch_cuda": null,
+    "voice_versions": {
+      "en-core-web-sm": "3.8.0",
+      "huggingface-hub": "2.4.0",
+      "kokoro": "0.9.4",
+      "misaki": "0.9.4",
+      "numpy": "2.5.5",
+      "socksio": "1.0.0",
+      "soundfile": "0.14.0",
+      "spacy": "3.8.18",
+      "torch": "2.9.1+cpu",
+      "transformers": "5.24.0"
+    }
+  },
+  "schema_version": 1,
+  "scope": "Fresh standalone offline re-execution of unchanged recovered brief; no autonomous research, queue admission or full audiovisual acceptance."
+}
