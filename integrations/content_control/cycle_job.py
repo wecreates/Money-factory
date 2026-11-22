@@ -71,6 +71,9 @@ def check_completed(directory, expected_brief_sha256):
                     'production_ready', 'factual_review', 'competitor_comparison'))
             or receipt.get('brief_sha256') != expected_brief_sha256):
         raise ValueError('Cycle did not complete a bound unpublished review')
+    if 'revision_lineage' in receipt:
+        from integrations.content_control.cycle_lineage import validate_lineage
+        validate_lineage(receipt['revision_lineage'], expected_brief_sha256)
     candidate = directory/'render/video.mp4'
     if not candidate.is_file() or digest(candidate) != receipt.get('candidate_sha256'):
         raise ValueError('Cycle candidate identity mismatch')

@@ -14,6 +14,7 @@ import time
 from integrations.content_control.cycle_editorial import compile_editorial
 from integrations.content_control.cycle_render import render_cycle
 from integrations.content_control.cycle_package import package_cycle
+from integrations.content_control.cycle_lineage import read_revision
 
 
 def digest(path):
@@ -36,7 +37,8 @@ def safe_path(path):
     return path
 
 
-def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, transcription_python=None):
+def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, transcription_python=None,
+              revision_path=None):
     """Create one immutable attempt; a failed attempt is never resumed as PASS."""
     if type(timeout) is not int or not 30 <= timeout <= 1800:
         raise ValueError('Timeout must be 30..1800 seconds')
@@ -49,19 +51,26 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
     raw = source.read_bytes()
     brief = json.loads(raw)
     editorial = compile_editorial(brief)
+    brief_hash = hashlib.sha256(raw).hexdigest()
+    revision_source = safe_path(revision_path) if revision_path is not None else None
+    lineage = read_revision(revision_source, brief_hash) if revision_source is not None else None
     output = safe_path(output)
     if output == source or output in source.parents:
         raise ValueError('Output cannot contain the input brief')
+    if revision_source is not None and (output == revision_source or output in revision_source.parents):
+        raise ValueError('Output cannot contain the revision handoff')
     output.mkdir(parents=True, exist_ok=False)
     receipt = {'schema_version': 1, 'status': 'BLOCKED', 'technical_status': 'PENDING',
                'started_at': stamp(), 'publication_enabled': False,
                'paid_generation_enabled': False, 'production_approved': False,
                'full_av_review': False, 'factual_review': False,
                'competitor_comparison': False, 'production_ready': False,
-               'brief_sha256': hashlib.sha256(raw).hexdigest(), 'steps': [],
+               'brief_sha256': brief_hash, 'steps': [],
                'scope': 'New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.'}
     module_root = Path(__file__).parent
-    tool_names = ('complete_cycle.py', 'cycle_editorial.py', 'cycle_render.py', 'cycle_package.py')
+    if lineage is not None:
+        receipt['revision_lineage'] = lineage
+    tool_names = ('complete_cycle.py', 'cycle_editorial.py', 'cycle_render.py', 'cycle_package.py', 'cycle_lineage.py')
     receipt['tool_sha256'] = {name: digest(module_root/name) for name in tool_names}
     deadline = time.monotonic() + timeout
     stage = 'editorial'
@@ -105,6 +114,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         receipt['steps'].append({'name': stage, 'status': 'PASS'})
         if digest(source) != receipt['brief_sha256']:
             raise ValueError('Input brief changed during the cycle')
+        if revision_source is not None and read_revision(revision_source, brief_hash) != lineage:
+            raise ValueError('Revision handoff changed during the cycle')
         if receipt['tool_sha256'] != {name: digest(module_root/name) for name in tool_names}:
             raise ValueError('Cycle implementation changed during execution')
         receipt.update(status='AWAITING_REVIEW', technical_status='PASS')
@@ -124,12 +135,13 @@ def main():
     parser.add_argument('--voice-python', required=True)
     parser.add_argument('--voice-root', required=True)
     parser.add_argument('--transcription-python')
+    parser.add_argument('--revision', help='Explicit revision.json handoff bound to the supplied brief; no approval transfer.')
     parser.add_argument('--timeout', type=int, default=900)
     parser.add_argument('--checkpoint', help='Optional new ZIP outside the cycle for exact-state recovery.')
     args = parser.parse_args()
     result = run_cycle(args.brief, args.output, voice_python=args.voice_python,
                        voice_root=args.voice_root, timeout=args.timeout,
-                       transcription_python=args.transcription_python)
+                       transcription_python=args.transcription_python, revision_path=args.revision)
     if args.checkpoint and result['status'] == 'AWAITING_REVIEW':
         from integrations.content_control.cycle_checkpoint import create_checkpoint
         try:

@@ -37,10 +37,47 @@ class CompleteCycleTest(unittest.TestCase):
         (output / 'review-package.zip').write_bytes(b'synthetic archive fixture')
         return dict(receipt, archive_sha256=m.digest(output / 'review-package.zip'))
 
-    def execute(self, render=None, package=None):
+    def execute(self, render=None, package=None, **kwargs):
         with patch.object(m, 'render_cycle', side_effect=render or self.render), \
                 patch.object(m, 'package_cycle', side_effect=package or self.package):
-            return m.run_cycle(self.source, self.output, voice_python='/unused/python', voice_root='/unused/voice')
+            return m.run_cycle(self.source, self.output, voice_python='/unused/python', voice_root='/unused/voice', **kwargs)
+
+    def revision(self):
+        from integrations.content_control.test_cycle_lineage import handoff
+        path = self.root / 'revision.json'
+        path.write_text(json.dumps(handoff(m.digest(self.source)), indent=2) + '\n')
+        return path
+
+    def test_explicit_revision_retained_but_neighbor_not_autodetected(self):
+        revision = self.revision()
+        self.assertNotIn('revision_lineage', self.execute())
+        self.output = self.root / 'revised-attempt'
+        result = self.execute(revision_path=revision)
+        self.assertEqual(result['status'], 'AWAITING_REVIEW')
+        self.assertEqual(result['revision_lineage']['revision_sha256'], m.digest(revision))
+        self.assertEqual(result['revision_lineage']['revision_json'], revision.read_text())
+        self.assertFalse(result['revision_lineage']['feedback_resolution_verified'])
+        self.assertIn('cycle_lineage.py', result['tool_sha256'])
+
+    def test_invalid_revision_fails_before_render(self):
+        revision = self.revision()
+        value = json.loads(revision.read_text()); value['brief_sha256'] = '0' * 64
+        revision.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError, 'different brief'):
+            self.execute(revision_path=revision, render=lambda *a, **k: self.fail('Rendered invalid revision'))
+        self.assertFalse(self.output.exists())
+
+    def test_revision_mutation_prevents_completion(self):
+        revision = self.revision()
+        original = revision.read_text()
+        def mutate(editorial, render, output, **kwargs):
+            result = self.package(editorial, render, output, **kwargs)
+            revision.write_text(original + '\n')
+            return result
+        result = self.execute(revision_path=revision, package=mutate)
+        self.assertEqual(result['status'], 'BLOCKED')
+        self.assertIn('Revision handoff changed', result['reason'])
+        self.assertEqual(result['revision_lineage']['revision_json'], original)
 
     def test_all_stages_keep_approval_closed(self):
         result = self.execute()
