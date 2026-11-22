@@ -146,3 +146,63 @@ test('overflow cancels the response reader and never reads or hashes remaining b
     assert.equal(JSON.parse(await fs.readFile(options.statePath,'utf8')).bounded.last_value,null);
   }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
+
+import {reconcileWatch} from '../worker.mjs';
+
+test('configuration controls metadata while only matching observations survive',()=>{
+  const prior={id:'same',targetUrl:'https://example.com',kind:'change',label:'Old',status:'active',last_value:'hash',last_checked_at:100,last_change_at:90,last_status:200,last_error:null};
+  const raw={id:'same',target_url:'https://example.com/',label:'New',status:'paused',last_value:'untrusted-config-hash'};
+  const merged=reconcileWatch(raw,prior);
+  assert.equal(merged.targetUrl,'https://example.com/');assert.equal(merged.label,'New');assert.equal(merged.status,'paused');
+  assert.equal(merged.last_value,'hash');assert.equal(merged.last_checked_at,100);
+  for(const changed of [{...raw,kind:'availability'},{...raw,target_url:'https://other.example/'}, {...raw,id:'different'}]){
+    const reset=reconcileWatch(changed,prior);
+    for(const field of ['last_value','last_checked_at','last_change_at','last_status','last_error']) assert.equal(reset[field],null);
+  }
+  assert.equal(reconcileWatch(raw,{...prior,targetUrl:'not a url'}).last_value,null);
+  assert.equal(reconcileWatch(raw,undefined).last_value,null);
+});
+
+test('local retarget starts a fresh baseline; pause and reactivate honor current configuration',async()=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-config-'));
+  const hits={a:0,b:0};let bodyB='target-b';
+  const server=http.createServer((req,res)=>{
+    const target=req.url==='/a'?'a':'b';hits[target]++;
+    res.end(target==='a'?'target-a':bodyB);
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const origin='http://127.0.0.1:'+server.address().port;
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),eventsPath:path.join(dir,'events.json'),intervalMs:0};
+  const configure=watch=>fs.writeFile(options.watchesPath,JSON.stringify([{id:'current',...watch}]));
+  const state=async()=>JSON.parse(await fs.readFile(options.statePath,'utf8')).current;
+  try{
+    await configure({targetUrl:origin+'/a',label:'A'});
+    assert.equal((await runWorker(options)).ok,true);
+    const baseline=await state();
+    await configure({targetUrl:origin+'/a',label:'Renamed'});
+    const unchanged=await runWorker({...options,intervalMs:999999});
+    assert.equal(unchanged.results[0].checked,false);assert.equal(hits.a,1);
+    assert.equal((await state()).last_value,baseline.last_value);assert.equal((await state()).label,'Renamed');
+    await configure({target_url:origin+'/b',label:'B'});
+    const retargeted=await runWorker({...options,intervalMs:999999});
+    assert.equal(retargeted.results[0].checked,true);assert.equal(retargeted.results[0].changed,false);
+    assert.deepEqual(hits,{a:1,b:1});
+    assert.equal((await state()).last_value,crypto.createHash('sha256').update('target-b').digest('hex'));
+    assert.equal((await state()).last_change_at,null);
+    assert.deepEqual(JSON.parse(await fs.readFile(options.eventsPath,'utf8')),[]);
+    await configure({targetUrl:origin+'/b',status:'paused',label:'Paused B'});
+    assert.equal((await runWorker(options)).results[0].checked,false);
+    assert.equal((await state()).status,'paused');assert.equal(hits.b,1);
+    bodyB='changed-b';
+    await configure({targetUrl:origin+'/b',status:'active',label:'Active B'});
+    const resumed=await runWorker(options);
+    assert.equal(resumed.results[0].checked,true);assert.equal(resumed.results[0].changed,true);assert.equal(hits.b,2);
+    const events=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+    assert.equal(events.length,1);assert.equal(events[0].label,'Active B');assert.equal(events[0].target_url,origin+'/b');
+    await configure({targetUrl:origin+'/b',kind:'availability'});
+    const newKind=await runWorker({...options,intervalMs:999999});
+    assert.equal(newKind.results[0].checked,true);assert.equal(newKind.results[0].changed,false);
+    assert.equal((await state()).kind,'availability');assert.equal((await state()).last_change_at,null);
+    assert.equal(JSON.parse(await fs.readFile(options.eventsPath,'utf8')).length,1);
+  }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
+});

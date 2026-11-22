@@ -62,3 +62,18 @@ to waiting after TLS; it does not locate the fault in the origin application,
 reverse proxy or upstream. The normal workspace network may mediate DNS/connect
 measurements. No retries, proxy overrides or settings changes were used. Actual
 deployment/network logs remain needed to identify and safely resolve the cause.
+
+## Configuration authority
+
+Current watch configuration now controls normalized ID, target URL, kind, status
+and label. Retained state supplies only observations from the same normalized
+ID/URL/kind. Retargeting or changing kind clears the baseline, check/change times
+and health before the new target is checked, preventing stale cadence from
+suppressing that check and preventing a false content-change event between two
+different targets. Pausing is respected; reactivation uses the normal cadence.
+
+Local HTTP fixtures cover retargeting through the target_url alias, paused and
+reactivated watches, label updates, unchanged history and kind resets. These are
+regressions for configuration handling, not evidence of a production retarget,
+website recovery or complete unattended operation. No configured target was
+changed while implementing this behavior.
