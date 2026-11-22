@@ -1,0 +1,240 @@
+{
+  "acceptance_limits": [
+    "Full audiovisual and listening review unavailable",
+    "Oddsofmind full audiovisual comparison unavailable",
+    "Phone playback unverified",
+    "CTR, retention and audience learning unavailable",
+    "Actual-PC/VPN/VPS agents and24h soak unverified",
+    "Deployed onboarding and unattended recovery acceptance remain open"
+  ],
+  "archive_sha256": "6388b5f24aac1828893af3defa3bdd5f15851b0a2bdb02171eb1c1691c930cf6",
+  "archive_size_bytes": 9305089,
+  "canonical_sim": {
+    "observed_at": "2026-11-22T12:34:25Z",
+    "remaining_requirement": "Creator-controlled canonical source explicitly identifying target SIM pack, then inspection. Similar eleven-skill packs are not substitutes.",
+    "scope": "Independent bounded public lookup of exact reel identifier and creator SIM/Claude skill-pack terms; retrieved creator profile and website do not establish source provenance.",
+    "sources": [
+      "https://github.com/Jakeschincariol",
+      "https://jakeschincariol.co/",
+      "https://www.instagram.com/reel/DfqzrDSNS_x/"
+    ],
+    "status": "UNVERIFIED_NOT_INSTALLED",
+    "unavailable": [
+      "Reel fetch DisabledError",
+      "Complete creator repositories tab restricted URL"
+    ]
+  },
+  "caption_corrected_cycle": {
+    "archive_sha256": "acea58eadfc64a4fb7889877ed9ecaa83b5d4978a7d1a2ac047cc3f2e02e0f33",
+    "brief_sha256": "926ec4e8ad9b728004e953f3d3674c9aaa5f6b2c426e600634e5f867972bedcf",
+    "candidate_sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+    "caption_revision": {
+      "edits_sha256": "269d12166746cf0ad05ff6f0e24488651de106e171cf1c86cb35c31c60a12ab3",
+      "listening_verified": false,
+      "rationale": "Preserve prior text correction: original narration says Then a forty dollar purchase posts; ASR again emitted than. No listening claim.",
+      "reviewer": "root script-to-caption text review",
+      "scope": "Supplied text correction only; source audio and cue timings unchanged; no listening or new ASR verification.",
+      "source_caption_sha256": "dfd377ac44b3030b07880379234242aeaaa7508b4bbefc0935e04244dc1fb582",
+      "source_cycle_sha256": "350c27990bb6335ad2265bd374d541a61bf42100a33867b67cddba68f1fd8c65",
+      "source_package_sha256": "8ad3a0413979926424f7ba39ede30556d6d607c65887c87ff3da16adb3895d98",
+      "source_render_receipt_sha256": "4cafecfb4e2ce8e01f66b8ee46a70876b4a09e97bbe365d84d144ef7e8426eda",
+      "submitted_edits_json": "{\n  \"candidate_sha256\": \"9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5\",\n  \"caption_sha256\": \"dfd377ac44b3030b07880379234242aeaaa7508b4bbefc0935e04244dc1fb582\",\n  \"reviewer\": \"root script-to-caption text review\",\n  \"rationale\": \"Preserve prior text correction: original narration says Then a forty dollar purchase posts; ASR again emitted than. No listening claim.\",\n  \"edits\": [\n    {\n      \"cue\": 13,\n      \"before\": \"than a forty dollar purchase posts.\",\n      \"after\": \"Then a forty dollar purchase posts.\"\n    }\n  ]\n}\n"
+    },
+    "competitor_comparison": false,
+    "editorial_sha256": "41e88b2da9cb1ae9aefce0b71f806d5c60ae6571fefba65ec03d7f1d30630d51",
+    "factual_review": false,
+    "finished_at": "2026-11-22T12:42:11.021366+00:00",
+    "full_av_review": false,
+    "operation": "caption_text_revision",
+    "package_sha256": "0e0743edfff5c9f4004af800c77bb1cac04e3855218befe177b803803b423196",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "New review package for unchanged media with explicit caption correction; no fresh synthesis or creative approval.",
+    "started_at": "2026-11-22T12:42:08.477869+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "caption_text_revision",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "cycle_caption_revision.py": "8369368deb31f555204488bfb3fb84bf61062aff95a02e64b3e3be14e08e4f34"
+    }
+  },
+  "checkpoint": {
+    "candidate_sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+    "checkpoint_sha256": "7eb99643889c495770e4f68101903bab8a307bed3b21315acca5471a89090f73",
+    "status": "CHECKPOINT_CREATED"
+  },
+  "cycle": {
+    "archive_sha256": "3f3e4453822cbacb981f5b427159bb727ae69677ce948a8032e56bea24f32065",
+    "brief_sha256": "926ec4e8ad9b728004e953f3d3674c9aaa5f6b2c426e600634e5f867972bedcf",
+    "candidate_sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+    "competitor_comparison": false,
+    "editorial_sha256": "41e88b2da9cb1ae9aefce0b71f806d5c60ae6571fefba65ec03d7f1d30630d51",
+    "factual_review": false,
+    "finished_at": "2026-11-22T12:41:46.454432+00:00",
+    "full_av_review": false,
+    "package_sha256": "8ad3a0413979926424f7ba39ede30556d6d607c65887c87ff3da16adb3895d98",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "schema_version": 1,
+    "scope": "New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.",
+    "started_at": "2026-11-22T12:40:01.375397+00:00",
+    "status": "AWAITING_REVIEW",
+    "steps": [
+      {
+        "name": "editorial",
+        "status": "PASS"
+      },
+      {
+        "name": "render",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      }
+    ],
+    "technical_status": "PASS",
+    "tool_sha256": {
+      "complete_cycle.py": "48f93523c9994b3b6648a74a4322f7fd3963fa58ce560bbfbae0a8b39602b1bc",
+      "cycle_editorial.py": "ab5d0231e26b55a7b94d4f7c899094e336069a1fc1344a8b6688f20b88e19b73",
+      "cycle_lineage.py": "d6c09d67af7aebaa919794c1beff68972f38d2728a7a69acd2d828fd893978a0",
+      "cycle_package.py": "2e4da6f6126386bea78a496c2dd59b979f0c06a65d767bf39b3ac248560053ef",
+      "cycle_render.py": "c4d80efdbdfe18b483c9738fc46469e3bf2764490b5de35ea22cabccb521df25"
+    }
+  },
+  "duration_seconds": 139.336333,
+  "full_av_review": false,
+  "implementation": {
+    "brief_change": "Added CURRENT AFTER PURCHASE=$540 to example visual only; narration, sources, speaker assignments unchanged.",
+    "fix": "Render bounded indexed label/value rows and labels within their corresponding comparison cards. Fail explicitly on unsupported comparison cardinality or unreadable bounds.",
+    "review": "Independent reviewer identified four-row card value-fit defect; fixed before final production. No remaining blocking code findings.",
+    "root_cause": "Receipt/card rendering retained values but only the first label; label-only comparisons placed labels outside empty cards."
+  },
+  "library_file_id": "libfile_fde3_f-5d01d36f91bc819188a17745386ca74c_389d2c70fb1c8191bcf9b25e87727630",
+  "library_version": 0,
+  "observed_at": "2026-11-22T12:42:11.021366+00:00",
+  "paid_generation_enabled": false,
+  "prior_visual_review": {
+    "candidate_sha256": "9ef2c49e6711df6da9af5dc304a3d1d30a175842815a464b1872f75dca926ca4",
+    "decision": "NO_SELECTION_NEEDS_REVISION",
+    "findings": [
+      "thumbnail-1 drops NEW POSTED PURCHASE label, grouping $500 and +$40 beneath STATEMENT AT CLOSE",
+      "thumbnail-2 has empty comparison cards with labels below",
+      "thumbnail-3 checklist is peripheral to two-balance title"
+    ],
+    "observed_at": "2026-11-22T12:34:27.482421Z",
+    "package_sha256": "b776e398b982b74053d958a40cfa8b6067a613fbf2c7e53309366bb8842e7ab1",
+    "reviewer": "statement_thumbnail_review independent agent"
+  },
+  "production_ready": false,
+  "publication_enabled": false,
+  "rejected_attempt": {
+    "archive_sha256": "dad91b9cc30b353933d4d8732bcde6dc3e0b5a4620eba4911af8a2a6582ea79e",
+    "brief_sha256": "926ec4e8ad9b728004e953f3d3674c9aaa5f6b2c426e600634e5f867972bedcf",
+    "candidate_sha256": "05c327ed4f98595cee206317356756487ef536265e02a6bc58a465ba9682789e",
+    "competitor_comparison": false,
+    "editorial_sha256": "41e88b2da9cb1ae9aefce0b71f806d5c60ae6571fefba65ec03d7f1d30630d51",
+    "factual_review": false,
+    "failed_step": "package",
+    "finished_at": "2026-11-22T12:39:50.013863+00:00",
+    "full_av_review": false,
+    "package_sha256": "7791dcc4385bc73109c41a3b16922c28242ecff5717f096c3b8dcc91401d7a8e",
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "reason": "Cycle implementation changed during execution",
+    "schema_version": 1,
+    "scope": "New video from supplied sourced editorial; no autonomous discovery, creative approval or publishing claim.",
+    "started_at": "2026-11-22T12:38:03.839453+00:00",
+    "status": "BLOCKED",
+    "steps": [
+      {
+        "name": "editorial",
+        "status": "PASS"
+      },
+      {
+        "name": "render",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "PASS"
+      },
+      {
+        "name": "package",
+        "status": "BLOCKED"
+      }
+    ],
+    "technical_status": "PENDING",
+    "tool_sha256": {
+      "complete_cycle.py": "48f93523c9994b3b6648a74a4322f7fd3963fa58ce560bbfbae0a8b39602b1bc",
+      "cycle_editorial.py": "ab5d0231e26b55a7b94d4f7c899094e336069a1fc1344a8b6688f20b88e19b73",
+      "cycle_lineage.py": "d6c09d67af7aebaa919794c1beff68972f38d2728a7a69acd2d828fd893978a0",
+      "cycle_package.py": "2e4da6f6126386bea78a496c2dd59b979f0c06a65d767bf39b3ac248560053ef",
+      "cycle_render.py": "7bd96d22aeafc90802af5cf5ebf964c897671568d60bc9482236329608a3e99a"
+    }
+  },
+  "repository_publication_config": {
+    "POD_PUBLICATION_ENABLED": false,
+    "PUBLICATION_ENABLED": false,
+    "blob_sha": "360e7dd10df9bd42ce4568fda3d7f1d7d89f21b4",
+    "observed_date": "2026-11-22",
+    "scope": "Repository configuration only; no live deployment-state attestation.",
+    "url": "https://github.com/wecreates/content-control/blob/main/render.yaml"
+  },
+  "restoration": {
+    "candidate_sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+    "checkpoint_sha256": "7eb99643889c495770e4f68101903bab8a307bed3b21315acca5471a89090f73",
+    "full_av_review": false,
+    "paid_generation_enabled": false,
+    "production_approved": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "status": "RESTORED_AWAITING_REVIEW"
+  },
+  "schema_version": 1,
+  "scope": "Actual renderer correction and bounded independent visual/code review; no full audiovisual or audience-performance acceptance.",
+  "selection_receipt": "statement-thumbnail-selection-20261122.json",
+  "tests": {
+    "baseline_defect_tests": {
+      "failures": 3,
+      "run": 3
+    },
+    "complete_and_rea": 21,
+    "cycle_suite": 118,
+    "final_defect_tests": {
+      "failures": 0,
+      "run": 3
+    },
+    "independent_renderer": 33
+  },
+  "verification": {
+    "all_three_thumbnail_hashes_unchanged_by_caption_correction": true,
+    "checkpoint_restores_equal": true,
+    "narration_and_speaker_assignments_unchanged": true,
+    "voice_preservation_scope": "Narration, speaker assignments and pinned voice-model configuration preserved; fresh synthesis WAV bytes are not identical, and no listening equivalence is claimed.",
+    "voice_wav_hashes_identical_to_previous_render": false
+  },
+  "visual_review": {
+    "observed_at": "2026-11-22T12:42:38.060945Z",
+    "performance": "UNAVAILABLE",
+    "reviewer": "statement_thumbnail_review independent visual-review agent",
+    "scope": "Independently viewed all three actual PNGs at native size and panels02/03/06. Thumbnail1 now separates historical statement $500, later purchase +$40 and resulting current $540 in fully readable unclipped paired rows; it explains the two-balance title more directly than the generic instructions or conditions checklist. Corrected package identity validated and all reviewed image hashes unchanged. Editorial preference only; no phone, full audiovisual or listening acceptance.",
+    "selected_thumbnail_sha256": "a132d5874d629c8e7f2df8eb271360bbf1a0cc53bd11f446509610425bbd214e"
+  }
+}

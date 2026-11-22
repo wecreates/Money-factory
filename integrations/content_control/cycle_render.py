@@ -169,6 +169,32 @@ def draw_panel(scene, path, index, count, phase=0.0):
             draw.text((360, y), line, font=f, fill=color, anchor='mt')
             y += size + 12
         return y
+    def bounded_text(text, box, *, sizes=(30, 28, 24, 22, 20), color=ink):
+        """Wrap one semantic field inside its own region; never clip or omit it."""
+        left, top, right, bottom = box
+        for size in sizes:
+            f = font(size)
+            lines, current = [], ''
+            for word in str(text).split():
+                trial = (current + ' ' + word).strip()
+                if draw.textlength(trial, font=f) > right-left and current:
+                    lines.append(current); current = word
+                else:
+                    current = trial
+            if current: lines.append(current)
+            line_height = size + 4
+            if (len(lines)*line_height <= bottom-top and
+                    all(draw.textlength(line, font=f) <= right-left for line in lines)):
+                y = top + (bottom-top-len(lines)*line_height)/2
+                for line in lines:
+                    position = ((left+right)/2, y)
+                    bounds = draw.textbbox(position, line, font=f, anchor='mt')
+                    if bounds[0] < left or bounds[1] < top or bounds[2] > right or bounds[3] > bottom:
+                        raise ValueError('Visual text exceeds readable panel bounds')
+                    draw.text(position, line, font=f, fill=color, anchor='mt')
+                    y += line_height
+                return
+        raise ValueError('Visual text exceeds readable panel bounds')
     spec = scene.get('visual_spec', {})
     headline = spec.get('headline') or scene['visual'][:60]
     wrapped(headline, 105, size=42, max_lines=3)
@@ -184,15 +210,17 @@ def draw_panel(scene, path, index, count, phase=0.0):
             draw.arc((x-80, 535, x+80, 645), 0, 180, fill=accent, width=9)
         wrapped('  |  '.join(values[:2] or labels[:2]), 660, size=36, max_lines=2)
     elif kind == 'comparison':
+        if max(len(labels), len(values)) > 2:
+            raise ValueError('Comparison supports at most two labeled fields')
         for i, x in enumerate((60, 375)):
-            draw.rounded_rectangle((x, 340, x+285, 710), radius=24, outline=accent if i else ink, width=6)
+            color = accent if i else ink
+            draw.rounded_rectangle((x, 340, x+285, 710), radius=24, outline=color, width=6)
+            if i < len(labels):
+                # A label belongs to its own card, including label-only comparisons.
+                box = (x+16, 370, x+269, 460) if i < len(values) else (x+16, 405, x+269, 645)
+                bounded_text(labels[i], box, color=color)
             if i < len(values):
-                text = values[i]
-                f = font(34)
-                if draw.textlength(text,font=f)>260: f=font(25)
-                if draw.textlength(text,font=f)>260: raise ValueError('Comparison value too wide')
-                draw.text((x+142, 480), text, anchor='mm',font=f,fill=accent if i else ink)
-        wrapped(' / '.join(labels[:2]), 750, size=30, max_lines=3)
+                bounded_text(values[i], (x+16, 480, x+269, 660), sizes=(34, 30, 28, 25), color=color)
     elif kind == 'checklist':
         draw.rounded_rectangle((80, 320, 640, 790), radius=20, outline=ink, width=5)
         for i, label in enumerate((labels or values)[:4]):
@@ -206,11 +234,23 @@ def draw_panel(scene, path, index, count, phase=0.0):
         draw.rounded_rectangle((85, 335, 635, 760), radius=18 if kind=='receipt' else 38, outline=ink, width=7)
         if kind == 'card':
             draw.rounded_rectangle((120, 375, 195, 430), radius=8, outline=accent, width=5)
-        y=470 if kind=='card' else 370
-        for line in (values or labels or ['THE REAL COST'])[:3]:
-            y=wrapped(line,y,size=45 if len(line)<18 else 30,max_lines=2)+22
-        if values and labels:
-            wrapped(labels[0], 785, size=28, max_lines=2)
+        count_fields = max(len(labels), len(values), 1)
+        if count_fields > 4:
+            raise ValueError('Card and receipt support at most four labeled fields')
+        top = 455 if kind == 'card' else 350
+        row_height = (740-top)/count_fields
+        for i in range(count_fields):
+            y = top+i*row_height
+            has_label, has_value = i < len(labels), i < len(values)
+            if has_label and has_value:
+                split = y+row_height*(.5 if kind == 'card' else .55)
+                bounded_text(labels[i], (105, y+3, 615, split-2), color=ink)
+                bounded_text(values[i], (105, split+2, 615, y+row_height-3), sizes=(40, 34, 30, 26, 24), color=accent)
+            else:
+                text = labels[i] if has_label else values[i] if has_value else 'THE REAL COST'
+                bounded_text(text, (105, y+3, 615, y+row_height-3), sizes=(40, 34, 30, 26, 24))
+            if i+1 < count_fields:
+                draw.line((110, y+row_height, 610, y+row_height), fill=ink, width=1)
     # Recurring character silhouette. Direction is visible above, not misreported
     # as an AI-generated image. Three poses vary between scenes.
     x,y=360,970

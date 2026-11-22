@@ -1,0 +1,48 @@
+{
+  "candidate_sha256": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+  "full_av_review": false,
+  "independent_verification": false,
+  "learning_scope": "Reviewer hypotheses for subsequent ideation; not proven audience preferences or autonomous learning.",
+  "next_idea_hypotheses": [
+    "A labeled comparison of the historical statement and resulting current balance may explain the premise faster; audience testing is required before claiming higher CTR or retention."
+  ],
+  "package_sha256": "0e0743edfff5c9f4004af800c77bb1cac04e3855218befe177b803803b423196",
+  "paid_generation_enabled": false,
+  "performance": {
+    "clicks": null,
+    "ctr": null,
+    "impressions": null,
+    "independently_verified": false,
+    "scope": "No audience evidence supplied; no performance winner inferred.",
+    "status": "UNAVAILABLE"
+  },
+  "production_approved": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "rationale": "Independently viewed all three actual PNGs at native size and panels02/03/06. Thumbnail1 now separates historical statement $500, later purchase +$40 and resulting current $540 in fully readable unclipped paired rows; it explains the two-balance title more directly than the generic instructions or conditions checklist. Corrected package identity validated and all reviewed image hashes unchanged. Editorial preference only; no phone, full audiovisual or listening acceptance.",
+  "recorded_at": "2026-11-22T12:43:02.735946+00:00",
+  "reviewed_at": "2026-11-22T12:42:38.060945+00:00",
+  "reviewer": "statement_thumbnail_review independent visual-review agent",
+  "schema_version": 1,
+  "source_files_sha256": {
+    "brief.json": "926ec4e8ad9b728004e953f3d3674c9aaa5f6b2c426e600634e5f867972bedcf",
+    "cycle.json": "52649ce2d9d9e1cf510eda7d5bbf9aa5b689e1ace3932b2999021c1eac792323",
+    "delivery/captions.vtt": "e1f1a31329cfa51c181c019a8f1ad189650cdc1a71466604856848065aa4dcb1",
+    "delivery/editorial.json": "41e88b2da9cb1ae9aefce0b71f806d5c60ae6571fefba65ec03d7f1d30630d51",
+    "delivery/index.html": "7425107ef758ca3cfd584a1fdfee7e0159f015750e9b90065a70b962287d932b",
+    "delivery/package.json": "0e0743edfff5c9f4004af800c77bb1cac04e3855218befe177b803803b423196",
+    "delivery/render.json": "8bd133ec68ec6cbafb881250d90e2af18e031a714acb4acd9949a69274811917",
+    "delivery/review-package.zip": "acea58eadfc64a4fb7889877ed9ecaa83b5d4978a7d1a2ac047cc3f2e02e0f33",
+    "delivery/thumbnail-1.png": "a132d5874d629c8e7f2df8eb271360bbf1a0cc53bd11f446509610425bbd214e",
+    "delivery/thumbnail-2.png": "3fde740186ffd1e59dae501d2fb2e5294dc838a347dc074a722569a6d04540eb",
+    "delivery/thumbnail-3.png": "22e92b928cfa1a6752e539cba52df77341a6bf3d35f388dacf3867c49fd6382a",
+    "delivery/video.mp4": "9776b69676537f91ee69aca33c332b8a188232ad4f767fe090faf6b783e5d9a5",
+    "editorial.json": "41e88b2da9cb1ae9aefce0b71f806d5c60ae6571fefba65ec03d7f1d30630d51",
+    "render/render.json": "8bd133ec68ec6cbafb881250d90e2af18e031a714acb4acd9949a69274811917"
+  },
+  "status": "PACKAGE_SELECTION_RECORDED",
+  "submitted_selection_sha256": "32312e42885e801f8a8ca36ec7fbd98d8679d08ac7b5a14683f586d865b59f83",
+  "thumbnail": "thumbnail-1.png",
+  "thumbnail_sha256": "a132d5874d629c8e7f2df8eb271360bbf1a0cc53bd11f446509610425bbd214e",
+  "title": "My Balance Has Two Personalities"
+}

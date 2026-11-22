@@ -8,6 +8,20 @@ Start with `examples/rewards-card-brief.json`. A brief contains HTTPS source lin
 
 Supply 1–30 scenes, supported voice names (`dave`, `points_monk`, `narrator`), and typed card/receipt/balance/checklist/comparison visual specifications. Arbitrary prose directions are retained for editorial review but are not interpreted as generated artwork or full character animation. Planning durations are replaced with measured speech durations. Maximum rendered duration is ten minutes. New projects should provide fresh source observations; no scheduled discovery is enabled here.
 
+Receipt diagrams associate each supplied label with its corresponding value;
+comparison diagrams keep labels inside their respective cards, including when
+values are omitted. Comparisons support at most two fields; receipt/card layouts
+support up to four, and text that cannot fit readable bounds fails explicitly.
+Review these associations in the actual rendered frames:
+technical encoding success cannot establish that a financial example is visually
+unambiguous. The statement-balance example includes the historical $500 balance,
+the later +$40 purchase, and the resulting $540 current balance as separate rows.
+The [November 22 diagram correction](diagram-pairing-proof-20261122.json) retains
+the rejected mixed-code attempt, clean fresh production, caption correction,
+checkpoint restoration and independent visual review. Its
+[thumbnail selection](statement-thumbnail-selection-20261122.json) is an editorial
+choice with performance unavailable, not completion of audiovisual acceptance.
+
 ## Runtime and production
 
 Use Python 3.11+, FFmpeg/FFprobe, DejaVu Sans Bold, and `requirements-cycle.txt`. Reuse the isolated pinned Kokoro runtime and verified model cache described by Content Control's voice runtime. Voice assignments stay Dave `am_fenrir`, Points Monk `am_michael`, narrator `am_adam`. The trusted `--voice-root` points to the reviewed Content Control checkout containing `scripts/v2_free_voice.py`; job data cannot supply executables or runtime paths. Models and packages are provisioned separately; production is offline and free of paid provider calls.
