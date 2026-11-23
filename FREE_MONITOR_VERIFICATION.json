@@ -1,13 +1,14 @@
 {
-  "checked_at": "2026-11-22T02:43:45.539Z",
+  "checked_at": "2026-11-23T01:03:52.038Z",
+  "state_persistence_complete": true,
   "scope": "Two immediate checks of configured active targets; not continuous uptime or a 24-hour soak.",
   "active_watch_count": 2,
   "watches": [
     {
       "id": "cyzor-website",
-      "before_last_checked_at": 1795315188931,
-      "first_cycle_last_checked_at": 1795315384748,
-      "second_cycle_last_checked_at": 1795315405246,
+      "before_last_checked_at": 1795395779769,
+      "first_cycle_last_checked_at": 1795395811303,
+      "second_cycle_last_checked_at": 1795395831894,
       "advanced_first_cycle": true,
       "advanced_second_cycle": true,
       "first_cycle_healthy": false,
@@ -16,9 +17,9 @@
     },
     {
       "id": "money-factory-repository",
-      "before_last_checked_at": 1795315208952,
-      "first_cycle_last_checked_at": 1795315405218,
-      "second_cycle_last_checked_at": 1795315425538,
+      "before_last_checked_at": 1795395780311,
+      "first_cycle_last_checked_at": 1795395811856,
+      "second_cycle_last_checked_at": 1795395832030,
       "advanced_first_cycle": true,
       "advanced_second_cycle": true,
       "first_cycle_healthy": true,
@@ -28,40 +29,44 @@
   ],
   "pass": false,
   "first_cycle": {
-    "ran_at": "2026-11-22T02:43:04.748Z",
+    "ran_at": "2026-11-23T01:03:11.301Z",
     "ok": false,
     "results": [
       {
         "id": "cyzor-website",
         "checked": true,
         "error": "TimeoutError: The operation was aborted due to timeout",
-        "last_checked_at": 1795315384748
+        "last_checked_at": 1795395811303
       },
       {
         "id": "money-factory-repository",
         "checked": true,
         "changed": true,
         "status": 200,
-        "last_checked_at": 1795315405218
+        "last_checked_at": 1795395811856,
+        "response_bytes": 384887,
+        "response_limit_bytes": 2097152
       }
     ]
   },
   "second_cycle": {
-    "ran_at": "2026-11-22T02:43:25.246Z",
+    "ran_at": "2026-11-23T01:03:31.894Z",
     "ok": false,
     "results": [
       {
         "id": "cyzor-website",
         "checked": true,
         "error": "TimeoutError: The operation was aborted due to timeout",
-        "last_checked_at": 1795315405246
+        "last_checked_at": 1795395831894
       },
       {
         "id": "money-factory-repository",
         "checked": true,
         "changed": true,
         "status": 200,
-        "last_checked_at": 1795315425538
+        "last_checked_at": 1795395832030,
+        "response_bytes": 384887,
+        "response_limit_bytes": 2097152
       }
     ]
   }
