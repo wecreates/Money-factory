@@ -15,10 +15,12 @@ class CycleDeliveryTests(unittest.TestCase):
     setUp = fixtures.ReviewTests.setUp
     tearDown = fixtures.ReviewTests.tearDown
 
-    def queue_review(self):
+    def queue_review(self, minimum=None, picture_seconds=None):
         brief = json.loads((self.root / 'brief.json').read_text())
         request = {'operation': 'produce-content-cycle', 'brief': brief, 'brief_sha256': brief_digest(brief),
                    'timeout_seconds': 300, 'publication_enabled': False, 'paid_generation_enabled': False}
+        if minimum is not None:
+            request['minimum_duration_seconds'] = minimum
         queue = Queue(self.base / 'queue'); self.addCleanup(queue.close)
         queue.enqueue({'id': 'cycle-test', 'adapter': 'content-control-cycle', 'request': request,
                        'max_attempts': 1, 'publication_enabled': False, 'paid_generation_enabled': False})
@@ -29,6 +31,9 @@ class CycleDeliveryTests(unittest.TestCase):
             (directory / 'brief.json').write_bytes(production_input(request)[0])
             delivery = directory / 'delivery'
             render = json.loads((delivery / 'render.json').read_text())
+            if minimum is not None:
+                render.update(minimum_duration_seconds=minimum, measured_narration_frame_budget=minimum*24,
+                              encoded_picture_duration_seconds=picture_seconds)
             for target in (delivery, directory / 'render'):
                 fixtures.write(target / 'render.json', dict(render, status='AWAITING_REVIEW'))
             package = json.loads((delivery / 'package.json').read_text())
@@ -43,11 +48,15 @@ class CycleDeliveryTests(unittest.TestCase):
             cycle.update(brief_sha256=digest(directory / 'brief.json'), package_sha256=digest(delivery / 'package.json'),
                          archive_sha256=digest(directory / 'delivery/review-package.zip'),
                          production_ready=False, factual_review=False, competitor_comparison=False)
+            if minimum is not None:
+                cycle['minimum_duration_seconds'] = minimum
             fixtures.write(cycle_path, cycle)
             receipt = {'status': 'PASS', 'review_status': 'AWAITING_REVIEW', 'operation': request['operation'],
                        'brief_sha256': request['brief_sha256'], 'production_brief_sha256': cycle['brief_sha256'],
                        'candidate_sha256': self.candidate, 'pipeline_receipt_sha256': digest(cycle_path),
                        'artifact_directory': 'cycle', **self.flags, 'production_ready': False}
+            if minimum is not None:
+                receipt['minimum_duration_seconds'] = minimum
             fixtures.write(attempt / 'cycle-adapter-receipt.json', receipt)
             queue.finish(claim, receipt)
         return queue, directory, receipt
@@ -68,6 +77,20 @@ class CycleDeliveryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'outside the queue'):
                 export_review(queue.root, 'cycle-test', path)
         self.assertEqual(before, db.read_bytes())
+
+    def test_minimum_duration_is_rechecked_from_queue_before_export(self):
+        queue, _, _ = self.queue_review(minimum=510, picture_seconds=509.99)
+        self.assertIn('minimum picture duration', status(queue.root, 'cycle-test')['delivery_error'])
+        output = self.base / 'export'
+        with self.assertRaisesRegex(ValueError, 'minimum picture duration'):
+            export_review(queue.root, 'cycle-test', output)
+        self.assertFalse(output.exists())
+
+    def test_verified_minimum_duration_is_retained_in_export_provenance(self):
+        queue, _, _ = self.queue_review(minimum=510, picture_seconds=510.0)
+        output = self.base / 'export'
+        result = export_review(queue.root, 'cycle-test', output)
+        self.assertEqual(result['provenance']['minimum_duration_seconds'], 510)
 
     def test_non_success_mismatched_disk_receipt_and_corrupt_archive_are_blocked(self):
         queue, directory, receipt = self.queue_review()

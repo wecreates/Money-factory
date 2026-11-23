@@ -29,7 +29,8 @@ def brief_digest(value):
 def validate(request):
     fields = {'operation', 'brief', 'brief_sha256', 'timeout_seconds',
               'publication_enabled', 'paid_generation_enabled'}
-    if not isinstance(request, dict) or set(request) not in (fields, fields | {'revision_input'}):
+    optional = {'revision_input', 'minimum_duration_seconds'}
+    if not isinstance(request, dict) or not fields <= request.keys() <= (fields | optional):
         raise ValueError('Require the exact documented content-cycle request')
     if request['operation'] != 'produce-content-cycle':
         raise ValueError('Only produce-content-cycle is supported')
@@ -37,6 +38,10 @@ def validate(request):
         raise ValueError('Publication and paid generation must remain false')
     if type(request['timeout_seconds']) is not int or not 30 <= request['timeout_seconds'] <= 1800:
         raise ValueError('Require a 30..1800 second cycle deadline')
+    if 'minimum_duration_seconds' in request:
+        minimum = request['minimum_duration_seconds']
+        if type(minimum) is not int or not 1 <= minimum <= 600:
+            raise ValueError('Minimum duration must be an integer from 1 to 600 seconds')
     if not isinstance(request['brief'], dict) or len(canonical(request['brief']).encode()) > 120000:
         raise ValueError('A bounded inline editorial brief is required')
     if (not isinstance(request['brief_sha256'], str)
@@ -82,7 +87,7 @@ def _json(path):
     return value
 
 
-def check_completed(directory, expected_brief_sha256):
+def check_completed(directory, expected_brief_sha256, *, minimum_duration=None):
     """Independently bind queue success to delivered bytes; never approve them."""
     directory = Path(directory)
     if directory.is_symlink() or not directory.is_dir():
@@ -139,6 +144,17 @@ def check_completed(directory, expected_brief_sha256):
             or any(rendered.get(key) is not False for key in
                    ('publication_enabled', 'paid_generation_enabled', 'production_approved', 'full_av_review'))):
         raise ValueError('Renderer receipt identity or approval mismatch')
+    for stage_receipt in (receipt, rendered):
+        observed = stage_receipt.get('minimum_duration_seconds')
+        if observed != minimum_duration or type(observed) is not type(minimum_duration):
+            raise ValueError('Completed minimum duration differs from queued request')
+    if minimum_duration is not None:
+        frame_budget = rendered.get('measured_narration_frame_budget')
+        encoded_duration = rendered.get('encoded_picture_duration_seconds')
+        if (type(frame_budget) is not int or not minimum_duration * 24 <= frame_budget <= 600 * 24
+                or type(encoded_duration) not in (int, float)
+                or not minimum_duration <= encoded_duration <= 600.25):
+            raise ValueError('Completed render does not verify the queued minimum picture duration')
     archive = directory/'delivery/review-package.zip'
     if not archive.is_file() or digest(archive) != receipt.get('archive_sha256'):
         raise ValueError('Package archive identity mismatch')
@@ -158,6 +174,7 @@ def check_completed(directory, expected_brief_sha256):
 def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcription_python=None):
     validate(request)
     brief_bytes, lineage = production_input(request)
+    minimum = request.get('minimum_duration_seconds')
     production_hash = hashlib.sha256(brief_bytes).hexdigest()
     attempt_dir = Path(attempt_dir).absolute()
     if not attempt_dir.is_dir() or attempt_dir.is_symlink():
@@ -168,6 +185,8 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
               'paid_generation_enabled': False, 'production_ready': False,
               'production_approved': False, 'full_av_review': False,
               'scope': 'One admitted unpublished cycle; no unattended service or creative approval'}
+    if minimum is not None:
+        result['minimum_duration_seconds'] = minimum
     try:
         if not sys.platform.startswith('linux') or not hasattr(os, 'sched_getaffinity'):
             raise ValueError('Cycle queue requires Linux/WSL2 process ownership')
@@ -204,15 +223,15 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
             bootstrap = ('import sys;from integrations.content_control.complete_cycle import run_cycle;'
                          'r=run_cycle(sys.argv[1],sys.argv[2],voice_python=sys.argv[3],'
                          'voice_root=sys.argv[4],timeout=int(sys.argv[5]),transcription_python=sys.argv[6] or None,'
-                         'revision_path=sys.argv[7] or None);'
+                         'revision_path=sys.argv[7] or None,minimum_duration=int(sys.argv[8]) if sys.argv[8] else None);'
                          'sys.exit(0 if r.get("status")=="AWAITING_REVIEW" else 2)')
             guarded_runner(lease, cpus)(
                 [sys.executable, '-c', bootstrap, str(attempt_dir/'brief.json'),
                  str(attempt_dir/'cycle'), str(runtime), str(root), str(request['timeout_seconds']),
                  str(transcription_python) if transcription_python else '',
-                 str(revision_path) if revision_path else ''],
+                 str(revision_path) if revision_path else '', str(minimum) if minimum is not None else ''],
                 cwd=ROOT, log=attempt_dir/'cycle.log', deadline=deadline, env=os.environ)
-            receipt = check_completed(attempt_dir/'cycle', production_hash)
+            receipt = check_completed(attempt_dir/'cycle', production_hash, minimum_duration=minimum)
             if receipt.get('revision_lineage') != lineage:
                 raise ValueError('Completed revision lineage differs from queued handoff')
             for directory in sorted((p for p in (attempt_dir/'cycle').rglob('*') if p.is_dir()), reverse=True):
