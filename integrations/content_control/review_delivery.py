@@ -6,9 +6,12 @@ the adapter receipt, the producer receipt and every artifact must agree.
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import sqlite3
+import tempfile
+from zipfile import BadZipFile
 
 from integrations.local_agent_queue import canonical, validate
 from integrations.content_control.runtime_doctor import SOURCES
@@ -17,6 +20,8 @@ from integrations.content_control.video_job import check_completed, digest
 MAX_JSON = 4 * 1024 * 1024
 MAX_FILE = 512 * 1024 * 1024
 MAX_PACKET = 1024 * 1024 * 1024
+FLAGS = dict.fromkeys(('publication_enabled', 'paid_generation_enabled', 'production_ready',
+                       'production_approved', 'full_av_review'), False)
 
 
 def regular(path, *, directory=False, limit=MAX_FILE):
@@ -69,7 +74,7 @@ def read_job(queue_root, job_id):
         job = dict(job)
         spec = parse_json(job['spec'])
         validate(spec)
-        if (spec['id'] != job_id or spec['adapter'] != 'content-control-video'
+        if (spec['id'] != job_id or spec['adapter'] not in ('content-control-video', 'content-control-cycle')
                 or hashlib.sha256(canonical(spec).encode()).hexdigest() != job['digest']
                 or spec['max_attempts'] != job['max_attempts']):
             raise ValueError('Immutable video request identity mismatch')
@@ -92,14 +97,26 @@ def verify_delivery(queue_root, job_id):
         raise ValueError('Completion receipt is missing')
     stored = parse_json(latest['receipt'])
     attempt = regular(root / 'attempts' / job_id / str(latest['number']), directory=True)
-    adapter = read_json(attempt / 'video-adapter-receipt.json')
+    fresh = spec['adapter'] == 'content-control-cycle'
+    adapter_path = attempt / ('cycle-adapter-receipt.json' if fresh else 'video-adapter-receipt.json')
+    with regular(adapter_path, limit=MAX_JSON).open('rb') as stream:
+        adapter_raw = stream.read(MAX_JSON + 1)
+    adapter = parse_json(adapter_raw.decode('utf-8'))
     if canonical(adapter) != canonical(stored):
         raise ValueError('Adapter receipt differs from durable completion')
     if (stored.get('status') != 'PASS' or stored.get('review_status') != 'AWAITING_REVIEW'
-            or stored.get('artifact_directory') != 'review' or stored.get('source_inputs_unchanged') is not True
-            or any(stored.get(flag) is not False for flag in ('publication_enabled', 'paid_generation_enabled',
-                       'production_ready', 'production_approved', 'full_av_review'))
-            or any(stored.get(key) != spec['request'][key] for key in ('source_commit', 'source_manifest_sha256', 'operation'))):
+            or any(stored.get(flag) is not False for flag in FLAGS)
+            or stored.get('operation') != spec['request']['operation']):
+        raise ValueError('Completion is not an unpublished review')
+    provenance = {'job_id': job_id, 'job_digest': job['digest'], 'attempt': latest['number'],
+                  'completed_at_unix': latest['finished'], 'candidate_sha256': stored.get('candidate_sha256'),
+                  'pipeline_receipt_sha256': stored.get('pipeline_receipt_sha256'),
+                  'adapter_receipt_sha256': hashlib.sha256(adapter_raw).hexdigest(), **FLAGS,
+                  'scope': 'Verified durable queue completion; delivery is not creative or publishing approval'}
+    if fresh:
+        return verify_cycle_delivery(attempt, spec['request'], stored, provenance)
+    if (stored.get('artifact_directory') != 'review' or stored.get('source_inputs_unchanged') is not True
+            or any(stored.get(key) != spec['request'][key] for key in ('source_commit', 'source_manifest_sha256'))):
         raise ValueError('Completion is not a source-bound unpublished review')
     review = regular(attempt / 'review', directory=True)
     run_path = regular(review / 'run.json', limit=MAX_JSON)
@@ -128,18 +145,34 @@ def verify_delivery(queue_root, job_id):
         raise ValueError('Candidate or producer receipt identity changed')
     from integrations.content_control.review_package import inspect_packet
     inspect_packet(review, stored['pipeline_receipt_sha256'], stored['candidate_sha256'])
-    provenance = {
-        'job_id': job_id, 'job_digest': job['digest'], 'attempt': latest['number'],
-        'completed_at_unix': latest['finished'], 'source_commit': spec['request']['source_commit'],
-        'source_manifest_sha256': spec['request']['source_manifest_sha256'],
-        'candidate_sha256': stored['candidate_sha256'],
-        'pipeline_receipt_sha256': stored['pipeline_receipt_sha256'],
-        'adapter_receipt_sha256': digest(attempt / 'video-adapter-receipt.json'),
-        'publication_enabled': False, 'paid_generation_enabled': False,
-        'production_approved': False, 'production_ready': False, 'full_av_review': False,
-        'scope': 'Verified durable queue completion; delivery is not creative or publishing approval',
-    }
+    provenance.update(source_commit=spec['request']['source_commit'],
+                      source_manifest_sha256=spec['request']['source_manifest_sha256'])
     return review, provenance
+
+
+def verify_cycle_delivery(attempt, request, stored, provenance):
+    from integrations.content_control.cycle_job import check_completed as check_cycle, production_input
+    from integrations.content_control.cycle_review import inspect_cycle
+
+    raw, lineage = production_input(request)
+    brief_sha = hashlib.sha256(raw).hexdigest()
+    if (stored.get('artifact_directory') != 'cycle' or stored.get('brief_sha256') != request['brief_sha256']
+            or stored.get('production_brief_sha256') != brief_sha):
+        raise ValueError('Cycle completion does not bind the immutable brief')
+    cycle_dir = regular(attempt / 'cycle', directory=True)
+    snapshot = inspect_cycle(cycle_dir)
+    if (snapshot['candidate_sha256'] != stored['candidate_sha256']
+            or snapshot['files_sha256']['cycle.json'] != stored['pipeline_receipt_sha256']
+            or snapshot['cycle'].get('revision_lineage') != lineage):
+        raise ValueError('Candidate, cycle receipt or revision changed after completion')
+    cycle = check_cycle(cycle_dir, brief_sha)
+    archive_sha = snapshot['files_sha256']['delivery/review-package.zip']
+    if cycle != snapshot['cycle'] or archive_sha != cycle.get('archive_sha256'):
+        raise ValueError('Review archive or cycle changed after completion')
+    provenance.update(adapter='content-control-cycle', brief_sha256=request['brief_sha256'],
+                      production_brief_sha256=brief_sha, package_sha256=cycle['package_sha256'],
+                      review_archive_sha256=archive_sha)
+    return cycle_dir / 'delivery', provenance
 
 
 def status(queue_root, job_id):
@@ -152,7 +185,7 @@ def status(queue_root, job_id):
             _, provenance = verify_delivery(queue_root, job_id)
             report.update(delivery_ready=True, provenance=provenance,
                           next_action='Export the verified private review package, then review the full video with audio')
-        except (ValueError, OSError, KeyError, TypeError) as error:
+        except (ValueError, OSError, KeyError, TypeError, BadZipFile, RuntimeError) as error:
             report.update(delivery_error=str(error), next_action='Inspect changed or missing artifacts; do not deliver this result')
     else:
         actions = {
@@ -174,11 +207,43 @@ def status(queue_root, job_id):
 
 def export_review(queue_root, job_id, output_dir):
     review, provenance = verify_delivery(queue_root, job_id)
+    if provenance.get('adapter') == 'content-control-cycle':
+        return export_cycle(review, provenance, queue_root, output_dir)
     from integrations.content_control.review_package import package_review
     return package_review(review, output_dir,
                           expected_run_sha256=provenance['pipeline_receipt_sha256'],
                           expected_candidate_sha256=provenance['candidate_sha256'],
                           provenance=provenance)
+
+
+def export_cycle(review, provenance, queue_root, output_dir):
+    from integrations.content_control.cycle_checkpoint import _publish_restore
+    from integrations.content_control.review_package import LIMIT, no_symlinks
+
+    output = Path(os.path.abspath(output_dir))
+    no_symlinks(output)
+    if output.exists() or output.is_relative_to(Path(os.path.abspath(queue_root))):
+        raise ValueError('Fresh export directory outside the queue required')
+    source = regular(review / 'review-package.zip', limit=LIMIT)
+    report = {'schema_version': 1, 'status': 'AWAITING_REVIEW', **FLAGS,
+              'candidate_sha256': provenance['candidate_sha256'], 'archive': source.name,
+              'archive_sha256': provenance['review_archive_sha256'], 'entrypoint': 'index.html',
+              'provenance': provenance}
+    with tempfile.TemporaryDirectory(prefix='.cycle-export-', dir=output.parent) as directory:
+        stage = Path(directory) / 'review'; stage.mkdir(mode=0o700)
+        archive = stage / source.name
+        with source.open('rb') as incoming, archive.open('xb') as outgoing:
+            remaining = LIMIT
+            while chunk := incoming.read(1024 * 1024):
+                remaining -= len(chunk)
+                if remaining < 0:
+                    raise ValueError('Review archive grew past delivery limit')
+                outgoing.write(chunk)
+        if digest(archive) != report['archive_sha256']:
+            raise ValueError('Review archive changed during export')
+        (stage / 'package.json').write_text(json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + '\n')
+        _publish_restore(stage, output)
+    return report
 
 
 def main(argv=None):
@@ -192,7 +257,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         report = status(args.queue, args.id) if args.command == 'status' else export_review(args.queue, args.id, args.output)
-    except (ValueError, OSError, KeyError, TypeError, sqlite3.Error) as error:
+    except (ValueError, OSError, KeyError, TypeError, sqlite3.Error, BadZipFile, RuntimeError) as error:
         print(json.dumps({'status': 'DELIVERY_BLOCKED', 'reason': str(error),
                           'publication_enabled': False, 'paid_generation_enabled': False,
                           'production_ready': False, 'production_approved': False}, indent=2))

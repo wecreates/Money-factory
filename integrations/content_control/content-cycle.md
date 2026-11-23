@@ -140,6 +140,21 @@ The adapter name is `content-control-cycle`. Its exact request fields are:
 
 Replace the brief with a full valid object; compute its hash with `integrations.content_control.cycle_job.brief_digest`. The existing `integrations.local_agent_queue` accepts host-only `--cycle-voice-python`, `--cycle-voice-root` and optional `--cycle-transcription-python` settings. Its owned-process guardian, two-CPU affinity, shared admission lock, fresh memory/CPU admission, SQLite attempts/retries and artifact checking remain in force. Unknown capacity blocks admission; there is no bypass. Successful queue execution verifies the candidate, source brief, editorial, render receipt, captions, package files and ZIP identities before recording technical success.
 
+Inspect or export a durable successful attempt from an existing queue:
+
+```sh
+python -m integrations.content_control.review_delivery --queue /local/queue --id cycle-review-01 status
+python -m integrations.content_control.review_delivery --queue /local/queue --id cycle-review-01 export --output /local/new-private-review
+```
+
+The read-only command verifies SQLite completion against the adapter receipt,
+exact production brief, revision lineage, and packaged candidate. On Linux or
+WSL2 it atomically creates a separate directory containing the original
+`review-package.zip` and a `package.json` receipt that binds queue, candidate,
+and archive. Extract the ZIP and open its `index.html`. Interrupted or changed
+attempts cannot be exported. Local delivery does not verify device playback or
+creative acceptance.
+
 For a revised brief, retain the standard request fields above, including
 `brief_sha256` computed from the canonical `brief` object, and add an optional
 `revision_input` object with exactly two fields:
