@@ -225,6 +225,8 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
     require(review.get('independent_verification') is False, 'Review scope mismatch')
     revised = compile_editorial(new_brief)
     old = snapshot['editorial']
+    require(revised.get('idea_learning') == old.get('idea_learning'),
+            'Prior idea learning provenance must be preserved')
     require(revised != old, 'Revision must change the editorial brief')
     sources = {source['id']: source for source in revised['sources']}
     require(all(sources.get(source['id']) == source for source in old['sources']), 'Prior source provenance must be preserved')

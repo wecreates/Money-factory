@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-from integrations.content_control.cycle_editorial import compile_editorial
+from integrations.content_control.cycle_editorial import LEARNING_IDENTITIES, compile_editorial
 from integrations.content_control.cycle_package import editorial_digest
 from integrations.content_control.cycle_review import CHECKS, inspect_cycle, lint_package, record_review, revision_brief
 from integrations.content_control.review_package import digest
@@ -191,6 +191,25 @@ class ReviewTests(unittest.TestCase):
         updated = brief(); updated['sources'][0]['excerpt'] = 'Rewritten source history.'
         with self.assertRaisesRegex(ValueError, 'provenance'):
             revision_brief(self.root, self.recorded, updated, self.base / 'bad')
+
+    def test_revision_cannot_relabel_idea_learning_provenance(self):
+        parent = brief()
+        parent['idea_learning'] = {
+            **dict.fromkeys(LEARNING_IDENTITIES, 'a' * 64),
+            'hypothesis_index': 1, 'hypothesis': 'Keep both comparison amounts visible.',
+            'application': 'Place the two amounts together on the opening card.',
+            'prior_performance_status': 'UNAVAILABLE', 'audience_performance_verified': False,
+        }
+        snapshot = inspect_cycle(self.root)
+        snapshot['editorial'] = compile_editorial(parent)
+        updated = copy.deepcopy(parent)
+        updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
+        with patch('integrations.content_control.cycle_review.inspect_cycle', return_value=snapshot):
+            record_review(self.root, self.submitted, self.recorded)
+            revision_brief(self.root, self.recorded, updated, self.base / 'valid')
+            del updated['idea_learning']
+            with self.assertRaisesRegex(ValueError, 'idea learning provenance'):
+                revision_brief(self.root, self.recorded, updated, self.base / 'bad')
 
     def test_review_from_other_cycle_cannot_certify_revision(self):
         record_review(self.root, self.submitted, self.recorded)

@@ -5,22 +5,28 @@ Selection never changes the package, approves media, or enables publication.
 """
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
 
 from integrations.content_control.cycle_editorial import _flags, _text, _timestamp, _url
-from integrations.content_control.cycle_review import inspect_cycle, _load, _new_output
-from integrations.content_control.review_package import digest, require
+from integrations.content_control.cycle_lineage import _constant, _pairs
+from integrations.content_control.cycle_review import inspect_cycle, _regular, _new_output
+from integrations.content_control.review_package import require
 
 
-def record_selection(cycle_dir, selection_path, output):
-    root = Path(os.path.abspath(cycle_dir))
-    source = Path(os.path.abspath(selection_path))
-    require(all(os.environ.get(k, 'false').lower() == 'false' for k in
-                ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')), 'Publishing and paid generation must remain disabled')
-    snapshot = inspect_cycle(root)
-    selection = _load(source); source_hash = digest(source)
+def _read_selection(path):
+    limit = 1024 * 1024
+    with _regular(path, limit).open('rb') as stream:
+        raw = stream.read(limit + 1)
+    require(len(raw) <= limit, 'Selection JSON exceeds 1 MiB')
+    value = json.loads(raw.decode('utf-8'), object_pairs_hook=_pairs, parse_constant=_constant)
+    require(isinstance(value, dict), 'Selection JSON object required')
+    return value, hashlib.sha256(raw).hexdigest()
+
+
+def _selection_result(snapshot, selection, source_hash, recorded_at):
     _flags(selection)
     require(selection.get('candidate_sha256') == snapshot['candidate_sha256'], 'Selection targets a different candidate')
     require(selection.get('package_sha256') == snapshot['files_sha256']['delivery/package.json'], 'Selection targets a different package')
@@ -38,6 +44,7 @@ def record_selection(cycle_dir, selection_path, output):
     reviewer = _text(selection.get('reviewer'), 'reviewer', 200)
     reviewed_at = _timestamp(selection.get('reviewed_at'), 'reviewed_at')
     require(datetime.fromisoformat(reviewed_at) >= datetime.fromisoformat(snapshot['cycle']['finished_at']), 'Selection predates completed cycle')
+    require(datetime.fromisoformat(recorded_at) >= datetime.fromisoformat(reviewed_at), 'Receipt predates selection')
     rationale = _text(selection.get('rationale'), 'rationale', 4000, minimum=12)
     performance = selection.get('performance')
     metrics = {'status': 'UNAVAILABLE', 'impressions': None, 'clicks': None, 'ctr': None,
@@ -69,7 +76,7 @@ def record_selection(cycle_dir, selection_path, output):
               'candidate_sha256': snapshot['candidate_sha256'], 'package_sha256': selection['package_sha256'],
               'thumbnail': thumbnail, 'thumbnail_sha256': thumbnail_hash, 'title': title,
               'reviewer': reviewer, 'reviewed_at': reviewed_at, 'rationale': rationale,
-              'recorded_at': datetime.now(timezone.utc).isoformat(),
+              'recorded_at': recorded_at,
               'source_files_sha256': snapshot['files_sha256'], 'submitted_selection_sha256': source_hash,
               'performance': metrics, 'next_idea_hypotheses': hypotheses,
               'learning_scope': 'Reviewer hypotheses for subsequent ideation; not proven audience preferences or autonomous learning.',
@@ -77,7 +84,35 @@ def record_selection(cycle_dir, selection_path, output):
               'production_approved': False, 'full_av_review': False, 'production_ready': False}
     if 'thumbnail_copy' in snapshot['editorial']:
         result['thumbnail_copy'] = snapshot['editorial']['thumbnail_copy']
-    require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(source) == source_hash,
+    return result
+
+
+def verify_selection(cycle_dir, selection_path, receipt_path):
+    """Recheck the private selection against its original input and package."""
+    root, source, receipt = (Path(os.path.abspath(path)) for path in (cycle_dir, selection_path, receipt_path))
+    require(source != receipt, 'Selection input and receipt must be separate')
+    snapshot = inspect_cycle(root)
+    selection, source_hash = _read_selection(source)
+    recorded, receipt_hash = _read_selection(receipt)
+    recorded_at = _timestamp(recorded.get('recorded_at'), 'recorded_at')
+    expected = _selection_result(snapshot, selection, source_hash, recorded_at)
+    require(json.dumps(recorded, sort_keys=True) == json.dumps(expected, sort_keys=True),
+            'Selection receipt does not match the original input and package')
+    require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256']
+            and _read_selection(source)[1] == source_hash and _read_selection(receipt)[1] == receipt_hash,
+            'Selection inputs changed while verifying')
+    return expected, receipt_hash
+
+
+def record_selection(cycle_dir, selection_path, output):
+    root = Path(os.path.abspath(cycle_dir))
+    source = Path(os.path.abspath(selection_path))
+    require(all(os.environ.get(k, 'false').lower() == 'false' for k in
+                ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')), 'Publishing and paid generation must remain disabled')
+    snapshot = inspect_cycle(root)
+    selection, source_hash = _read_selection(source)
+    result = _selection_result(snapshot, selection, source_hash, datetime.now(timezone.utc).isoformat())
+    require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and _read_selection(source)[1] == source_hash,
             'Selection inputs changed while recording')
     destination = _new_output(output, root, source)
     with destination.open('x') as stream:

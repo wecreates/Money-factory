@@ -6,8 +6,10 @@ import tempfile
 import unittest
 
 from integrations.content_control.cycle_intake import prepare_brief
+from integrations.content_control.cycle_editorial import compile_editorial
 from integrations.content_control.cycle_job import brief_digest
 from integrations.content_control.test_cycle_editorial import brief as sample_brief
+from integrations.content_control import test_cycle_selection as selection_fixtures
 
 
 class IntakeTests(unittest.TestCase):
@@ -65,4 +67,59 @@ class IntakeTests(unittest.TestCase):
         self.write_draft()
         with self.assertRaisesRegex(ValueError, 'Formatted brief exceeds renderer'):
             prepare_brief(self.research, self.draft, self.output)
+        self.assertFalse(self.output.exists())
+
+    def learning_inputs(self):
+        prior = selection_fixtures.SelectionTests()
+        prior.setUp()
+        self.addCleanup(prior.tearDown)
+        selection = prior.selection()
+        selection['performance'] = prior.performance(selection)
+        recorded = prior.record(selection)
+        self.draft_data['idea_learning'] = {
+            'selection_receipt_sha256': hashlib.sha256(prior.recorded.read_bytes()).hexdigest(),
+            'hypothesis_index': 1,
+            'application': 'Use a shorter question and compare the two amounts side by side.',
+        }
+        self.write_draft()
+        paths = {'prior_cycle': prior.root, 'selection_path': prior.submitted, 'selection_receipt': prior.recorded}
+        return prior, recorded, paths
+
+    def test_prior_selection_remains_bound_in_the_compiled_editorial(self):
+        prior, recorded, paths = self.learning_inputs()
+        receipt = prepare_brief(self.research, self.draft, self.output, **paths)
+        brief = json.loads((self.output / 'brief.json').read_text())
+        learning = receipt['idea_learning']
+        self.assertEqual(learning, compile_editorial(brief)['idea_learning'])
+        self.assertEqual(learning['prior_candidate_sha256'], prior.candidate)
+        self.assertEqual(learning['prior_thumbnail_sha256'], recorded['thumbnail_sha256'])
+        self.assertEqual(learning['hypothesis'], recorded['next_idea_hypotheses'][0])
+        self.assertEqual(learning['prior_performance_status'], 'SUPPLIED_UNVERIFIED')
+        self.assertIs(learning['audience_performance_verified'], False)
+        self.assertTrue({'impressions', 'clicks', 'ctr'}.isdisjoint(learning))
+        self.assertEqual(brief['sources'], self.research_data['sources'])
+        brief['idea_learning']['audience_performance_verified'] = True
+        with self.assertRaisesRegex(ValueError, 'must remain unverified'):
+            compile_editorial(brief)
+
+    def test_rejects_a_changed_receipt_even_if_the_draft_rebinds_it(self):
+        prior, recorded, paths = self.learning_inputs()
+        recorded['next_idea_hypotheses'] = ['This text did not come from the selection.']
+        selection_fixtures.write(prior.recorded, recorded)
+        self.draft_data['idea_learning']['selection_receipt_sha256'] = hashlib.sha256(prior.recorded.read_bytes()).hexdigest()
+        self.write_draft()
+        with self.assertRaisesRegex(ValueError, 'does not match the original'):
+            prepare_brief(self.research, self.draft, self.output, **paths)
+        self.assertFalse(self.output.exists())
+
+    def test_rejects_partial_paths_wrong_hypothesis_and_output_in_prior_cycle(self):
+        prior, _, paths = self.learning_inputs()
+        with self.assertRaisesRegex(ValueError, 'requires the prior cycle'):
+            prepare_brief(self.research, self.draft, self.output, prior_cycle=prior.root)
+        with self.assertRaisesRegex(ValueError, 'separate from the prior cycle'):
+            prepare_brief(self.research, self.draft, prior.root / 'intake', **paths)
+        self.draft_data['idea_learning']['hypothesis_index'] = 2
+        self.write_draft()
+        with self.assertRaisesRegex(ValueError, 'select a recorded hypothesis'):
+            prepare_brief(self.research, self.draft, self.output, **paths)
         self.assertFalse(self.output.exists())
