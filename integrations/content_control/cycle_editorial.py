@@ -165,7 +165,9 @@ def compile_editorial(brief, *, validate_visual_shapes=False):
                            for label in _list(spec.get('labels', []), 'scene.visual_spec.labels', 0, 4)],
                 'values': [_text(value, 'scene.visual_spec.value', 30)
                            for value in _list(spec.get('values', []), 'scene.visual_spec.values', 0, 4)]}
-        if validate_visual_shapes:
+            if 'reveal_after_seconds' in spec:
+                scene['visual_spec']['reveal_after_seconds'] = spec['reveal_after_seconds']
+        if validate_visual_shapes or 'reveal_after_seconds' in scene.get('visual_spec', {}):
             from integrations.content_control.cycle_render import validate_visual_shape
             validate_visual_shape(scene.get('visual_spec', {}))
         cursor += duration

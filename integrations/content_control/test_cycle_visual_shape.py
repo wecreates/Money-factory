@@ -69,6 +69,23 @@ class VisualShapeTests(unittest.TestCase):
             self.assertEqual(source,before)
             cycle_render.validate(compile_editorial(source))
 
+    def test_explicit_reveal_is_bound_and_rejects_ambiguous_inputs(self):
+        shape = {'kind':'comparison','labels':['PENDING','POSTED'],'values':['20','24']}
+        source = self.source(dict(shape, reveal_after_seconds=4.3))
+        compiled = compile_editorial(source, validate_visual_shapes=True)
+        self.assertEqual(compiled['scenes'][0]['visual_spec']['reveal_after_seconds'], 4.3)
+        self.assertNotEqual(compiled['editorial_sha256'], compile_editorial(self.source(shape))['editorial_sha256'])
+        for offset in (True, None, '4.3', float('inf'), float('nan'), 0, 60):
+            with self.subTest(offset=offset), self.assertRaisesRegex(ValueError,'reveal offset'):
+                compile_editorial(self.source(dict(shape, reveal_after_seconds=offset)))
+        for invalid in (dict(shape,kind='card'), dict(shape,values=['20'])):
+            with self.assertRaisesRegex(ValueError,'two complete comparison cards'):
+                compile_editorial(self.source(dict(invalid, reveal_after_seconds=1)))
+        half_second = compile_editorial(self.source(dict(shape,reveal_after_seconds=.29)))['scenes'][0]
+        self.assertEqual(cycle_render.picture_filters(half_second,19)[1]['first_visible_scene_frame'],7)
+        with self.assertRaisesRegex(ValueError,'half a second'):
+            cycle_render.picture_filters(half_second,18)
+
     def test_existing_brief_historical_hashes_unchanged(self):
         # Captured from main096c233 before the production-only validation change.
         expected={'minimum-payment-brief.json':'c4d7805291b67ef162c087511fd5d6caba601a7a877d0247585033d3603de908',

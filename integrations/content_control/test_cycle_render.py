@@ -342,13 +342,14 @@ class RenderValidationTests(unittest.TestCase):
             if '--synthesize' not in command:return real_run(command,log,deadline,env)
             out=Path(command[command.index('--output')+1]);data=json.loads((out/'editorial.json').read_text())
             text=data['scenes'][0]['narration'];wav=out/'voice-00.wav';rate=24000
-            samples=[int(1000*math.sin(i*2*math.pi*220/rate)) for i in range(rate)]
+            length=4 if 'reveal_after_seconds' in data['scenes'][0].get('visual_spec', {}) else 1
+            samples=[int(1000*math.sin(i*2*math.pi*220/rate)) for i in range(rate*length)]
             with wave.open(str(wav),'wb') as stream:
                 stream.setparams((1,2,rate,0,'NONE','not compressed'))
                 stream.writeframes(struct.pack('<'+'h'*len(samples),*samples))
             render.write(out/'voice.json',{'model_revision':'synthetic-test-fixture','clips':[{
                 'audio_sha256':render.digest(wav),'text_sha256':hashlib.sha256(text.encode()).hexdigest(),
-                'duration_seconds':1.0}]})
+                'duration_seconds':float(length)}]})
         with tempfile.TemporaryDirectory() as td,patch.object(render,'run',side_effect=voice_fixture):
             out=Path(td)/'run';result=render.render_cycle(brief(),out,voice_python=sys.executable,voice_root=td,timeout=60)
             self.assertEqual(result['status'],'AWAITING_REVIEW',result)
@@ -372,6 +373,22 @@ class RenderValidationTests(unittest.TestCase):
             frame_bytes=720*1280*3
             self.assertEqual(len(frames),frame_bytes*2)
             self.assertNotEqual(frames[:frame_bytes],frames[frame_bytes:])
+
+            revealed=brief()
+            revealed['scenes'][0]['visual_spec']={'kind':'comparison','headline':'SAME DINNER',
+                'labels':['PENDING','POSTED'],'values':['20','24'],'reveal_after_seconds':.51}
+            timed=Path(td)/'timed'
+            result=render.render_cycle(revealed,timed,voice_python=sys.executable,voice_root=td,timeout=60)
+            self.assertEqual(result['status'],'AWAITING_REVIEW',result)
+            self.assertEqual(result['scenes'][0]['visual_reveal']['first_visible_scene_frame'],13)
+            region=subprocess.check_output(['ffmpeg','-v','error','-i',str(timed/'segment-00.mp4'),
+                '-vf',r'select=eq(n\,0)+eq(n\,12)+eq(n\,13)+eq(n\,84),crop=240:300:396:360',
+                '-vsync','0','-frames:v','4','-f','rawvideo','-pix_fmt','rgb24','-threads','1','-'])
+            stride=240*300*3
+            self.assertEqual(len(region),4*stride)
+            dark=[sum(channel<120 for channel in region[i:i+stride:3]) for i in range(0,len(region),stride)]
+            self.assertEqual(dark[:2],[0,0])
+            self.assertTrue(all(count>500 for count in dark[2:]))
 
 
 class PinnedASRTests(unittest.TestCase):
