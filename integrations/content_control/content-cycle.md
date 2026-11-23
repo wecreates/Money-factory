@@ -29,6 +29,27 @@ two inputs with `intake.json` to verify the byte hashes. The `research_handoff`
 in the brief binds both inputs. Intake validates structure and renderer shape.
 Source discovery, factual review and authorship are evidenced separately.
 
+To carry a prior thumbnail review into the next draft, add an `idea_learning`
+object to the draft with `selection_receipt_sha256`, a one-based
+`hypothesis_index`, and an `application` describing the change to test.
+Supply the original private review cycle, its submitted selection JSON, and its
+separate recorded selection receipt:
+
+```sh
+python -m integrations.content_control.cycle_intake \
+  --research /absolute/research.json --draft /absolute/draft.json \
+  --prior-cycle /absolute/prior-cycle --selection /absolute/submitted-selection.json \
+  --selection-receipt /absolute/recorded-selection.json --output /absolute/new-intake
+```
+
+Intake revalidates the prior package, reconstructs the selection from the
+submitted JSON, and binds the requested hypothesis and next-draft application
+into the brief and intake receipt. Production carries them into the compiled
+editorial and delivery. A revision preserves this origin. Keep those three
+private selection inputs with the new intake for replay. The handoff records
+the rationale for an editorial experiment. It carries no counts or CTR and
+supplied audience data remains unverified.
+
 Receipt diagrams associate each supplied label with its corresponding value;
 comparison diagrams keep labels inside their respective cards, including when
 values are omitted. Comparisons support at most two fields; receipt/card layouts
@@ -338,8 +359,8 @@ it the thumbnails still print the title. The package and recorded selection
 retain supplied overlay text. If the selection also asserts `thumbnail_copy`,
 it must match the existing image copy. Changing the title or copy requires a
 new package, with its own selection and evidence.
-Optional `next_idea_hypotheses` retains up to ten reviewer suggestions; these are
-not automatically consumed by ideation yet.
+Optional `next_idea_hypotheses` retains up to ten reviewer suggestions. A
+separate draft can explicitly carry one forward using the intake option above.
 
 Omit `performance` or set it to null when analytics are unavailable. The receipt
 keeps impressions, clicks and CTR null, never invented zero values. Optional
@@ -351,8 +372,8 @@ be calculated. A selection never grants creative or publishing approval.
 [The November 21 selection receipt](cycle-selection-proof-20261121.json) records
 visual inspection of the actual unpublished candidate's three PNGs and selection
 of variant 1. No audience metrics, full audiovisual approval or phone playback
-acceptance was available. C08 remains open for a real learning consumer and
-available verified performance evidence.
+acceptance was available. C08 still requires available verified performance
+evidence and its use in subsequent ideation.
 
 ### Character motion in picture scenes
 
