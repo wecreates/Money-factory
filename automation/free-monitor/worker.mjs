@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {readMonitorPair,writeMonitorPair} from './persistence.mjs';
 
 export function isMainEntry(importMetaUrl,argv1){
   if(!argv1) return false;
@@ -125,8 +126,8 @@ export async function runWorker({
   if(new Set(configuredWatches.map(w=>w.id)).size!==configuredWatches.length){
     throw new Error('duplicate watch id');
   }
-  const priorState=JSON.parse(await fs.readFile(statePath,'utf8').catch(()=> '{}'));
-  const priorEvents=JSON.parse(await fs.readFile(eventsPath,'utf8').catch(()=> '[]'));
+  const storage={statePath,eventsPath};
+  const {state:priorState,events:priorEvents}=await readMonitorPair(storage);
   const now=Date.now();
   const nextState={};
   const events=[...priorEvents];
@@ -156,8 +157,7 @@ export async function runWorker({
     recordAvailability(events,base,nextState[base.id]);
   }
 
-  await fs.writeFile(statePath,JSON.stringify(nextState,null,2)+'\n');
-  await fs.writeFile(eventsPath,JSON.stringify(events.slice(-500),null,2)+'\n');
+  await writeMonitorPair(storage,nextState,events.slice(-500));
   return {ran_at:new Date(now).toISOString(),ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>availability(w)==='healthy'),results};
 }
 

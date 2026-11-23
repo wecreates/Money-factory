@@ -57,8 +57,10 @@ test('two real local-fixture HTTP cycles retain current-ID health and timestamps
  try{
   await fs.writeFile(options.watchesPath,JSON.stringify([{...watch('current-fixture'),targetUrl:`http://127.0.0.1:${server.address().port}`} ]));
   const report=await runVerification(options);assert.equal(report.pass,true);assert.equal(report.watches[0].id,'current-fixture');
+  assert.equal(report.state_persistence_complete,true);
   status=502;
   const failed=await runVerification(options);assert.equal(failed.pass,false);assert.equal(failed.watches[0].first_cycle_healthy,false);
+  assert.equal(failed.state_persistence_complete,true);
   assert.equal(JSON.parse(await fs.readFile(options.reportPath,'utf8')).pass,false);
  }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
 });
@@ -73,6 +75,6 @@ test('malformed configuration replaces stale successful report with failure',asy
   const result=await runVerification(options);
   assert.equal(result.pass,false);assert.match(result.error,/SyntaxError/);
   const saved=JSON.parse(await fs.readFile(options.reportPath,'utf8'));
-  assert.equal(saved.pass,false);assert.notEqual(saved.checked_at,'stale');
+  assert.equal(saved.pass,false);assert.equal(saved.state_persistence_complete,false);assert.notEqual(saved.checked_at,'stale');
  }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
