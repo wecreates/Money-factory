@@ -71,6 +71,16 @@ class EditorialTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Gesture must'):
                 compile_editorial(subject)
 
+    def test_above_speaker_label_is_portrait_only_and_bound(self):
+        base = compile_editorial(brief())
+        revised = compile_editorial(dict(brief(), speaker_label_position='above'))
+        self.assertEqual(revised['speaker_label_position'], 'above')
+        self.assertNotEqual(base['editorial_sha256'], revised['editorial_sha256'])
+        for extras in ({'speaker_label_position': 'below'}, {'speaker_label_position': None},
+                       {'speaker_label_position': 'above', 'layout': 'landscape'}):
+            with self.assertRaisesRegex(ValueError, 'speaker_label_position'):
+                compile_editorial(dict(brief(), **extras))
+
     def test_thumbnail_copy_rejects_multiline_controls_and_oversize(self):
         for value in (None, 3, '', '  ', 'One\nTwo', 'One\tTwo', 'One\u202eTwo', 'a' * 49):
             with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'thumbnail_copy'):

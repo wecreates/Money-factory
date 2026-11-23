@@ -47,6 +47,15 @@ def declared_layout(editorial, receipt):
     return 'landscape'
 
 
+def declared_speaker_label(editorial, receipt):
+    key = 'speaker_label_position'
+    if key not in editorial and key not in receipt:
+        return None
+    require(editorial.get(key) == receipt.get(key) == 'above' and 'layout' not in editorial
+            and 'layout' not in receipt, 'Compiled and rendered portrait speaker label positions must match')
+    return 'above'
+
+
 def inspect_media(path, *, deadline=None, layout=None, decode=True):
     probe = json.loads(run(['ffprobe', '-v', 'error', '-protocol_whitelist', 'file,pipe',
                            '-f', 'mov', '-enable_drefs', '0', '-use_absolute_path', '0',
@@ -93,7 +102,7 @@ def diagram_thumbnail_crop(editorial, receipt, media):
             and scenes and all(isinstance(scene, dict) and isinstance(scene.get('visual_spec'), dict) and
                 scene['visual_spec'].get('kind') in {'card', 'receipt', 'balance', 'checklist', 'comparison'}
                 for scene in scenes)):
-        return (45, 300, 675, 870)
+        return (45, 300, 675, 800 if declared_speaker_label(editorial, receipt) else 870)
     return None
 
 
@@ -214,7 +223,11 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
     require(paths[1].read_text().startswith('WEBVTT'), 'WebVTT captions required')
     render_receipt_sha = digest(paths[2], deadline)
     layout = declared_layout(editorial, receipt)
+    speaker_label_position = declared_speaker_label(editorial, receipt)
     media = inspect_media(paths[0], deadline=deadline, layout=layout)
+    if speaker_label_position:
+        require((media['width'], media['height']) == (720, 1280),
+                'Above speaker label requires the 720x1280 portrait renderer')
     # Validate and escape all reference links before creating any output files.
     _page(editorial, [], candidate)
     output.mkdir(parents=True)
@@ -259,6 +272,8 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
             result['thumbnail_copy'] = overlay
         if layout:
             result['layout'] = layout
+        if speaker_label_position:
+            result['speaker_label_position'] = speaker_label_position
         (output / 'package.json').write_text(json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + '\n')
         with zipfile.ZipFile(output / 'review-package.zip', 'x', zipfile.ZIP_DEFLATED) as archive:
             for path in sorted(output.iterdir()):

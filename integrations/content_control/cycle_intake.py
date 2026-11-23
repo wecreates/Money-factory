@@ -16,7 +16,7 @@ from integrations.content_control.review_package import no_symlinks, require
 
 RESEARCH_FIELDS = {'schema_version', 'topic', 'sources', 'reference_observations'}
 DRAFT_FIELDS = {'schema_version', 'research_sha256', 'title', 'scenes'}
-DRAFT_OPTIONS = {'thumbnail_copy', 'layout', 'idea_learning'}
+DRAFT_OPTIONS = {'thumbnail_copy', 'layout', 'idea_learning', 'speaker_label_position'}
 MAX_INPUT = 128 * 1024
 
 

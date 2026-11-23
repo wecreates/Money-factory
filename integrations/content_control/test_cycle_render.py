@@ -352,6 +352,24 @@ class RenderValidationTests(unittest.TestCase):
                         else:
                             self.assertGreater(left, x)
 
+    @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
+    def test_above_speaker_label_changes_only_the_two_label_regions(self):
+        from PIL import Image, ImageChops
+        with tempfile.TemporaryDirectory() as td:
+            original, changed = (Path(td)/name for name in ('original.png', 'above.png'))
+            scene = dict(brief()['scenes'][0], speaker='points_monk', visual_spec={
+                'kind': 'checklist', 'labels': ['One', 'Two', 'Three', 'Four']})
+            render.draw_panel(scene, original, 0, 1)
+            render.draw_panel(scene, changed, 0, 1, speaker_label_position='above')
+            with Image.open(original) as first, Image.open(changed) as second:
+                delta = ImageChops.difference(first, second)
+                for upper, lower in ((0, 814), (835, 1130), (1151, 1280)):
+                    self.assertIsNone(delta.crop((0, upper, 720, lower)).getbbox())
+                self.assertIsNotNone(delta.crop((0, 814, 720, 835)).getbbox())
+                self.assertIsNotNone(delta.crop((0, 1130, 720, 1151)).getbbox())
+            with self.assertRaisesRegex(ValueError, 'speaker_label_position'):
+                render.draw_panel(scene, changed, 0, 1, layout='landscape', speaker_label_position='above')
+
     @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe') and Path(render.FONT).is_file(),'Media runtime unavailable')
     def test_actual_mux_and_decode_with_explicit_synthetic_voice_fixture(self):
         try:

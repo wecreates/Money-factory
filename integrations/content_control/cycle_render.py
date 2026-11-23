@@ -41,6 +41,7 @@ AUTHORED_GESTURES = ('point_left', 'point_right', 'open_hands')
 PANEL_BACKGROUND = '#f7f1e6'
 COMPARISON_BOUNDS = ((60, 340, 345, 710), (375, 340, 660, 710))
 PORTRAIT_SIZE = (720, 1280)
+PORTRAIT_ABOVE_LABEL_Y = 814
 LANDSCAPE_SIZE = (1280, 720)
 DIAGRAM_LAYER_TOP = 310
 DIAGRAM_LAYER_BOTTOM = 811
@@ -106,6 +107,8 @@ def validate(editorial):
         raise ValueError('Paid generation forbidden')
     if 'layout' in editorial and editorial['layout'] != 'landscape':
         raise ValueError('layout: omit for portrait or set landscape')
+    if 'speaker_label_position' in editorial and (editorial['speaker_label_position'] != 'above' or 'layout' in editorial):
+        raise ValueError('speaker_label_position: omit or use above on portrait')
     scenes = editorial.get('scenes')
     if not isinstance(scenes, list) or not 1 <= len(scenes) <= 30:
         raise ValueError('One to thirty scenes required')
@@ -179,7 +182,7 @@ def synthesize(editorial, output, voice_root):
           'production_approved': False, 'full_av_review': False, 'voice_assignments': VOICE_ASSIGNMENTS})
 
 
-def draw_panel(scene, path, index, count, phase=0.0, *, layout=None):
+def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_label_position=None):
     """Fresh diagram and character composition with a bounded periodic gesture.
 
     Phase is a fraction of one loop. Zero preserves the representative pose;
@@ -188,6 +191,8 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None):
     if type(phase) not in (int, float) or not math.isfinite(phase):
         raise ValueError('Finite numeric motion phase required')
     size = panel_size(layout)
+    if speaker_label_position is not None and (speaker_label_position != 'above' or layout is not None):
+        raise ValueError('speaker_label_position: omit or use above on portrait')
     validate_visual_shape(scene.get('visual_spec', {}))
     gesture = math.sin(2 * math.pi * (phase % 1.0)) * .18
     from PIL import Image, ImageDraw, ImageFont
@@ -330,7 +335,8 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None):
     draw.line((x,y+80,x-45,y+140),fill=ink,width=7)
     draw.line((x,y+80,x+45,y+140),fill=ink,width=7)
     speaker=scene.get('speaker','narrator').replace('_',' ').upper()
-    draw.text((x,y+160),speaker,font=font(23),fill=accent,anchor='mt')
+    label_y = PORTRAIT_ABOVE_LABEL_Y if speaker_label_position == 'above' else y+160
+    draw.text((x,label_y),speaker,font=font(23),fill=accent,anchor='mt')
     draw.text((size[0]-60, 22 if layout == 'landscape' else 50),
               f'{index+1}/{count}',font=font(22),fill=ink,anchor='rt')
     image.save(path)
@@ -412,6 +418,10 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                        'output_fps':24,'scope':MOTION_SCOPE}}
     if layout:
         receipt['layout'] = layout
+    panel_options = {'layout': layout}
+    if 'speaker_label_position' in editorial:
+        panel_options['speaker_label_position'] = editorial['speaker_label_position']
+        receipt['speaker_label_position'] = editorial['speaker_label_position']
     if minimum_duration is not None:
         receipt['minimum_duration_seconds'] = minimum_duration
     deadline=time.monotonic()+timeout
@@ -438,7 +448,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                 raise ValueError('Narration binding mismatch')
             duration=frame_count/24
             filters, reveal = picture_filters(scene, frame_count, layout)
-            panel=output/f'panel-{index:02d}.png'; draw_panel(scene,panel,index,len(scenes),layout=layout)
+            panel=output/f'panel-{index:02d}.png'; draw_panel(scene,panel,index,len(scenes),**panel_options)
             motion_dir=output/f'motion-{index:02d}'; motion_dir.mkdir()
             motion_hashes={}
             for frame_index in range(MOTION_FRAMES):
@@ -447,7 +457,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                 if frame_index == 0:
                     frame.write_bytes(panel.read_bytes())
                 else:
-                    draw_panel(scene,frame,index,len(scenes),phase=frame_index/MOTION_FRAMES,layout=layout)
+                    draw_panel(scene,frame,index,len(scenes),phase=frame_index/MOTION_FRAMES,**panel_options)
                 motion_hashes[frame.name]=digest(frame)
             segment=output/f'segment-{index:02d}.mp4'
             run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-n','-threads','2',

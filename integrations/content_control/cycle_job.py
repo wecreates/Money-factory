@@ -115,7 +115,7 @@ def check_completed(directory, expected_brief_sha256, *, minimum_duration=None):
     from integrations.content_control.cycle_editorial import compile_editorial
     if editorial != compile_editorial(_json(directory/'brief.json')):
         raise ValueError('Editorial does not derive from the queued brief')
-    from integrations.content_control.cycle_package import editorial_digest
+    from integrations.content_control.cycle_package import declared_speaker_label, editorial_digest
     canonical_editorial_sha = editorial_digest(editorial)
     if digest(directory/'delivery/package.json') != receipt.get('package_sha256'):
         raise ValueError('Cycle package identity mismatch')
@@ -136,6 +136,8 @@ def check_completed(directory, expected_brief_sha256, *, minimum_duration=None):
             or package.get('caption_sha256') != digest(directory/'render/captions.vtt')):
         raise ValueError('Delivered artifacts do not bind the same editorial and candidate')
     rendered = _json(directory/'render/render.json')
+    declared_speaker_label(editorial, rendered)
+    declared_speaker_label(editorial, package)
     if (rendered.get('candidate_sha256') != receipt['candidate_sha256']
             or rendered.get('editorial_sha256') != canonical_editorial_sha
             or rendered.get('caption_sha256') != package['caption_sha256']

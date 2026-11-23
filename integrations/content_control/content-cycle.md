@@ -386,6 +386,11 @@ Add `gesture` to a scene's `visual_spec` to direct the existing motion.
 while `open_hands` moves both arms. Omit the field to retain the existing pose
 sequence. The render receipt records any explicit direction with the scene's
 frame hashes. Gestures loop independently of narration and timed reveals.
+Set `speaker_label_position` to `above` in a portrait brief (or intake draft)
+to put the printed name between the diagram and the character. This leaves the
+lower caption area clear of speaker names. Diagram thumbnails use a tighter
+crop for that layout so the moved name stays outside the artwork. Omit the
+field to preserve the existing layout. Review readability on the final player.
 Render receipts retain loop settings and every source frame hash alongside each
 encoded scene hash. Frame generation observes the same render deadline and
 FFmpeg remains under the existing owned-process/resource controls.
