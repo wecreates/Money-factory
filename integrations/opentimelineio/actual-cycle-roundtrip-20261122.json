@@ -1,0 +1,107 @@
+{
+  "audio_policy": "Use the Audio track once. Picture clips reference the same multiplexed MP4.",
+  "candidate_sha256": "73071b5c079d14e5a8e435b44039d2ad87239bc6af1a6ed6a972159a90eb18f7",
+  "caption_markers": 34,
+  "caption_sha256": "a33ffb4d7dbad09591418d13870b05df2f946dd53acf8a57e86a81ac3ab8d9b3",
+  "caption_sidecar": "captions.vtt",
+  "cuts": [
+    {
+      "end_frame": 107,
+      "end_ticks": 55300,
+      "scene_id": "hook",
+      "start_frame": 0,
+      "start_ticks": 516
+    },
+    {
+      "end_frame": 348,
+      "end_ticks": 178696,
+      "scene_id": "definition",
+      "start_frame": 107,
+      "start_ticks": 55300
+    },
+    {
+      "end_frame": 556,
+      "end_ticks": 285196,
+      "scene_id": "tip",
+      "start_frame": 348,
+      "start_ticks": 178696
+    },
+    {
+      "end_frame": 722,
+      "end_ticks": 370192,
+      "scene_id": "burger",
+      "start_frame": 556,
+      "start_ticks": 285196
+    },
+    {
+      "end_frame": 980,
+      "end_ticks": 502288,
+      "scene_id": "hold",
+      "start_frame": 722,
+      "start_ticks": 370192
+    },
+    {
+      "end_frame": 1242,
+      "end_ticks": 636436,
+      "scene_id": "release",
+      "start_frame": 980,
+      "start_ticks": 502288
+    },
+    {
+      "end_frame": 1494,
+      "end_ticks": 765460,
+      "scene_id": "read",
+      "start_frame": 1242,
+      "start_ticks": 636436
+    },
+    {
+      "end_frame": 1664,
+      "end_ticks": 852500,
+      "scene_id": "button",
+      "start_frame": 1494,
+      "start_ticks": 765460
+    }
+  ],
+  "cycle_sha256": "cdd9481e2e80b829ec35af1c736047cedc15b45e470a1aaf65e82082e2913abb",
+  "decoded_av": "PASS",
+  "exporter_sha256": "5fde150795ad3f4cc9e967a9bd7af555909aef4ee1e56e13e89778272404afb6",
+  "files_sha256": {
+    "captions.vtt": "a33ffb4d7dbad09591418d13870b05df2f946dd53acf8a57e86a81ac3ab8d9b3",
+    "cycle.json": "cdd9481e2e80b829ec35af1c736047cedc15b45e470a1aaf65e82082e2913abb",
+    "package.json": "f6e4c02accb61632431e0432a4bad2112c233f5bb885d04dd29b849d89bc4bd7",
+    "render.json": "350997771896210ef953393b257fa7fe10ed2ee292f502e4c9f2068e7cf4332c",
+    "timeline.otio": "133a7f567a0f1b9f44f7a1a47094633efff54d365c84327c00c0b17be082e274",
+    "video.mp4": "73071b5c079d14e5a8e435b44039d2ad87239bc6af1a6ed6a972159a90eb18f7"
+  },
+  "finished_at": "2026-11-23T00:16:11.873197+00:00",
+  "full_av_review": false,
+  "listening_verified": false,
+  "nle_import_verified": false,
+  "nominal_fps": 24,
+  "opentimelineio_version": "0.18.1",
+  "original_source_unchanged": true,
+  "package_sha256": "f6e4c02accb61632431e0432a4bad2112c233f5bb885d04dd29b849d89bc4bd7",
+  "paid_generation_enabled": false,
+  "phone_playback_verified": false,
+  "production_approved": false,
+  "publication_enabled": false,
+  "render_receipt_sha256": "350997771896210ef953393b257fa7fe10ed2ee292f502e4c9f2068e7cf4332c",
+  "roundtrip_verified": true,
+  "schema_version": 1,
+  "scope": "Local rendered-media interchange. Scene cuts use the measured renderer intervals and observed video presentation timestamps. WebVTT markers preserve source timing and text. The original MP4 contains the single mixed audio stream. NLE import, playback and audiovisual review require separate verification.",
+  "started_at": "2026-11-23T00:16:09.497489+00:00",
+  "status": "INTERCHANGE_VERIFIED",
+  "streams": {
+    "audio": {
+      "end_ticks": 1665048,
+      "rate": 24000,
+      "start_ticks": 0
+    },
+    "video": {
+      "end_ticks": 852500,
+      "rate": 12288,
+      "start_ticks": 516
+    }
+  },
+  "video_frames": 1664
+}

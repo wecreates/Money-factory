@@ -1,5 +1,38 @@
 # Editable timeline handoff
 
+## Authored content cycles
+
+Export the current unpublished candidate from a verified cycle directory. Use
+the candidate and package hashes from its `cycle.json`. A caption revision has
+its own package hash even when the candidate video bytes stay the same.
+
+```sh
+/path/to/otio-runtime/bin/python -m integrations.opentimelineio.export_cycle_review \
+  --cycle-dir /path/to/verified-cycle \
+  --candidate-sha256 RECORDED_VIDEO_SHA256 \
+  --package-sha256 RECORDED_PACKAGE_JSON_SHA256 \
+  --output /path/to/new-edit-package
+```
+
+Use the pinned OTIO environment below and make `ffmpeg` and `ffprobe` available.
+The exporter maps the measured renderer cuts onto the decoded source frames and
+retains the original picture timestamps, including any leading picture gap.
+It accepts the current renderer's H.264/AAC output at nominal 24 fps for cycles
+up to ten minutes. The output path needs an existing parent directory.
+The native timeline references one exact copy of the rendered MP4. It carries
+the original mixed audio on a separate track and the verified WebVTT cue times
+and text as markers. Keep the complete output directory together when moving it.
+Editor support for relative media links, stream selection and timeline markers
+varies. Use the Audio track once if the editor also imports audio from the clips.
+This handoff verifies the native OTIO round trip and source media decode. NLE
+import, timeline playback, model-driven edits and creative review remain separate.
+
+The [actual pending-charge cycle receipt](actual-cycle-roundtrip-20261122.json)
+records the exact caption-corrected package, eight cuts, 1,664 frames and 34 cue
+markers. It retains the raw picture and audio clocks and the exporter hash.
+
+## Original Episode 1 review
+
 Export a completed Content Control `produce_episode1_review.py` review directory into a portable native OpenTimelineIO timeline. This complements the existing Remotion/OpenMontage production tools: it neither renders nor changes the canonical candidate.
 
 This is a **trimmed rendered-media edit**: 18 cuts reference one existing MP4, with one continuous original mixed-audio track and timed caption markers. Captions remain burned into the picture. The exporter does **not** recover source artwork, separate music/narration/SFX stems, or editable text layers. Actual NLE import/playback is not yet verified; when importing, use the Audio track once and do not also enable audio from the Video clips.
@@ -35,7 +68,7 @@ Validation binds the exact caller-supplied run hash to the copied video, caption
 Run focused tests with:
 
 ```sh
-/path/to/otio-runtime/bin/python -m unittest integrations.opentimelineio.test_export_review -v
+/path/to/otio-runtime/bin/python -m unittest discover -s integrations/opentimelineio -p 'test_*.py' -v
 ```
 
 Tests create a real small H264/AAC fixture, round-trip through the actual OTIO runtime, move the package and resolve each relative reference. Negative cases cover tampering, invalid cuts/cues, missing/true approval flags, bad media, symlinks, output collisions, copy failure cleanup, and altered serialized timing/caption text. Synthetic fixture tests do not claim creative quality.
