@@ -6,6 +6,7 @@ renderer never changes canonical Episode 1 inputs or calls a publishing API.
 import argparse
 from datetime import datetime, timezone
 from collections import Counter
+from fractions import Fraction
 import difflib
 import hashlib
 import html
@@ -352,11 +353,35 @@ def picture_filters(scene, frame_count, layout=None):
                      'first_visible_scene_frame': frame, 'rendered_offset_seconds': frame / 24}
 
 
-def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, transcription_python=None):
+def measured_clip_frames(scenes, clips, output):
+    """Check the exact narration and compute the 24 fps frame budget before encoding."""
+    if len(clips) != len(scenes):
+        raise ValueError('Missing voice clips')
+    frames = []
+    for index, (scene, clip) in enumerate(zip(scenes, clips)):
+        wav = output / f'voice-{index:02d}.wav'
+        if (clip['audio_sha256'] != digest(wav)
+                or clip['text_sha256'] != hashlib.sha256(scene['narration'].encode()).hexdigest()):
+            raise ValueError('Narration binding mismatch')
+        with wave.open(str(wav), 'rb') as pcm:
+            samples = pcm.getnframes()
+            if pcm.getframerate() != 24000 or not 0 < samples <= 24000 * 90:
+                raise ValueError('Invalid narration sample rate or duration')
+        duration = samples / 24000
+        if clip['duration_seconds'] != duration:
+            raise ValueError('Narration duration does not match WAV')
+        frames.append(math.ceil((duration + .28) * 24))
+    return frames
+
+
+def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, transcription_python=None,
+                 minimum_duration=None):
     scenes = validate(editorial)
     layout = editorial.get('layout')
     if isinstance(timeout,bool) or not isinstance(timeout,(int,float)) or not math.isfinite(timeout) or not 0 < timeout <= 1800:
         raise ValueError('Render timeout must be positive and at most 1800 seconds')
+    if minimum_duration is not None and (type(minimum_duration) is not int or not 1 <= minimum_duration <= 600):
+        raise ValueError('Minimum duration must be an integer from 1 to 600 seconds')
     if os.environ.get('PUBLICATION_ENABLED','false').lower()!='false':
         raise ValueError('Publication must remain disabled')
     runtime = Path(voice_python)
@@ -377,6 +402,8 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                        'output_fps':24,'scope':MOTION_SCOPE}}
     if layout:
         receipt['layout'] = layout
+    if minimum_duration is not None:
+        receipt['minimum_duration_seconds'] = minimum_duration
     deadline=time.monotonic()+timeout
     write(output/'render.json',receipt); write(output/'editorial.json',editorial)
     try:
@@ -386,15 +413,20 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
              '--output',output,'--voice-root',Path(voice_root).resolve()],output/'voice.log',deadline,env)
         voice=json.loads((output/'voice.json').read_text())
         clips=voice['clips']
-        if len(clips)!=len(scenes): raise ValueError('Missing voice clips')
+        frames = measured_clip_frames(scenes, clips, output)
+        planned_frames = sum(frames)
+        if planned_frames > 600 * 24:
+            raise ValueError('Video exceeds ten minute limit')
+        if minimum_duration is not None:
+            receipt['measured_narration_frame_budget'] = planned_frames
+            if planned_frames < minimum_duration * 24:
+                raise ValueError(f'Measured narration budgets {planned_frames / 24:.3f}s of video, below {minimum_duration}s minimum')
         rows=[]; captions=['WEBVTT','']; start=0; segments=[]
-        for index,(scene,clip) in enumerate(zip(scenes,clips)):
+        for index,(scene,clip,frame_count) in enumerate(zip(scenes,clips,frames)):
             wav=output/f'voice-{index:02d}.wav'
-            if clip['audio_sha256']!=digest(wav) or clip['text_sha256']!=hashlib.sha256(scene['narration'].encode()).hexdigest():
+            if clip['audio_sha256']!=digest(wav):
                 raise ValueError('Narration binding mismatch')
-            frame_count=math.ceil((clip['duration_seconds']+.28)*24)
             duration=frame_count/24
-            if start+duration>600: raise ValueError('Video exceeds ten minute limit')
             filters, reveal = picture_filters(scene, frame_count, layout)
             panel=output/f'panel-{index:02d}.png'; draw_panel(scene,panel,index,len(scenes),layout=layout)
             motion_dir=output/f'motion-{index:02d}'; motion_dir.mkdir()
@@ -442,6 +474,11 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
             raise ValueError('Output media contract mismatch')
         if abs(float(probe['format']['duration'])-start)>.25:
             raise ValueError('Output duration differs from scene timeline')
+        if minimum_duration is not None:
+            picture_duration = int(video['duration_ts']) * Fraction(video['time_base'])
+            receipt['encoded_picture_duration_seconds'] = float(picture_duration)
+            if picture_duration < minimum_duration:
+                raise ValueError(f'Encoded picture duration {float(picture_duration):.3f}s is below {minimum_duration}s minimum')
         write(output/'timeline.json',{'scenes':rows,'duration_seconds':start,'publication_enabled':False})
         asr=None
         if transcription_python:
@@ -463,7 +500,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                        scenes=rows,caption_timing='observed_word_timestamps' if asr else 'approximate_groups_over_measured_speech',
                        independent_transcription_verified=bool(asr),voice_model=voice['model_revision'])
         if asr: receipt['transcription_receipt_sha256']=digest(output/'transcription.json')
-    except (OSError,ValueError,RuntimeError,KeyError,TypeError,subprocess.TimeoutExpired,TimeoutError) as error:
+    except (OSError,ValueError,RuntimeError,KeyError,TypeError,EOFError,wave.Error,ZeroDivisionError,subprocess.TimeoutExpired,TimeoutError) as error:
         receipt.update(status='BLOCKED',technical_status='FAIL',reason=str(error))
     finally:
         receipt['finished_at']=datetime.now(timezone.utc).isoformat();write(output/'render.json',receipt)

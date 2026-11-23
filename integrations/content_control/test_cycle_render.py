@@ -339,7 +339,14 @@ class RenderValidationTests(unittest.TestCase):
             self.skipTest('Pillow unavailable')
         real_run=render.run
         def voice_fixture(command,log,deadline,env=None):
-            if '--synthesize' not in command:return real_run(command,log,deadline,env)
+            if '--synthesize' not in command:
+                real_run(command,log,deadline,env)
+                if log.parent.name == 'mux-short' and command[0] == 'ffprobe':
+                    probe=json.loads(log.read_text())
+                    video=next(stream for stream in probe['streams'] if stream['codec_type'] == 'video')
+                    video.update(duration_ts=23,time_base='1/24')
+                    render.write(log,probe)
+                return
             out=Path(command[command.index('--output')+1]);data=json.loads((out/'editorial.json').read_text())
             text=data['scenes'][0]['narration'];wav=out/'voice-00.wav';rate=24000
             length=4 if 'reveal_after_seconds' in data['scenes'][0].get('visual_spec', {}) else 1
@@ -351,6 +358,20 @@ class RenderValidationTests(unittest.TestCase):
                 'audio_sha256':render.digest(wav),'text_sha256':hashlib.sha256(text.encode()).hexdigest(),
                 'duration_seconds':float(length)}]})
         with tempfile.TemporaryDirectory() as td,patch.object(render,'run',side_effect=voice_fixture):
+            shortfall=Path(td)/'shortfall'
+            blocked=render.render_cycle(brief(),shortfall,voice_python=sys.executable,voice_root=td,
+                                        timeout=60,minimum_duration=2)
+            self.assertEqual(blocked['status'],'BLOCKED')
+            self.assertEqual(blocked['measured_narration_frame_budget'],31)
+            self.assertIn('below 2s minimum',blocked['reason'])
+            self.assertFalse(any(shortfall.glob('segment-*.mp4')))
+            self.assertFalse((shortfall/'video.mp4').exists())
+            mux_short=Path(td)/'mux-short'
+            blocked=render.render_cycle(brief(),mux_short,voice_python=sys.executable,voice_root=td,
+                                        timeout=60,minimum_duration=1,transcription_python=sys.executable)
+            self.assertIn('Encoded picture duration',blocked['reason'])
+            self.assertFalse((mux_short/'transcription.log').exists())
+            self.assertEqual(blocked['encoded_picture_duration_seconds'],23/24)
             out=Path(td)/'run';result=render.render_cycle(brief(),out,voice_python=sys.executable,voice_root=td,timeout=60)
             self.assertEqual(result['status'],'AWAITING_REVIEW',result)
             self.assertEqual(result['candidate_sha256'],render.digest(out/'video.mp4'))
@@ -392,8 +413,12 @@ class RenderValidationTests(unittest.TestCase):
 
             revealed['layout']='landscape'
             wide=Path(td)/'wide'
-            result=render.render_cycle(revealed,wide,voice_python=sys.executable,voice_root=td,timeout=60)
+            result=render.render_cycle(revealed,wide,voice_python=sys.executable,voice_root=td,
+                                       timeout=60,minimum_duration=4)
             self.assertEqual(result['status'],'AWAITING_REVIEW',result)
+            self.assertEqual(result['minimum_duration_seconds'],4)
+            self.assertEqual(result['measured_narration_frame_budget'],103)
+            self.assertGreaterEqual(result['encoded_picture_duration_seconds'],4)
             self.assertEqual(result['layout'],'landscape')
             self.assertEqual(result['scenes'][0]['visual_reveal']['first_visible_scene_frame'],13)
             probe=json.loads((wide/'probe.json').read_text())

@@ -97,6 +97,16 @@ class CompleteCycleTest(unittest.TestCase):
         self.assertEqual(result['status'], 'BLOCKED')
         self.assertEqual(result['failed_step'], 'render')
 
+    def test_explicit_minimum_reaches_renderer_and_shortfall_never_packages(self):
+        def shortfall(editorial, output, **kwargs):
+            self.assertEqual(kwargs['minimum_duration'], 510)
+            return {'technical_status': 'FAIL'}
+        result = self.execute(render=shortfall, minimum_duration=510,
+                              package=lambda *a, **k: self.fail('Packaged shortfall'))
+        self.assertEqual(result['status'], 'BLOCKED')
+        self.assertEqual(result['failed_step'], 'render')
+        self.assertEqual(result['minimum_duration_seconds'], 510)
+
     def test_failed_render_is_retained_as_blocked(self):
         result = self.execute(render=lambda *a, **k: {'technical_status': 'FAIL'})
         self.assertEqual(result['status'], 'BLOCKED')

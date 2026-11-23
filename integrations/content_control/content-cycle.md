@@ -75,6 +75,14 @@ Portrait excerpts still require an authored portrait source. Landscape is a
 layout choice. Duration, listening, device playback and delivery acceptance
 remain separate.
 
+For a run with a minimum length, pass `--minimum-duration` in whole seconds
+(for example, `--minimum-duration 510` for the 8:30 showrunner target). The
+renderer derives a frame budget from the generated WAV lengths and stops before
+drawing or encoding if the budget is short. It verifies the encoded picture
+stream duration again before transcription. The render receipt retains the
+requested minimum and measured values. This check does not infer duration from
+the editorial plan or add silence to meet the target.
+
 ### Reveal a comparison card during a scene
 
 A `comparison` scene with two complete label/value pairs can opt into
