@@ -1,6 +1,7 @@
 """One standalone command: existing producer, editable timeline, optional speech diagnostics, portable delivery."""
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import math
 import os
@@ -10,6 +11,7 @@ import time
 
 from integrations.agent_capacity import shared_admission_lock
 from integrations.owned_process import interruptible_processes
+from integrations.content_control.cycle_av_review import automated_review_command, read_automated_review
 from integrations.content_control.video_job import producer_module, guarded_runner, check_completed, digest, validate
 from integrations.content_control.review_package import package_review
 from integrations.content_control.runtime_doctor import describe_source, inspect_runtime
@@ -17,6 +19,8 @@ from integrations.content_control.runtime_doctor import describe_source, inspect
 ROOT=Path(__file__).resolve().parents[2]
 TOOLS=('integrations/content_control/produce_review_bundle.py','integrations/content_control/review_package.py',
        'integrations/content_control/video_job.py','integrations/content_control/runtime_doctor.py',
+       'integrations/content_control/cycle_av_review.py','integrations/content_control/cycle_av_benchmarks.py',
+       'integrations/content_control/cycle_package.py',
        'integrations/owned_process.py','integrations/agent_capacity.py',
        'integrations/opentimelineio/export_review.py','integrations/dnsmos/score.py')
 
@@ -64,8 +68,9 @@ def produce_bundle(output,*,content_control_root,source_commit,source_manifest_s
         for runtime in runtimes:
             if not Path(runtime).is_absolute() or not Path(runtime).is_file() or not os.access(runtime,os.X_OK):
                 raise ValueError('Explicit absolute executable runtime paths required')
-        if os.environ.get('PUBLICATION_ENABLED','false').lower()!='false':
-            raise ValueError('Publication must remain disabled')
+        if any(os.environ.get(flag,'false').lower()!='false'
+               for flag in ('PUBLICATION_ENABLED','PAID_GENERATION_ENABLED')):
+            raise ValueError('Publication and paid generation must remain disabled')
         cpus=sorted(os.sched_getaffinity(0))[:2]
         if len(cpus)<2: raise ValueError('Two CPU affinity slots required')
         result['cpu_affinity']=cpus
@@ -98,6 +103,16 @@ def produce_bundle(output,*,content_control_root,source_commit,source_manifest_s
                 raise ValueError('Existing producer did not complete')
             receipt=check_completed(output/'review',source)
             run_sha=digest(output/'review/run.json')
+            review_path=output/'automated-review.json'
+            stage='automated-review'
+            run(stage,automated_review_command(output/'review',review_path,receipt,deadline))
+            try:
+                raw=read_automated_review(review_path,receipt['candidate_sha256'],receipt['artifacts_sha256']['captions.vtt'])
+                review_sha=hashlib.sha256(raw).hexdigest()
+            except (OSError,ValueError):
+                result['steps'][-1]['status']='BLOCKED'
+                raise
+            result['automated_review_sha256']=review_sha
             run('editable-export',[otio_python,'-m','integrations.opentimelineio.export_review',
                 '--review-dir',output/'review','--run-sha256',run_sha,'--output',output/'edit'])
             diagnostic={'status':'SKIPPED','reason':'Optional isolated-speech diagnostic not requested'}
@@ -134,8 +149,10 @@ def produce_bundle(output,*,content_control_root,source_commit,source_manifest_s
                 expected_candidate_sha256=receipt['candidate_sha256'],
                 provenance={'execution_mode':result['execution_mode'],'source_commit':source_commit,
                             'source_manifest_sha256':source_manifest_sha256,'tool_sha256':before,
+                            'automated_review_sha256':review_sha,
                             'speech_diagnostic_status':diagnostic['status']},
-                edit_dir=output/'edit',diagnostics_dir=diagnostic_dir,deadline=deadline)
+                edit_dir=output/'edit',diagnostics_dir=diagnostic_dir,
+                automated_review=(review_path,review_sha),deadline=deadline)
             if time.monotonic()>=deadline: raise TimeoutError('Bundle deadline exhausted during delivery')
             result.update(status='AWAITING_REVIEW',technical_status='PASS',candidate_sha256=receipt['candidate_sha256'],
                 run_sha256=run_sha,source_inputs_unchanged=True,delivery=delivered)

@@ -1,6 +1,7 @@
 """Queue/delivery identity tests; fixture media is synthetic, not playback proof."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -151,6 +152,39 @@ class DeliveryTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(archive.read('review/video.mp4')).hexdigest(), self.run['candidate_sha256'])
         with self.assertRaises(ValueError): export_review(self.queue.root, self.spec['id'], output)
         self.assertEqual(before, (self.queue.root / 'queue.sqlite3').read_bytes())
+
+    def test_bound_automated_review_is_retained_and_tampering_blocks_export(self):
+        from zipfile import ZipFile
+        report = self.attempt / 'automated-review.json'
+        payload = {'schema_version': 1, 'candidate_sha256': self.run['candidate_sha256'],
+                   'caption_sha256': self.run['caption_sha256'], 'publication_enabled': False,
+                   'paid_generation_enabled': False, 'production_approved': False,
+                   'full_audiovisual_review_verified': False, 'competitor_audiovisual_comparison_verified': False}
+        payload.update({role: {'status': 'BLOCKED'} for role in ('watcher', 'listener', 'analysis', 'competitor_comparison')})
+        payload['reviewer'] = {'status': 'FULL_REVIEW_REQUIRED'}
+        report.write_text(json.dumps(payload))
+        self.receipt['automated_review_sha256'] = digest(report)
+        self.rewrite_receipt()
+        result = export_review(self.queue.root, self.spec['id'], self.root / 'delivery')
+        self.assertEqual(result['files_sha256']['automated-review.json'], digest(report))
+        with ZipFile(self.root / 'delivery/review-package.zip') as archive:
+            self.assertEqual(archive.read('review/automated-review.json'), report.read_bytes())
+        self.assertFalse((self.review / 'automated-review.json').exists())
+        report.write_text(json.dumps(payload) + '\n')
+        self.assertIn('Automated review identity changed', status(self.queue.root, self.spec['id'])['delivery_error'])
+        report.write_text(json.dumps(dict(payload, caption_sha256='f'*64)))
+        self.receipt['automated_review_sha256'] = digest(report)
+        self.rewrite_receipt()
+        self.assertIn('does not match', status(self.queue.root, self.spec['id'])['delivery_error'])
+        report.write_text(json.dumps({key: value for key, value in payload.items() if key != 'listener'}))
+        self.receipt['automated_review_sha256'] = digest(report)
+        self.rewrite_receipt()
+        self.assertIn('invalid automated review stage: listener', status(self.queue.root, self.spec['id'])['delivery_error'])
+        report.unlink()
+        self.assertFalse(status(self.queue.root, self.spec['id'])['delivery_ready'])
+        if hasattr(os, 'mkfifo'):
+            os.mkfifo(report)
+            self.assertIn('Missing or oversized automated review', status(self.queue.root, self.spec['id'])['delivery_error'])
 
     def test_export_calls_shared_packager_only_after_verification(self):
         # Contract fixture until the shared packager's independent media tests run.
