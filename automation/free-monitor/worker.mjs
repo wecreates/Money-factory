@@ -63,6 +63,23 @@ export function evaluateCheck(watch,check){
   };
 }
 
+function availability(watch){
+  if(watch.last_error) return 'unavailable';
+  if(watch.last_status>=200 && watch.last_status<300) return 'healthy';
+  return 'unknown';
+}
+
+function recordAvailability(events,previous,current){
+  const before=availability(previous);
+  const after=availability(current);
+  // Establish a silent healthy baseline. Record the first failure as an
+  // observation from unknown and keep later repeated failures in state only.
+  if(before===after || (before==='unknown' && after==='healthy')) return;
+  events.push({id:crypto.randomUUID(),watch_id:current.id,at:current.last_checked_at,
+    type:'availability',label:current.label,target_url:current.targetUrl,
+    previous_availability:before,availability:after,http_status:current.last_status});
+}
+
 export const MAX_RESPONSE_BYTES=2*1024*1024;
 
 async function fetchHash(url){
@@ -132,14 +149,16 @@ export async function runWorker({
       results.push({id:base.id,checked:true,changed,status:check.status,last_checked_at:check.checkedAt,
         response_bytes:check.response_bytes,response_limit_bytes:check.response_limit_bytes});
     }catch(error){
-      nextState[base.id]={...base,last_checked_at:now,last_status:error.status??null,last_error:String(error)};
-      results.push({id:base.id,checked:true,error:String(error),last_checked_at:now});
+      const checkedAt=Date.now();
+      nextState[base.id]={...base,last_checked_at:checkedAt,last_status:error.status??null,last_error:String(error)};
+      results.push({id:base.id,checked:true,error:String(error),last_checked_at:checkedAt});
     }
+    recordAvailability(events,base,nextState[base.id]);
   }
 
   await fs.writeFile(statePath,JSON.stringify(nextState,null,2)+'\n');
   await fs.writeFile(eventsPath,JSON.stringify(events.slice(-500),null,2)+'\n');
-  return {ran_at:new Date(now).toISOString(),ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>!w.last_error && w.last_status>=200 && w.last_status<300),results};
+  return {ran_at:new Date(now).toISOString(),ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>availability(w)==='healthy'),results};
 }
 
 if(isMainEntry(import.meta.url,process.argv[1])){
