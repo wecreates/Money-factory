@@ -182,6 +182,36 @@ def _cut_coverage(render, editorial_scenes, summary):
             'matched_cuts': matched, 'missing_cuts': missing, 'unmatched_detected_seconds': unmatched}
 
 
+def _authored_samples(root, output, before, coverage, deadline):
+    """Provide authored navigation when the analyzer misses cuts."""
+    if coverage['status'] != 'MISSING_AUTHORED_CUTS':
+        return {'status': 'NOT_REQUESTED', 'reason': coverage['status']}
+    remaining = min(600, math.floor(deadline - time.monotonic()))
+    if remaining < 10:
+        return {'status': 'BLOCKED', 'reason': 'Less than ten seconds remain for authored samples'}
+    target = output / 'authored-scenes'
+    try:
+        from integrations.content_control.cycle_scene_review import make_scene_review
+
+        review = make_scene_review(root, target, timeout=remaining)
+        receipt_path = target / 'scene-review.json'
+        no_symlinks(receipt_path)
+        raw = receipt_path.read_bytes()
+        require(json.loads(raw) == review, 'Authored sample receipt changed')
+        require(review.get('candidate_sha256') == before['candidate_sha256'] and
+                review.get('source_files_sha256') == before['files_sha256'],
+                'Authored samples do not bind the analyzed cycle')
+        identity = {'receipt': 'authored-scenes/scene-review.json', 'receipt_sha256': hashlib.sha256(raw).hexdigest()}
+        if review['status'] != 'SCENE_SAMPLES_READY':
+            return {'status': 'BLOCKED', 'reason': review.get('reason', 'Authored samples unavailable'),
+                    **identity}
+        return {'status': 'SCENE_SAMPLES_READY', **identity, 'gallery': 'authored-scenes/index.html',
+                'sampled_scene_count': review['sampled_scene_count'],
+                'scope': 'Bound authored midpoint stills for navigation. Detector misses remain unchanged.'}
+    except (ImportError, OSError, ValueError, RuntimeError, KeyError) as error:
+        return {'status': 'BLOCKED', 'reason': str(error)}
+
+
 def analyze_cycle(cycle_dir, output, *, runtime, timeout=300):
     if type(timeout) not in (int, float) or not math.isfinite(timeout) or not 1 <= timeout <= 1800:
         raise ValueError('Analyzer deadline must be 1..1800 seconds')
@@ -233,14 +263,17 @@ def analyze_cycle(cycle_dir, output, *, runtime, timeout=300):
         require(after_identity.pop('ocr_runtime_initialized', False) is True and after_identity == identity,
                 'Analyzer installation changed or OCR unavailable')
         manifest = _manifest(diagnostics); summary = _summarize(diagnostics)
-        summary['authored_cut_coverage'] = _cut_coverage(render, before['editorial']['scenes'], summary)
+        coverage = _cut_coverage(render, before['editorial']['scenes'], summary)
+        summary['authored_cut_coverage'] = coverage
+        samples = _authored_samples(root, output, before, coverage, deadline)
         require(inspect_cycle(root)['files_sha256'] == before['files_sha256'], 'Cycle changed during diagnostics')
         require(digest(copied) == before['candidate_sha256'], 'Analyzed candidate changed')
         require(digest(cache/MODEL) == MODEL_SHA, 'Local model changed')
         require(digest(__file__) == receipt['adapter_sha256'], 'Adapter changed during diagnostics')
         require(time.monotonic() <= deadline, 'Analyzer deadline exhausted')
-        receipt.update(status='DIAGNOSTIC_COMPLETE', analyzer=identity, diagnostics_files_sha256=manifest,
-                       summary=summary, model_sha256={MODEL:MODEL_SHA},
+        receipt.update(status='PARTIAL_DIAGNOSTIC' if samples['status'] == 'BLOCKED' else 'DIAGNOSTIC_COMPLETE',
+                       analyzer=identity, diagnostics_files_sha256=manifest,
+                       summary=summary, authored_scene_samples=samples, model_sha256={MODEL:MODEL_SHA},
                        analysis_entrypoint='diagnostics/VIDEO.md', execution_flags=list(FLAGS),
                        no_provider_environment=True, network_policy='Python sockets denied; no model downloads or provider calls requested')
     except (OSError,ValueError,RuntimeError,KeyError,TypeError,subprocess.TimeoutExpired) as error:

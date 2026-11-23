@@ -65,17 +65,51 @@ class AnalyzerTests(unittest.TestCase):
             for member in (*package['files_sha256'], 'package.json'):
                 archive.write(delivery/member, member)
 
-    def test_reports_missing_authored_cut_and_excludes_origin(self):
+    def test_reports_missing_authored_cut_and_retains_bound_samples(self):
         self.add_render_scene_starts()
         self.detected_starts = [0, .125]
-        with patch.object(analyzer,'_run',side_effect=self.fake_run):result=self.call()
+        snapshot = analyzer.inspect_cycle(self.root)
+        def sampler(root, target, *, timeout):
+            self.assertEqual(root, self.root)
+            self.assertTrue(10 <= timeout < 60)
+            target.mkdir()
+            receipt = {'status': 'SCENE_SAMPLES_READY', 'candidate_sha256': snapshot['candidate_sha256'],
+                       'source_files_sha256': snapshot['files_sha256'], 'sampled_scene_count': 2}
+            review_fixture.write(target/'scene-review.json', receipt)
+            return receipt
+        with patch.object(analyzer, '_run', side_effect=self.fake_run), patch(
+            'integrations.content_control.cycle_scene_review.make_scene_review', side_effect=sampler
+        ):
+            result = self.call()
         self.assertEqual(result['status'], 'DIAGNOSTIC_COMPLETE', result)
         coverage = result['summary']['authored_cut_coverage']
         self.assertEqual(coverage['status'], 'MISSING_AUTHORED_CUTS')
         self.assertEqual(coverage['missing_cuts'], [{'scene_id': 's2', 'authored_seconds': .625}])
         self.assertEqual(coverage['unmatched_detected_seconds'], [.125])
         self.assertEqual(coverage['matched_cuts'], [])
+        retained = result['authored_scene_samples']
+        self.assertEqual(retained['status'], 'SCENE_SAMPLES_READY')
+        self.assertEqual(retained['receipt_sha256'], digest(self.base/'analysis'/retained['receipt']))
         self.assertFalse(result['full_av_review'])
+
+    def test_blocked_sampler_retains_successful_detector_diagnostics(self):
+        self.add_render_scene_starts()
+        with patch.object(analyzer, '_run', side_effect=self.fake_run), patch(
+            'integrations.content_control.cycle_scene_review.make_scene_review',
+            side_effect=ValueError('Frame unavailable')
+        ):
+            result = self.call()
+        self.assertEqual(result['status'], 'PARTIAL_DIAGNOSTIC')
+        self.assertEqual(result['summary']['authored_cut_coverage']['status'], 'MISSING_AUTHORED_CUTS')
+        self.assertIn('breakdown.json', result['diagnostics_files_sha256'])
+        self.assertEqual(result['authored_scene_samples'], {'status': 'BLOCKED', 'reason': 'Frame unavailable'})
+
+    def test_sampler_cannot_run_with_insufficient_time(self):
+        with patch('integrations.content_control.cycle_scene_review.make_scene_review') as sampler:
+            result = analyzer._authored_samples(self.root, self.base, {}, {'status': 'MISSING_AUTHORED_CUTS'},
+                                                time.monotonic()+5)
+        self.assertEqual(result['status'], 'BLOCKED')
+        sampler.assert_not_called()
 
     def test_nearby_detections_match_once_at_most(self):
         rows = [{'scene_id': id_, 'start': time} for id_, time in (('s1', 0), ('s2', .625), ('s3', .75))]
