@@ -225,6 +225,9 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
     layout = declared_layout(editorial, receipt)
     speaker_label_position = declared_speaker_label(editorial, receipt)
     media = inspect_media(paths[0], deadline=deadline, layout=layout)
+    if speaker_label_position:
+        require((media['width'], media['height']) == (720, 1280),
+                'Above speaker label requires the 720x1280 portrait renderer')
     # Validate and escape all reference links before creating any output files.
     _page(editorial, [], candidate)
     output.mkdir(parents=True)

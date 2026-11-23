@@ -145,6 +145,14 @@ class CyclePackageTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'positions must match'):
             m.diagram_thumbnail_crop(editorial, receipt, media)
 
+    def test_above_speaker_label_rejects_a_nonrenderer_raster(self):
+        self.editorial['speaker_label_position'] = 'above'
+        self.receipt.update(speaker_label_position='above', editorial_sha256=m.editorial_digest(self.editorial))
+        self.save_receipt()
+        with self.assertRaisesRegex(ValueError, '720x1280 portrait renderer'):
+            self.export()
+        self.assertFalse((self.root / 'package').exists())
+
     def test_independent_copy_changes_thumbnail_and_preserves_title_and_media(self):
         baseline = self.export()
         self.assertNotIn('thumbnail_copy', baseline)
