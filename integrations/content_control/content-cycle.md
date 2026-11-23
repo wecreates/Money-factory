@@ -148,6 +148,12 @@ The adapter name is `content-control-cycle`. Its exact request fields are:
 
 Replace the brief with a full valid object; compute its hash with `integrations.content_control.cycle_job.brief_digest`. The existing `integrations.local_agent_queue` accepts host-only `--cycle-voice-python`, `--cycle-voice-root` and optional `--cycle-transcription-python` settings. Its owned-process guardian, two-CPU affinity, shared admission lock, fresh memory/CPU admission, SQLite attempts/retries and artifact checking remain in force. Unknown capacity blocks admission; there is no bypass. Successful queue execution verifies the candidate, source brief, editorial, render receipt, captions, package files and ZIP identities before recording technical success.
 
+Set optional `minimum_duration_seconds` to a whole number from 1 to 600 to
+require the same measured picture minimum as the standalone command. The
+queue binds it to the immutable request. The worker and private export verify
+the matching render and cycle receipts before accepting delivery. Omit it for
+the existing duration behavior. It can be combined with `revision_input`.
+
 Inspect or export a durable successful attempt from an existing queue:
 
 ```sh

@@ -101,6 +101,12 @@ class CycleJobTests(unittest.TestCase):
         for value in cases:
             with self.subTest(value=value), self.assertRaises(ValueError): validate(value)
 
+    def test_optional_minimum_duration_accepts_only_bounded_integer(self):
+        self.assertEqual(validate(dict(request(), minimum_duration_seconds=510))['minimum_duration_seconds'], 510)
+        for duration in (0, 601, True, None, '510', 510.0):
+            with self.subTest(duration=duration), self.assertRaisesRegex(ValueError, 'Minimum duration'):
+                validate(dict(request(), minimum_duration_seconds=duration))
+
     def test_dispatch_uses_host_paths_and_same_durable_queue(self):
         with tempfile.TemporaryDirectory() as td:
             queue = Queue(Path(td)/'queue')
@@ -209,9 +215,41 @@ class CycleJobTests(unittest.TestCase):
             self.assertEqual(result['review_status'], 'AWAITING_REVIEW')
             self.assertEqual(observed[0][0][0:2], [sys.executable, '-c'])
             self.assertEqual(observed[0][0][3], str(attempt/'brief.json'))
-            self.assertEqual(observed[0][0][-3], '60')
-            self.assertEqual(observed[0][0][-1], '')
+            self.assertEqual(observed[0][0][-4:], ['60', '', '', ''])
             self.assertEqual(digest(attempt/'brief.json'), request()['brief_sha256'])
+
+    def test_guardian_receives_minimum_and_missing_or_short_evidence_blocks_completion(self):
+        import sys
+        for outcome in ('missing', 'mismatch', 'short', 'pass'):
+            with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                (root/'scripts').mkdir(); (root/'scripts/v2_free_voice.py').touch()
+                attempt = root/'attempt'; attempt.mkdir()
+                queued = dict(request(), minimum_duration_seconds=510)
+                def run(command, **kwargs):
+                    self.assertEqual(command[-1], '510')
+                    self.assertIn('minimum_duration=int(sys.argv[8])', command[2])
+                    cycle = attempt/'cycle'; receipt = packet(cycle, queued['brief_sha256'])
+                    if outcome == 'missing': return
+                    rendered = json.loads((cycle/'render/render.json').read_text())
+                    minimum = 509 if outcome == 'mismatch' else 510
+                    rendered.update(minimum_duration_seconds=minimum, measured_narration_frame_budget=12240,
+                                    encoded_picture_duration_seconds=509.99 if outcome == 'short' else 510.0)
+                    write(cycle/'render/render.json', rendered)
+                    write(cycle/'delivery/render.json', rendered)
+                    package = json.loads((cycle/'delivery/package.json').read_text())
+                    package['render_receipt_sha256'] = digest(cycle/'delivery/render.json')
+                    package['files_sha256']['render.json'] = package['render_receipt_sha256']
+                    write(cycle/'delivery/package.json', package)
+                    receipt.update(minimum_duration_seconds=minimum, package_sha256=digest(cycle/'delivery/package.json'))
+                    write(cycle/'cycle.json', receipt)
+                with patch('integrations.content_control.cycle_job.collect_snapshot', return_value={}), \
+                     patch('integrations.content_control.cycle_job.recommend_capacity', return_value={'admitted_workers': 1}), \
+                     patch('integrations.content_control.cycle_job.guarded_runner', return_value=run):
+                    result = run_job(queued, attempt, voice_python=sys.executable, voice_root=root)
+                self.assertEqual(result['minimum_duration_seconds'], 510)
+                self.assertEqual(result['status'], 'PASS' if outcome == 'pass' else 'BLOCKED')
+                if outcome != 'pass': self.assertIn('minimum', result['blocker'])
 
 
 class QueuedRevisionTests(unittest.TestCase):
@@ -262,7 +300,7 @@ class QueuedRevisionTests(unittest.TestCase):
                 attempt = root/'attempt'; attempt.mkdir()
                 value = self.request(); encoded, lineage = production_input(value)
                 def run(command, **kwargs):
-                    self.assertEqual(command[-1], str(attempt/'revision.json'))
+                    self.assertEqual(command[-2:], [str(attempt/'revision.json'), ''])
                     self.assertIn('revision_path=sys.argv[7] or None', command[2])
                     self.assertEqual((attempt/'brief.json').read_bytes(), encoded)
                     self.assertEqual((attempt/'revision.json').read_bytes(), lineage['revision_json'].encode())
