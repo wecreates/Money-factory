@@ -109,6 +109,32 @@ class CyclePackageTest(unittest.TestCase):
             self.assertIsNone(t['source_crop_pixels'])
             self.assertEqual(t['source_frame_size'], [1280, 720])
 
+    def test_static_footage_labels_repeated_artwork(self):
+        result = self.export()
+        self.assertEqual([t.get('artwork_repeats_variant') for t in result['thumbnails']], [None, 1, 1])
+        self.assertFalse(any('nominal_source_timestamp_seconds' in t for t in result['thumbnails']))
+        self.assertIn('Reuses picture from variant 1', (self.root/'package/index.html').read_text())
+        self.assertEqual({path.name for path in (self.root/'package').iterdir()},
+                         set(result['files_sha256']) | {'package.json', 'review-package.zip'})
+
+    def test_repeated_picture_uses_bounded_alternative_without_changing_unique_defaults(self):
+        video = self.render/'video.mp4'
+        subprocess.run(['ffmpeg', '-v', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i',
+                        'color=c=red:s=160x240:r=24:d=1', '-f', 'lavfi', '-i',
+                        'anullsrc=r=24000:cl=mono', '-t', '1', '-vf',
+                        "drawbox=c=blue:t=fill:enable='gte(t,0.7)',drawbox=c=green:t=fill:enable='gte(t,0.875)'",
+                        '-c:v', 'libx264', '-threads', '1', '-pix_fmt', 'yuv420p', '-c:a', 'aac', str(video)],
+                       check=True, capture_output=True, timeout=30)
+        self.receipt['candidate_sha256'] = m.digest(video)
+        self.save_receipt()
+        result = self.export()
+        duration = result['media']['duration_seconds']
+        self.assertEqual([round(t['source_timestamp_seconds']/duration, 1) for t in result['thumbnails']],
+                         [.2, .9, .8])
+        self.assertEqual(result['thumbnails'][1]['nominal_source_timestamp_seconds'], duration*.5)
+        self.assertAlmostEqual(result['thumbnails'][1]['source_timestamp_seconds'], duration*.9)
+        self.assertFalse(any('artwork_repeats_variant' in t for t in result['thumbnails']))
+
     def test_landscape_layout_rejects_portrait_raster(self):
         self.editorial['layout'] = 'landscape'
         self.receipt.update(layout='landscape', editorial_sha256=m.editorial_digest(self.editorial))
@@ -162,7 +188,8 @@ class CyclePackageTest(unittest.TestCase):
         revised_path = self.root / 'revised'
         with patch.object(m, 'make_thumbnail', wraps=m.make_thumbnail) as draw_overlay:
             revised = self.export(revised_path)
-        self.assertEqual([call.args[2] for call in draw_overlay.call_args_list], ['Fee < Myth?'] * 3)
+        self.assertEqual({call.args[2] for call in draw_overlay.call_args_list}, {'Fee < Myth?'})
+        self.assertEqual({call.args[3] for call in draw_overlay.call_args_list}, {0, 1, 2})
         self.assertEqual(revised['thumbnail_copy'], 'Fee < Myth?')
         self.assertEqual(revised['candidate_sha256'], baseline['candidate_sha256'])
         self.assertEqual(revised['caption_sha256'], baseline['caption_sha256'])

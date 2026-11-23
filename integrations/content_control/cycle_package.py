@@ -154,6 +154,22 @@ def make_thumbnail(frame, target, title, variant, *, source_crop=None):
     canvas.save(target, format='PNG')
     with Image.open(target) as checked:
         checked.verify()
+    artwork = hashlib.sha256(str(fitted.size).encode('ascii'))
+    artwork.update(fitted.tobytes())
+    return artwork.hexdigest()
+
+
+def capture_thumbnail(output, target, seconds, overlay, variant, crop, deadline):
+    raw = output / 'thumbnail-frame.png'
+    run(['ffmpeg', '-v', 'error', '-nostdin', '-n', '-protocol_whitelist', 'file,pipe',
+         '-threads', '2', '-ss', format(seconds, '.6f'), '-f', 'mov', '-i', str(output / 'video.mp4'),
+         '-frames:v', '1', '-threads', '1', str(raw)], 60, deadline=deadline)
+    if not raw.is_file():
+        return None
+    artwork = make_thumbnail(raw, target, overlay, variant, source_crop=crop)
+    check_deadline(deadline)
+    raw.unlink()
+    return artwork
 
 
 def _page(editorial, thumbnails, candidate):
@@ -170,7 +186,9 @@ def _page(editorial, thumbnails, candidate):
                      '"><figcaption>Variant ' + str(i + 1) + ', source frame at ' +
                      format(t['source_timestamp_seconds'], '.2f') + ' seconds' +
                      (' (diagram crop; omits source headline, scene counter, character and speaker label)'
-                      if t.get('framing') == 'diagram_focus' else ' (complete frame)') + '</figcaption></figure>'
+                      if t.get('framing') == 'diagram_focus' else ' (complete frame)') +
+                     (' · Reuses picture from variant ' + str(t['artwork_repeats_variant'])
+                      if 'artwork_repeats_variant' in t else '') + '</figcaption></figure>'
                      for i, t in enumerate(thumbnails))
     overlay_note = ('<p>Thumbnail copy: ' + esc(editorial['thumbnail_copy']) + '</p>'
                     if 'thumbnail_copy' in editorial else '')
@@ -238,22 +256,35 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
                 digest(output / 'render.json', deadline) == render_receipt_sha, 'Copied render changed during packaging')
         thumbnails = []
         source_crop = diagram_thumbnail_crop(editorial, receipt, media)
+        artwork_variants = {}
+        fallback = output / 'thumbnail-alternative.png'
         for index, fraction in enumerate((0.2, 0.5, 0.8)):
-            timestamp = media['duration_seconds'] * fraction
-            raw = output / ('frame-' + str(index + 1) + '.png')
-            run(['ffmpeg', '-v', 'error', '-nostdin', '-n', '-protocol_whitelist', 'file,pipe',
-                 '-threads', '2', '-ss', format(timestamp, '.6f'), '-f', 'mov', '-i', str(output / 'video.mp4'),
-                 '-frames:v', '1', '-threads', '1', str(raw)], 60, deadline=deadline)
+            nominal = timestamp = media['duration_seconds'] * fraction
             filename = 'thumbnail-' + str(index + 1) + '.png'
-            make_thumbnail(raw, output / filename, overlay, index, source_crop=source_crop)
-            check_deadline(deadline)
-            raw.unlink()
-            thumbnails.append({'file': filename, 'source_timestamp_seconds': timestamp,
-                               'framing': 'diagram_focus' if source_crop else 'full_frame',
-                               'source_crop_pixels': list(source_crop) if source_crop else None,
-                               'source_crop_omissions': ['headline', 'scene counter', 'character', 'speaker label'] if source_crop else [],
-                               'source_frame_size': [media['width'], media['height']],
-                               'sha256': digest(output / filename, deadline), 'width': 1280, 'height': 720})
+            target = output / filename
+            artwork = capture_thumbnail(output, target, timestamp, overlay, index, source_crop, deadline)
+            require(artwork is not None, 'No source frame for nominal thumbnail')
+            if artwork in artwork_variants:
+                for alternate in (0.9, 0.65, 0.35, 0.1):
+                    seconds = media['duration_seconds'] * alternate
+                    alternative = capture_thumbnail(output, fallback, seconds, overlay, index, source_crop, deadline)
+                    if alternative is not None and alternative not in artwork_variants:
+                        fallback.replace(target)
+                        timestamp, artwork = seconds, alternative
+                        break
+                fallback.unlink(missing_ok=True)
+            thumbnail = {'file': filename, 'source_timestamp_seconds': timestamp,
+                         'framing': 'diagram_focus' if source_crop else 'full_frame',
+                         'source_crop_pixels': list(source_crop) if source_crop else None,
+                         'source_crop_omissions': ['headline', 'scene counter', 'character', 'speaker label'] if source_crop else [],
+                         'source_frame_size': [media['width'], media['height']],
+                         'sha256': digest(target, deadline), 'width': 1280, 'height': 720}
+            if timestamp != nominal:
+                thumbnail['nominal_source_timestamp_seconds'] = nominal
+            if artwork in artwork_variants:
+                thumbnail['artwork_repeats_variant'] = artwork_variants[artwork]
+            artwork_variants.setdefault(artwork, index + 1)
+            thumbnails.append(thumbnail)
         (output / 'editorial.json').write_text(json.dumps(editorial, indent=2, sort_keys=True, allow_nan=False) + '\n')
         from integrations.content_control.cycle_av_review import write_automated_review
         write_automated_review(output, candidate, captions, deadline=deadline, media=media)

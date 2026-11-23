@@ -340,7 +340,15 @@ Publishing, paid generation, production approval and full audiovisual approval r
 ### Record a thumbnail/title choice
 
 After inspecting the three packaged thumbnail PNGs, record an editorial choice
-without changing the immutable delivery package:
+without changing the immutable delivery package.
+
+New packages compare the fitted frame artwork before applying accent colors
+and title copy. When a nominal frame repeats earlier artwork, the packager
+tries up to four alternate timestamps from the same video. The receipt records
+the original sampling time if replaced, or identifies which variant repeats
+when no distinct sampled artwork is available. This is a pixel-identity
+comparison within the candidate, with visual choice and audience response
+reviewed separately.
 
 ```bash
 python -m integrations.content_control.cycle_selection \
