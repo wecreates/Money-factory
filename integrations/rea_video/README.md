@@ -53,6 +53,12 @@ within 0.125 seconds (three frames at 24 fps) of each authored cut. The report
 lists matched cuts, missing cuts and unmatched detections. Older receipts
 without measured scenes report unavailable coverage. This is a timing
 comparison for review, and a match alone does not verify the content of a shot.
+When REA misses authored cuts, the adapter uses the existing scene sampler
+within the same run budget. `authored_scene_samples` links a separate
+hash-bound midpoint gallery and receipt. REA misses remain in the report.
+If sampling is blocked, `PARTIAL_DIAGNOSTIC` preserves the detector results
+and explains the sampler failure. The CLI returns a nonzero exit for this
+partial result. Sampled stills help reviewers navigate the video.
 OCR and pixel/audio statistics cannot establish natural voice quality, factual
 accuracy, creative quality, or complete audiovisual comparison. Publication,
 production approval, and full audiovisual approval remain false. Reports retain
