@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import tempfile
 import zipfile
 
 from integrations.content_control.cycle_editorial import compile_editorial, _timestamp, _text
@@ -118,6 +119,55 @@ def _new_output(path, root, source):
     return path
 
 
+def lint_package(cycle_dir, output):
+    """Run pinned offline title/thumbnail copy lint on an exact review package."""
+    from integrations.run import source
+    from integrations.youtube_skill.adapter import dispatch
+
+    require(all(os.environ.get(k, 'false').lower() == 'false' for k in
+                ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')), 'Publishing and paid generation must remain disabled')
+    root = Path(os.path.abspath(cycle_dir))
+    snapshot = inspect_cycle(root)
+    output = _new_output(output, root, root / 'delivery/package.json')
+    editorial = snapshot['editorial']
+    title = editorial['title']
+    payload = {'title': title, 'thumb': editorial.get('thumbnail_copy', ' '.join(title.split()))}
+    # The pinned CLI scans all argv for switches, even in value positions.
+    require(title not in ('--json', '--thumb') and payload['thumb'] != '--json',
+            'Title or thumbnail copy conflicts with the pinned lint CLI')
+    with tempfile.TemporaryDirectory(prefix='cyzor-package-lint-') as temp:
+        input_path = Path(temp) / 'copy.json'
+        input_path.write_text(json.dumps(payload, sort_keys=True, allow_nan=False) + '\n')
+        input_sha = digest(input_path)
+        execution = dispatch({'operation': 'package-lint', 'input': str(input_path),
+                              'publication_enabled': False, 'paid_generation_enabled': False},
+                             source('youtube-agent-skill'))
+    require(execution.get('tool') == 'youtube-agent-skill' and execution.get('operation') == 'package-lint'
+            and execution.get('input_sha256') == input_sha and execution.get('status') in ('PASS', 'BLOCKED')
+            and execution.get('execution_status') == execution['status']
+            and all(execution.get(key) is False for key in ('publication_enabled', 'paid_generation_enabled',
+                    'production_ready')), 'Invalid package lint evidence')
+    if execution['status'] == 'PASS':
+        findings = execution.get('findings')
+        require(execution.get('exit_code') == 0 and isinstance(findings, list) and len(findings) == 1 and isinstance(findings[0], dict)
+                and findings[0].get('title') == title.strip(), 'Lint did not check the submitted title')
+    files = snapshot['files_sha256']
+    require(inspect_cycle(root)['files_sha256'] == files, 'Package changed during lint')
+    result = {'schema_version': 1,
+              'status': 'DIAGNOSTIC_COMPLETE' if execution['status'] == 'PASS' else 'BLOCKED',
+              'recorded_at': datetime.now(timezone.utc).isoformat(),
+              'candidate_sha256': snapshot['candidate_sha256'],
+              'package_sha256': files['delivery/package.json'],
+              'source_files_sha256': files, 'input_copy': payload, 'execution': execution,
+              'thumbnail_selection_verified': False, 'thumbnail_performance_verified': False,
+              'production_ready': False, **dict.fromkeys(FLAGS, False),
+              'scope': 'Offline title and thumbnail copy lint. All three thumbnails use the same authored copy; '
+                       'picture quality, selection, performance and audiovisual approval are unverified.'}
+    with output.open('x') as stream:
+        json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False); stream.write('\n')
+    return result
+
+
 def record_review(cycle_dir, review_path, output):
     root, review_path = Path(os.path.abspath(cycle_dir)), Path(os.path.abspath(review_path))
     snapshot = inspect_cycle(root)
@@ -210,10 +260,18 @@ def main():
     parser.add_argument('--review')
     parser.add_argument('--output', required=True)
     parser.add_argument('--revision-brief', help='Optional new full brief JSON; --review must then be a recorded review.')
-    parser.add_argument('--analyze', action='store_true', help='Collect offline REA Video diagnostics before recording a review.')
+    diagnostics = parser.add_mutually_exclusive_group()
+    diagnostics.add_argument('--analyze', action='store_true', help='Collect offline REA Video diagnostics before recording a review.')
+    diagnostics.add_argument('--package-lint', action='store_true', help='Collect pinned YouTube title and thumbnail copy diagnostics.')
     parser.add_argument('--rea-runtime', help='Absolute Python interpreter from the installed REA Video environment.')
     parser.add_argument('--timeout', type=int, default=300)
     args = parser.parse_args()
+    if args.package_lint:
+        if args.review or args.revision_brief or args.rea_runtime:
+            parser.error('--package-lint cannot be combined with review, revision, or REA runtime options')
+        result = lint_package(args.cycle_dir, args.output)
+        print(json.dumps(result, indent=2))
+        return 0 if result.get('status') == 'DIAGNOSTIC_COMPLETE' else 2
     if args.analyze:
         if not args.rea_runtime or args.review or args.revision_brief:
             parser.error('--analyze requires --rea-runtime and cannot be combined with --review or --revision-brief')
