@@ -18,6 +18,7 @@ PIN = '86486c6e104b917fb4b6a2d6501134686c05b219'
 MODEL = 'face_detection_yunet_2023mar.onnx'
 MODEL_SHA = '8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4'
 LOG_LIMIT = 65536
+CUT_TOLERANCE_SECONDS = .125
 FLAGS = ('--no-vlm', '--no-whole', '--no-asr', '--no-speakers', '--no-survey',
          '--no-stems', '--no-moments', '--no-packaging', '--workers', '1', '--lang', 'en', '--ocr-lang', 'zh')
 
@@ -129,12 +130,56 @@ def _summarize(directory):
     require(vlm.get('used') is False and vlm.get('requested') is False, 'Unexpected external VLM analysis')
     require(not value.get('stems') and not value.get('speech') and not value.get('speakers'), 'Unexpected optional audio-model operation')
     shots = value.get('shots')
-    require(isinstance(shots, list) and 0 < len(shots) <= 2000, 'Invalid detected shots')
+    require(isinstance(shots, list) and 0 < len(shots) <= 2000
+            and all(isinstance(shot, dict) for shot in shots), 'Invalid detected shots')
+    source = value.get('source')
+    duration = source.get('duration') if isinstance(source, dict) else None
+    require(type(duration) in (int, float) and 0 < duration <= 1800, 'Invalid analyzer duration')
+    boundaries = [shot.get('start') for shot in shots]
+    require(all(type(start) in (int, float) and 0 <= start < duration for start in boundaries)
+            and all(first < second for first, second in zip(boundaries, boundaries[1:])),
+            'Invalid detected shot starts')
     return {'detected_segments': len(shots), 'ocr_requested': True, 'external_vlm_used': False,
             'asr_enabled': False, 'stem_separation_enabled': False,
-            'detected_boundaries_seconds': [shot.get('start') for shot in shots],
-            'duration_seconds': value.get('source', {}).get('duration'),
+            'detected_boundaries_seconds': boundaries, 'duration_seconds': duration,
             'scope': 'Heuristic scene/OCR/pixel/audio-signal observations; boundaries can merge editorial cuts. No full audiovisual, voice-quality or creative approval.'}
+
+
+def _cut_coverage(render, editorial_scenes, summary):
+    """Match detected and authored cut times in order without reusing a detection."""
+    if 'scenes' not in render:
+        return {'status': 'UNAVAILABLE', 'reason': 'Render receipt does not retain measured scenes'}
+    rows = render['scenes']
+    require(isinstance(rows, list) and rows and len(rows) == len(editorial_scenes)
+            and all(isinstance(row, dict) for row in rows)
+            and [row.get('scene_id') for row in rows] == [scene['id'] for scene in editorial_scenes],
+            'Measured scene identities must match the editorial')
+    starts = [row.get('start') for row in rows]
+    duration = summary['duration_seconds']
+    require(starts[0] == 0 and all(type(start) in (int, float) and 0 <= start < duration for start in starts)
+            and all(first < second for first, second in zip(starts, starts[1:])), 'Invalid measured scene starts')
+    detected = [start for start in summary['detected_boundaries_seconds'] if start != 0]
+    matched = []
+    missing = []
+    unmatched = []
+    next_detection = 0
+    for row, start in zip(rows[1:], starts[1:]):
+        while next_detection < len(detected) and detected[next_detection] < start - CUT_TOLERANCE_SECONDS:
+            unmatched.append(detected[next_detection])
+            next_detection += 1
+        cut = {'scene_id': row['scene_id'], 'authored_seconds': start}
+        if next_detection < len(detected) and detected[next_detection] <= start + CUT_TOLERANCE_SECONDS:
+            matched.append({**cut, 'detected_seconds': detected[next_detection]})
+            next_detection += 1
+        else:
+            missing.append(cut)
+    unmatched.extend(detected[next_detection:])
+    if missing:
+        status = 'MISSING_AUTHORED_CUTS'
+    else:
+        status = 'ALL_AUTHORED_CUTS_MATCHED' if matched else 'NO_AUTHORED_CUTS'
+    return {'status': status, 'tolerance_seconds': CUT_TOLERANCE_SECONDS,
+            'matched_cuts': matched, 'missing_cuts': missing, 'unmatched_detected_seconds': unmatched}
 
 
 def analyze_cycle(cycle_dir, output, *, runtime, timeout=300):
@@ -151,6 +196,10 @@ def analyze_cycle(cycle_dir, output, *, runtime, timeout=300):
     # artifacts must not be symlinks. Retain venv path for installed dependencies.
     require(interpreter.is_absolute() and interpreter.is_file() and os.access(interpreter, os.X_OK), 'Absolute installed Python runtime required')
     before = inspect_cycle(root)
+    render_raw = (root / 'delivery/render.json').read_bytes()
+    require(hashlib.sha256(render_raw).hexdigest() == before['files_sha256']['delivery/render.json'],
+            'Render receipt changed before diagnostics')
+    render = json.loads(render_raw)
     model_dir = Path(os.environ.get('REA_VIDEO_MODELS', str(Path.home() / '.cache/rea-video/models'))).absolute()
     model = model_dir / MODEL; no_symlinks(model)
     require(model.is_file() and digest(model) == MODEL_SHA, 'Verified cached YuNet model required; downloads disabled')
@@ -184,6 +233,7 @@ def analyze_cycle(cycle_dir, output, *, runtime, timeout=300):
         require(after_identity.pop('ocr_runtime_initialized', False) is True and after_identity == identity,
                 'Analyzer installation changed or OCR unavailable')
         manifest = _manifest(diagnostics); summary = _summarize(diagnostics)
+        summary['authored_cut_coverage'] = _cut_coverage(render, before['editorial']['scenes'], summary)
         require(inspect_cycle(root)['files_sha256'] == before['files_sha256'], 'Cycle changed during diagnostics')
         require(digest(copied) == before['candidate_sha256'], 'Analyzed candidate changed')
         require(digest(cache/MODEL) == MODEL_SHA, 'Local model changed')

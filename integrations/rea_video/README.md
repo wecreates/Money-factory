@@ -46,6 +46,13 @@ Successful execution returns `DIAGNOSTIC_COMPLETE` in `analysis.json`, binding:
 
 Read `diagnostics/VIDEO.md` first, then inspect the storyboard and individual
 shot images. Machine-detected boundaries can merge multiple editorial cuts.
+In `analysis.json`, `summary.authored_cut_coverage` reconciles detections with
+the measured scene starts from the same package's verified render receipt.
+It excludes the 0-second origin and matches detections in order, at most once,
+within 0.125 seconds (three frames at 24 fps) of each authored cut. The report
+lists matched cuts, missing cuts and unmatched detections. Older receipts
+without measured scenes report unavailable coverage. This is a timing
+comparison for review, and a match alone does not verify the content of a shot.
 OCR and pixel/audio statistics cannot establish natural voice quality, factual
 accuracy, creative quality, or complete audiovisual comparison. Publication,
 production approval, and full audiovisual approval remain false. Reports retain
