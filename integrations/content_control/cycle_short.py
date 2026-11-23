@@ -1,5 +1,6 @@
 """Explicit, unpublished portrait excerpts; selection and creative acceptance stay open."""
 import argparse
+from contextlib import nullcontext
 from datetime import datetime, timezone
 import json
 import math
@@ -18,6 +19,7 @@ from integrations.owned_process import owned_process
 FLAGS = {k: False for k in ('publication_enabled', 'paid_generation_enabled',
                            'production_approved', 'full_av_review', 'production_ready')}
 STAMP = r'(\d{2,}):([0-5]\d):([0-5]\d)\.(\d{3})'
+COMPACT_STYLE = 'FontName=DejaVu Sans,FontSize=10,MarginV=4,Outline=1.1,Shadow=0,Alignment=2'
 
 
 def _seconds(value):
@@ -54,11 +56,11 @@ def clip_captions(text, start_ms, end_ms):
     return 'WEBVTT\n\n' + '\n\n'.join(cues) + ('\n' if cues else ''), truncated
 
 
-def _run(command, deadline):
+def _run(command, deadline, *, cwd=None):
     remaining = deadline - time.monotonic()
     require(remaining > 0, 'Short deadline exhausted')
     with tempfile.TemporaryFile() as stream:
-        with owned_process(command, timeout=remaining, stdout=stream, stderr=subprocess.STDOUT) as process:
+        with owned_process(command, timeout=remaining, cwd=cwd, stdout=stream, stderr=subprocess.STDOUT) as process:
             while process.poll() is None:
                 require(time.monotonic() < deadline, 'Short deadline exhausted')
                 require(os.fstat(stream.fileno()).st_size <= 1024*1024, 'Media diagnostic output limit')
@@ -85,8 +87,9 @@ def _probe(path, deadline):
     return {'width':width,'height':height,'duration_seconds':duration}
 
 
-def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counter=False):
+def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counter=False, compact_captions=False):
     require(type(hide_source_counter) is bool, 'hide_source_counter must be boolean')
+    require(type(compact_captions) is bool, 'compact_captions must be boolean')
     require(type(timeout) is int and 10 <= timeout <= 600, 'Timeout must be 10..600 seconds')
     require(all(type(v) in (int,float) and math.isfinite(v) for v in (start,end)) and
             0 <= start < end and end-start <= 60, 'Explicit finite interval of at most 60 seconds required')
@@ -103,11 +106,12 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
     source=_probe(media,deadline)
     counter_filter=[]
     counter_action={'action':'preserve'}
-    if hide_source_counter:
+    if hide_source_counter or compact_captions:
         # inspect_cycle has already verified this exact receipt and editorial.
         render=json.loads((root/'delivery/render.json').read_text())
         require(diagram_thumbnail_crop(snapshot['editorial'],render,source) is not None,
-                'Counter removal requires the known 720x1280 picture-renderer layout')
+                'Counter removal and compact captions require the known 720x1280 picture-renderer layout')
+    if hide_source_counter:
         counter_filter=['-vf','drawbox=x=570:y=40:w=110:h=45:color=0xf7f1e6:t=fill']
         counter_action={'action':'hide_source_scene_counter','rectangle_xywh':[570,40,110,45],
                         'fill_rgb':'#f7f1e6',
@@ -115,6 +119,10 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
     require(end <= source['duration_seconds'] and end_ms/1000 <= source['duration_seconds'], 'Interval exceeds source media')
     require(captions.stat().st_size <= 1024*1024, 'Caption input oversized')
     clipped,boundary=clip_captions(captions.read_text(),start_ms,end_ms)
+    if compact_captions:
+        require(clipped != 'WEBVTT\n\n', 'Compact captions require timed cues')
+        cue_text = [line for block in clipped.strip().split('\n\n')[1:] for line in block.splitlines()[1:]]
+        require(all(not re.search(r'[<>{}\\&]', line) for line in cue_text), 'Compact captions require unmarked cue text')
     output.mkdir(parents=True,exist_ok=False)
     receipt={'schema_version':1,'status':'BLOCKED','technical_status':'PENDING',**FLAGS,
              'source_counter':counter_action,'tool_sha256':digest(Path(__file__)),
@@ -126,15 +134,30 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
              'scope':'Unreviewed portrait excerpt; no long-form, creative, listening, phone or publishing acceptance.',
              'started_at':datetime.now(timezone.utc).isoformat()}
     try:
-        _run(['ffmpeg','-v','error','-xerror','-nostdin','-n','-protocol_whitelist','file,pipe','-threads','2',
-              '-f','mov','-i',str(media),'-ss',str(start_ms/1000),'-t',str((end_ms-start_ms)/1000),
-              '-map','0:v:0','-map','0:a:0','-map_metadata','-1',*counter_filter,'-c:v','libx264','-threads','2',
-              '-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart','-fs',str(256*1024*1024),str(output/'video.mp4')],deadline)
-        actual=_probe(output/'video.mp4',deadline)
-        require(abs(actual['duration_seconds']-(end_ms-start_ms)/1000)<=.1,'Encoded duration differs from requested interval')
-        require(actual['width']==source['width'] and actual['height']==source['height'],'Framing changed')
+        working = tempfile.TemporaryDirectory(prefix='.compact-', dir=output) if compact_captions else nullcontext(output)
+        with working as directory:
+            stage = Path(directory)
+            encoded = stage / ('clean.mp4' if compact_captions else 'video.mp4')
+            _run(['ffmpeg','-v','error','-xerror','-nostdin','-n','-protocol_whitelist','file,pipe','-threads','2',
+                  '-f','mov','-i',str(media),'-ss',str(start_ms/1000),'-t',str((end_ms-start_ms)/1000),
+                  '-map','0:v:0','-map','0:a:0','-map_metadata','-1',*counter_filter,'-c:v','libx264','-threads','2',
+                  '-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart','-fs',str(256*1024*1024),str(encoded)],deadline)
+            actual=_probe(encoded,deadline)
+            require(abs(actual['duration_seconds']-(end_ms-start_ms)/1000)<=.1,'Encoded duration differs from requested interval')
+            require(actual['width']==source['width'] and actual['height']==source['height'],'Framing changed')
+            clipped, boundary = clip_captions(captions.read_text(), start_ms, min(end_ms, start_ms + math.floor(actual['duration_seconds']*1000)))
+            if compact_captions:
+                require(clipped != 'WEBVTT\n\n', 'No captions remain within the encoded excerpt')
+                (stage/'captions.vtt').write_text(clipped)
+                _run(['ffmpeg','-v','error','-xerror','-nostdin','-n','-protocol_whitelist','file,pipe','-threads','2',
+                      '-f','mov','-i','clean.mp4','-map','0:v:0','-map','0:a:0','-map_metadata','-1',
+                      '-vf',f"subtitles=filename=captions.vtt:force_style='{COMPACT_STYLE}'",'-filter_threads','1',
+                      '-c:v','libx264','-threads','2','-pix_fmt','yuv420p','-c:a','copy','-movflags','+faststart',
+                      '-fs',str(256*1024*1024),str(output/'video.mp4')],deadline,cwd=stage)
+                require(_probe(output/'video.mp4',deadline) == actual, 'Caption burn changed media framing or duration')
+                receipt['caption_overlay'] = {'style': COMPACT_STYLE, 'audio_mode': 'stream_copy_from_excerpt',
+                                              'scope': 'Burned rebased sidecar into a private phone-size review derivative.'}
         _run(['ffmpeg','-v','error','-xerror','-nostdin','-threads','2','-i',str(output/'video.mp4'),'-f','null','-'],deadline)
-        clipped, boundary = clip_captions(captions.read_text(), start_ms, min(end_ms, start_ms + math.floor(actual['duration_seconds']*1000)))
         receipt['boundary_cue_numbers'] = boundary
         (output/'captions.vtt').write_text(clipped)
         require(inspect_cycle(root)==snapshot,'Source cycle changed while clipping')
@@ -155,8 +178,10 @@ def main():
     parser.add_argument('--timeout',type=int,default=180)
     parser.add_argument('--hide-source-counter',action='store_true',
                         help='Hide only the known picture renderer scene-counter region; unknown layouts are rejected.')
+    parser.add_argument('--compact-captions',action='store_true',
+                        help='Burn compact captions into a separate excerpt of the known picture renderer.')
     a=parser.parse_args();result=make_short(a.cycle_dir,a.output,start=a.start,end=a.end,timeout=a.timeout,
-                                        hide_source_counter=a.hide_source_counter)
+                                        hide_source_counter=a.hide_source_counter,compact_captions=a.compact_captions)
     print(json.dumps(result,indent=2));return 0 if result['status']=='AWAITING_REVIEW' else 2
 
 

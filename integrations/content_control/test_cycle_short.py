@@ -93,6 +93,40 @@ class ShortTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'boolean'):
                 m.make_short(self.root,self.base/'unused',start=0,end=1,hide_source_counter=value)
 
+    def test_compact_burn_uses_excerpt_clock_and_copies_audio(self):
+        from PIL import Image
+        self.media('720x1280'); self.known_layout()
+        clean, burned = self.base/'plain', self.base/'path: with spaces'
+        with patch.object(m,'inspect_cycle',return_value=self.snapshot):
+            a=m.make_short(self.root,clean,start=.5,end=2,timeout=30)
+            b=m.make_short(self.root,burned,start=.5,end=2,timeout=30,compact_captions=True)
+        self.assertEqual(a['status'],'AWAITING_REVIEW',a)
+        self.assertEqual(b['status'],'AWAITING_REVIEW',b)
+        self.assertEqual(b['caption_overlay']['style'],m.COMPACT_STYLE)
+        self.assertEqual(b['caption_sha256'],a['caption_sha256'])
+        self.assertEqual(b['boundary_cue_numbers'],[1,2])
+        def audio_hash(path):
+            return subprocess.check_output(['ffmpeg','-v','error','-i',str(path/'video.mp4'),
+                                            '-map','0:a:0','-c:a','copy','-f','framehash','-'])
+        self.assertEqual(audio_hash(burned),audio_hash(clean))
+        for offset, visible in (('0.25',True),('0.60',False),('0.90',True)):
+            frame=self.base/f'{offset}.png'
+            subprocess.run(['ffmpeg','-v','error','-i',str(burned/'video.mp4'),'-ss',offset,
+                            '-frames:v','1','-threads','1',str(frame)],check=True)
+            with Image.open(frame) as image:
+                red=image.getchannel('R')
+                self.assertLess(red.crop((0,0,720,1150)).getextrema()[1],50)
+                self.assertEqual(red.crop((0,1150,720,1280)).getextrema()[1]>140,visible)
+
+    def test_compact_burn_rejects_empty_or_marked_up_cues(self):
+        self.media('720x1280'); self.known_layout()
+        with patch.object(m,'inspect_cycle',return_value=self.snapshot):
+            for captions, reason in [('WEBVTT\n\n','timed cues'),(VTT.replace('First','<b>First</b>'),'unmarked')]:
+                (self.source/'captions.vtt').write_text(captions)
+                with self.assertRaisesRegex(ValueError,reason):
+                    m.make_short(self.root,self.base/'unused',start=0,end=1,compact_captions=True)
+                self.assertFalse((self.base/'unused').exists())
+
     def test_counter_rectangle_contains_maximum_renderer_counter_without_headline(self):
         from PIL import Image, ImageDraw, ImageFont
         from integrations.content_control.cycle_render import FONT
