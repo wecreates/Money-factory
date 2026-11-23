@@ -36,6 +36,8 @@ ASR_ASSETS = {
 MOTION_FRAMES = 24
 MOTION_FPS = 8
 MOTION_SCOPE = 'Deterministic three-second arm-gesture loop; static diagrams and typography. No lip sync or full character animation.'
+PANEL_BACKGROUND = '#f7f1e6'
+COMPARISON_BOUNDS = ((60, 340, 345, 710), (375, 340, 660, 710))
 
 
 def digest(path):
@@ -69,6 +71,13 @@ def validate_visual_shape(spec):
         raise ValueError(kind + ': at most two fields; use card or receipt for more fields')
     if kind in ('balance', 'checklist') and labels and values:
         raise ValueError(kind + ': use labels or values, not both; use card, receipt or comparison for paired fields')
+    if 'reveal_after_seconds' in spec:
+        offset = spec['reveal_after_seconds']
+        if (kind != 'comparison' or len(labels) != 2 or len(values) != 2
+                or any(not item.strip() for item in labels + values)):
+            raise ValueError('Timed reveal requires two complete comparison cards')
+        if type(offset) not in (int, float) or not .25 <= offset <= 59.5:
+            raise ValueError('Comparison reveal offset must be .25 to 59.5 scene-local seconds')
 
 
 def validate(editorial):
@@ -162,7 +171,7 @@ def draw_panel(scene, path, index, count, phase=0.0):
     validate_visual_shape(scene.get('visual_spec', {}))
     gesture = math.sin(2 * math.pi * (phase % 1.0)) * .18
     from PIL import Image, ImageDraw, ImageFont
-    image = Image.new('RGB', (720, 1280), '#f7f1e6')
+    image = Image.new('RGB', (720, 1280), PANEL_BACKGROUND)
     draw = ImageDraw.Draw(image)
     ink, accent = '#141414', '#007f89'
     def font(size):
@@ -226,9 +235,10 @@ def draw_panel(scene, path, index, count, phase=0.0):
     elif kind == 'comparison':
         if max(len(labels), len(values)) > 2:
             raise ValueError('Comparison supports at most two labeled fields')
-        for i, x in enumerate((60, 375)):
+        for i, bounds in enumerate(COMPARISON_BOUNDS):
+            x = bounds[0]
             color = accent if i else ink
-            draw.rounded_rectangle((x, 340, x+285, 710), radius=24, outline=color, width=6)
+            draw.rounded_rectangle(bounds, radius=24, outline=color, width=6)
             if i < len(labels):
                 # A label belongs to its own card, including label-only comparisons.
                 box = (x+16, 370, x+269, 460) if i < len(values) else (x+16, 405, x+269, 645)
@@ -294,6 +304,22 @@ def timestamp(seconds):
     return f'{h:02d}:{m:02d}:{s:02d}.{ms:03d}'
 
 
+def picture_filters(scene, frame_count):
+    filters = 'scale=720:1280,setsar=1,fps=24'
+    offset = scene.get('visual_spec', {}).get('reveal_after_seconds')
+    if offset is None:
+        return filters, None
+    frame = math.ceil(offset * 24)
+    if frame_count - frame < 12:
+        raise ValueError('Comparison reveal requires half a second of rendered screen time')
+    left, top, right, bottom = COMPARISON_BOUNDS[1]
+    # The filter runs on the complete 24 fps scene, outside the repeating arm loop.
+    filters += (f",drawbox=x={left}:y={top}:w={right-left+1}:h={bottom-top+1}"
+                f":color=0x{PANEL_BACKGROUND[1:]}:t=fill:enable='lt(n,{frame})'")
+    return filters, {'kind': 'second_comparison_card', 'requested_offset_seconds': offset,
+                     'first_visible_scene_frame': frame, 'rendered_offset_seconds': frame / 24}
+
+
 def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, transcription_python=None):
     scenes = validate(editorial)
     if isinstance(timeout,bool) or not isinstance(timeout,(int,float)) or not math.isfinite(timeout) or not 0 < timeout <= 1800:
@@ -331,8 +357,10 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
             wav=output/f'voice-{index:02d}.wav'
             if clip['audio_sha256']!=digest(wav) or clip['text_sha256']!=hashlib.sha256(scene['narration'].encode()).hexdigest():
                 raise ValueError('Narration binding mismatch')
-            duration=math.ceil((clip['duration_seconds']+.28)*24)/24
+            frame_count=math.ceil((clip['duration_seconds']+.28)*24)
+            duration=frame_count/24
             if start+duration>600: raise ValueError('Video exceeds ten minute limit')
+            filters, reveal = picture_filters(scene, frame_count)
             panel=output/f'panel-{index:02d}.png'; draw_panel(scene,panel,index,len(scenes))
             motion_dir=output/f'motion-{index:02d}'; motion_dir.mkdir()
             motion_hashes={}
@@ -348,7 +376,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
             run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-n','-threads','2',
                  '-stream_loop','-1','-framerate',str(MOTION_FPS),'-start_number','0',
                  '-i',motion_dir/'frame-%02d.png','-i',wav,'-t',f'{duration:.6f}',
-                 '-vf','scale=720:1280,setsar=1,fps=24','-af','apad','-c:v','libx264','-preset','veryfast',
+                 '-vf',filters,'-af','apad','-c:v','libx264','-preset','veryfast',
                  '-crf','20','-threads','2','-pix_fmt','yuv420p','-c:a','aac','-ar','24000','-ac','1',
                  '-movflags','+faststart',segment],output/f'encode-{index:02d}.log',deadline)
             # Caption groups are evenly timed within the measured clip. They are
@@ -361,6 +389,11 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                          'narration_end':start+clip['duration_seconds'],'panel':panel.name,
                          'panel_sha256':digest(panel),'voice_sha256':digest(wav),'segment_sha256':digest(segment),
                          'motion_directory':motion_dir.name,'motion_frames_sha256':motion_hashes})
+            if reveal:
+                rows[-1]['visual_reveal'] = reveal
+                receipt['motion']['scope'] = ('Deterministic three-second arm-gesture loop. Opted comparison '
+                                             'scenes reveal the second card once on the rendered scene clock. '
+                                             'No lip sync or automatic speech alignment.')
             segments.append(segment.name);start+=duration
         (output/'segments.txt').write_text(''.join("file '"+name+"'\n" for name in segments))
         run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-n','-f','concat','-safe','1',

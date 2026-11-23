@@ -41,6 +41,21 @@ This standalone command creates an explicit artifact attempt; it does not certif
 
 Outputs include the exact brief/editorial, fresh narration stems, original diagram panels, measured scene timeline, MP4, captions, speech-verification receipt, three PNG thumbnail candidates, local review HTML, portable ZIP and bound receipts. Thumbnail variants are frame-derived choices, not measured CTR winners. The webpage exposes reference scope and outstanding review requirements. No posting or publishing APIs exist in this path.
 
+### Reveal a comparison card during a scene
+
+A `comparison` scene with two complete label/value pairs can opt into
+`visual_spec.reveal_after_seconds`. The first card appears from the scene's
+first frame. The second appears once at the first 24 fps frame at or after
+the supplied scene-local time. It stays visible across the arm-gesture loops.
+The renderer records the requested offset and first visible frame in the
+scene receipt. The offset must be between 0.25 and 59.5 seconds and leave at
+least half a second in the rendered scene. Omit the field for the existing
+static comparison. The representative panel shows the complete comparison.
+
+An author can use observed word timestamps to choose the offset. The
+renderer does not infer speech alignment. Check the encoded candidate when
+the narration, edit or timing changes.
+
 ### Review samples from every authored scene
 
 Heuristic shot detection may merge several authored scenes into one representative
