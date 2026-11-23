@@ -25,7 +25,7 @@ def editorial_digest(editorial):
                                     allow_nan=False).encode()).hexdigest()
 
 
-def run(command, timeout=180, *, deadline=None):
+def run(command, timeout=180, *, deadline=None, stderr=False):
     check_deadline(deadline)
     if deadline is not None:
         timeout = min(timeout, deadline - time.monotonic())
@@ -36,7 +36,7 @@ def run(command, timeout=180, *, deadline=None):
     except subprocess.CalledProcessError as error:
         raise RuntimeError(f'{Path(command[0]).name} failed with exit code {error.returncode}') from error
     check_deadline(deadline)
-    return result.stdout
+    return result.stderr if stderr else result.stdout
 
 
 def declared_layout(editorial, receipt):
@@ -49,7 +49,8 @@ def declared_layout(editorial, receipt):
 
 def inspect_media(path, *, deadline=None, layout=None, decode=True):
     probe = json.loads(run(['ffprobe', '-v', 'error', '-protocol_whitelist', 'file,pipe',
-                           '-f', 'mov', '-show_streams', '-show_format', '-of', 'json', str(path)], 30, deadline=deadline))
+                           '-f', 'mov', '-enable_drefs', '0', '-use_absolute_path', '0',
+                           '-show_streams', '-show_format', '-of', 'json', str(path)], 30, deadline=deadline))
     videos = [s for s in probe['streams'] if s['codec_type'] == 'video']
     audios = [s for s in probe['streams'] if s['codec_type'] == 'audio']
     require(len(videos) == 1 and len(audios) >= 1, 'One video and an audio stream required')
@@ -66,7 +67,8 @@ def inspect_media(path, *, deadline=None, layout=None, decode=True):
     media = {'duration_seconds': duration, 'width': width, 'height': height}
     if decode:
         run(['ffmpeg', '-v', 'error', '-xerror', '-nostdin', '-protocol_whitelist', 'file,pipe',
-             '-threads', '2', '-f', 'mov', '-i', str(path), '-f', 'null', '-'], deadline=deadline)
+             '-threads', '2', '-f', 'mov', '-enable_drefs', '0', '-use_absolute_path', '0',
+             '-i', str(path), '-f', 'null', '-'], deadline=deadline)
         media['decode'] = 'PASS'
     return media
 
@@ -168,7 +170,7 @@ def _page(editorial, thumbnails, candidate):
 <title>CYZOR unpublished review</title><style>body{font:18px system-ui;background:#101722;color:#edf4fa;max-width:1000px;margin:32px auto;padding:0 20px}video{max-height:75vh;max-width:100%;display:block;margin:auto}a{color:#9ed4ff}img{max-width:100%}small{display:block}code{overflow-wrap:anywhere}li{margin:14px 0}figure{margin:24px 0}</style></head><body><h1>''' + esc(editorial['title']) + '''</h1>
 <p>Unpublished review candidate. Watch and listen to the complete video. Factual review, audiovisual quality and competitor comparison remain pending. Publishing is disabled.</p>
 <video controls playsinline preload="metadata" src="video.mp4"><track kind="captions" src="captions.vtt" srclang="en" label="English"></video>
-<p><a href="video.mp4">Video</a> · <a href="captions.vtt">Captions</a> · <a href="editorial.json">Editorial evidence</a> · <a href="package.json">Verification receipt</a></p><p>Caption timings may be approximate groups distributed over measured speech duration. Check the receipt for independent transcription status; technical media checks do not verify spoken-word accuracy or synchronization.</p>
+<p><a href="video.mp4">Video</a> · <a href="captions.vtt">Captions</a> · <a href="editorial.json">Editorial evidence</a> · <a href="automated-review.json">Audio, picture and benchmark diagnostics</a> · <a href="package.json">Verification receipt</a></p><p>Caption timings may be approximate groups distributed over measured speech duration. Check the receipt for independent transcription status; technical media checks do not verify spoken-word accuracy or synchronization.</p>
 <h2>Thumbnail choices</h2><p>Frame-derived alternatives for review. No click-through performance has been measured.</p>''' + overlay_note + thumbs + '''<h2>Script and storyboard</h2><ol>''' + script + '''</ol><h2>Research sources</h2><ul>''' + sources + '''</ul><h2>Reference observation scope</h2><ul>''' + references + '''</ul><p>A transcript or metadata observation does not verify a reference video's visuals, pacing or audio.</p><p>Candidate SHA-256: <code>''' + candidate + '</code></p></body></html>\n'
 
 
@@ -240,6 +242,8 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
                                'source_frame_size': [media['width'], media['height']],
                                'sha256': digest(output / filename, deadline), 'width': 1280, 'height': 720})
         (output / 'editorial.json').write_text(json.dumps(editorial, indent=2, sort_keys=True, allow_nan=False) + '\n')
+        from integrations.content_control.cycle_av_review import write_automated_review
+        write_automated_review(output, candidate, captions, deadline=deadline, media=media)
         (output / 'index.html').write_text(_page(editorial, thumbnails, candidate))
         result = {'schema_version': 1, 'status': 'AWAITING_REVIEW', 'technical_status': 'PASS',
                   'created_at': datetime.now(timezone.utc).isoformat(), 'publication_enabled': False,

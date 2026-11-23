@@ -24,6 +24,7 @@ FILES = frozenset(['cycle.json', 'brief.json', 'editorial.json'] +
                   ['delivery/' + n for n in ('video.mp4', 'captions.vtt', 'render.json',
                    'editorial.json', 'index.html', 'thumbnail-1.png', 'thumbnail-2.png',
                    'thumbnail-3.png', 'package.json', 'review-package.zip')])
+OPTIONAL_FILES = frozenset({'delivery/automated-review.json'})
 FILE_LIMIT = 256 * 1024 * 1024
 TOTAL_LIMIT = 1024 * 1024 * 1024
 MANIFEST_LIMIT = 64 * 1024
@@ -36,9 +37,9 @@ def _path(path):
     return path
 
 
-def _identities(root):
+def _identities(root, files):
     result = {}; total = 0
-    for name in sorted(FILES):
+    for name in sorted(files):
         path = root / name; no_symlinks(path)
         require(path.is_file(), 'Missing checkpoint input: ' + name)
         size = path.stat().st_size; total += size
@@ -51,8 +52,10 @@ def create_checkpoint(cycle_dir, output):
     root, output = _path(cycle_dir), _path(output)
     require(not output.exists() and not output.is_relative_to(root), 'Fresh checkpoint outside cycle required')
     snapshot = inspect_cycle(root)
-    identities = _identities(root)
-    require(set(snapshot['files_sha256']) <= FILES, 'Unsupported additional package files')
+    snapshot_names = set(snapshot['files_sha256'])
+    require(snapshot_names <= FILES | OPTIONAL_FILES, 'Unsupported additional package files')
+    files = FILES | (snapshot_names & OPTIONAL_FILES)
+    identities = _identities(root, files)
     manifest = {'schema_version': 1, 'candidate_sha256': snapshot['candidate_sha256'],
                 'files': identities, 'created_at': datetime.now(timezone.utc).isoformat(), **FLAGS,
                 'scope': 'Review/revision checkpoint only; raw synthesis and animation diagnostics excluded.'}
@@ -63,9 +66,9 @@ def create_checkpoint(cycle_dir, output):
     try:
         with zipfile.ZipFile(temporary, 'w', zipfile.ZIP_DEFLATED) as bundle:
             bundle.writestr('checkpoint.json', json.dumps(manifest, sort_keys=True, allow_nan=False))
-            for name in sorted(FILES):
+            for name in sorted(files):
                 bundle.write(root / name, name)
-        require(inspect_cycle(root) == snapshot and _identities(root) == identities, 'Cycle changed during checkpoint')
+        require(inspect_cycle(root) == snapshot and _identities(root, files) == identities, 'Cycle changed during checkpoint')
         # Check the bytes actually archived, not just the original files.
         with zipfile.ZipFile(temporary) as bundle:
             for name, identity in identities.items():
@@ -108,7 +111,10 @@ def restore_checkpoint(archive, output, *, expected_sha256):
     try:
         with zipfile.ZipFile(archive) as bundle:
             members = bundle.infolist()
-            require(len(members) == len(FILES) + 1 and {m.filename for m in members} == FILES | {'checkpoint.json'},
+            names = {member.filename for member in members}
+            artifacts = names - {'checkpoint.json'}
+            require(len(members) == len(names) and 'checkpoint.json' in names
+                    and FILES <= artifacts <= (FILES | OPTIONAL_FILES),
                     'Unexpected, duplicate or missing checkpoint members')
             total = 0
             for member in members:
@@ -123,8 +129,8 @@ def restore_checkpoint(archive, output, *, expected_sha256):
                     'Checkpoint schema mismatch')
             require(all(manifest.get(k) is False for k in FLAGS), 'Checkpoint approval flags must remain false')
             files = manifest.get('files')
-            require(isinstance(files, dict) and set(files) == FILES, 'Checkpoint manifest files mismatch')
-            for name in sorted(FILES):
+            require(isinstance(files, dict) and set(files) == artifacts, 'Checkpoint manifest files mismatch')
+            for name in sorted(artifacts):
                 expected = files[name]
                 require(isinstance(expected, dict) and isinstance(expected.get('sha256'), str) and
                         SHA.fullmatch(expected['sha256']) and type(expected.get('size')) is int and
@@ -134,7 +140,9 @@ def restore_checkpoint(archive, output, *, expected_sha256):
                     shutil.copyfileobj(source, target, 1024 * 1024)
                 require(digest(path) == expected['sha256'], 'Restored member identity mismatch: ' + name)
         snapshot = inspect_cycle(temporary)
-        require(snapshot['candidate_sha256'] == manifest.get('candidate_sha256') and _identities(temporary) == files,
+        require(snapshot['candidate_sha256'] == manifest.get('candidate_sha256')
+                and (artifacts & OPTIONAL_FILES) == (set(snapshot['files_sha256']) & OPTIONAL_FILES)
+                and _identities(temporary, artifacts) == files,
                 'Restored checkpoint differs from manifest')
         require(digest(archive) == expected_sha256, 'Checkpoint changed during restore')
         no_symlinks(output); require(not output.exists(), 'Restore output appeared during validation')

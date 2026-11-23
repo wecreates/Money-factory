@@ -69,10 +69,19 @@ class CyclePackageTest(unittest.TestCase):
         self.assertNotIn('<script>', page)
         self.assertIn('&lt;script&gt;', page)
         self.assertIn('src="video.mp4"', page)
+        self.assertIn('href="automated-review.json"', page)
         self.assertIn('transcript', page)
+        diagnostics = json.loads((self.root / 'package/automated-review.json').read_text())
+        self.assertEqual(diagnostics['candidate_sha256'], result['candidate_sha256'])
+        self.assertEqual(diagnostics['caption_sha256'], result['caption_sha256'])
+        self.assertEqual(diagnostics['watcher']['status'], 'SIGNALS_MEASURED')
+        self.assertGreaterEqual(diagnostics['listener']['silence_seconds'], .9)
+        self.assertEqual(diagnostics['reviewer']['status'], 'FULL_REVIEW_REQUIRED')
+        self.assertFalse(diagnostics['competitor_audiovisual_comparison_verified'])
         with zipfile.ZipFile(self.root / 'package/review-package.zip') as archive:
             self.assertEqual(archive.testzip(), None)
             self.assertIn('package.json', archive.namelist())
+            self.assertIn('automated-review.json', archive.namelist())
             self.assertNotIn('review-package.zip', archive.namelist())
 
     def test_native_landscape_binds_layout_and_uses_uncropped_frames(self):

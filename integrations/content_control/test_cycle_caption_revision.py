@@ -64,6 +64,9 @@ class CaptionRevisionTests(unittest.TestCase):
         checkpoint=self.base/'checkpoint.zip';c=create_checkpoint(self.out,checkpoint)
         restore_checkpoint(checkpoint,self.base/'restored',expected_sha256=c['checkpoint_sha256'])
         self.assertEqual(m.inspect_cycle(self.out),m.inspect_cycle(self.base/'restored'))
+        review = json.loads((self.base/'restored/delivery/automated-review.json').read_text())
+        self.assertEqual(review['candidate_sha256'], self.candidate)
+        self.assertEqual(review['caption_sha256'], m.digest(self.out/'render/captions.vtt'))
 
     def test_bad_bindings_and_text_fail_before_output(self):
         cases=[]

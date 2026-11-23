@@ -52,6 +52,9 @@ class ShortTests(unittest.TestCase):
         self.assertEqual(r['boundary_cue_numbers'],[1,2])
         self.assertEqual(r['candidate_sha256'],m.digest(self.base/'short/video.mp4'))
         self.assertEqual(r['parent_candidate_sha256'],'a'*64)
+        review = self.base / 'short/automated-review.json'
+        self.assertEqual(r['automated_review_sha256'], m.digest(review))
+        self.assertEqual(json.loads(review.read_text())['candidate_sha256'], r['candidate_sha256'])
         self.assertEqual(r['source_counter'],{'action':'preserve'})
         for flag in m.FLAGS:self.assertFalse(r[flag])
         self.assertIn('Second words.',(self.base/'short/captions.vtt').read_text())

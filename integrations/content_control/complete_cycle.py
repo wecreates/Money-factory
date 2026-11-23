@@ -74,7 +74,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         receipt['revision_lineage'] = lineage
     if minimum_duration is not None:
         receipt['minimum_duration_seconds'] = minimum_duration
-    tool_names = ('complete_cycle.py', 'cycle_editorial.py', 'cycle_render.py', 'cycle_package.py', 'cycle_lineage.py')
+    tool_names = ('complete_cycle.py', 'cycle_editorial.py', 'cycle_render.py', 'cycle_package.py', 'cycle_lineage.py',
+                  'cycle_av_review.py', 'cycle_av_benchmarks.py')
     receipt['tool_sha256'] = {name: digest(module_root/name) for name in tool_names}
     deadline = time.monotonic() + timeout
     stage = 'editorial'

@@ -161,8 +161,12 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
         receipt['boundary_cue_numbers'] = boundary
         (output/'captions.vtt').write_text(clipped)
         require(inspect_cycle(root)==snapshot,'Source cycle changed while clipping')
+        candidate, caption_sha = digest(output/'video.mp4'), digest(output/'captions.vtt')
+        from integrations.content_control.cycle_av_review import write_automated_review
+        write_automated_review(output, candidate, caption_sha, deadline=deadline, media=actual)
         receipt.update(status='AWAITING_REVIEW',technical_status='PASS',media=actual,
-                       candidate_sha256=digest(output/'video.mp4'),caption_sha256=digest(output/'captions.vtt'))
+                       candidate_sha256=candidate,caption_sha256=caption_sha,
+                       automated_review_sha256=digest(output/'automated-review.json', deadline))
     except (OSError,ValueError,RuntimeError,TimeoutError,subprocess.SubprocessError,KeyError,TypeError) as error:
         receipt['reason']=str(error)
     finally:
