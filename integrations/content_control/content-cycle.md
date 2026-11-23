@@ -413,6 +413,18 @@ The [November 22 counter-removal evidence](short-counter-proof-20261122.json)
 records both actual exports, full-frame-count counter-region checks, unchanged
 decoded audio and captions, and independent sampled visual review.
 
+For a separate copy with visible captions, add `--compact-captions`. This
+applies a small bottom-centered libass style to rebased cues on the known
+720×1280 picture layout. The original cycle and normal sidecar-only export are
+unchanged. The second pass copies the excerpt's AAC stream and retains a VTT
+sidecar for accessibility or editing. Leave the sidecar off during visual
+review of the burned copy to avoid displaying the captions twice.
+
+The optional burn requires FFmpeg with libass, DejaVu Sans, and at least one
+plain, unmarked cue in the excerpt. Check small-screen readability on the new
+file. Visual overlap and timing near cue edges depend on the exact source and
+renderer. The receipt covers local technical verification.
+
 Only the pipeline's plain WebVTT is supported. Intersecting cues retain their
 whole text while timestamps are clipped to the requested and actual media bounds.
 `boundary_cue_numbers` identifies potentially incomplete spoken sentences/words;
