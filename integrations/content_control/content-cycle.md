@@ -570,16 +570,16 @@ accuracy, phone playback and long-form-to-Shorts acceptance remain open, includi
 when a source already happens to be shorter than a minute. All publishing and
 creative approval flags remain false; prior source approval never transfers.
 
-### Correct caption text without regenerating speech
+### Repair captions without regenerating speech
 
 Use a new immutable cycle for an explicit text correction. The original media,
 brief, editorial and cue timing bytes stay unchanged; the corrected captions,
 render/package receipts and ZIP receive new identities. Supply a JSON object with
 exact `candidate_sha256`, `caption_sha256`, `reviewer`, `rationale`, and `edits`.
 Each edit has a one-based `cue`, exact full-line `before`, and replacement `after`.
-The entire source VTT must use LF line endings and plain single-line cues;
-cue settings, tags and entities (including ampersands) are unsupported. Edits
-must be bounded, with no controls or duplicates. It never guesses corrections.
+Include a one-based `line` when editing a multiline cue. The source VTT must
+use LF line endings and plain cues. Cue settings, tags and entities (including
+ampersands) are unsupported. Edits must be bounded, with no controls or duplicates.
 
 ```sh
 python -m integrations.content_control.cycle_caption_revision \
@@ -591,10 +591,17 @@ The new package marks `caption_timing: editorial_text_correction` and sets
 `independent_transcription_verified: false`. Original ASR identity is retained
 only as prior provenance in the render receipt's `caption_revision`; supplied
 edits are retained with their exact input hash. Existing renderer geometry and
-scope describe the unchanged source media, not a fresh synthesis run. No old
-package selection or approval is transferred. Reinspect the new cycle and create
-a fresh checkpoint with the existing commands. This is a text correction based
-on supplied reviewer judgment, not listening verification or audiovisual approval.
+scope describe the unchanged source media. The new package requires its own
+selection and review.
+
+To merge, split, or reflow adjacent cues, supply `retimed_vtt` (the complete
+replacement VTT text) in place of `edits` and run the same command. It requires
+identical words and punctuation in order within each contiguous caption
+interval. The start and end of each interval and gaps between intervals must
+stay fixed. Internal boundaries and line breaks may change. The new package
+records `caption_timing: editorial_retiming` and regenerates candidate-bound
+diagnostics. Review the new timing against playback. The validation covers
+intervals and text; listening and synchronization still require review.
 
 
 ## Reject unsupported visual fields before production (2026-11-22)
