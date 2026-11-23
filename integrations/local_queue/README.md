@@ -26,6 +26,14 @@ python -m integrations.local_agent_queue --queue /path/to/local-agent-queue work
 python -m integrations.local_agent_queue --queue /path/to/local-agent-queue status --id storyboard-example
 ```
 
+Use `enqueue-batch /path/to/batch.json` to submit a JSON array of one to 16
+existing job envelopes in one SQLite transaction. Use distinct immutable IDs.
+A malformed entry, unsupported visual shape in a new cycle, or conflicting
+existing ID rejects the entire submission. Resubmitting identical jobs returns
+their current state without resetting attempts. Batch output follows input order
+and omits prior attempt receipts. Use `status --id` for the full history of an
+individual job. Worker claims still use creation time and ID order.
+
 Adjust the example to an actually installed local model and measured host
 budgets first. Do not invent capacity values to override unknown host limits.
 The model endpoint must remain explicit HTTP loopback. A privately established

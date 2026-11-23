@@ -18,6 +18,8 @@ import threading
 import uuid
 
 MAX_JSON = 4 * 1024 * 1024
+MAX_JOB_BYTES = 150000
+MAX_BATCH_JOBS = 16
 
 
 def canonical(value):
@@ -34,7 +36,7 @@ def validate(spec):
     if type(spec['max_attempts']) is not int or not 1 <= spec['max_attempts'] <= 3:
         raise ValueError('Require one to three attempts')
     request = spec['request']
-    if not isinstance(request, dict) or len(canonical(spec).encode()) > 150000:
+    if not isinstance(request, dict) or len(canonical(spec).encode()) > MAX_JOB_BYTES:
         raise ValueError('Invalid or oversized request')
     if spec['adapter'] == 'openclaw':
         from integrations.openclaw.worker import validate as validate_adapter
@@ -128,25 +130,42 @@ class Queue:
             raise RuntimeError('Recovery, claim and completion require consumer ownership')
 
     def enqueue(self, spec):
-        validate(spec)
-        payload = canonical(spec)
-        digest = hashlib.sha256(payload.encode()).hexdigest()
-        with self.transaction():
-            existing = self.db.execute('SELECT digest FROM jobs WHERE id=?', (spec['id'],)).fetchone()
-            if existing:
-                if existing['digest'] != digest:
-                    raise ValueError('Job ID already exists with a different immutable payload')
-                return self.get(spec['id'])
-            now = time.time()
-            self.db.execute('INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?)',
-                            (spec['id'], digest, payload, 'queued', 0, spec['max_attempts'], now, now))
+        self.enqueue_batch([spec])
         return self.get(spec['id'])
 
-    def get(self, job_id):
+    def enqueue_batch(self, specs):
+        if not isinstance(specs, list) or not 1 <= len(specs) <= MAX_BATCH_JOBS:
+            raise ValueError(f'Require a list of one to {MAX_BATCH_JOBS} job envelopes')
+        entries = {}
+        for spec in specs:
+            validate(spec)
+            job_id = spec['id']
+            if job_id in entries:
+                raise ValueError('Duplicate job ID in batch')
+            payload = canonical(spec)
+            entries[job_id] = (spec, payload, hashlib.sha256(payload.encode()).hexdigest())
+        with self.transaction():
+            for job_id, (spec, payload, digest) in entries.items():
+                existing = self.db.execute('SELECT digest FROM jobs WHERE id=?', (job_id,)).fetchone()
+                if existing:
+                    if existing['digest'] != digest:
+                        raise ValueError('Job ID already exists with a different immutable payload')
+                    continue
+                if spec['adapter'] == 'content-control-cycle':
+                    from integrations.content_control.cycle_editorial import compile_editorial
+                    compile_editorial(spec['request']['brief'], validate_visual_shapes=True)
+                now = time.time()
+                self.db.execute('INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?)',
+                                (job_id, digest, payload, 'queued', 0, spec['max_attempts'], now, now))
+            return [self.get(job_id, include_receipts=False) for job_id in entries]
+
+    def get(self, job_id, *, include_receipts=True):
         row = self.db.execute('SELECT id,digest,state,attempts,max_attempts,created,updated FROM jobs WHERE id=?', (job_id,)).fetchone()
         if row is None:
             raise ValueError('Unknown job ID')
         result = dict(row)
+        if not include_receipts:
+            return result
         result['receipts'] = [dict(r) for r in self.db.execute(
             'SELECT number,state,started,finished,receipt FROM attempts WHERE job_id=? ORDER BY number', (job_id,))]
         for attempt in result['receipts']:
@@ -397,6 +416,8 @@ def main(argv=None):
     parser.add_argument('--queue', required=True)
     commands = parser.add_subparsers(dest='command', required=True)
     enqueue = commands.add_parser('enqueue'); enqueue.add_argument('file')
+    enqueue_batch = commands.add_parser('enqueue-batch')
+    enqueue_batch.add_argument('file', help='JSON array of up to 16 validated job envelopes')
     status = commands.add_parser('status'); status.add_argument('--id')
     retry = commands.add_parser('retry'); retry.add_argument('id')
     commands.add_parser('health')
@@ -411,12 +432,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     queue = Queue(args.queue)
     try:
-        if args.command == 'enqueue':
+        if args.command in ('enqueue', 'enqueue-batch'):
+            batch = args.command == 'enqueue-batch'
+            limit = MAX_JOB_BYTES * MAX_BATCH_JOBS + 4096 if batch else MAX_JOB_BYTES
             with open(args.file, 'rb') as handle:
-                raw = handle.read(150001)
-            if len(raw) > 150000:
+                raw = handle.read(limit + 1)
+            if len(raw) > limit:
                 raise ValueError('Oversized job file')
-            report = queue.enqueue(json.loads(raw))
+            request = json.loads(raw)
+            report = queue.enqueue_batch(request) if batch else queue.enqueue(request)
         elif args.command == 'retry':
             report = queue.retry(args.id)
         elif args.command == 'health':

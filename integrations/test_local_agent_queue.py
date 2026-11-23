@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 
 from integrations.local_agent_queue import Queue, work
+from integrations.content_control.cycle_job import brief_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -69,6 +70,44 @@ class QueueTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.queue.enqueue(changed)
         self.assertEqual(self.queue.db.execute('SELECT COUNT(*) FROM jobs').fetchone()[0], 1)
+
+    def test_batch_cli_enqueues_in_manifest_order_and_replay_preserves_history(self):
+        path = Path(self.tmp.name) / 'batch.json'
+        path.write_text(json.dumps([job('z-first'), job('a-second')]))
+        command = [sys.executable, '-m', 'integrations.local_agent_queue', '--queue',
+                   str(self.root), 'enqueue-batch', str(path)]
+        first = json.loads(subprocess.check_output(command, cwd=ROOT, text=True))
+        self.assertEqual([row['id'] for row in first], ['z-first', 'a-second'])
+        claimed_id = min(first, key=lambda row: (row['created'], row['id']))['id']
+        report = work(self.queue, executor=lambda _: {'status': 'PASS'})
+        self.assertEqual([row['id'] for row in report['processed']], [claimed_id])
+        replay = json.loads(subprocess.check_output(command, cwd=ROOT, text=True))
+        self.assertEqual([row['digest'] for row in replay], [row['digest'] for row in first])
+        for row in replay:
+            self.assertEqual(row['state'], 'succeeded' if row['id'] == claimed_id else 'queued')
+            self.assertNotIn('receipts', row)
+        self.assertEqual(len(self.queue.get(claimed_id)['receipts']), 1)
+
+    def test_batch_rejects_conflicts_and_rolls_back_new_inserts(self):
+        self.queue.enqueue(job())
+        changed = job(attempts=1)
+        with self.assertRaisesRegex(ValueError, 'different immutable payload'):
+            self.queue.enqueue_batch([job('new'), changed])
+        for specs in ([], [job('duplicate'), job('duplicate')], [job(str(i)) for i in range(17)]):
+            with self.assertRaises(ValueError):
+                self.queue.enqueue_batch(specs)
+        self.assertEqual(self.queue.db.execute('SELECT id FROM jobs').fetchall()[0]['id'], 'storyboard')
+        self.assertEqual(self.queue.db.execute('SELECT COUNT(*) FROM jobs').fetchone()[0], 1)
+
+    def test_new_cycle_visual_preflight_rolls_back_batch(self):
+        brief = json.loads((ROOT / 'integrations/content_control/examples/rewards-card-brief.json').read_text())
+        invalid = job('unsupported-visual', adapter='content-control-cycle')
+        invalid['request'] = {'operation': 'produce-content-cycle', 'brief': brief,
+                              'brief_sha256': brief_digest(brief), 'timeout_seconds': 300,
+                              'publication_enabled': False, 'paid_generation_enabled': False}
+        with self.assertRaisesRegex(ValueError, 'balance'):
+            self.queue.enqueue_batch([job('valid'), invalid])
+        self.assertEqual(self.queue.db.execute('SELECT COUNT(*) FROM jobs').fetchone()[0], 0)
 
     def test_success_survives_restart_and_never_runs_twice(self):
         self.queue.enqueue(job())
