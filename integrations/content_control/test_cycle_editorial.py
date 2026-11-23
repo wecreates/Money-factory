@@ -56,6 +56,21 @@ class EditorialTests(unittest.TestCase):
         self.assertEqual(revised['scenes'], original['scenes'])
         self.assertNotEqual(revised['editorial_sha256'], original['editorial_sha256'])
 
+    def test_explicit_scene_gesture_is_bound_and_validated(self):
+        subject = brief()
+        spec = {'kind': 'comparison', 'headline': 'COMPARE TOTALS'}
+        subject['scenes'][0]['visual_spec'] = spec
+        original = compile_editorial(subject)
+        for gesture in ('point_left', 'point_right', 'open_hands'):
+            spec['gesture'] = gesture
+            compiled = compile_editorial(subject)
+            self.assertEqual(compiled['scenes'][0]['visual_spec']['gesture'], gesture)
+            self.assertNotEqual(compiled['editorial_sha256'], original['editorial_sha256'])
+        for unsupported in ('spin', [], None, True):
+            spec['gesture'] = unsupported
+            with self.assertRaisesRegex(ValueError, 'Gesture must'):
+                compile_editorial(subject)
+
     def test_thumbnail_copy_rejects_multiline_controls_and_oversize(self):
         for value in (None, 3, '', '  ', 'One\nTwo', 'One\tTwo', 'One\u202eTwo', 'a' * 49):
             with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'thumbnail_copy'):
