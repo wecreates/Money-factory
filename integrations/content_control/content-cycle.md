@@ -8,6 +8,27 @@ Start with `examples/statement-balance-brief.json`. A brief contains HTTPS sourc
 
 Supply 1–30 scenes, supported voice names (`dave`, `points_monk`, `narrator`), and typed card/receipt/balance/checklist/comparison visual specifications. Arbitrary prose directions are retained for editorial review but are not interpreted as generated artwork or full character animation. Planning durations are replaced with measured speech durations. Maximum rendered duration is ten minutes. New projects should provide fresh source observations; no scheduled discovery is enabled here.
 
+### Separate research and scene drafting
+
+Use the intake command when a researcher supplies sources and a separate
+author or local model supplies the title and scenes. Research JSON contains
+`schema_version: 1`, `topic`, `sources`, and `reference_observations` in the
+existing brief format. Draft JSON contains `schema_version: 1`, the SHA-256 of
+the exact research file as `research_sha256`, `title`, and `scenes`. It can also
+supply `thumbnail_copy` and `layout`. Drafts cannot add or replace research
+records, and factual scenes must cite known source IDs.
+
+```sh
+python -m integrations.content_control.cycle_intake \
+  --research /absolute/research.json --draft /absolute/draft.json \
+  --output /absolute/new-intake
+```
+
+Use the resulting `brief.json` with the existing production command. Keep the
+two inputs with `intake.json` to verify the byte hashes. The `research_handoff`
+in the brief binds both inputs. Intake validates structure and renderer shape.
+Source discovery, factual review and authorship are evidenced separately.
+
 Receipt diagrams associate each supplied label with its corresponding value;
 comparison diagrams keep labels inside their respective cards, including when
 values are omitted. Comparisons support at most two fields; receipt/card layouts
