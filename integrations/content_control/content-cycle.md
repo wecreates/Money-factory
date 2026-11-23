@@ -160,6 +160,21 @@ disabled. Scene/OCR diagnostics are neither full audiovisual observation nor a
 review attestation. Inspect the generated evidence before recording judgments.
 See [the analyzer adapter](../rea_video/README.md) for runtime and evidence scope.
 
+Use `--package-lint` for a separate advisory check of the completed cycle's
+title and thumbnail copy. It runs the registered, pinned YouTube Agent Skill
+locally. The exact candidate, package, tool input and findings are recorded in
+a new JSON file outside the cycle. Older packages use the displayed title as
+thumbnail copy when there is no authored override.
+
+```sh
+python -m integrations.content_control.cycle_review \
+  --cycle-dir /absolute/completed-cycle --package-lint \
+  --output /absolute/new-package-lint.json
+```
+
+Scores and findings cover the shared copy only. Thumbnail image selection,
+audience performance and audiovisual approval still require separate evidence.
+
 ```sh
 python -m integrations.content_control.cycle_review \
   --cycle-dir /absolute/attempt --review /absolute/reviewer-observations.json \

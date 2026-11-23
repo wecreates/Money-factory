@@ -4,11 +4,12 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 from integrations.content_control.cycle_editorial import compile_editorial
 from integrations.content_control.cycle_package import editorial_digest
-from integrations.content_control.cycle_review import CHECKS, inspect_cycle, record_review, revision_brief
+from integrations.content_control.cycle_review import CHECKS, inspect_cycle, lint_package, record_review, revision_brief
 from integrations.content_control.review_package import digest
 from integrations.content_control.test_cycle_editorial import brief
 
@@ -97,6 +98,45 @@ class ReviewTests(unittest.TestCase):
     def test_current_package_artifacts_are_verified_before_decisions(self):
         (self.delivery / 'thumbnail-1.png').write_bytes(b'tampered')
         with self.assertRaisesRegex(ValueError, 'artifact changed'): record_review(self.root, self.submitted, self.recorded)
+
+    def test_lint_binds_copy_candidate_and_package_without_approving_or_mutating(self):
+        before = inspect_cycle(self.root)
+        def dispatch(job, upstream):
+            path = Path(job['input'])
+            copy = json.loads(path.read_text())
+            title = before['editorial']['title']
+            self.assertEqual(copy, {'title': title, 'thumb': ' '.join(title.split())})
+            self.assertIs(job['publication_enabled'], False)
+            self.assertIs(job['paid_generation_enabled'], False)
+            return {'tool': 'youtube-agent-skill', 'operation': 'package-lint', 'status': 'PASS',
+                    'execution_status': 'PASS', 'exit_code': 0,
+                    'input_sha256': digest(path), 'findings': [{'title': title, 'score': 40}],
+                    'publication_enabled': False, 'paid_generation_enabled': False, 'production_ready': False}
+        output = self.base / 'lint.json'
+        with patch('integrations.run.source'), patch('integrations.youtube_skill.adapter.dispatch', side_effect=dispatch):
+            result = lint_package(self.root, output)
+            with self.assertRaisesRegex(ValueError, 'already exists'):
+                lint_package(self.root, output)
+        self.assertEqual(result, json.loads(output.read_text()))
+        self.assertEqual(result['status'], 'DIAGNOSTIC_COMPLETE')
+        self.assertEqual(result['candidate_sha256'], self.candidate)
+        self.assertEqual(result['package_sha256'], digest(self.delivery / 'package.json'))
+        for name in (*self.flags, 'thumbnail_selection_verified', 'thumbnail_performance_verified'):
+            self.assertIs(result[name], False)
+        self.assertEqual(inspect_cycle(self.root), before)
+
+    def test_lint_rejects_package_changed_during_tool_execution(self):
+        def dispatch(job, upstream):
+            (self.delivery / 'thumbnail-1.png').write_bytes(b'changed')
+            return {'tool': 'youtube-agent-skill', 'operation': 'package-lint', 'status': 'BLOCKED',
+                    'execution_status': 'BLOCKED',
+                    'input_sha256': digest(Path(job['input'])), 'publication_enabled': False,
+                    'paid_generation_enabled': False, 'production_ready': False}
+        output = self.base / 'lint.json'
+        with patch('integrations.run.source'), patch('integrations.youtube_skill.adapter.dispatch', side_effect=dispatch):
+            with self.assertRaisesRegex(ValueError, 'Package artifact changed'):
+                lint_package(self.root, output)
+        self.assertFalse(output.exists())
 
     def test_original_render_tamper_is_rejected(self):
         (self.render / 'video.mp4').write_bytes(b'tampered')

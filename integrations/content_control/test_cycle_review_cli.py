@@ -35,6 +35,16 @@ class ReviewCLITests(unittest.TestCase):
             self.assertEqual(self.call(['--cycle-dir','/cycle','--review','/review','--output','/record']),0)
             review.assert_called_once_with('/cycle','/review','/record')
 
+    def test_package_lint_is_separate_from_attestation_and_rea(self):
+        args = ['--cycle-dir', '/cycle', '--output', '/lint', '--package-lint']
+        with patch('integrations.content_control.cycle_review.lint_package',
+                   return_value={'status': 'DIAGNOSTIC_COMPLETE'}) as lint:
+            self.assertEqual(self.call(args), 0)
+            lint.assert_called_once_with('/cycle', '/lint')
+            for tail in (['--analyze'], ['--review', '/review'], ['--revision-brief', '/brief'], ['--rea-runtime', '/python']):
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    self.call(args + tail)
+
 
 if __name__=='__main__':
     unittest.main()
