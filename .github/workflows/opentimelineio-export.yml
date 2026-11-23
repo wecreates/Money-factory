@@ -15,8 +15,8 @@ permissions:
   contents: read
 jobs:
   native-roundtrip:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,7 +30,7 @@ jobs:
         run: |
           if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
             timeout 90 sudo apt-get update -qq
-            timeout 120 sudo apt-get install -y --no-install-recommends ffmpeg
+            timeout 480 sudo apt-get install -y --no-install-recommends ffmpeg
           fi
           ffmpeg -version
           ffprobe -version

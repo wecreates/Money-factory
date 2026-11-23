@@ -421,6 +421,24 @@ playback, full audiovisual or creative acceptance.
 
 ### Explicit portrait Shorts excerpts
 
+For a completed native landscape cycle, prepare a new portrait brief from
+explicit, contiguous authored scene IDs.
+
+```sh
+python -m integrations.content_control.cycle_portrait \
+  --cycle-dir /absolute/landscape-cycle --output /absolute/new-portrait-handoff \
+  --scene opening --scene worked-example --title 'Optional Short title'
+```
+
+The handoff verifies the exact source and records its measured scene windows.
+It copies the selected scene descriptions, narration, speaker assignments,
+visual settings and source citations. Run the new `brief.json` through the
+existing production command. The portrait render has newly synthesized audio,
+new captions and its own measured duration. Review those exact output bytes.
+Both the parent span and planned portrait duration must be at most 60 seconds.
+Measure the actual export separately. No cropping or reuse of a landscape
+audio stream occurs in this path.
+
 The bounded `cycle_short` consumer extracts an explicitly selected interval from
 an already validated cycle without generating new speech or changing voices:
 
