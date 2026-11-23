@@ -62,6 +62,45 @@ This standalone command creates an explicit artifact attempt; it does not certif
 
 Outputs include the exact brief/editorial, fresh narration stems, original diagram panels, measured scene timeline, MP4, captions, speech-verification receipt, three PNG thumbnail candidates, local review HTML, portable ZIP and bound receipts. Thumbnail variants are frame-derived choices, not measured CTR winners. The webpage exposes reference scope and outstanding review requirements. No posting or publishing APIs exist in this path.
 
+### Automatic audio, picture and competitor review
+
+Every new cycle package and exported Short includes `automated-review.json`,
+bound to that MP4 and caption file. The picture scan flags black frames and
+static intervals. The audio scan measures silence, peak and average level. The
+analyst highlights intervals for review. The reviewer handoff calls for a full
+watch/listen and checks staging, story, voice, sound and readability. The scans
+and ASR cannot certify those subjective checks. Existing review and revision
+commands can retain reviewer findings for the exact candidate.
+
+An operator can set `CYZOR_REVIEW_BENCHMARKS` to an absolute local JSON
+manifest to compare measured candidate signals with two curated competitors
+in the same format. Use references in the candidate's topic and format lane,
+with documented evidence for why they are benchmarks. The manifest is
+host configuration and cannot be set in a queue job. Use this shape:
+
+```json
+{"schema_version":1,"references":[
+  {"url":"https://example.org/watch/first","path":"first.mp4","sha256":"64_HEX_CHARACTERS",
+   "selection_rationale":"Relevant high-performing peer in this topic and format.",
+   "selection_evidence_url":"https://example.org/ranking","selected_at":"2026-11-23T00:00:00Z","authorized":true},
+  {"url":"https://example.org/watch/second","path":"second.mp4","sha256":"64_HEX_CHARACTERS",
+   "selection_rationale":"Relevant high-performing peer in this topic and format.",
+   "selection_evidence_url":"https://example.org/ranking","selected_at":"2026-11-23T00:00:00Z","authorized":true}
+]}
+```
+
+On a mixed-format worker, replace `references` with `reference_sets`, keyed by
+`portrait`, `landscape`, or `square`, and put a two-reference list under each
+supported format. A candidate with no matching set stays blocked for comparison.
+
+The comparator reads only authorized files already on disk and makes no network
+requests. It records missing, invalid or incompatible evidence as `BLOCKED`.
+Selection rationale is retained as operator evidence without ranking or audience
+claims being inferred. Instagram remains live-view only. Subjective audiovisual
+comparison requires genuine observed playback with audio and is still pending
+after the technical comparison. Blocked comparison does not discard a private
+candidate or turn on publication or paid inference.
+
 ### Native landscape review renders
 
 Set the brief's top-level `layout` to `"landscape"` to render a 1280×720
