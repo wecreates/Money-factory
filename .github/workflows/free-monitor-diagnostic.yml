@@ -34,11 +34,10 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          set +e
-          TEST_OUT=$(cd automation/free-monitor && npm test 2>&1)
-          TEST_CODE=$?
-          WORKER_OUT=$(node automation/free-monitor/worker.mjs 2>&1)
-          WORKER_CODE=$?
+          TEST_CODE=0
+          TEST_OUT=$(cd automation/free-monitor && npm test 2>&1) || TEST_CODE=$?
+          WORKER_CODE=0
+          WORKER_OUT=$(node automation/free-monitor/worker.mjs 2>&1) || WORKER_CODE=$?
           node - "$TEST_CODE" "$WORKER_CODE" "$TEST_OUT" "$WORKER_OUT" <<'NODE'
           const fs=require('fs');
           const [testCode,workerCode,testOut,workerOut]=process.argv.slice(2);
@@ -51,16 +50,35 @@ jobs:
             state_exists:fs.existsSync('FREE_MONITOR_STATE.json'),
             events_exists:fs.existsSync('FREE_MONITOR_EVENTS.json')
           };
-          if(report.state_exists) report.state=JSON.parse(fs.readFileSync('FREE_MONITOR_STATE.json','utf8'));
+          report.state_persistence_complete=[0,2].includes(report.worker_code);
+          if(report.state_persistence_complete && report.state_exists) {
+            report.state=JSON.parse(fs.readFileSync('FREE_MONITOR_STATE.json','utf8'));
+          }
           fs.writeFileSync('FREE_MONITOR_DIAGNOSTIC.json',JSON.stringify(report,null,2)+'\n');
           NODE
+          echo "report_ready=true" >> "$GITHUB_OUTPUT"
+          if [[ "$WORKER_CODE" == 0 || "$WORKER_CODE" == 2 ]]; then
+            echo "pair_ready=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$TEST_CODE" != 0 ]]; then exit "$TEST_CODE"; fi
+          exit "$WORKER_CODE"
       - name: Persist diagnostic
-        if: always()
+        if: steps.diag.outputs.report_ready == 'true'
+        env:
+          PAIR_READY: ${{ steps.diag.outputs.pair_ready }}
         shell: bash
         run: |
           git config user.name "cyzor-monitor-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add FREE_MONITOR_DIAGNOSTIC.json FREE_MONITOR_STATE.json FREE_MONITOR_EVENTS.json 2>/dev/null || true
+          git add FREE_MONITOR_DIAGNOSTIC.json
+          if [[ "$PAIR_READY" == true ]]; then
+            git add FREE_MONITOR_STATE.json FREE_MONITOR_EVENTS.json
+          else
+            git restore --worktree -- FREE_MONITOR_STATE.json FREE_MONITOR_EVENTS.json
+          fi
           git diff --cached --quiet || git commit -m "record free monitor diagnostic"
           git pull --rebase origin main
           git push origin HEAD:main
+      - name: Fail on unsuccessful diagnostic
+        if: steps.diag.outcome == 'failure'
+        run: exit 1

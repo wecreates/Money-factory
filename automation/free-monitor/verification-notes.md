@@ -5,10 +5,20 @@ nonempty active set, advancing timestamps, successful checks in both worker
 reports, and matching healthy persisted state for the configured target URL. A two-cycle pass is not proof of
 continuous monitoring, end-to-end production recovery, or a 24-hour agent soak.
 
-The verification workflow persists state, events and the report even when target
-checks fail, then marks the job failed. Exceptions replace a stale report with a
-new failed report rather than retaining an old pass. It keeps the existing watch targets,
-schedule and disabled content-publishing settings unchanged.
+When target checks fail after both files are persisted, the workflows keep the
+new state and events and mark the run unhealthy. On unexpected execution or
+persistence errors, verification and diagnostics can retain a separate failure
+report. The GitHub workflows stage the two evidence files only after a completed
+pair write. Worker and verifier exit status 2 denotes a completed but unhealthy
+check; status 1 denotes an execution failure.
+
+The worker syncs a pending file with both new JSON images before replacing the
+state and events files. Restarting on the same filesystem replays the pending
+pair before using either file as a baseline. Writers must run serially, as the
+hosted workflows do through their shared concurrency group. Never commit the
+pending file. A fresh hosted runner cannot replay an interrupted runner's local
+filesystem, and external readers that open both files outside the worker can
+observe an in-flight write. Retained Git commits contain only completed pairs.
 
 ## November 21, 2026 investigation
 

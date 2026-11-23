@@ -38,8 +38,16 @@ jobs:
       - name: Run free monitor worker
         id: check
         continue-on-error: true
-        run: node automation/free-monitor/worker.mjs
+        shell: bash
+        run: |
+          code=0
+          node automation/free-monitor/worker.mjs || code=$?
+          if [[ "$code" == 0 || "$code" == 2 ]]; then
+            echo "pair_ready=true" >> "$GITHUB_OUTPUT"
+          fi
+          exit "$code"
       - name: Persist monitor state
+        if: steps.check.outputs.pair_ready == 'true'
         shell: bash
         run: |
           git config user.name "cyzor-monitor-bot"
