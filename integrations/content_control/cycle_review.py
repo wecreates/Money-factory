@@ -14,7 +14,7 @@ import tempfile
 import zipfile
 
 from integrations.content_control.cycle_editorial import compile_editorial, _timestamp, _text
-from integrations.content_control.cycle_package import editorial_digest
+from integrations.content_control.cycle_package import declared_speaker_label, editorial_digest
 from integrations.content_control.review_package import digest, no_symlinks, require, SHA
 
 
@@ -94,6 +94,8 @@ def inspect_cycle(cycle_dir):
     candidate = digest(delivery / 'video.mp4')
     require(candidate == cycle.get('candidate_sha256') == package.get('candidate_sha256'), 'Candidate mismatch')
     render = _load(delivery / 'render.json')
+    declared_speaker_label(editorial, render)
+    declared_speaker_label(editorial, package)
     _unapproved(render)
     require(render.get('technical_status') == 'PASS' and render.get('candidate_sha256') == candidate,
             'Render verification mismatch')

@@ -120,6 +120,8 @@ def compile_editorial(brief, *, validate_visual_shapes=False):
     _flags(brief)
     if 'layout' in brief and brief['layout'] != 'landscape':
         raise ValueError('layout: omit for portrait or set landscape')
+    if 'speaker_label_position' in brief and (brief['speaker_label_position'] != 'above' or 'layout' in brief):
+        raise ValueError('speaker_label_position: omit or use above on portrait')
     title = _text(brief.get('title'), 'title', 120)
     topic = _text(brief.get('topic'), 'topic', 500)
     sources, source_ids = [], set()
@@ -217,6 +219,8 @@ def compile_editorial(brief, *, validate_visual_shapes=False):
         result['thumbnail_copy'] = normalize_thumbnail_copy(brief['thumbnail_copy'])
     if 'layout' in brief:
         result['layout'] = 'landscape'
+    if 'speaker_label_position' in brief:
+        result['speaker_label_position'] = brief['speaker_label_position']
     if 'idea_learning' in brief:
         result['idea_learning'] = _learning(brief['idea_learning'])
     result['editorial_sha256'] = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(',', ':'),

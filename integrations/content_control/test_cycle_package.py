@@ -135,6 +135,16 @@ class CyclePackageTest(unittest.TestCase):
         self.assertIn('omits source headline, scene counter, character and speaker label',
                       m._page(self.editorial, [focused], self.receipt['candidate_sha256']))
 
+    def test_diagram_focus_does_not_crop_the_opted_speaker_label_into_thumbnails(self):
+        media = {'width': 720, 'height': 1280}
+        receipt = {'scope': 'Fresh offline speech and original diagram-based picture video; technical verification only.',
+                   'speaker_label_position': 'above'}
+        editorial = {'scenes': [{'visual_spec': {'kind': 'checklist'}}], 'speaker_label_position': 'above'}
+        self.assertEqual(m.diagram_thumbnail_crop(editorial, receipt, media), (45, 300, 675, 800))
+        del receipt['speaker_label_position']
+        with self.assertRaisesRegex(ValueError, 'positions must match'):
+            m.diagram_thumbnail_crop(editorial, receipt, media)
+
     def test_independent_copy_changes_thumbnail_and_preserves_title_and_media(self):
         baseline = self.export()
         self.assertNotIn('thumbnail_copy', baseline)
