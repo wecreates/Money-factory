@@ -105,6 +105,36 @@ def _learning(value):
             'application': _text(value['application'], 'idea_learning.application', 2000, minimum=12)}
 
 
+def portrait_duration_limit(brief, editorial):
+    """Check portable handoff structure without claiming access to the parent."""
+    if 'portrait_handoff' not in brief:
+        return None
+    handoff = brief['portrait_handoff']
+    hashes = {'candidate_sha256', 'cycle_sha256', 'brief_sha256', 'package_sha256', 'render_sha256'}
+    if ('layout' in editorial or not isinstance(handoff, dict) or set(handoff) != hashes | {'scenes'}
+            or not all(isinstance(handoff[key], str) and re.fullmatch('[0-9a-f]{64}', handoff[key]) for key in hashes)):
+        raise ValueError('Invalid portrait handoff identity or layout')
+    windows = handoff['scenes']
+    if not isinstance(windows, list) or len(windows) != len(editorial['scenes']):
+        raise ValueError('Portrait handoff must cover every selected scene')
+    first_start = previous_end = None
+    for window, scene in zip(windows, editorial['scenes']):
+        if (not isinstance(window, dict) or set(window) != {'scene_id', 'start_seconds', 'end_seconds'}
+                or window['scene_id'] != scene['id']):
+            raise ValueError('Portrait handoff scene IDs must match the brief')
+        start, end = window['start_seconds'], window['end_seconds']
+        if (not all(type(t) in (int, float) for t in (start, end))
+                or not 0 <= start < end <= 600
+                or previous_end is not None and abs(start - previous_end) > 1e-6):
+            raise ValueError('Portrait handoff scene windows must be finite and contiguous')
+        if first_start is None:
+            first_start = start
+        previous_end = end
+    if previous_end - first_start > 60 or editorial['planned_duration_seconds'] > 60:
+        raise ValueError('Portrait handoff duration exceeds 60 seconds')
+    return 60
+
+
 def compile_editorial(brief, *, validate_visual_shapes=False):
     """Return deterministic normalized editorial inputs; fail closed on gaps.
 

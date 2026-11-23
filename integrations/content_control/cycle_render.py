@@ -391,13 +391,17 @@ def measured_clip_frames(scenes, clips, output):
 
 
 def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, transcription_python=None,
-                 minimum_duration=None):
+                 minimum_duration=None, maximum_duration=None):
     scenes = validate(editorial)
     layout = editorial.get('layout')
     if isinstance(timeout,bool) or not isinstance(timeout,(int,float)) or not math.isfinite(timeout) or not 0 < timeout <= 1800:
         raise ValueError('Render timeout must be positive and at most 1800 seconds')
     if minimum_duration is not None and (type(minimum_duration) is not int or not 1 <= minimum_duration <= 600):
         raise ValueError('Minimum duration must be an integer from 1 to 600 seconds')
+    if maximum_duration is not None and (type(maximum_duration) is not int or not 1 <= maximum_duration <= 600):
+        raise ValueError('Maximum duration must be an integer from 1 to 600 seconds')
+    if minimum_duration is not None and maximum_duration is not None and minimum_duration > maximum_duration:
+        raise ValueError('Minimum duration cannot exceed maximum duration')
     if os.environ.get('PUBLICATION_ENABLED','false').lower()!='false':
         raise ValueError('Publication must remain disabled')
     runtime = Path(voice_python)
@@ -424,6 +428,8 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
         receipt['speaker_label_position'] = editorial['speaker_label_position']
     if minimum_duration is not None:
         receipt['minimum_duration_seconds'] = minimum_duration
+    if maximum_duration is not None:
+        receipt['maximum_duration_seconds'] = maximum_duration
     deadline=time.monotonic()+timeout
     write(output/'render.json',receipt); write(output/'editorial.json',editorial)
     try:
@@ -437,10 +443,12 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
         planned_frames = sum(frames)
         if planned_frames > 600 * 24:
             raise ValueError('Video exceeds ten minute limit')
-        if minimum_duration is not None:
+        if minimum_duration is not None or maximum_duration is not None:
             receipt['measured_narration_frame_budget'] = planned_frames
-            if planned_frames < minimum_duration * 24:
-                raise ValueError(f'Measured narration budgets {planned_frames / 24:.3f}s of video, below {minimum_duration}s minimum')
+        if minimum_duration is not None and planned_frames < minimum_duration * 24:
+            raise ValueError(f'Measured narration budgets {planned_frames / 24:.3f}s of video, below {minimum_duration}s minimum')
+        if maximum_duration is not None and planned_frames > maximum_duration * 24:
+            raise ValueError(f'Measured narration budgets {planned_frames / 24:.3f}s of video, above {maximum_duration}s maximum')
         rows=[]; captions=['WEBVTT','']; start=0; segments=[]
         for index,(scene,clip,frame_count) in enumerate(zip(scenes,clips,frames)):
             wav=output/f'voice-{index:02d}.wav'
@@ -494,13 +502,18 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
         video=next(s for s in streams if s['codec_type']=='video');audio=next(s for s in streams if s['codec_type']=='audio')
         if (video['width'],video['height'],video['codec_name'],audio['codec_name'])!=(*panel_size(layout),'h264','aac'):
             raise ValueError('Output media contract mismatch')
-        if abs(float(probe['format']['duration'])-start)>.25:
+        container_duration = float(probe['format']['duration'])
+        if abs(container_duration-start)>.25:
             raise ValueError('Output duration differs from scene timeline')
-        if minimum_duration is not None:
+        if minimum_duration is not None or maximum_duration is not None:
             picture_duration = int(video['duration_ts']) * Fraction(video['time_base'])
             receipt['encoded_picture_duration_seconds'] = float(picture_duration)
-            if picture_duration < minimum_duration:
+            if minimum_duration is not None and picture_duration < minimum_duration:
                 raise ValueError(f'Encoded picture duration {float(picture_duration):.3f}s is below {minimum_duration}s minimum')
+            if maximum_duration is not None:
+                receipt['encoded_container_duration_seconds'] = container_duration
+                if not 0 < picture_duration <= maximum_duration or not 0 < container_duration <= maximum_duration:
+                    raise ValueError(f'Encoded picture or container exceeds {maximum_duration}s maximum')
         write(output/'timeline.json',{'scenes':rows,'duration_seconds':start,'publication_enabled':False})
         asr=None
         if transcription_python:
@@ -518,7 +531,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                 raise ValueError('Encoded transcription receipt identity mismatch')
         receipt.update(status='AWAITING_REVIEW',technical_status='PASS',candidate_sha256=digest(output/'video.mp4'),
                        caption_sha256=digest(output/'captions.vtt'),voice_receipt_sha256=digest(output/'voice.json'),
-                       timeline_sha256=digest(output/'timeline.json'),duration_seconds=float(probe['format']['duration']),
+                       timeline_sha256=digest(output/'timeline.json'),duration_seconds=container_duration,
                        scenes=rows,caption_timing='observed_word_timestamps' if asr else 'approximate_groups_over_measured_speech',
                        independent_transcription_verified=bool(asr),voice_model=voice['model_revision'])
         if asr: receipt['transcription_receipt_sha256']=digest(output/'transcription.json')

@@ -380,16 +380,22 @@ class RenderValidationTests(unittest.TestCase):
         def voice_fixture(command,log,deadline,env=None):
             if '--synthesize' not in command:
                 real_run(command,log,deadline,env)
-                if log.parent.name == 'mux-short' and command[0] == 'ffprobe':
+                if log.parent.name in ('mux-short', 'mux-long', 'container-long') and command[0] == 'ffprobe':
                     probe=json.loads(log.read_text())
                     video=next(stream for stream in probe['streams'] if stream['codec_type'] == 'video')
-                    video.update(duration_ts=23,time_base='1/24')
+                    if log.parent.name == 'container-long':
+                        video.update(duration_ts=48,time_base='1/24')
+                        probe['format']['duration']='2.050000'
+                    else:
+                        video.update(duration_ts=23 if log.parent.name == 'mux-short' else 49,time_base='1/24')
                     render.write(log,probe)
                 return
             out=Path(command[command.index('--output')+1]);data=json.loads((out/'editorial.json').read_text())
             text=data['scenes'][0]['narration'];wav=out/'voice-00.wav';rate=24000
             length=4 if 'reveal_after_seconds' in data['scenes'][0].get('visual_spec', {}) else 1
-            samples=[int(1000*math.sin(i*2*math.pi*220/rate)) for i in range(rate*length)]
+            if out.name == 'container-long':
+                length=1.72
+            samples=[int(1000*math.sin(i*2*math.pi*220/rate)) for i in range(round(rate*length))]
             with wave.open(str(wav),'wb') as stream:
                 stream.setparams((1,2,rate,0,'NONE','not compressed'))
                 stream.writeframes(struct.pack('<'+'h'*len(samples),*samples))
@@ -411,6 +417,26 @@ class RenderValidationTests(unittest.TestCase):
             self.assertIn('Encoded picture duration',blocked['reason'])
             self.assertFalse((mux_short/'transcription.log').exists())
             self.assertEqual(blocked['encoded_picture_duration_seconds'],23/24)
+            overflow=Path(td)/'overflow'
+            blocked=render.render_cycle(brief(),overflow,voice_python=sys.executable,voice_root=td,
+                                        timeout=60,maximum_duration=1)
+            self.assertIn('above 1s maximum',blocked['reason'])
+            self.assertEqual(blocked['measured_narration_frame_budget'],31)
+            self.assertFalse(any(overflow.glob('segment-*.mp4')))
+            mux_long=Path(td)/'mux-long'
+            blocked=render.render_cycle(brief(),mux_long,voice_python=sys.executable,voice_root=td,
+                                        timeout=60,maximum_duration=2,transcription_python=sys.executable)
+            self.assertIn('Encoded picture or container exceeds 2s maximum',blocked['reason'])
+            self.assertEqual(blocked['encoded_picture_duration_seconds'],49/24)
+            self.assertLess(blocked['encoded_container_duration_seconds'],2)
+            self.assertFalse((mux_long/'transcription.log').exists())
+            container_long=Path(td)/'container-long'
+            blocked=render.render_cycle(brief(),container_long,voice_python=sys.executable,voice_root=td,
+                                        timeout=60,maximum_duration=2,transcription_python=sys.executable)
+            self.assertIn('Encoded picture or container exceeds 2s maximum',blocked['reason'])
+            self.assertEqual(blocked['encoded_picture_duration_seconds'],2)
+            self.assertEqual(blocked['encoded_container_duration_seconds'],2.05)
+            self.assertFalse((container_long/'transcription.log').exists())
             out=Path(td)/'run';result=render.render_cycle(brief(),out,voice_python=sys.executable,voice_root=td,timeout=60)
             self.assertEqual(result['status'],'AWAITING_REVIEW',result)
             self.assertEqual(result['candidate_sha256'],render.digest(out/'video.mp4'))

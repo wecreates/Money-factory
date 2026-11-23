@@ -48,8 +48,11 @@ def validate(request):
             or not re.fullmatch('[0-9a-f]{64}', request['brief_sha256'])
             or request['brief_sha256'] != brief_digest(request['brief'])):
         raise ValueError('Editorial brief identity mismatch')
-    from integrations.content_control.cycle_editorial import compile_editorial
-    compile_editorial(request['brief'])
+    from integrations.content_control.cycle_editorial import compile_editorial, portrait_duration_limit
+    editorial = compile_editorial(request['brief'])
+    maximum = portrait_duration_limit(request['brief'], editorial)
+    if maximum is not None and request.get('minimum_duration_seconds', 0) > maximum:
+        raise ValueError('Requested minimum exceeds the portrait handoff maximum')
     production_input(request)
     return request
 
@@ -87,7 +90,7 @@ def _json(path):
     return value
 
 
-def check_completed(directory, expected_brief_sha256, *, minimum_duration=None):
+def check_completed(directory, expected_brief_sha256, *, minimum_duration=None, require_portrait_duration=False):
     """Independently bind queue success to delivered bytes; never approve them."""
     directory = Path(directory)
     if directory.is_symlink() or not directory.is_dir():
@@ -112,8 +115,9 @@ def check_completed(directory, expected_brief_sha256, *, minimum_duration=None):
     editorial = _json(directory/'editorial.json')
     if digest(directory/'brief.json') != expected_brief_sha256:
         raise ValueError('Cycle input brief identity mismatch')
-    from integrations.content_control.cycle_editorial import compile_editorial
-    if editorial != compile_editorial(_json(directory/'brief.json')):
+    from integrations.content_control.cycle_editorial import compile_editorial, portrait_duration_limit
+    source_brief = _json(directory/'brief.json')
+    if editorial != compile_editorial(source_brief):
         raise ValueError('Editorial does not derive from the queued brief')
     from integrations.content_control.cycle_package import declared_speaker_label, editorial_digest
     canonical_editorial_sha = editorial_digest(editorial)
@@ -157,6 +161,20 @@ def check_completed(directory, expected_brief_sha256, *, minimum_duration=None):
                 or type(encoded_duration) not in (int, float)
                 or not minimum_duration <= encoded_duration <= 600.25):
             raise ValueError('Completed render does not verify the queued minimum picture duration')
+    field = 'maximum_duration_seconds'
+    if field in receipt or field in rendered or require_portrait_duration and 'portrait_handoff' in source_brief:
+        maximum = portrait_duration_limit(source_brief, editorial)
+        if maximum is None or any(type(obj.get(field)) is not int or obj[field] != maximum
+                                  for obj in (receipt, rendered)):
+            raise ValueError('Completed maximum duration differs from the portrait handoff')
+        frame_budget = rendered.get('measured_narration_frame_budget')
+        picture = rendered.get('encoded_picture_duration_seconds')
+        container = rendered.get('encoded_container_duration_seconds')
+        media = package.get('media')
+        if (type(frame_budget) is not int or not 0 < frame_budget <= maximum * 24
+                or any(type(value) not in (int, float) or not 0 < value <= maximum for value in (picture, container))
+                or not isinstance(media, dict) or container != media.get('duration_seconds')):
+            raise ValueError('Completed render does not verify the portrait maximum duration')
     archive = directory/'delivery/review-package.zip'
     if not archive.is_file() or digest(archive) != receipt.get('archive_sha256'):
         raise ValueError('Package archive identity mismatch')
@@ -233,7 +251,8 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
                  str(transcription_python) if transcription_python else '',
                  str(revision_path) if revision_path else '', str(minimum) if minimum is not None else ''],
                 cwd=ROOT, log=attempt_dir/'cycle.log', deadline=deadline, env=os.environ)
-            receipt = check_completed(attempt_dir/'cycle', production_hash, minimum_duration=minimum)
+            receipt = check_completed(attempt_dir/'cycle', production_hash, minimum_duration=minimum,
+                                      require_portrait_duration=True)
             if receipt.get('revision_lineage') != lineage:
                 raise ValueError('Completed revision lineage differs from queued handoff')
             for directory in sorted((p for p in (attempt_dir/'cycle').rglob('*') if p.is_dir()), reverse=True):
