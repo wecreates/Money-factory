@@ -5,6 +5,7 @@ import sys
 import time
 import unittest
 from unittest.mock import patch
+import zipfile
 
 from integrations.content_control import test_cycle_review as review_fixture
 from integrations.content_control.review_package import digest
@@ -17,6 +18,7 @@ class AnalyzerTests(unittest.TestCase):
         self.model_dir=self.base/'models';self.model_dir.mkdir();(self.model_dir/analyzer.MODEL).write_bytes(b'SYNTHETIC_MODEL')
         self.model_patch=patch.object(analyzer,'MODEL_SHA',digest(self.model_dir/analyzer.MODEL));self.model_patch.start()
         self.env_patch=patch.dict('os.environ',{'REA_VIDEO_MODELS':str(self.model_dir),'PUBLICATION_ENABLED':'false','PAID_GENERATION_ENABLED':'false'});self.env_patch.start()
+        self.detected_starts = [0]
 
     def tearDown(self):
         self.env_patch.stop();self.model_patch.stop();self.packet.tearDown()
@@ -28,7 +30,8 @@ class AnalyzerTests(unittest.TestCase):
             identity['ocr_runtime_initialized']=True;out=Path(out);out.mkdir()
             (out/'VIDEO.md').write_text('Synthetic diagnostic fixture')
             (out/'storyboard.jpg').write_bytes(b'SYNTHETIC_JPEG')
-            data={'analysis':{'ocr':True,'vlm':{'used':False,'requested':False}},'shots':[{'start':0}],
+            data={'analysis':{'ocr':True,'vlm':{'used':False,'requested':False}},
+                  'shots':[{'start': start} for start in self.detected_starts],
                   'source':{'duration':1},'stems':{},'speech':{},'speakers':{}}
             (out/'breakdown.json').write_text(json.dumps(data))
         Path(report).write_text(json.dumps(identity));log.write_text('synthetic fixture')
@@ -43,6 +46,52 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(result['cycle_files_sha256']['cycle.json'],digest(self.root/'cycle.json'))
         self.assertFalse(result['full_av_review']);self.assertFalse(result['production_approved'])
         self.assertFalse(result['publication_enabled']);self.assertIn('VIDEO.md',result['diagnostics_files_sha256'])
+        self.assertEqual(result['summary']['authored_cut_coverage']['status'], 'UNAVAILABLE')
+
+    def add_render_scene_starts(self):
+        delivery = self.root/'delivery'
+        render_receipt = delivery/'render.json'
+        render = json.loads(render_receipt.read_text())
+        render['scenes'] = [{'scene_id': 's1', 'start': 0}, {'scene_id': 's2', 'start': .625}]
+        review_fixture.write(render_receipt, render)
+        (self.root/'render/render.json').write_bytes(render_receipt.read_bytes())
+        package = json.loads((delivery/'package.json').read_text())
+        package['render_receipt_sha256'] = package['files_sha256']['render.json'] = digest(render_receipt)
+        review_fixture.write(delivery/'package.json', package)
+        cycle = json.loads((self.root/'cycle.json').read_text())
+        cycle['package_sha256'] = digest(delivery/'package.json')
+        review_fixture.write(self.root/'cycle.json', cycle)
+        with zipfile.ZipFile(delivery/'review-package.zip', 'w') as archive:
+            for member in (*package['files_sha256'], 'package.json'):
+                archive.write(delivery/member, member)
+
+    def test_reports_missing_authored_cut_and_excludes_origin(self):
+        self.add_render_scene_starts()
+        self.detected_starts = [0, .125]
+        with patch.object(analyzer,'_run',side_effect=self.fake_run):result=self.call()
+        self.assertEqual(result['status'], 'DIAGNOSTIC_COMPLETE', result)
+        coverage = result['summary']['authored_cut_coverage']
+        self.assertEqual(coverage['status'], 'MISSING_AUTHORED_CUTS')
+        self.assertEqual(coverage['missing_cuts'], [{'scene_id': 's2', 'authored_seconds': .625}])
+        self.assertEqual(coverage['unmatched_detected_seconds'], [.125])
+        self.assertEqual(coverage['matched_cuts'], [])
+        self.assertFalse(result['full_av_review'])
+
+    def test_nearby_detections_match_once_at_most(self):
+        rows = [{'scene_id': id_, 'start': time} for id_, time in (('s1', 0), ('s2', .625), ('s3', .75))]
+        summary = {'duration_seconds': 1, 'detected_boundaries_seconds': [0, .125, .75, .9375]}
+        result = analyzer._cut_coverage({'scenes': rows}, [{'id': row['scene_id']} for row in rows], summary)
+        self.assertEqual(result['matched_cuts'], [{'scene_id': 's2', 'authored_seconds': .625, 'detected_seconds': .75}])
+        self.assertEqual(result['missing_cuts'], [{'scene_id': 's3', 'authored_seconds': .75}])
+        self.assertEqual(result['unmatched_detected_seconds'], [.125, .9375])
+
+    def test_invalid_detected_start_blocks_diagnostic(self):
+        for i, value in enumerate(([0, True], [0, .625, .25], [0, .625, .625], [0, 1])):
+            self.detected_starts = value
+            with patch.object(analyzer,'_run',side_effect=self.fake_run):
+                result = self.call(self.base / f'invalid-{i}')
+            self.assertEqual(result['status'], 'BLOCKED', result)
+            self.assertIn('Invalid detected shot starts', result['reason'])
 
     def test_tampered_cycle_rejected_before_launch(self):
         (self.root/'delivery/video.mp4').write_bytes(b'TAMPERED')
