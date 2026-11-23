@@ -81,6 +81,49 @@ class CaptionRevisionTests(unittest.TestCase):
             with self.assertRaises(ValueError):m.revise_captions(self.root,self.source,self.out)
             self.assertFalse(self.out.exists())
 
+    def test_retime_packages_a_new_caption_identity_and_keeps_media(self):
+        original = m.inspect_cycle(self.root)
+        revised = VTT.replace(b'than a purchase posts.', b'than a\npurchase posts.')
+        del self.edits['edits']
+        self.edits['retimed_vtt'] = revised.decode()
+        m._write(self.source, self.edits)
+        result = m.revise_captions(self.root, self.source, self.out)
+        self.assertEqual(result['status'], 'AWAITING_REVIEW', result)
+        self.assertEqual(result['operation'], 'caption_timing_revision')
+        self.assertEqual((self.out/'render/captions.vtt').read_bytes(), revised)
+        self.assertEqual(m.inspect_cycle(self.root), original)
+        current = m.inspect_cycle(self.out)
+        self.assertEqual(current['candidate_sha256'], original['candidate_sha256'])
+        for name in ('delivery/captions.vtt', 'delivery/package.json', 'delivery/automated-review.json'):
+            self.assertNotEqual(current['files_sha256'][name], original['files_sha256'][name])
+        review = json.loads((self.out/'delivery/automated-review.json').read_text())
+        self.assertFalse(review['full_audiovisual_review_verified'])
+        self.assertEqual(review['caption_sha256'], current['files_sha256']['delivery/captions.vtt'])
+
+    def test_retime_only_between_adjacent_cues(self):
+        first = ('00:00:00.000 --> 00:00:00.500\nOne two\n\n'
+                 '00:00:00.500 --> 00:00:00.900\nthree four.\n\n')
+        later = '00:00:01.500 --> 00:00:02.000\nFive.\n\n'
+        before = ('WEBVTT\n\n' + first + later).encode()
+        after = ('WEBVTT\n\n00:00:00.000 --> 00:00:00.700\nOne two three\n\n'
+                 '00:00:00.700 --> 00:00:00.900\nfour.\n\n' + later)
+        self.assertEqual(m.retime_vtt(before, after), after.encode())
+        for invalid in (before.decode(), after.replace('three', 'three!'), after.replace('two three', 'three two'),
+                        after.replace('00:00:00.900', '00:00:01.500'),
+                        after.replace('00:00:01.500', '00:00:00.800'),
+                        after.replace('00:00:00.700 -->', '00:00:00.800 -->'),
+                        after.replace('One two', '<b>One</b> two')):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                m.retime_vtt(before, invalid)
+
+    def test_text_correction_to_retimed_multiline_cue_needs_explicit_line(self):
+        multiline = VTT.replace(b'than a purchase posts.', b'than a\npurchase posts.')
+        edit = {'cue': 1, 'before': 'purchase posts.', 'after': 'purchase appears.'}
+        with self.assertRaisesRegex(ValueError, 'explicit line'):
+            m.correct_vtt(multiline, [edit])
+        self.assertEqual(m.correct_vtt(multiline, [dict(edit, line=2)]),
+                         multiline.replace(b'purchase posts.', b'purchase appears.'))
+
     def test_duplicate_json_and_unsafe_paths_rejected(self):
         self.source.write_text('{"candidate_sha256":"a","candidate_sha256":"b"}')
         with self.assertRaises(ValueError):m.revise_captions(self.root,self.source,self.out)
@@ -108,6 +151,14 @@ class CaptionRevisionTests(unittest.TestCase):
         with patch.object(m,'package_cycle',side_effect=mutate):
             r=m.revise_captions(self.root,self.source,self.out)
         self.assertEqual(r['status'],'BLOCKED');self.assertIn('changed',r['reason'])
+
+    def test_unbound_caption_bytes_fail_before_repair(self):
+        snapshot = m.inspect_cycle(self.root)
+        (self.root/'delivery/captions.vtt').write_bytes(VTT.replace(b'than', b'Then'))
+        with patch.object(m, 'inspect_cycle', return_value=snapshot):
+            with self.assertRaisesRegex(ValueError, 'Source captions changed'):
+                m.revise_captions(self.root, self.source, self.out)
+        self.assertFalse(self.out.exists())
 
 
 if __name__=='__main__':unittest.main()

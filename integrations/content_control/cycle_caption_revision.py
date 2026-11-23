@@ -1,4 +1,4 @@
-"""Explicit caption text edits in a new cycle; no audio/listening verification."""
+"""Explicit caption repairs in a new cycle; no audio/listening verification."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -11,6 +11,7 @@ import time
 from integrations.content_control.cycle_package import package_cycle, copy_file
 from integrations.content_control.cycle_review import inspect_cycle
 from integrations.content_control.cycle_lineage import _pairs, _constant
+from integrations.content_control.cycle_short import _seconds
 from integrations.content_control.review_package import digest, no_symlinks, require
 
 FLAGS = {k: False for k in ('publication_enabled', 'paid_generation_enabled', 'production_approved',
@@ -25,37 +26,79 @@ def _text(value, maximum):
     return value
 
 
-def correct_vtt(raw, edits):
-    """Edit only selected text lines; every timing and separator byte is retained."""
+def _plain_cues(raw):
     require(len(raw) <= 1024 * 1024, 'Caption file oversized')
     text = raw.decode('utf-8')
-    require(text.startswith('WEBVTT\n\n'), 'Plain LF WebVTT required')
+    require(text.startswith('WEBVTT\n\n') and '\r' not in text, 'Plain LF WebVTT required')
     lines = text.splitlines(keepends=True)
-    positions = []
+    cues = []
     index = 2
     while index < len(lines):
         if lines[index] == '\n':
             index += 1; continue
-        require(TIMING.fullmatch(lines[index].rstrip('\n')) is not None, 'Unsupported caption timing or block')
+        timing = lines[index].rstrip('\n')
+        require(TIMING.fullmatch(timing) is not None, 'Unsupported caption timing or block')
         index += 1
-        require(index < len(lines), 'Missing caption text')
-        _text(lines[index].rstrip('\n'), 2000)
-        positions.append(index)
-        index += 1
-        require(index == len(lines) or lines[index] == '\n', 'Only plain single-line cues supported')
+        first = index
+        while index < len(lines) and lines[index] != '\n':
+            value = _text(lines[index].rstrip('\n'), 2000)
+            require('-->' not in value, 'Invalid caption text')
+            index += 1
+        require(first < index, 'Missing caption text')
+        cues.append((timing, range(first, index)))
+    require(cues, 'At least one plain caption cue required')
+    return lines, cues
+
+
+def correct_vtt(raw, edits):
+    """Edit only selected text lines; every timing and separator byte is retained."""
+    lines, cues = _plain_cues(raw)
     require(isinstance(edits, list) and 1 <= len(edits) <= 100, 'One to 100 explicit edits required')
     seen = set()
     for edit in edits:
-        require(isinstance(edit, dict) and set(edit) == {'cue','before','after'}, 'Exact cue/before/after fields required')
+        fields = {'cue', 'before', 'after'}
+        require(isinstance(edit, dict) and set(edit) in (fields, fields | {'line'}),
+                'Exact cue/before/after fields required, with optional line')
         cue = edit['cue']
-        require(type(cue) is int and 1 <= cue <= len(positions) and cue not in seen, 'Invalid or duplicate cue')
-        seen.add(cue)
+        require(type(cue) is int and 1 <= cue <= len(cues), 'Invalid cue')
+        positions = cues[cue - 1][1]
+        require('line' in edit or len(positions) == 1, 'Multi-line cue requires explicit line')
+        line = edit.get('line', 1)
+        require(type(line) is int and 1 <= line <= len(positions), 'Invalid cue line')
+        pos = positions[line - 1]
+        require(pos not in seen, 'Duplicate cue line')
+        seen.add(pos)
         before, after = _text(edit['before'], 2000), _text(edit['after'], 2000)
         require(before != after, 'Caption edit must change text')
-        pos = positions[cue-1]
         require(lines[pos].rstrip('\n') == before, 'Caption before text does not match')
         lines[pos] = after + ('\n' if lines[pos].endswith('\n') else '')
     return ''.join(lines).encode('utf-8')
+
+
+def _occupied_intervals(raw):
+    """Group adjacent cues to preserve both silence and the words for each interval."""
+    lines, cues = _plain_cues(raw)
+    intervals = []
+    for timing, positions in cues:
+        start, end = map(_seconds, timing.split(' --> '))
+        require(start < end and (not intervals or intervals[-1][1] <= start),
+                'Retiming requires ordered, non-overlapping cues')
+        tokens = ' '.join(lines[pos] for pos in positions).split()
+        if intervals and intervals[-1][1] == start:
+            intervals[-1][1] = end
+            intervals[-1][2].extend(tokens)
+        else:
+            intervals.append([start, end, tokens])
+    return intervals
+
+
+def retime_vtt(raw, replacement):
+    require(isinstance(replacement, str), 'Retimed WebVTT text required')
+    new_raw = replacement.encode('utf-8')
+    require(new_raw != raw, 'Retiming must change the caption track')
+    require(_occupied_intervals(raw) == _occupied_intervals(new_raw),
+            'Retiming must preserve wording, word order, and occupied intervals')
+    return new_raw
 
 
 def _write(path, value):
@@ -71,27 +114,41 @@ def revise_captions(cycle_dir, edits_path, output, timeout=180):
     require(not output.exists() and not output.is_relative_to(root) and
             output != source and not source.is_relative_to(output), 'Fresh output separate from source inputs required')
     require(source.is_file() and source.stat().st_size <= 64*1024, 'Missing or oversized edits input')
-    raw = source.read_bytes()
+    with source.open('rb') as stream:
+        raw = stream.read(64*1024+1)
+    require(len(raw) <= 64*1024, 'Edits input exceeds 64 KiB')
     submitted = json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant)
-    require(isinstance(submitted, dict) and set(submitted) ==
-            {'candidate_sha256','caption_sha256','reviewer','rationale','edits'}, 'Exact caption-edit fields required')
+    common = {'candidate_sha256', 'caption_sha256', 'reviewer', 'rationale'}
+    require(isinstance(submitted, dict) and set(submitted) in (common | {'edits'}, common | {'retimed_vtt'}),
+            'Exact caption repair fields required, with edits or retimed_vtt')
     reviewer, rationale = _text(submitted['reviewer'],200), _text(submitted['rationale'],4000)
     deadline = time.monotonic()+timeout
     snapshot = inspect_cycle(root)
     require(submitted['candidate_sha256'] == snapshot['candidate_sha256'] and
             submitted['caption_sha256'] == snapshot['files_sha256']['delivery/captions.vtt'], 'Caption edit identity mismatch')
     old_captions = (root/'delivery/captions.vtt').read_bytes()
-    corrected = correct_vtt(old_captions, submitted['edits'])
+    require(hashlib.sha256(old_captions).hexdigest() == submitted['caption_sha256'],
+            'Source captions changed before repair')
+    if 'retimed_vtt' in submitted:
+        corrected = retime_vtt(old_captions, submitted['retimed_vtt'])
+        operation = 'caption_timing_revision'
+        cue_scope = 'Supplied timing and line breaks within existing occupied intervals; no listening or new ASR verification.'
+        caption_timing = 'editorial_retiming'
+    else:
+        corrected = correct_vtt(old_captions, submitted['edits'])
+        operation = 'caption_text_revision'
+        cue_scope = 'Supplied text correction only; source audio and cue timings unchanged; no listening or new ASR verification.'
+        caption_timing = 'editorial_text_correction'
     proof = {'source_cycle_sha256':snapshot['files_sha256']['cycle.json'],
              'source_package_sha256':snapshot['files_sha256']['delivery/package.json'],
              'source_render_receipt_sha256':snapshot['files_sha256']['render/render.json'],
              'source_caption_sha256':submitted['caption_sha256'],
              'edits_sha256':hashlib.sha256(raw).hexdigest(), 'submitted_edits_json':raw.decode('utf-8'),
              'reviewer':reviewer, 'rationale':rationale, 'listening_verified':False,
-             'scope':'Supplied text correction only; source audio and cue timings unchanged; no listening or new ASR verification.'}
+             'scope':cue_scope}
     output.mkdir(parents=True,exist_ok=False)
     result = {'schema_version':1,'status':'BLOCKED','technical_status':'PENDING',**FLAGS,
-              'operation':'caption_text_revision','started_at':datetime.now(timezone.utc).isoformat(),
+              'operation':operation,'started_at':datetime.now(timezone.utc).isoformat(),
               'caption_revision':proof,'candidate_sha256':snapshot['candidate_sha256'],
               'brief_sha256':snapshot['cycle']['brief_sha256'],
               'editorial_sha256':snapshot['cycle']['editorial_sha256'],
@@ -103,15 +160,18 @@ def revise_captions(cycle_dir, edits_path, output, timeout=180):
         render = output/'render'; render.mkdir()
         copy_file(root/'render/video.mp4',render/'video.mp4',deadline)
         (render/'captions.vtt').write_bytes(corrected)
-        rendered = json.loads((root/'render/render.json').read_text())
+        render_raw = (root/'render/render.json').read_bytes()
+        require(hashlib.sha256(render_raw).hexdigest() == snapshot['files_sha256']['render/render.json'],
+                'Source render receipt changed before repair')
+        rendered = json.loads(render_raw)
         # Keep the origin renderer's geometry/scope for identical thumbnail framing.
         # Caption-specific claims are superseded; the prior ASR hash is provenance only.
         prior_asr = rendered.pop('transcription_receipt_sha256',None)
-        rendered.update(caption_sha256=digest(render/'captions.vtt'), caption_timing='editorial_text_correction',
+        rendered.update(caption_sha256=digest(render/'captions.vtt'), caption_timing=caption_timing,
                         independent_transcription_verified=False, caption_revision=dict(proof, prior_asr_receipt_sha256=prior_asr),
-                        operation='caption_text_revision', **FLAGS)
+                        operation=operation, **FLAGS)
         _write(render/'render.json',rendered)
-        result['steps'].append({'name':'caption_text_revision','status':'PASS'})
+        result['steps'].append({'name':operation,'status':'PASS'})
         packaged = package_cycle(snapshot['editorial'],render,output/'delivery',deadline=deadline)
         result.update(package_sha256=digest(output/'delivery/package.json'), archive_sha256=packaged['archive_sha256'])
         require(inspect_cycle(root)==snapshot and source.read_bytes()==raw,'Caption revision inputs changed')
