@@ -105,6 +105,78 @@ test('real HTTP failure persists 502, exits nonzero, and recovery clears the err
   }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
 });
 
+test('availability transitions record per-probe completion, deduplicate and preserve the content baseline',async()=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-availability-'));
+  let status=200, body='baseline', responseAt=0;
+  const server=http.createServer((req,res)=>{
+    if(req.url==='/delay'){
+      setTimeout(()=>res.end('stable'),50);
+      return;
+    }
+    responseAt=Date.now();
+    res.writeHead(status);
+    res.end(body);
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const origin='http://127.0.0.1:'+server.address().port;
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),eventsPath:path.join(dir,'events.json'),intervalMs:0};
+  const watch={id:'target',targetUrl:origin+'/target'};
+  const configure=url=>fs.writeFile(options.watchesPath,JSON.stringify([{id:'delay',targetUrl:origin+'/delay'},{...watch,targetUrl:url}]));
+  const readEvents=async()=>JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+  const readState=async()=>JSON.parse(await fs.readFile(options.statePath,'utf8')).target;
+  try{
+    await configure(watch.targetUrl);
+    assert.equal((await runWorker(options)).ok,true);
+    const baseline=await readState();
+    assert.deepEqual(await readEvents(),[]);
+    status=503;
+    const failed=await runWorker(options);
+    assert.equal(failed.ok,false);
+    const failedTarget=failed.results.find(result=>result.id==='target');
+    assert.ok(failedTarget.last_checked_at>=responseAt,'failure time precedes the response');
+    assert.equal((await readState()).last_checked_at,failedTarget.last_checked_at);
+    assert.equal((await readState()).last_value,baseline.last_value);
+    const [failure]=await readEvents();
+    assert.deepEqual({type:failure.type,from:failure.previous_availability,to:failure.availability,status:failure.http_status,at:failure.at},
+      {type:'availability',from:'healthy',to:'unavailable',status:503,at:failedTarget.last_checked_at});
+    await runWorker(options);
+    assert.deepEqual(await readEvents(),[failure]);
+
+    status=200;
+    const recovered=await runWorker(options);
+    assert.equal(recovered.ok,true);
+    const recoveredTarget=recovered.results.find(result=>result.id==='target');
+    assert.equal(recoveredTarget.changed,false);
+    assert.equal((await readState()).last_change_at,baseline.last_change_at);
+    const [,recovery]=await readEvents();
+    assert.deepEqual({type:recovery.type,from:recovery.previous_availability,to:recovery.availability,status:recovery.http_status,at:recovery.at},
+      {type:'availability',from:'unavailable',to:'healthy',status:200,at:recoveredTarget.last_checked_at});
+    await runWorker(options);
+    assert.deepEqual(await readEvents(),[failure,recovery]);
+
+    body='updated';
+    const recent=Array.from({length:498},(_,i)=>({id:`old-${i}`,type:'change'}));
+    await fs.writeFile(options.eventsPath,JSON.stringify([...recent,failure,recovery]));
+    await runWorker(options);
+    const events=await readEvents();
+    assert.equal(events.length,500);
+    assert.deepEqual(events.slice(0,-1),[...recent.slice(1),failure,recovery]);
+    const {id,...change}=events.at(-1);
+    assert.ok(id);
+    assert.deepEqual(change,{watch_id:'target',type:'change',label:'target',target_url:watch.targetUrl,at:(await readState()).last_change_at});
+
+    status=503;
+    const retarget=origin+'/new-target';
+    await configure(retarget);
+    await runWorker(options);
+    const firstFailure=(await readEvents()).at(-1);
+    assert.equal(firstFailure.previous_availability,'unknown');
+    assert.equal(firstFailure.availability,'unavailable');
+    assert.equal(firstFailure.target_url,retarget);
+    assert.equal((await readState()).last_value,null);
+  }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
+});
+
 import crypto from 'node:crypto';
 import {gzipSync} from 'node:zlib';
 import {MAX_RESPONSE_BYTES} from '../worker.mjs';
@@ -145,12 +217,16 @@ test('decoded body ceiling preserves baseline on declared, chunked and gzip over
       assert.equal(state.last_value,baseline.last_value);
       assert.equal(state.last_change_at,baseline.last_change_at);
       assert.equal(state.last_status,null);
-      assert.deepEqual(JSON.parse(await fs.readFile(options.eventsPath,'utf8')),[]);
+      const [event,...remaining]=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+      assert.equal(event.type,'availability');assert.equal(event.availability,'unavailable');
+      assert.equal(event.http_status,null);assert.deepEqual(remaining,[]);
     }
     mode='exact';
     assert.equal((await runWorker(options)).ok,true);
     const recovered=JSON.parse(await fs.readFile(options.statePath,'utf8')).bounded;
     assert.equal(recovered.last_error,null);assert.equal(recovered.last_value,baseline.last_value);
+    const events=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+    assert.deepEqual(events.map(event=>[event.type,event.availability]),[['availability','unavailable'],['availability','healthy']]);
   }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
 });
 
