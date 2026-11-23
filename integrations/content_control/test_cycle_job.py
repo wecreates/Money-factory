@@ -133,6 +133,50 @@ class CycleJobTests(unittest.TestCase):
             receipt['full_av_review'] = True; write(root/'cycle.json', receipt)
             with self.assertRaises(ValueError): check_completed(root, request()['brief_sha256'])
 
+    def test_worker_requires_bound_portrait_maximum_but_legacy_packet_remains_readable(self):
+        from integrations.content_control.cycle_job import canonical
+        queued = request()
+        queued['brief']['portrait_handoff'] = {
+            **dict.fromkeys(('candidate_sha256', 'cycle_sha256', 'brief_sha256', 'package_sha256', 'render_sha256'),
+                            'a' * 64),
+            'scenes': [{'scene_id': 'one', 'start_seconds': 10, 'end_seconds': 13}],
+        }
+        expected = queued['brief_sha256'] = brief_digest(queued['brief'])
+        with self.assertRaisesRegex(ValueError, 'minimum exceeds'):
+            validate(dict(queued, minimum_duration_seconds=61))
+        validate(queued)
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)/'cycle'
+            receipt = packet(root, expected)
+            (root/'brief.json').write_text(canonical(queued['brief']))
+            check_completed(root, expected)
+            with self.assertRaisesRegex(ValueError, 'maximum duration'):
+                check_completed(root, expected, require_portrait_duration=True)
+            baseline = json.loads((root/'render/render.json').read_text())
+            baseline.update(maximum_duration_seconds=60, measured_narration_frame_budget=1440,
+                            encoded_picture_duration_seconds=60, encoded_container_duration_seconds=60)
+            package_path = root/'delivery/package.json'
+            package = json.loads(package_path.read_text())
+            receipt['maximum_duration_seconds'] = 60
+            for update, success in (({}, True), ({'maximum_duration_seconds': 61}, False),
+                                    ({'encoded_container_duration_seconds': 60.01}, False),
+                                    ({'encoded_picture_duration_seconds': 60.01}, False),
+                                    ({'measured_narration_frame_budget': 1441}, False)):
+                with self.subTest(update=update):
+                    rendered = {**baseline, **update}
+                    write(root/'render/render.json', rendered)
+                    write(root/'delivery/render.json', rendered)
+                    package['media'] = {'duration_seconds': rendered['encoded_container_duration_seconds']}
+                    package['render_receipt_sha256'] = package['files_sha256']['render.json'] = digest(root/'delivery/render.json')
+                    write(package_path, package)
+                    receipt['package_sha256'] = digest(package_path)
+                    write(root/'cycle.json', receipt)
+                    if success:
+                        check_completed(root, expected, require_portrait_duration=True)
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'maximum duration'):
+                            check_completed(root, expected)
+
     def test_source_hash_mismatch_and_symlink_rejected(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)/'cycle'; packet(root, request()['brief_sha256'])

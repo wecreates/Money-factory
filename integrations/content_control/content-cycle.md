@@ -540,7 +540,13 @@ It copies the selected scene descriptions, narration, speaker assignments,
 visual settings and source citations. Run the new `brief.json` through the
 existing production command. The portrait render has newly synthesized audio,
 new captions and its own measured duration. Review those exact output bytes.
-Both the parent span and planned portrait duration must be at most 60 seconds.
+The parent span and planned portrait duration must be at most 60 seconds.
+Production checks the portable handoff's scene order and evidence identities.
+It also checks the bound narration's frame budget before drawing and verifies
+the encoded picture and container lengths before transcription and delivery.
+The queue verifies both measured lengths and the bound maximum in fresh
+producer receipts. An overlength portrait handoff stops with its measured
+evidence. Existing retained packets remain readable.
 Measure the actual export separately. No cropping or reuse of a landscape
 audio stream occurs in this path.
 

@@ -154,7 +154,9 @@ def revise_captions(cycle_dir, edits_path, output, timeout=180):
               'editorial_sha256':snapshot['cycle']['editorial_sha256'],
               'scope':'New review package for unchanged media with explicit caption correction; no fresh synthesis or creative approval.',
               'steps':[], 'tool_sha256':{'cycle_caption_revision.py':digest(Path(__file__))}}
-    if 'revision_lineage' in snapshot['cycle']: result['revision_lineage']=snapshot['cycle']['revision_lineage']
+    for field in ('revision_lineage', 'maximum_duration_seconds'):
+        if field in snapshot['cycle']:
+            result[field] = snapshot['cycle'][field]
     try:
         for name in ('brief.json','editorial.json'): copy_file(root/name,output/name,deadline)
         render = output/'render'; render.mkdir()

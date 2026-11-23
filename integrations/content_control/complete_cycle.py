@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 import time
 
-from integrations.content_control.cycle_editorial import compile_editorial
+from integrations.content_control.cycle_editorial import compile_editorial, portrait_duration_limit
 from integrations.content_control.cycle_render import render_cycle
 from integrations.content_control.cycle_package import package_cycle
 from integrations.content_control.cycle_lineage import read_revision
@@ -53,6 +53,9 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
     raw = source.read_bytes()
     brief = json.loads(raw)
     editorial = compile_editorial(brief, validate_visual_shapes=True)
+    maximum_duration = portrait_duration_limit(brief, editorial)
+    if maximum_duration is not None and minimum_duration is not None and minimum_duration > maximum_duration:
+        raise ValueError('Requested minimum exceeds the portrait handoff maximum')
     brief_hash = hashlib.sha256(raw).hexdigest()
     revision_source = safe_path(revision_path) if revision_path is not None else None
     lineage = read_revision(revision_source, brief_hash) if revision_source is not None else None
@@ -74,6 +77,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         receipt['revision_lineage'] = lineage
     if minimum_duration is not None:
         receipt['minimum_duration_seconds'] = minimum_duration
+    if maximum_duration is not None:
+        receipt['maximum_duration_seconds'] = maximum_duration
     tool_names = ('complete_cycle.py', 'cycle_editorial.py', 'cycle_render.py', 'cycle_package.py', 'cycle_lineage.py',
                   'cycle_av_review.py', 'cycle_av_benchmarks.py')
     receipt['tool_sha256'] = {name: digest(module_root/name) for name in tool_names}
@@ -92,6 +97,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
             render_options['transcription_python'] = transcription_python
         if minimum_duration is not None:
             render_options['minimum_duration'] = minimum_duration
+        if maximum_duration is not None:
+            render_options['maximum_duration'] = maximum_duration
         rendered = render_cycle(editorial, output / 'render', **render_options)
         if (rendered.get('technical_status') != 'PASS'
                 or rendered.get('publication_enabled') is not False

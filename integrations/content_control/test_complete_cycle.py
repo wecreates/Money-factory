@@ -107,6 +107,38 @@ class CompleteCycleTest(unittest.TestCase):
         self.assertEqual(result['failed_step'], 'render')
         self.assertEqual(result['minimum_duration_seconds'], 510)
 
+    def portrait_source(self):
+        data = brief()
+        data['portrait_handoff'] = {
+            **dict.fromkeys(('candidate_sha256', 'cycle_sha256', 'brief_sha256', 'package_sha256', 'render_sha256'),
+                            'a' * 64),
+            'scenes': [{'scene_id': 's1', 'start_seconds': 3, 'end_seconds': 9},
+                       {'scene_id': 's2', 'start_seconds': 9, 'end_seconds': 12}],
+        }
+        self.source.write_text(json.dumps(data))
+        return data
+
+    def test_verified_portrait_handoff_applies_measured_maximum_only_to_derivative(self):
+        self.portrait_source()
+
+        def render_with_maximum(editorial, output, **kwargs):
+            self.assertEqual(kwargs['maximum_duration'], 60)
+            return self.render(editorial, output, **kwargs)
+
+        result = self.execute(render=render_with_maximum)
+        self.assertEqual(result['status'], 'AWAITING_REVIEW', result)
+        self.assertEqual(result['maximum_duration_seconds'], 60)
+
+    def test_malformed_portrait_handoff_or_conflicting_minimum_rejected_before_render(self):
+        data = self.portrait_source()
+        with self.assertRaisesRegex(ValueError, 'minimum exceeds'):
+            self.execute(minimum_duration=61)
+        data['portrait_handoff']['scenes'][1]['start_seconds'] = 8
+        self.source.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, 'contiguous'):
+            self.execute()
+        self.assertFalse(self.output.exists())
+
     def test_failed_render_is_retained_as_blocked(self):
         result = self.execute(render=lambda *a, **k: {'technical_status': 'FAIL'})
         self.assertEqual(result['status'], 'BLOCKED')
