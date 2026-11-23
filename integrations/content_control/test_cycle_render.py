@@ -390,6 +390,23 @@ class RenderValidationTests(unittest.TestCase):
             self.assertEqual(dark[:2],[0,0])
             self.assertTrue(all(count>500 for count in dark[2:]))
 
+            revealed['layout']='landscape'
+            wide=Path(td)/'wide'
+            result=render.render_cycle(revealed,wide,voice_python=sys.executable,voice_root=td,timeout=60)
+            self.assertEqual(result['status'],'AWAITING_REVIEW',result)
+            self.assertEqual(result['layout'],'landscape')
+            self.assertEqual(result['scenes'][0]['visual_reveal']['first_visible_scene_frame'],13)
+            probe=json.loads((wide/'probe.json').read_text())
+            picture=next(s for s in probe['streams'] if s['codec_type']=='video')
+            self.assertEqual((picture['width'],picture['height'],picture['sample_aspect_ratio']),(1280,720,'1:1'))
+            region=subprocess.check_output(['ffmpeg','-v','error','-i',str(wide/'segment-00.mp4'),
+                '-vf',r'select=eq(n\,0)+eq(n\,12)+eq(n\,13)+eq(n\,84),crop=240:300:912:180',
+                '-vsync','0','-frames:v','4','-f','rawvideo','-pix_fmt','rgb24','-threads','1','-'])
+            self.assertEqual(len(region),4*stride)
+            dark=[sum(channel<120 for channel in region[i:i+stride:3]) for i in range(0,len(region),stride)]
+            self.assertEqual(dark[:2],[0,0])
+            self.assertTrue(all(count>500 for count in dark[2:]))
+
 
 class PinnedASRTests(unittest.TestCase):
     def setUp(self):

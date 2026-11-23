@@ -41,6 +41,19 @@ This standalone command creates an explicit artifact attempt; it does not certif
 
 Outputs include the exact brief/editorial, fresh narration stems, original diagram panels, measured scene timeline, MP4, captions, speech-verification receipt, three PNG thumbnail candidates, local review HTML, portable ZIP and bound receipts. Thumbnail variants are frame-derived choices, not measured CTR winners. The webpage exposes reference scope and outstanding review requirements. No posting or publishing APIs exist in this path.
 
+### Native landscape review renders
+
+Set the brief's top-level `layout` to `"landscape"` to render a 1280×720
+stage. The existing diagrams appear beside the character, and the same
+authored comparison cues apply to the wide layout. The layout is bound to the
+editorial, render and package receipts. The authored-scene gallery accepts
+this profile and the package generates full-frame thumbnails. Omit the field
+for the existing 720×1280 renderer and portrait thumbnail crop.
+
+Portrait excerpts still require an authored portrait source. Landscape is a
+layout choice. Duration, listening, device playback and delivery acceptance
+remain separate.
+
 ### Reveal a comparison card during a scene
 
 A `comparison` scene with two complete label/value pairs can opt into

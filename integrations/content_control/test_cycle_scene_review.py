@@ -57,9 +57,9 @@ class SceneSamplingTests(unittest.TestCase):
         self.snapshot = {'candidate_sha256': 'a'*64, 'files_sha256': {'cycle.json': 'b'*64},
                          'editorial': self.editorial}
 
-    def media(self, fps=24):
-        subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', f'color=red:s=90x160:r={fps}:d=1',
-                        '-f', 'lavfi', '-i', f'color=blue:s=90x160:r={fps}:d=1',
+    def media(self, fps=24, size='90x160'):
+        subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', f'color=red:s={size}:r={fps}:d=1',
+                        '-f', 'lavfi', '-i', f'color=blue:s={size}:r={fps}:d=1',
                         '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono',
                         '-filter_complex', '[0:v][1:v]concat=n=2:v=1:a=0[v]', '-map', '[v]', '-map', '2:a',
                         '-t', '2', '-c:v', 'libx264', '-threads', '1', '-c:a', 'aac',
@@ -71,6 +71,7 @@ class SceneSamplingTests(unittest.TestCase):
         with patch.object(m, 'inspect_cycle', return_value=self.snapshot):
             result = m.make_scene_review(self.root, self.out, timeout=30)
         self.assertEqual(result['status'], 'SCENE_SAMPLES_READY', result)
+        self.assertNotIn('layout', result)
         self.assertEqual(result['sampled_scene_count'], 2)
         self.assertEqual(result['candidate_sha256'], initial)
         self.assertEqual(m.digest(self.delivery / 'video.mp4'), initial)
@@ -88,6 +89,32 @@ class SceneSamplingTests(unittest.TestCase):
         self.assertIn('&lt;script&gt;unsafe&lt;/script&gt;', html); self.assertNotIn('<script>', html)
         self.assertIn('not burned', html)
         self.assertEqual(json.loads((self.out / 'scene-review.json').read_text()), result)
+
+    def test_opted_landscape_samples_native_frames_and_compact_sheet(self):
+        self.media(size='1280x720')
+        self.editorial['layout'] = 'landscape'
+        manifest = self.delivery / 'render.json'
+        render = json.loads(manifest.read_text())
+        render['layout'] = 'landscape'
+        manifest.write_text(json.dumps(render))
+        with patch.object(m, 'inspect_cycle', return_value=self.snapshot):
+            result = m.make_scene_review(self.root, self.out, timeout=30)
+        self.assertEqual(result['status'], 'SCENE_SAMPLES_READY', result)
+        self.assertEqual(result['layout'], 'landscape')
+        self.assertEqual(result['candidate_sha256'], m.digest(self.delivery / 'video.mp4'))
+        for name, dominant in [('scene-01.png', 0), ('scene-02.png', 2)]:
+            with Image.open(self.out / name) as image:
+                self.assertEqual(image.size, (1280, 720))
+                self.assertGreater(image.getpixel((640, 360))[dominant], 240)
+        with Image.open(self.out / 'contact-sheet.jpg') as sheet:
+            self.assertEqual(sheet.size, (780, 179))
+
+    def test_landscape_without_opt_in_stays_unsupported(self):
+        self.media(size='1280x720')
+        with patch.object(m, 'inspect_cycle', return_value=self.snapshot):
+            with self.assertRaisesRegex(ValueError, '9:16 portrait'):
+                m.make_scene_review(self.root, self.out, timeout=30)
+        self.assertFalse(self.out.exists())
 
     def test_source_mutation_blocks_receipt_even_after_frames_decode(self):
         self.media()
