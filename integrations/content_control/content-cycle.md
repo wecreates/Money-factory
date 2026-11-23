@@ -72,6 +72,14 @@ watch/listen and checks staging, story, voice, sound and readability. The scans
 and ASR cannot certify those subjective checks. Existing review and revision
 commands can retain reviewer findings for the exact candidate.
 
+The source-pinned Episode 1 producer also gets this diagnostic when launched
+through the Money Factory `content-control-video` queue adapter or the
+standalone review-bundle command. The report runs under the existing process
+guardian and deadline, stays beside the original producer packet, and is
+verified again when copied into the private ZIP. Older completed attempts
+without a report remain exportable. Direct Content Control production runs
+outside these wrappers are separate.
+
 An operator can set `CYZOR_REVIEW_BENCHMARKS` to an absolute local JSON
 manifest to compare measured candidate signals with two curated competitors
 in the same format. Use references in the candidate's topic and format lane,

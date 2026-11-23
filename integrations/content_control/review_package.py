@@ -80,7 +80,7 @@ def inspect_packet(directory,run_sha,candidate,deadline=None):
 
 
 def package_review(review_dir,output_dir,*,expected_run_sha256,expected_candidate_sha256,
-                   provenance,edit_dir=None,diagnostics_dir=None,deadline=None):
+                   provenance,edit_dir=None,diagnostics_dir=None,automated_review=None,deadline=None):
     """No rendering or process launches. Caller owns production/admission policy.
 
     Exact trusted run/candidate pins are required; provenance is descriptive, never
@@ -124,12 +124,23 @@ def package_review(review_dir,output_dir,*,expected_run_sha256,expected_candidat
             sub=target/'diagnostics'; sub.mkdir()
             for path in diagnostic_files: copy_file(path,sub/path.name,deadline)
             optional.append('diagnostics/')
+        if automated_review is not None:
+            from integrations.content_control.cycle_av_review import verify_automated_review
+            path, expected = automated_review
+            path = Path(path)
+            report = target / 'automated-review.json'
+            raw = verify_automated_review(path, expected, expected_candidate_sha256, run['caption_sha256'])
+            with report.open('xb') as stream:
+                stream.write(raw)
+            optional.append(report.name)
         candidate=html.escape(expected_candidate_sha256)
         page='''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CYZOR video review</title><style>body{font:17px system-ui;max-width:750px;margin:24px auto;padding:0 16px;background:#101722;color:#f0f4fa}video{display:block;max-width:100%;max-height:75vh;margin:auto}a{color:#9fd3ff}code{overflow-wrap:anywhere}</style><h1>Unpublished video review</h1><video controls playsinline preload="metadata" src="video.mp4"></video><p>Watch and listen to the complete video. Technical checks do not establish creative approval. Publishing remains disabled.</p><p><a href="video.mp4">Open or download video</a> · <a href="captions.vtt">Caption text and timing</a> · <a href="REVIEW.md">Review notes</a></p><p>Captions are already burned into the picture. Local caption-track support varies by browser; the video does not require a separate track.</p>'''
         if not (target/'REVIEW.md').exists():
             page=page.replace(' · <a href="REVIEW.md">Review notes</a>','')
         if edit_dir is not None:
             page+='<p><a href="timeline.otio">Editable cut timeline</a>: trimmed rendered MP4; no recovered artwork or separate stems. Use its Audio track once. NLE import remains unverified.</p>'
+        if automated_review is not None:
+            page+='<p><a href="automated-review.json">Audio, picture and benchmark diagnostics</a></p>'
         page+='<p>Candidate SHA-256: <code>'+candidate+'</code></p></html>\n'
         (target/'index.html').write_text(page)
         manifest={'schema_version':1,'status':'AWAITING_REVIEW','publication_enabled':False,

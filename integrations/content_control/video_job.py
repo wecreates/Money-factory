@@ -161,6 +161,7 @@ def run_job(request, attempt_dir, *, content_control_root=None, video_python=Non
         if any(not value.is_file() or not os.access(value, os.X_OK) for value in runtimes):
             raise ValueError('Operator runtime must be an executable local file')
         from integrations.content_control.runtime_doctor import describe_source, inspect_runtime
+        from integrations.content_control.cycle_av_review import automated_review_command, read_automated_review
         with interruptible_processes(), shared_admission_lock() as lease:
             source = describe_source(root, expected_commit=request['source_commit'], lease_fd=lease)
             if source['source_manifest_sha256'] != request['source_manifest_sha256']:
@@ -178,10 +179,12 @@ def run_job(request, attempt_dir, *, content_control_root=None, video_python=Non
             if len(cpus) < 2:
                 raise ValueError('Two CPU affinity slots required')
             result['cpu_affinity'] = cpus
+            runner = guarded_runner(lease, cpus)
+            deadline = time.monotonic() + request['timeout_seconds']
             with producer_module(root) as producer:
                 produced = producer.produce(attempt_dir / 'review', python=str(runtimes[0]),
                     picture_python=str(runtimes[1]), timeout=request['timeout_seconds'], root=root,
-                    command_runner=guarded_runner(lease, cpus))
+                    command_runner=runner)
             if produced.get('status') != 'AWAITING_REVIEW':
                 result['pipeline_failed_step'] = produced.get('failed_step')
                 raise ValueError('Existing producer left a blocked review packet')
@@ -189,9 +192,19 @@ def run_job(request, attempt_dir, *, content_control_root=None, video_python=Non
             if after['source_manifest_sha256'] != source['source_manifest_sha256']:
                 raise ValueError('Source checkout changed during production')
             receipt = check_completed(attempt_dir / 'review', source)
+            report = attempt_dir / 'automated-review.json'
+            result['pipeline_failed_step'] = 'automated-review'
+            runner(automated_review_command(attempt_dir / 'review', report, receipt, deadline),
+                   cwd=Path(__file__).resolve().parents[2], log=attempt_dir / 'automated-review.log',
+                   deadline=deadline, env=os.environ)
+            report_bytes = read_automated_review(report, receipt['candidate_sha256'],
+                                                 receipt['artifacts_sha256']['captions.vtt'], sync=True)
+            report_sha = hashlib.sha256(report_bytes).hexdigest()
+            result.pop('pipeline_failed_step')
             sync_packet(attempt_dir / 'review')
             result.update(status='PASS', review_status='AWAITING_REVIEW',
                           candidate_sha256=receipt['candidate_sha256'],
+                          automated_review_sha256=report_sha,
                           pipeline_receipt_sha256=digest(attempt_dir / 'review/run.json'),
                           artifact_directory='review', source_inputs_unchanged=True)
     except (ValueError, OSError, RuntimeError, KeyError, TypeError, subprocess.SubprocessError, AdmissionBusy) as error:

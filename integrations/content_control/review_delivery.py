@@ -145,6 +145,12 @@ def verify_delivery(queue_root, job_id):
         raise ValueError('Candidate or producer receipt identity changed')
     from integrations.content_control.review_package import inspect_packet
     inspect_packet(review, stored['pipeline_receipt_sha256'], stored['candidate_sha256'])
+    if 'automated_review_sha256' in stored:
+        from integrations.content_control.cycle_av_review import verify_automated_review
+        expected = stored['automated_review_sha256']
+        verify_automated_review(attempt / 'automated-review.json', expected, stored['candidate_sha256'],
+                                run['caption_sha256'])
+        provenance['automated_review_sha256'] = expected
     provenance.update(source_commit=spec['request']['source_commit'],
                       source_manifest_sha256=spec['request']['source_manifest_sha256'])
     return review, provenance
@@ -216,10 +222,12 @@ def export_review(queue_root, job_id, output_dir):
     if provenance.get('adapter') == 'content-control-cycle':
         return export_cycle(review, provenance, queue_root, output_dir)
     from integrations.content_control.review_package import package_review
+    expected = provenance.get('automated_review_sha256')
     return package_review(review, output_dir,
                           expected_run_sha256=provenance['pipeline_receipt_sha256'],
                           expected_candidate_sha256=provenance['candidate_sha256'],
-                          provenance=provenance)
+                          provenance=provenance,
+                          automated_review=(review.parent / 'automated-review.json', expected) if expected else None)
 
 
 def export_cycle(review, provenance, queue_root, output_dir):
