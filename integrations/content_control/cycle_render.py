@@ -37,6 +37,7 @@ ASR_ASSETS = {
 MOTION_FRAMES = 24
 MOTION_FPS = 8
 MOTION_SCOPE = 'Deterministic three-second arm-gesture loop; static diagrams and typography. No lip sync or full character animation.'
+AUTHORED_GESTURES = ('point_left', 'point_right', 'open_hands')
 PANEL_BACKGROUND = '#f7f1e6'
 COMPARISON_BOUNDS = ((60, 340, 345, 710), (375, 340, 660, 710))
 PORTRAIT_SIZE = (720, 1280)
@@ -73,6 +74,8 @@ def validate_visual_shape(spec):
         raise ValueError('Invalid visual specification')
     if 'headline' in spec and (not isinstance(spec['headline'], str) or len(spec['headline']) > 60):
         raise ValueError('Invalid headline')
+    if 'gesture' in spec and spec['gesture'] not in AUTHORED_GESTURES:
+        raise ValueError('Gesture must be point_left, point_right or open_hands')
     for key, limit in [('labels', 50), ('values', 30)]:
         fields = spec.get(key, [])
         if not isinstance(fields, list) or any(not isinstance(v, str) or len(v) > limit for v in fields):
@@ -311,8 +314,15 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None):
     draw.line((x-10,y-48,x+12,y-48),fill=ink,width=4)
     draw.line((x,y-24,x,y+80),fill=ink,width=7)
     pose=index%3
-    for dx, dy, angle in ((-65, 25 if pose else -35, gesture),
-                          (65, -45 if pose else 25, -gesture)):
+    arms = ((-65, 25 if pose else -35, gesture), (65, -45 if pose else 25, -gesture))
+    authored = spec.get('gesture')
+    if authored == 'point_left':
+        arms = ((-69, -59, gesture), (43, 58, 0))
+    elif authored == 'point_right':
+        arms = ((-43, 58, 0), (69, -59, -gesture))
+    elif authored == 'open_hands':
+        arms = ((-79, -16, gesture), (79, -16, -gesture))
+    for dx, dy, angle in arms:
         # Rotate fixed-length arms about the shoulders, rather than stretching.
         hand_x = x + round(dx * math.cos(angle) - dy * math.sin(angle))
         hand_y = y + 10 + round(dx * math.sin(angle) + dy * math.cos(angle))
@@ -456,6 +466,8 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                          'narration_end':start+clip['duration_seconds'],'panel':panel.name,
                          'panel_sha256':digest(panel),'voice_sha256':digest(wav),'segment_sha256':digest(segment),
                          'motion_directory':motion_dir.name,'motion_frames_sha256':motion_hashes})
+            if 'gesture' in scene.get('visual_spec', {}):
+                rows[-1]['authored_gesture'] = scene['visual_spec']['gesture']
             if reveal:
                 rows[-1]['visual_reveal'] = reveal
                 receipt['motion']['scope'] = ('Deterministic three-second arm-gesture loop. Opted comparison '

@@ -331,6 +331,27 @@ class RenderValidationTests(unittest.TestCase):
             for phase in (True,float('nan'),float('inf'),'0'):
                 with self.assertRaises(ValueError):render.draw_panel(scene,paths[0],0,1,phase=phase)
 
+    @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
+    def test_authored_point_changes_only_the_selected_side_during_motion(self):
+        from PIL import Image, ImageChops
+        with tempfile.TemporaryDirectory() as td:
+            paths = [Path(td)/f'point-{index}.png' for index in range(3)]
+            scene = brief()['scenes'][0]
+            for layout, x, top, bottom in ((None, 360, 890, 1030), ('landscape', 265, 270, 410)):
+                for direction in ('point_left', 'point_right'):
+                    scene['visual_spec'] = {'kind': 'comparison', 'gesture': direction}
+                    for phase, path in zip((0, .25, 1), paths):
+                        render.draw_panel(scene, path, 0, 1, phase=phase, layout=layout)
+                    with Image.open(paths[0]) as start, Image.open(paths[1]) as peak, Image.open(paths[2]) as end:
+                        self.assertIsNone(ImageChops.difference(start, end).getbbox())
+                        left, upper, right, lower = ImageChops.difference(start, peak).getbbox()
+                        self.assertGreaterEqual(upper, top)
+                        self.assertLessEqual(lower, bottom)
+                        if direction == 'point_left':
+                            self.assertLess(right, x)
+                        else:
+                            self.assertGreater(left, x)
+
     @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe') and Path(render.FONT).is_file(),'Media runtime unavailable')
     def test_actual_mux_and_decode_with_explicit_synthetic_voice_fixture(self):
         try:
@@ -397,11 +418,12 @@ class RenderValidationTests(unittest.TestCase):
 
             revealed=brief()
             revealed['scenes'][0]['visual_spec']={'kind':'comparison','headline':'SAME DINNER',
-                'labels':['PENDING','POSTED'],'values':['20','24'],'reveal_after_seconds':.51}
+                'labels':['PENDING','POSTED'],'values':['20','24'],'reveal_after_seconds':.51,'gesture':'point_right'}
             timed=Path(td)/'timed'
             result=render.render_cycle(revealed,timed,voice_python=sys.executable,voice_root=td,timeout=60)
             self.assertEqual(result['status'],'AWAITING_REVIEW',result)
             self.assertEqual(result['scenes'][0]['visual_reveal']['first_visible_scene_frame'],13)
+            self.assertEqual(result['scenes'][0]['authored_gesture'],'point_right')
             region=subprocess.check_output(['ffmpeg','-v','error','-i',str(timed/'segment-00.mp4'),
                 '-vf',r'select=eq(n\,0)+eq(n\,12)+eq(n\,13)+eq(n\,84),crop=240:300:396:360',
                 '-vsync','0','-frames:v','4','-f','rawvideo','-pix_fmt','rgb24','-threads','1','-'])

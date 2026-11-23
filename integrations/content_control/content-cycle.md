@@ -381,6 +381,11 @@ Each scene now uses a bounded three-second arm gesture loop: 24 deterministic
 panels sampled at 8 fps and encoded at 24 fps. Typography, diagrams, character
 faces and labels stay fixed; fixed-length arms rotate subtly around the
 shoulders. The representative `panel-XX.png` remains the zero-phase image.
+Add `gesture` to a scene's `visual_spec` to direct the existing motion.
+`point_left` and `point_right` move one arm toward that side of the image,
+while `open_hands` moves both arms. Omit the field to retain the existing pose
+sequence. The render receipt records any explicit direction with the scene's
+frame hashes. Gestures loop independently of narration and timed reveals.
 Render receipts retain loop settings and every source frame hash alongside each
 encoded scene hash. Frame generation observes the same render deadline and
 FFmpeg remains under the existing owned-process/resource controls.
