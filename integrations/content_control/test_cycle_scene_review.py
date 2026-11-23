@@ -109,6 +109,26 @@ class SceneSamplingTests(unittest.TestCase):
         with Image.open(self.out / 'contact-sheet.jpg') as sheet:
             self.assertEqual(sheet.size, (780, 179))
 
+    def test_planned_reveal_retains_adjacent_encoded_pictures_and_pts(self):
+        self.media()
+        self.editorial['scenes'] = self.editorial['scenes'][:1]
+        render = {'scenes': [{'scene_id': 'first', 'start': 0, 'end': 2, 'visual_reveal': {
+            'kind': 'second_comparison_card', 'first_visible_scene_frame': 24, 'rendered_offset_seconds': 1}}]}
+        (self.delivery/'render.json').write_text(json.dumps(render))
+        with patch.object(m, 'inspect_cycle', return_value=self.snapshot):
+            result = m.make_scene_review(self.root, self.out, timeout=30)
+        self.assertEqual(result['status'], 'SCENE_SAMPLES_READY', result)
+        pair, = result['planned_reveal_samples']
+        self.assertEqual(pair['planned_first_visible_frame'], 24)
+        for side, dominant in [('before', 0), ('at', 2)]:
+            path = self.out/pair[side]['frame']
+            self.assertEqual(m.digest(path), pair[side]['sha256'])
+            with Image.open(path) as image:
+                self.assertGreater(image.getpixel((45, 80))[dominant], 240)
+        self.assertAlmostEqual(pair['at']['decoded_frame_pts_seconds'] -
+                               pair['before']['decoded_frame_pts_seconds'], 1/24, places=5)
+        self.assertIn('Planned reveal', (self.out/'index.html').read_text())
+
     def test_landscape_without_opt_in_stays_unsupported(self):
         self.media(size='1280x720')
         with patch.object(m, 'inspect_cycle', return_value=self.snapshot):
