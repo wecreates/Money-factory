@@ -183,6 +183,11 @@ contiguous order and identity against the bound editorial, and samples each
 midpoint from the candidate MP4. Planned storyboard durations are not used.
 Actual decoded frame timestamps are recorded and must remain inside the requested
 scene; a low-frame-rate source that skips the scene fails with a blocked receipt.
+For a renderer-declared 24 fps comparison reveal, the gallery also retains the
+adjacent decoded pictures immediately before and at the planned reveal frame.
+The receipt records their actual playback timestamps and hashes so the reviewer
+can inspect the transition directly. Still images leave listening and continuous
+motion review open.
 Native PNGs, a contact sheet and a local HTML gallery are linked by a hashed
 `scene-review.json` receipt. The source cycle and voices remain unchanged.
 

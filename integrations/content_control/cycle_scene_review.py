@@ -1,4 +1,4 @@
-"""Frame samples for every authored scene, bound to an existing unpublished cycle.
+"""Authored scene and reveal stills bound to an existing unpublished cycle.
 
 Measured renderer intervals drive sampling, not planned storyboard durations or
 heuristic shot detection. Still frames cannot establish audiovisual acceptance.
@@ -24,7 +24,7 @@ from integrations.content_control.review_package import digest, no_symlinks, req
 FLAGS = {key: False for key in ('publication_enabled', 'paid_generation_enabled',
          'production_approved', 'production_ready', 'full_av_review', 'listening_verified',
          'independent_creative_verification')}
-SCOPE = ('One sampled decoded frame per authored scene. Timing comes from the bound renderer receipt, '
+SCOPE = ('Sampled decoded stills from authored scenes and planned reveals. Timing comes from the bound renderer receipt, '
          'not independent scene detection. Samples do not verify full motion, transitions, captions, '
          'pacing, listening, reference comparison, phone playback or creative acceptance.')
 
@@ -59,7 +59,47 @@ def _write(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + '\n')
 
 
-def _gallery(output, scenes, editorial, layout):
+def _reveal_samples(render, scenes, media, output, source, deadline):
+    pairs = []
+    for row, scene in zip(render['scenes'], scenes):
+        reveal = row.get('visual_reveal')
+        if reveal is None:
+            continue
+        require(isinstance(reveal, dict) and reveal.get('kind') == 'second_comparison_card',
+                'Unsupported measured visual reveal')
+        index = reveal.get('first_visible_scene_frame')
+        duration = scene['end_seconds'] - scene['start_seconds']
+        first = scene['start_seconds'] * 24
+        require(type(index) is int and 0 < index < round(duration * 24)
+                and abs(first - round(first)) < 1e-6
+                and reveal.get('rendered_offset_seconds') == index / 24, 'Invalid measured reveal frame')
+        pairs.append({'scene_id': scene['scene_id'], 'planned_first_visible_frame': round(first) + index,
+                      'scene_start_seconds': scene['start_seconds'], 'scene_end_seconds': scene['end_seconds']})
+    if not pairs:
+        return pairs
+    ordinals = [entry['planned_first_visible_frame'] + delta for entry in pairs for delta in (-1, 0)]
+    select = '+'.join(f'eq(n\\,{index})' for index in ordinals)
+    log = _run(['ffmpeg', '-hide_banner', '-v', 'info', '-xerror', '-nostdin', '-n',
+                '-protocol_whitelist', 'file,pipe', '-threads', '2', '-copyts', '-f', 'mov', '-i', str(media),
+                '-map', '0:v:0', '-vf', f'select={select},showinfo', '-frames:v', str(len(ordinals)),
+                '-fps_mode', 'passthrough', '-an', '-threads', '1', str(output/'reveal-%02d.png')], deadline)
+    matches = re.findall(rb'\bn:\s*(\d+)\s+pts:\s*-?\d+\s+pts_time:([-+0-9.eE]+)', log)
+    require([int(n) for n, _ in matches] == list(range(len(ordinals))), 'Reveal sample timestamps missing')
+    for index, pair in enumerate(pairs):
+        before, after = [float(matches[index * 2 + offset][1]) for offset in (0, 1)]
+        require(pair['scene_start_seconds'] <= before < after < pair['scene_end_seconds']
+                and abs(after - before - 1 / 24) < .005, 'Reveal samples are outside the expected frame cadence')
+        for offset, role, pts in ((1, 'before', before), (2, 'at', after)):
+            frame = output / f'reveal-{index * 2 + offset:02}.png'
+            require(frame.is_file() and frame.stat().st_size <= 16 * 1024 * 1024, 'Missing or oversized reveal frame')
+            with Image.open(frame) as image:
+                require(image.size == (source['width'], source['height']), 'Reveal sample dimensions changed')
+                image.verify()
+            pair[role] = {'frame': frame.name, 'decoded_frame_pts_seconds': pts, 'sha256': digest(frame)}
+    return pairs
+
+
+def _gallery(output, scenes, editorial, layout, reveals):
     # The overview is for navigation; native frames remain available for text QA.
     cell_w, cell_h = 260, 179 if layout == 'landscape' else 470
     sheet = Image.new('RGB', (cell_w * 3, cell_h * math.ceil(len(scenes) / 3)), '#eeeeee')
@@ -78,14 +118,20 @@ def _gallery(output, scenes, editorial, layout):
                      escape(str(source.get('narration', ''))) + '</p></article>')
     sheet.save(output / 'contact-sheet.jpg', quality=92)
     sheet.close()
+    for pair in reveals:
+        cards.append('<article><h2>Planned reveal · ' + escape(pair['scene_id']) + '</h2>' +
+                     ''.join(f'<p>{label} · {frame["decoded_frame_pts_seconds"]:.6f}s</p>'
+                             f'<a href="{frame["frame"]}"><img src="{frame["frame"]}" alt="{label}"></a>'
+                             for label, frame in (('Before', pair['before']), ('At', pair['at']))) + '</article>')
     (output / 'index.html').write_text('<!doctype html><html lang="en"><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<title>Authored scene samples</title><style>body{font:16px system-ui;max-width:1200px;margin:auto;padding:20px}'
         'main{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px}'
         'img{width:100%;height:auto}h2{font-size:18px}article{min-width:0;overflow-wrap:anywhere}</style>'
         '<h1>Authored scene samples</h1><p>' + escape(SCOPE) + '</p><p>Click an image for its native frame. '
-        'Frames are the first decoded frame at or after each requested midpoint; they do not establish '
-        'an independently measured scene boundary. External WebVTT captions are not burned into these images.</p>'
+        'Scene stills use the first decoded frame at or after the requested midpoint. Reveal pairs use '
+        'the adjacent decoded frames selected by the planned frame number. External WebVTT captions '
+        'are not burned into these images.</p>'
         '<p><a href="scene-review.json">Provenance receipt</a> · <a href="contact-sheet.jpg">Overview</a></p>'
         '<main>' + ''.join(cards) + '</main></html>')
 
@@ -138,12 +184,15 @@ def make_scene_review(cycle_dir, output, *, timeout=180):
                 require(image.size == (source['width'], source['height']), 'Sample dimensions changed')
                 image.verify()
             scene['frame_sha256'] = digest(frame)
-        _gallery(output, scenes, before['editorial'], layout)
+        reveals = _reveal_samples(render, scenes, media, output, source, deadline)
+        _gallery(output, scenes, before['editorial'], layout, reveals)
         require(inspect_cycle(root) == before, 'Source cycle changed while sampling')
         require(digest(__file__) == receipt['tool_sha256'], 'Sampling implementation changed')
         require(time.monotonic() <= deadline, 'Scene review deadline exhausted')
         receipt.update(status='SCENE_SAMPLES_READY', sampled_scene_count=len(scenes),
                        artifacts_sha256={p.name: digest(p) for p in output.iterdir() if p.is_file()})
+        if reveals:
+            receipt['planned_reveal_samples'] = reveals
     except (OSError, ValueError, RuntimeError, TimeoutError, subprocess.SubprocessError, KeyError, TypeError) as error:
         receipt.update(reason=str(error), partial_outputs_retained=True)
     finally:
