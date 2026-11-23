@@ -1998,5 +1998,13 @@
     "type": "change",
     "label": "Money Factory GitHub repository",
     "target_url": "https://github.com/wecreates/Money-factory"
+  },
+  {
+    "id": "1fc13570-c221-47a0-a5e6-2e03a718278f",
+    "watch_id": "money-factory-repository",
+    "at": 1795470266892,
+    "type": "change",
+    "label": "Money Factory GitHub repository",
+    "target_url": "https://github.com/wecreates/Money-factory"
   }
 ]
