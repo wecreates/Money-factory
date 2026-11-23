@@ -38,10 +38,12 @@ def safe_path(path):
 
 
 def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, transcription_python=None,
-              revision_path=None):
+              revision_path=None, minimum_duration=None):
     """Create one immutable attempt; a failed attempt is never resumed as PASS."""
     if type(timeout) is not int or not 30 <= timeout <= 1800:
         raise ValueError('Timeout must be 30..1800 seconds')
+    if minimum_duration is not None and (type(minimum_duration) is not int or not 1 <= minimum_duration <= 600):
+        raise ValueError('Minimum duration must be an integer from 1 to 600 seconds')
     if any(os.environ.get(k, 'false').lower() != 'false'
            for k in ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')):
         raise ValueError('Publishing and paid generation must remain disabled')
@@ -70,6 +72,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
     module_root = Path(__file__).parent
     if lineage is not None:
         receipt['revision_lineage'] = lineage
+    if minimum_duration is not None:
+        receipt['minimum_duration_seconds'] = minimum_duration
     tool_names = ('complete_cycle.py', 'cycle_editorial.py', 'cycle_render.py', 'cycle_package.py', 'cycle_lineage.py')
     receipt['tool_sha256'] = {name: digest(module_root/name) for name in tool_names}
     deadline = time.monotonic() + timeout
@@ -85,6 +89,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
                           'timeout': max(1, int(deadline-time.monotonic()))}
         if transcription_python:
             render_options['transcription_python'] = transcription_python
+        if minimum_duration is not None:
+            render_options['minimum_duration'] = minimum_duration
         rendered = render_cycle(editorial, output / 'render', **render_options)
         if (rendered.get('technical_status') != 'PASS'
                 or rendered.get('publication_enabled') is not False
@@ -137,11 +143,14 @@ def main():
     parser.add_argument('--transcription-python')
     parser.add_argument('--revision', help='Explicit revision.json handoff bound to the supplied brief; no approval transfer.')
     parser.add_argument('--timeout', type=int, default=900)
+    parser.add_argument('--minimum-duration', type=int,
+                        help='Require this many seconds of picture from measured narration and from the encoded video.')
     parser.add_argument('--checkpoint', help='Optional new ZIP outside the cycle for exact-state recovery.')
     args = parser.parse_args()
     result = run_cycle(args.brief, args.output, voice_python=args.voice_python,
                        voice_root=args.voice_root, timeout=args.timeout,
-                       transcription_python=args.transcription_python, revision_path=args.revision)
+                       transcription_python=args.transcription_python, revision_path=args.revision,
+                       minimum_duration=args.minimum_duration)
     if args.checkpoint and result['status'] == 'AWAITING_REVIEW':
         from integrations.content_control.cycle_checkpoint import create_checkpoint
         try:
