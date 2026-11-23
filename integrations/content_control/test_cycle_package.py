@@ -58,6 +58,7 @@ class CyclePackageTest(unittest.TestCase):
         self.assertEqual(result['status'], 'AWAITING_REVIEW')
         self.assertFalse(result['full_av_review'])
         self.assertFalse(result['thumbnail_performance_verified'])
+        self.assertNotIn('layout', result)
         self.assertEqual(len(result['thumbnails']), 3)
         for thumbnail in result['thumbnails']:
             self.assertTrue(0 < thumbnail['source_timestamp_seconds'] < result['media']['duration_seconds'])
@@ -73,6 +74,39 @@ class CyclePackageTest(unittest.TestCase):
             self.assertEqual(archive.testzip(), None)
             self.assertIn('package.json', archive.namelist())
             self.assertNotIn('review-package.zip', archive.namelist())
+
+    def test_native_landscape_binds_layout_and_uses_uncropped_frames(self):
+        target = self.render / 'video.mp4'
+        subprocess.run(['ffmpeg', '-v', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i',
+                        'color=c=white:s=1280x720:r=12:d=1', '-f', 'lavfi', '-i',
+                        'anullsrc=r=24000:cl=mono', '-t', '1', '-c:v', 'libx264',
+                        '-threads', '1', '-pix_fmt', 'yuv420p', '-c:a', 'aac', str(target)],
+                       check=True, capture_output=True, timeout=30)
+        self.editorial['layout'] = 'landscape'
+        self.receipt.update(candidate_sha256=m.digest(target),
+                            editorial_sha256=m.editorial_digest(self.editorial))
+        self.save_receipt()
+        with self.assertRaisesRegex(ValueError, 'landscape layouts must match'):
+            self.export()
+        self.assertFalse((self.root / 'package').exists())
+        self.receipt['layout'] = 'landscape'
+        self.save_receipt()
+        result = self.export()
+        self.assertEqual(result['layout'], 'landscape')
+        self.assertEqual(result['candidate_sha256'], m.digest(target))
+        self.assertEqual((result['media']['width'], result['media']['height']), (1280, 720))
+        for t in result['thumbnails']:
+            self.assertEqual(t['framing'], 'full_frame')
+            self.assertIsNone(t['source_crop_pixels'])
+            self.assertEqual(t['source_frame_size'], [1280, 720])
+
+    def test_landscape_layout_rejects_portrait_raster(self):
+        self.editorial['layout'] = 'landscape'
+        self.receipt.update(layout='landscape', editorial_sha256=m.editorial_digest(self.editorial))
+        self.save_receipt()
+        with self.assertRaisesRegex(ValueError, 'Native 1280x720'):
+            self.export()
+        self.assertFalse((self.root / 'package').exists())
 
     def test_focus_crop_requires_known_renderer_and_records_fallback(self):
         media = {'width': 720, 'height': 1280}

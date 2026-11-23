@@ -38,6 +38,19 @@ MOTION_FPS = 8
 MOTION_SCOPE = 'Deterministic three-second arm-gesture loop; static diagrams and typography. No lip sync or full character animation.'
 PANEL_BACKGROUND = '#f7f1e6'
 COMPARISON_BOUNDS = ((60, 340, 345, 710), (375, 340, 660, 710))
+PORTRAIT_SIZE = (720, 1280)
+LANDSCAPE_SIZE = (1280, 720)
+DIAGRAM_LAYER_TOP = 310
+DIAGRAM_LAYER_BOTTOM = 811
+LANDSCAPE_DIAGRAM_POSITION = (515, 129)
+
+
+def panel_size(layout):
+    if layout is None:
+        return PORTRAIT_SIZE
+    if layout == 'landscape':
+        return LANDSCAPE_SIZE
+    raise ValueError('Unsupported panel layout')
 
 
 def digest(path):
@@ -87,6 +100,8 @@ def validate(editorial):
         raise ValueError('Explicit false production and audiovisual approval required')
     if editorial.get('paid_generation_enabled', False) is not False:
         raise ValueError('Paid generation forbidden')
+    if 'layout' in editorial and editorial['layout'] != 'landscape':
+        raise ValueError('layout: omit for portrait or set landscape')
     scenes = editorial.get('scenes')
     if not isinstance(scenes, list) or not 1 <= len(scenes) <= 30:
         raise ValueError('One to thirty scenes required')
@@ -160,7 +175,7 @@ def synthesize(editorial, output, voice_root):
           'production_approved': False, 'full_av_review': False, 'voice_assignments': VOICE_ASSIGNMENTS})
 
 
-def draw_panel(scene, path, index, count, phase=0.0):
+def draw_panel(scene, path, index, count, phase=0.0, *, layout=None):
     """Fresh diagram and character composition with a bounded periodic gesture.
 
     Phase is a fraction of one loop. Zero preserves the representative pose;
@@ -168,15 +183,18 @@ def draw_panel(scene, path, index, count, phase=0.0):
     """
     if type(phase) not in (int, float) or not math.isfinite(phase):
         raise ValueError('Finite numeric motion phase required')
+    size = panel_size(layout)
     validate_visual_shape(scene.get('visual_spec', {}))
     gesture = math.sin(2 * math.pi * (phase % 1.0)) * .18
     from PIL import Image, ImageDraw, ImageFont
-    image = Image.new('RGB', (720, 1280), PANEL_BACKGROUND)
+    # The shared diagram layer preserves existing labels, artwork and font bounds.
+    image = Image.new('RGB', (PORTRAIT_SIZE[0], DIAGRAM_LAYER_BOTTOM) if layout else size,
+                      PANEL_BACKGROUND)
     draw = ImageDraw.Draw(image)
     ink, accent = '#141414', '#007f89'
     def font(size):
         return ImageFont.truetype(FONT, size)
-    def wrapped(text, y, size=38, width=600, color=ink, max_lines=4):
+    def wrapped(text, y, size=38, width=600, color=ink, max_lines=4, center=360):
         f = font(size)
         words, lines, current = str(text).split(), [], ''
         for word in words:
@@ -189,7 +207,7 @@ def draw_panel(scene, path, index, count, phase=0.0):
         if len(lines) > max_lines or any(draw.textlength(line, font=f) > width for line in lines):
             raise ValueError('Visual text exceeds readable panel bounds')
         for line in lines:
-            draw.text((360, y), line, font=f, fill=color, anchor='mt')
+            draw.text((center, y), line, font=f, fill=color, anchor='mt')
             y += size + 12
         return y
     def bounded_text(text, box, *, sizes=(30, 28, 24, 22, 20), color=ink):
@@ -220,7 +238,8 @@ def draw_panel(scene, path, index, count, phase=0.0):
         raise ValueError('Visual text exceeds readable panel bounds')
     spec = scene.get('visual_spec', {})
     headline = spec.get('headline') or scene['visual'][:60]
-    wrapped(headline, 105, size=42, max_lines=3)
+    if layout is None:
+        wrapped(headline, 105, size=42, max_lines=3)
     kind = spec.get('kind', 'card')
     labels, values = spec.get('labels', []), spec.get('values', [])
     if kind == 'balance':
@@ -275,9 +294,16 @@ def draw_panel(scene, path, index, count, phase=0.0):
                 bounded_text(text, (105, y+3, 615, y+row_height-3), sizes=(40, 34, 30, 26, 24))
             if i+1 < count_fields:
                 draw.line((110, y+row_height, 610, y+row_height), fill=ink, width=1)
+    if layout == 'landscape':
+        stage = Image.new('RGB', size, PANEL_BACKGROUND)
+        stage.paste(image.crop((0, DIAGRAM_LAYER_TOP, PORTRAIT_SIZE[0], DIAGRAM_LAYER_BOTTOM)),
+                    LANDSCAPE_DIAGRAM_POSITION)
+        image = stage
+        draw = ImageDraw.Draw(image)
+        wrapped(headline, 42, size=42, width=1070, max_lines=2, center=640)
     # Recurring character silhouette. Direction is visible above, not misreported
     # as an AI-generated image. Three poses vary between scenes.
-    x,y=360,970
+    x,y=(265,350) if layout == 'landscape' else (360,970)
     draw.ellipse((x-38,y-100,x+38,y-24),outline=ink,width=6)
     draw.ellipse((x-16,y-76,x-9,y-69),fill=ink)
     draw.ellipse((x+9,y-76,x+16,y-69),fill=ink)
@@ -293,8 +319,9 @@ def draw_panel(scene, path, index, count, phase=0.0):
     draw.line((x,y+80,x-45,y+140),fill=ink,width=7)
     draw.line((x,y+80,x+45,y+140),fill=ink,width=7)
     speaker=scene.get('speaker','narrator').replace('_',' ').upper()
-    draw.text((360,1130),speaker,font=font(23),fill=accent,anchor='mt')
-    draw.text((660,50),f'{index+1}/{count}',font=font(22),fill=ink,anchor='rt')
+    draw.text((x,y+160),speaker,font=font(23),fill=accent,anchor='mt')
+    draw.text((size[0]-60, 22 if layout == 'landscape' else 50),
+              f'{index+1}/{count}',font=font(22),fill=ink,anchor='rt')
     image.save(path)
 
 
@@ -304,8 +331,9 @@ def timestamp(seconds):
     return f'{h:02d}:{m:02d}:{s:02d}.{ms:03d}'
 
 
-def picture_filters(scene, frame_count):
-    filters = 'scale=720:1280,setsar=1,fps=24'
+def picture_filters(scene, frame_count, layout=None):
+    width, height = panel_size(layout)
+    filters = f'scale={width}:{height},setsar=1,fps=24'
     offset = scene.get('visual_spec', {}).get('reveal_after_seconds')
     if offset is None:
         return filters, None
@@ -313,6 +341,10 @@ def picture_filters(scene, frame_count):
     if frame_count - frame < 12:
         raise ValueError('Comparison reveal requires half a second of rendered screen time')
     left, top, right, bottom = COMPARISON_BOUNDS[1]
+    if layout == 'landscape':
+        dx, y = LANDSCAPE_DIAGRAM_POSITION
+        dy = y - DIAGRAM_LAYER_TOP
+        left, top, right, bottom = left+dx, top+dy, right+dx, bottom+dy
     # The filter runs on the complete 24 fps scene, outside the repeating arm loop.
     filters += (f",drawbox=x={left}:y={top}:w={right-left+1}:h={bottom-top+1}"
                 f":color=0x{PANEL_BACKGROUND[1:]}:t=fill:enable='lt(n,{frame})'")
@@ -322,6 +354,7 @@ def picture_filters(scene, frame_count):
 
 def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, transcription_python=None):
     scenes = validate(editorial)
+    layout = editorial.get('layout')
     if isinstance(timeout,bool) or not isinstance(timeout,(int,float)) or not math.isfinite(timeout) or not 0 < timeout <= 1800:
         raise ValueError('Render timeout must be positive and at most 1800 seconds')
     if os.environ.get('PUBLICATION_ENABLED','false').lower()!='false':
@@ -342,6 +375,8 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
              'motion':{'kind':'periodic_arm_gesture','frame_count':MOTION_FRAMES,
                        'source_fps':MOTION_FPS,'loop_seconds':MOTION_FRAMES/MOTION_FPS,
                        'output_fps':24,'scope':MOTION_SCOPE}}
+    if layout:
+        receipt['layout'] = layout
     deadline=time.monotonic()+timeout
     write(output/'render.json',receipt); write(output/'editorial.json',editorial)
     try:
@@ -360,8 +395,8 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
             frame_count=math.ceil((clip['duration_seconds']+.28)*24)
             duration=frame_count/24
             if start+duration>600: raise ValueError('Video exceeds ten minute limit')
-            filters, reveal = picture_filters(scene, frame_count)
-            panel=output/f'panel-{index:02d}.png'; draw_panel(scene,panel,index,len(scenes))
+            filters, reveal = picture_filters(scene, frame_count, layout)
+            panel=output/f'panel-{index:02d}.png'; draw_panel(scene,panel,index,len(scenes),layout=layout)
             motion_dir=output/f'motion-{index:02d}'; motion_dir.mkdir()
             motion_hashes={}
             for frame_index in range(MOTION_FRAMES):
@@ -370,7 +405,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                 if frame_index == 0:
                     frame.write_bytes(panel.read_bytes())
                 else:
-                    draw_panel(scene,frame,index,len(scenes),phase=frame_index/MOTION_FRAMES)
+                    draw_panel(scene,frame,index,len(scenes),phase=frame_index/MOTION_FRAMES,layout=layout)
                 motion_hashes[frame.name]=digest(frame)
             segment=output/f'segment-{index:02d}.mp4'
             run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-n','-threads','2',
@@ -403,7 +438,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
         run(['ffprobe','-v','error','-show_streams','-show_format','-of','json',output/'video.mp4'],output/'probe.json',deadline)
         probe=json.loads((output/'probe.json').read_text());streams=probe['streams']
         video=next(s for s in streams if s['codec_type']=='video');audio=next(s for s in streams if s['codec_type']=='audio')
-        if (video['width'],video['height'],video['codec_name'],audio['codec_name'])!=(720,1280,'h264','aac'):
+        if (video['width'],video['height'],video['codec_name'],audio['codec_name'])!=(*panel_size(layout),'h264','aac'):
             raise ValueError('Output media contract mismatch')
         if abs(float(probe['format']['duration'])-start)>.25:
             raise ValueError('Output duration differs from scene timeline')

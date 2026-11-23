@@ -39,7 +39,15 @@ def run(command, timeout=180, *, deadline=None):
     return result.stdout
 
 
-def inspect_media(path, *, deadline=None):
+def declared_layout(editorial, receipt):
+    if 'layout' not in editorial and 'layout' not in receipt:
+        return None
+    require(editorial.get('layout') == receipt.get('layout') == 'landscape',
+            'Compiled and rendered landscape layouts must match')
+    return 'landscape'
+
+
+def inspect_media(path, *, deadline=None, layout=None, decode=True):
     probe = json.loads(run(['ffprobe', '-v', 'error', '-protocol_whitelist', 'file,pipe',
                            '-f', 'mov', '-show_streams', '-show_format', '-of', 'json', str(path)], 30, deadline=deadline))
     videos = [s for s in probe['streams'] if s['codec_type'] == 'video']
@@ -49,9 +57,18 @@ def inspect_media(path, *, deadline=None):
     require(math.isfinite(duration) and 0 < duration <= 1800, 'Invalid media duration')
     width, height = videos[0]['width'], videos[0]['height']
     require(16 <= width <= 8192 and 16 <= height <= 8192, 'Invalid video dimensions')
-    run(['ffmpeg', '-v', 'error', '-xerror', '-nostdin', '-protocol_whitelist', 'file,pipe',
-         '-threads', '2', '-f', 'mov', '-i', str(path), '-f', 'null', '-'], deadline=deadline)
-    return {'duration_seconds': duration, 'width': width, 'height': height, 'decode': 'PASS'}
+    if layout == 'landscape':
+        require((width, height) == (1280, 720) and len(audios) == 1,
+                'Native 1280x720 landscape with one audio stream required')
+        require(videos[0].get('sample_aspect_ratio', '1:1') in ('1:1', 'N/A') and
+                not any(item.get('rotation', 0) for item in videos[0].get('side_data_list', [])),
+                'Rotated/anamorphic sources unsupported')
+    media = {'duration_seconds': duration, 'width': width, 'height': height}
+    if decode:
+        run(['ffmpeg', '-v', 'error', '-xerror', '-nostdin', '-protocol_whitelist', 'file,pipe',
+             '-threads', '2', '-f', 'mov', '-i', str(path), '-f', 'null', '-'], deadline=deadline)
+        media['decode'] = 'PASS'
+    return media
 
 
 def _link(url):
@@ -194,7 +211,8 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
     require(editorial_sha == receipt.get('editorial_sha256'), 'Editorial hash mismatch')
     require(paths[1].read_text().startswith('WEBVTT'), 'WebVTT captions required')
     render_receipt_sha = digest(paths[2], deadline)
-    media = inspect_media(paths[0], deadline=deadline)
+    layout = declared_layout(editorial, receipt)
+    media = inspect_media(paths[0], deadline=deadline, layout=layout)
     # Validate and escape all reference links before creating any output files.
     _page(editorial, [], candidate)
     output.mkdir(parents=True)
@@ -235,6 +253,8 @@ def package_cycle(editorial, render_dir, output, *, deadline=None):
                   'files_sha256': {p.name: digest(p, deadline) for p in sorted(output.iterdir()) if p.is_file()}}
         if 'thumbnail_copy' in editorial:
             result['thumbnail_copy'] = overlay
+        if layout:
+            result['layout'] = layout
         (output / 'package.json').write_text(json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + '\n')
         with zipfile.ZipFile(output / 'review-package.zip', 'x', zipfile.ZIP_DEFLATED) as archive:
             for path in sorted(output.iterdir()):

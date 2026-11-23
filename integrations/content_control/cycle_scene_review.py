@@ -16,6 +16,7 @@ import time
 
 from PIL import Image, ImageDraw
 
+from integrations.content_control.cycle_package import declared_layout, inspect_media
 from integrations.content_control.cycle_review import inspect_cycle
 from integrations.content_control.cycle_short import _probe, _run
 from integrations.content_control.review_package import digest, no_symlinks, require
@@ -58,16 +59,16 @@ def _write(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + '\n')
 
 
-def _gallery(output, scenes, editorial):
+def _gallery(output, scenes, editorial, layout):
     # The overview is for navigation; native frames remain available for text QA.
-    cell_w, cell_h = 260, 470
+    cell_w, cell_h = 260, 179 if layout == 'landscape' else 470
     sheet = Image.new('RGB', (cell_w * 3, cell_h * math.ceil(len(scenes) / 3)), '#eeeeee')
     draw = ImageDraw.Draw(sheet)
     cards = []
     for index, (scene, source) in enumerate(zip(scenes, editorial['scenes'])):
         x, y = index % 3 * cell_w, index // 3 * cell_h
         with Image.open(output / scene['frame']) as image:
-            image.thumbnail((240, 426))
+            image.thumbnail((240, cell_h - 44))
             sheet.paste(image.convert('RGB'), (x + (cell_w-image.width)//2, y + 34))
         draw.text((x+10, y+5), f"Scene {index+1} | requested {scene['requested_sample_seconds']:.3f}s", fill='black')
         label = f"{index+1}. {scene['scene_id']} ({scene['start_seconds']:.3f}–{scene['end_seconds']:.3f}s)"
@@ -100,9 +101,10 @@ def make_scene_review(cycle_dir, output, *, timeout=180):
     deadline = time.monotonic() + timeout
     before = inspect_cycle(root)
     media = root / 'delivery/video.mp4'
-    source = _probe(media, deadline)
-    require(source['width'] * source['height'] <= 1920 * 1080, 'Scene sample pixel limit exceeded')
     render = json.loads((root / 'delivery/render.json').read_text())
+    layout = declared_layout(before['editorial'], render)
+    source = inspect_media(media, deadline=deadline, layout=layout, decode=False) if layout else _probe(media, deadline)
+    require(source['width'] * source['height'] <= 1920 * 1080, 'Scene sample pixel limit exceeded')
     scenes = scene_plan(render, before['editorial'], source['duration_seconds'])
     output.mkdir(parents=True)
     receipt = {'schema_version': 1, 'status': 'BLOCKED', **FLAGS, 'scope': SCOPE,
@@ -112,6 +114,8 @@ def make_scene_review(cycle_dir, output, *, timeout=180):
                'timing_source': 'delivery/render.json scenes (measured renderer timeline)',
                'sample_policy': 'First decoded frame at or after each requested measured-scene midpoint; native pixels, no caption burn-in.',
                'planned_storyboard_times_used': False, 'scenes': scenes}
+    if layout:
+        receipt['layout'] = layout
     try:
         for scene in scenes:
             frame = output / scene['frame']
@@ -134,7 +138,7 @@ def make_scene_review(cycle_dir, output, *, timeout=180):
                 require(image.size == (source['width'], source['height']), 'Sample dimensions changed')
                 image.verify()
             scene['frame_sha256'] = digest(frame)
-        _gallery(output, scenes, before['editorial'])
+        _gallery(output, scenes, before['editorial'], layout)
         require(inspect_cycle(root) == before, 'Source cycle changed while sampling')
         require(digest(__file__) == receipt['tool_sha256'], 'Sampling implementation changed')
         require(time.monotonic() <= deadline, 'Scene review deadline exhausted')

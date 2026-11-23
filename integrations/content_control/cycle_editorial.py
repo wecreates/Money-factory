@@ -99,6 +99,8 @@ def compile_editorial(brief, *, validate_visual_shapes=False):
     if not isinstance(brief, dict) or type(brief.get('schema_version')) is not int or brief['schema_version'] != 1:
         raise ValueError('schema_version: integer 1 required')
     _flags(brief)
+    if 'layout' in brief and brief['layout'] != 'landscape':
+        raise ValueError('layout: omit for portrait or set landscape')
     title = _text(brief.get('title'), 'title', 120)
     topic = _text(brief.get('topic'), 'topic', 500)
     sources, source_ids = [], set()
@@ -192,6 +194,8 @@ def compile_editorial(brief, *, validate_visual_shapes=False):
               'production_approved': False, 'full_av_review': False}
     if 'thumbnail_copy' in brief:
         result['thumbnail_copy'] = normalize_thumbnail_copy(brief['thumbnail_copy'])
+    if 'layout' in brief:
+        result['layout'] = 'landscape'
     result['editorial_sha256'] = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(',', ':'),
                                                          allow_nan=False).encode()).hexdigest()
     return result

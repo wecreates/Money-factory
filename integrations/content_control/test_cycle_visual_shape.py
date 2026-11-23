@@ -86,6 +86,21 @@ class VisualShapeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'half a second'):
             cycle_render.picture_filters(half_second,18)
 
+    def test_landscape_layout_is_explicit_and_bound(self):
+        source = brief()
+        prior = compile_editorial(source)
+        self.assertNotIn('layout', prior)
+        current = compile_editorial(dict(source, layout='landscape'), validate_visual_shapes=True)
+        self.assertEqual(current['layout'], 'landscape')
+        self.assertEqual(current['scenes'], prior['scenes'])
+        self.assertNotEqual(current['editorial_sha256'], prior['editorial_sha256'])
+        for value in (None, True, 'portrait', 'landscape ', '16:9', [], {}):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, 'layout'):
+                    compile_editorial(dict(source, layout=value))
+                with self.assertRaisesRegex(ValueError, 'layout'):
+                    cycle_render.validate(dict(prior, layout=value))
+
     def test_existing_brief_historical_hashes_unchanged(self):
         # Captured from main096c233 before the production-only validation change.
         expected={'minimum-payment-brief.json':'c4d7805291b67ef162c087511fd5d6caba601a7a877d0247585033d3603de908',
