@@ -2,7 +2,9 @@ name: OpenTimelineIO review interchange
 on:
   pull_request:
     paths:
+      - 'integrations/content_control/**'
       - 'integrations/opentimelineio/**'
+      - 'integrations/owned_process.py'
       - '.github/workflows/opentimelineio-export.yml'
   push:
     branches: [main]
@@ -32,4 +34,4 @@ jobs:
           fi
           ffmpeg -version
           ffprobe -version
-      - run: python -m unittest integrations.opentimelineio.test_export_review -v
+      - run: python -m unittest discover -s integrations/opentimelineio -p 'test_*.py' -v
