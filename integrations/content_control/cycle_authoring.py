@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import re
+from urllib.parse import urlsplit
 
 from integrations.content_control.cycle_discovery import (
     MAX_POOL, MAX_RECEIPT, verify_inline_selection,
@@ -25,10 +26,36 @@ from integrations.content_control.review_package import no_symlinks, require
 
 
 ALGORITHM = 'source-claim-scenes-v1'
-LONG_FORM_ALGORITHM = 'source-claim-longform-scenes-v1'
+LONG_FORM_ALGORITHM_V1 = 'source-claim-longform-scenes-v1'
+LONG_FORM_ALGORITHM = 'source-claim-longform-scenes-v2'
 LONG_FORM_FORMAT = 'long-form'
 LONG_FORM_MIN_SECONDS = 120
 SPEAKERS = ['narrator', 'dave', 'points_monk', 'narrator']
+
+UTILIZATION_SOURCE_RULES = (
+    ('fico_utilization',
+     'www.myfico.com', '/credit-education/credit-scores/fico-scores-credit-limit',
+     ('fico describes revolving utilization as the outstanding balance divided by the '
+      'credit limit and says lower utilization generally indicates lower repayment risk'),
+     ('credit utilization rate is calculated by dividing an account s outstanding '
+      'balance by its credit limit')),
+    ('experian_reporting',
+     'www.experian.com',
+     '/blogs/ask-experian/credit-education/score-basics/credit-utilization-rate/',
+     ('experian says issuers generally report balances around the end of a statement '
+      'period so an earlier payment can reduce the reported balance used in utilization '
+      'calculations'),
+     ('credit card issuers generally report your account s balance to the credit '
+      'bureaus at the end of each statement period')),
+    ('cfpb_grace_period',
+     'www.consumerfinance.gov',
+     '/ask-cfpb/what-is-a-grace-period-for-a-credit-card-en-47/',
+     ('cfpb distinguishes the billing cycle end from the payment due date and explains '
+      'that paying the full balance by the due date can preserve a purchase grace period '
+      'when one applies'),
+     ('a grace period is the period between the end of a billing cycle and the date '
+      'your payment is due')),
+)
 
 
 def _read(path, limit):
@@ -52,6 +79,75 @@ def _short(value, limit):
     if not clipped or len(clipped) >= limit:
         clipped = value[:limit - 1].rstrip(' ,;:-')
     return clipped + '…'
+
+
+def _complete_title(value, limit=120):
+    """Return bounded title copy without an ellipsis or dangling connector."""
+    value = ' '.join(value.split()).strip(' ,;:-')
+    require(value, 'Authoring requires a nonempty title')
+    if len(value) <= limit:
+        return value
+    clipped = value[:limit].rsplit(' ', 1)[0].rstrip(' ,;:-')
+    dangling = {'a', 'an', 'and', 'as', 'at', 'because', 'but', 'by', 'even',
+                'for', 'from', 'if', 'in', 'of', 'on', 'or', 'the', 'to',
+                'when', 'while', 'with', 'without'}
+    while clipped and clipped.rsplit(' ', 1)[-1].lower() in dangling:
+        clipped = clipped.rsplit(' ', 1)[0].rstrip(' ,;:-')
+    require(clipped and len(clipped) <= limit,
+            'Authoring could not create complete bounded title copy')
+    return clipped
+
+
+def _semantic_text(value, minimum, maximum):
+    """Return bounded punctuation-insensitive source prose, or None."""
+    if not isinstance(value, str) or not minimum <= len(value) <= maximum:
+        return None
+    normalized = ' '.join(re.sub(r'[^a-z0-9]+', ' ', value.casefold()).split())
+    return normalized or None
+
+
+def _canonical_https_location(value, host, path):
+    """Match one credential-free canonical HTTPS host/path, without URL extras."""
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        return False
+    return (parsed.scheme == 'https' and parsed.netloc == host
+            and parsed.hostname == host and port is None
+            and parsed.username is None and parsed.password is None
+            and parsed.path == path and not parsed.query and not parsed.fragment)
+
+
+def _verified_utilization_source_set(sources):
+    """Require exact source order, canonical URLs, and bounded supporting prose.
+
+    The specialized script contains concrete facts that must never be selected by
+    caller-controlled source IDs alone.  Any mismatch falls back to generic
+    source-bound authoring instead of activating those facts.
+    """
+    if not isinstance(sources, list) or len(sources) != len(UTILIZATION_SOURCE_RULES):
+        return False
+    if [source.get('id') for source in sources if isinstance(source, dict)] \
+            != [rule[0] for rule in UTILIZATION_SOURCE_RULES]:
+        return False
+    for source, (identifier, host, path, canonical_claim, canonical_excerpt) in zip(
+            sources, UTILIZATION_SOURCE_RULES):
+        if (not isinstance(source, dict) or source.get('id') != identifier
+                or not _canonical_https_location(source.get('url'), host, path)):
+            return False
+        claim = _semantic_text(source.get('claim'), 80, 500)
+        excerpt = _semantic_text(source.get('excerpt'), 50, 300)
+        if claim is None or excerpt is None:
+            return False
+        # Punctuation and whitespace may normalize, but additional or missing
+        # prose cannot activate hard-coded facts. This binds the specialization
+        # to the retained evidence text rather than caller-supplied keywords.
+        if claim != canonical_claim or excerpt != canonical_excerpt:
+            return False
+    return True
 
 
 def _standard_scenes(topic, first, second):
@@ -84,7 +180,7 @@ def _standard_scenes(topic, first, second):
     ]
 
 
-def _long_form_scenes(topic, first, second):
+def _long_form_scenes_v1(topic, first, second):
     """Build a replayable >60-second source-bound manuscript/storyboard draft."""
     first_claim, second_claim = _short(first['claim'], 360), _short(second['claim'], 360)
     shared = [first['id'], second['id']]
@@ -152,7 +248,133 @@ def _long_form_scenes(topic, first, second):
     ]
 
 
-def _build(research_raw, discovery, content_format='standard'):
+def _utilization_long_form(sources):
+    """Author a source-bound utilization story with visible math and chronology."""
+    by_id = {source['id']: source for source in sources}
+    fico = by_id['fico_utilization']
+    reporting = by_id['experian_reporting']
+    grace = by_id['cfpb_grace_period']
+    shared = [fico['id'], reporting['id'], grace['id']]
+    return 'Paid in Full. Why Did 50% Report?', [
+        {'id': 'paid_but_reported',
+         'narration': ('You paid in full by the due date. So why could the earlier '
+                       'statement snapshot still show fifty percent utilization? '
+                       'Because the closing date and due date answer different questions.'),
+         'visual': 'Narrator separates the reporting snapshot from the later payment deadline.',
+         'visual_spec': {'kind': 'comparison', 'headline': 'TWO DATES. TWO JOBS.',
+                         'labels': ['STATEMENT CLOSE', 'PAYMENT DUE'],
+                         'values': ['REPORTING SNAPSHOT', 'PAYMENT DEADLINE'],
+                         'gesture': 'open_hands'},
+         'source_ids': shared, 'factual': True, 'speaker': 'narrator',
+         'duration_seconds': 16},
+        {'id': 'utilization_formula',
+         'narration': ('Dave starts with the formula from the scoring source: '
+                       'reported balance divided by credit limit. Five hundred dollars '
+                       'divided by one thousand dollars is fifty percent.'),
+         'visual': 'Dave writes the utilization formula and a complete numerical example.',
+         'visual_spec': {'kind': 'receipt', 'headline': 'FICO UTILIZATION MATH',
+                         'labels': ['REPORTED BALANCE', 'CREDIT LIMIT', 'UTILIZATION'],
+                         'values': ['$500', '$1,000', '50%'],
+                         'gesture': 'point_left'},
+         'source_ids': [fico['id']], 'factual': True, 'speaker': 'dave',
+         'duration_seconds': 18},
+        {'id': 'reporting_timeline',
+         'narration': ('Points Monk follows the issuer reporting timeline. A purchase posts, '
+                       'the statement period ends, and the balance around that close can be '
+                       'the balance sent to the credit bureaus.'),
+         'visual': 'Points Monk advances a three-step reporting timeline labeled with the source.',
+         'visual_spec': {'kind': 'card', 'headline': 'EXPERIAN: REPORTING TIMELINE',
+                         'labels': ['PURCHASE POSTS', 'STATEMENT CLOSE', 'BALANCE REPORTED'],
+                         'values': [], 'gesture': 'point_right'},
+         'source_ids': [reporting['id']], 'factual': True, 'speaker': 'points_monk',
+         'duration_seconds': 18},
+        {'id': 'date_difference',
+         'narration': ('The consumer protection source defines the grace period between '
+                       'the end of a billing cycle and the payment due date. That confirms '
+                       'the close and the due date are separate moments.'),
+         'visual': 'Narrator labels the billing-cycle end and later due date without blending them.',
+         'visual_spec': {'kind': 'comparison', 'headline': 'CFPB: THE DATES DIFFER',
+                         'labels': ['BILLING CYCLE ENDS', 'PAYMENT IS DUE'],
+                         'values': ['STATEMENT CLOSE', 'LATER DEADLINE'],
+                         'gesture': 'open_hands'},
+         'source_ids': [grace['id']], 'factual': True, 'speaker': 'narrator',
+         'duration_seconds': 17},
+        {'id': 'wrong_assumption',
+         'narration': ('Dave catches the common mix-up. Paying in full by the due date can '
+                       'protect a grace period when one applies, but it does not rewrite a '
+                       'balance snapshot that was already taken at statement close.'),
+         'visual': 'Dave contrasts a due-date payment with the earlier statement balance.',
+         'visual_spec': {'kind': 'comparison', 'headline': 'PAYMENT DOES NOT REWIND TIME',
+                         'labels': ['PAID BY DUE DATE', 'BALANCE AT CLOSE'],
+                         'values': ['GRACE-PERIOD QUESTION', 'REPORTING QUESTION'],
+                         'gesture': 'point_left'},
+         'source_ids': [reporting['id'], grace['id']], 'factual': True,
+         'speaker': 'dave', 'duration_seconds': 18},
+        {'id': 'earlier_payment',
+         'narration': ('Points Monk uses the reporting source carefully. An earlier payment '
+                       'can reduce the balance present when the issuer reports, which can '
+                       'reduce the utilization produced by the same formula.'),
+         'visual': 'Points Monk moves an earlier payment ahead of the statement close.',
+         'visual_spec': {'kind': 'card', 'headline': 'PAY BEFORE THE SNAPSHOT',
+                         'labels': ['BEFORE PAYMENT', 'EARLIER PAYMENT', 'AT STATEMENT CLOSE'],
+                         'values': ['$500', '-$400', '$100'],
+                         'gesture': 'point_right'},
+         'source_ids': [fico['id'], reporting['id']], 'factual': True,
+         'speaker': 'points_monk', 'duration_seconds': 18},
+        {'id': 'worked_example',
+         'narration': ('Now run the same arithmetic. Five hundred divided by one thousand is '
+                       'fifty percent. One hundred divided by one thousand is ten percent. '
+                       'The credit limit never changed; the reported balance did.'),
+         'visual': 'Narrator compares both complete utilization calculations side by side.',
+         'visual_spec': {'kind': 'comparison', 'headline': 'SAME LIMIT. NEW SNAPSHOT.',
+                         'labels': ['$500 / $1,000', '$100 / $1,000'],
+                         'values': ['50%', '10%'], 'gesture': 'open_hands'},
+         'source_ids': [fico['id'], reporting['id']], 'factual': True,
+         'speaker': 'narrator', 'duration_seconds': 18},
+        {'id': 'no_score_promise',
+         'narration': ('Dave draws the boundary. These sources explain utilization and '
+                       'reporting timing. They do not promise a particular score change, '
+                       'and different account reporting details still need verification.'),
+         'visual': 'Dave marks the factual boundary and rejects a score-points promise.',
+         'visual_spec': {'kind': 'checklist', 'headline': 'WHAT THIS DOES NOT PROMISE',
+                         'labels': ['NO SCORE-POINT GUARANTEE', 'VERIFY YOUR ACCOUNT'],
+                         'values': [], 'gesture': 'point_left'},
+         'source_ids': [fico['id'], reporting['id']], 'factual': True,
+         'speaker': 'dave', 'duration_seconds': 16},
+        {'id': 'source_map',
+         'narration': ('Points Monk keeps every claim attached to its source: the utilization '
+                       'formula from FICO, reporting timing from the issuer education source, '
+                       'and the grace-period definition from the consumer bureau.'),
+         'visual': 'Points Monk reveals the three source identities and their distinct roles.',
+         'visual_spec': {'kind': 'receipt', 'headline': 'THREE SOURCES. THREE CLAIMS.',
+                         'labels': ['FICO', 'EXPERIAN', 'CFPB'],
+                         'values': ['FORMULA', 'REPORTING', 'GRACE PERIOD'],
+                         'gesture': 'point_right'},
+         'source_ids': shared, 'factual': True, 'speaker': 'points_monk',
+         'duration_seconds': 18},
+        {'id': 'closing_actions',
+         'narration': ('The practical check is simple. Find the statement closing date, '
+                       'inspect the balance likely to report, and choose payment timing '
+                       'deliberately. Then review the actual statement instead of guessing.'),
+         'visual': 'Narrator closes with Dave and Points Monk beside a dated action checklist.',
+         'visual_spec': {'kind': 'checklist', 'headline': 'CHECK BEFORE THE CLOSE',
+                         'labels': ['FIND THE CLOSE DATE', 'CHECK THE BALANCE',
+                                    'VERIFY THE STATEMENT'],
+                         'values': [], 'gesture': 'open_hands'},
+         'source_ids': shared, 'factual': True, 'speaker': 'narrator',
+         'duration_seconds': 18},
+    ]
+
+
+def _long_form_scenes(topic, sources):
+    if _verified_utilization_source_set(sources):
+        return _utilization_long_form(sources)
+    first, second = sources[:2]
+    return _complete_title(f'{topic}: two source checks'), _long_form_scenes_v1(
+        topic, first, second)
+
+
+def _build(research_raw, discovery, content_format='standard', *, algorithm=None):
     research = json.loads(research_raw.decode('utf-8'), object_pairs_hook=_pairs,
                           parse_constant=_constant)
     require(isinstance(research, dict)
@@ -160,15 +382,28 @@ def _build(research_raw, discovery, content_format='standard'):
             and type(research.get('schema_version')) is int and research['schema_version'] == 1,
             'Authoring requires exact discovery research fields')
     require(len(research['sources']) >= 2, 'Authoring requires at least two verified sources')
-    topic = _short(research['topic'], 88)
     first, second = research['sources'][:2]
-    title = _short(f'{topic}: what two sources show', 120)
     if content_format == 'standard':
+        require(algorithm in (None, ALGORITHM), 'Standard authoring algorithm mismatch')
+        topic = _short(research['topic'], 88)
+        title = _short(f'{topic}: what two sources show', 120)
+        thumbnail_copy = _short(topic, 48)
         scenes = _standard_scenes(topic, first, second)
         algorithm, status = ALGORITHM, 'OFFLINE_DRAFT_AUTHORED'
     elif content_format == LONG_FORM_FORMAT:
-        scenes = _long_form_scenes(topic, first, second)
-        algorithm, status = LONG_FORM_ALGORITHM, 'OFFLINE_LONGFORM_DRAFT_AUTHORED'
+        if algorithm == LONG_FORM_ALGORITHM_V1:
+            topic = _short(research['topic'], 88)
+            title = _short(f'{topic}: what two sources show', 120)
+            thumbnail_copy = _short(topic, 48)
+            scenes = _long_form_scenes_v1(topic, first, second)
+        else:
+            require(algorithm in (None, LONG_FORM_ALGORITHM),
+                    'Long-form authoring algorithm mismatch')
+            topic = _complete_title(research['topic'], 88)
+            title, scenes = _long_form_scenes(topic, research['sources'])
+            thumbnail_copy = _complete_title(title, 48)
+            algorithm = LONG_FORM_ALGORITHM
+        status = 'OFFLINE_LONGFORM_DRAFT_AUTHORED'
     else:
         raise ValueError('Authoring format must be standard or long-form')
     planned_duration = sum(scene['duration_seconds'] for scene in scenes)
@@ -192,7 +427,7 @@ def _build(research_raw, discovery, content_format='standard'):
                      planned_duration_seconds=planned_duration,
                      long_form_production_verified=False)
     draft = {'schema_version': 1, 'research_sha256': proof['research_sha256'],
-             'title': title, 'thumbnail_copy': _short(topic, 48), 'layout': 'landscape',
+             'title': title, 'thumbnail_copy': thumbnail_copy, 'layout': 'landscape',
              'scenes': scenes, 'original_authoring': proof}
     probe = {**research, **{key: value for key, value in draft.items()
                            if key not in ('schema_version', 'research_sha256')}, **flags,
@@ -215,11 +450,12 @@ def verify_authored_draft(research_raw, draft_raw, discovery):
         raise ValueError('Authored draft requires a recognized replay algorithm') from error
     if algorithm == ALGORITHM:
         content_format = 'standard'
-    elif algorithm == LONG_FORM_ALGORITHM:
+    elif algorithm in (LONG_FORM_ALGORITHM_V1, LONG_FORM_ALGORITHM):
         content_format = LONG_FORM_FORMAT
     else:
         raise ValueError('Authored draft requires a recognized replay algorithm')
-    expected_raw, proof = _build(research_raw, discovery, content_format)
+    expected_raw, proof = _build(research_raw, discovery, content_format,
+                                 algorithm=algorithm)
     require(draft_raw == expected_raw, 'Authored draft does not match the verified research and algorithm')
     return proof
 
