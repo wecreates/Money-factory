@@ -80,6 +80,39 @@ class DiscoveryTests(unittest.TestCase):
                       discovery_receipt=self.output / 'discovery.json')
         return research, draft, ready
 
+    def discovered_revision_request(self):
+        from integrations.content_control.cycle_lineage import SCOPE
+        from integrations.content_control.test_cycle_lineage import handoff
+
+        research, _, ready = self.discovered_intake()
+        revised = json.loads((ready / 'brief.json').read_text())
+        revised['scenes'][0]['narration'] = 'A minimum payment leaves part of the balance unpaid.'
+        raw = json.dumps(revised, indent=2) + '\n'
+        lineage = handoff(hashlib.sha256(raw.encode()).hexdigest())
+        lineage['schema_version'] = 2
+        lineage['topic_discovery_sha256'] = hashlib.sha256(json.dumps(
+            revised['topic_discovery'], sort_keys=True, separators=(',', ':'),
+            allow_nan=False).encode()).hexdigest()
+        revision_receipt = json.dumps(lineage, indent=2) + '\n'
+        request = {
+            'operation': 'produce-content-cycle', 'brief': revised,
+            'brief_sha256': brief_digest(revised), 'timeout_seconds': 300,
+            'publication_enabled': False, 'paid_generation_enabled': False,
+            'revision_input': {
+                'brief_json': raw,
+                'revision_lineage': {
+                    'schema_version': 1, 'revision_json': revision_receipt,
+                    'revision_sha256': hashlib.sha256(revision_receipt.encode()).hexdigest(),
+                    'parent_evidence_independently_verified': False,
+                    'feedback_resolution_verified': False, 'scope': SCOPE,
+                },
+                'discovery_pool_json': self.pool.read_text(),
+                'discovery_research_json': research.read_text(),
+                'discovery_receipt_json': (self.output / 'discovery.json').read_text(),
+            },
+        }
+        return request
+
     def test_selects_transparently_and_replays_exact_bytes(self):
         self.write()
         receipt = select_topic(self.pool, self.output)
@@ -154,14 +187,105 @@ class DiscoveryTests(unittest.TestCase):
         request = {'operation': 'produce-content-cycle', 'brief': brief,
                    'brief_sha256': brief_digest(brief), 'timeout_seconds': 300,
                    'publication_enabled': False, 'paid_generation_enabled': False}
-        with self.assertRaisesRegex(ValueError, 'replayable verified discovery intake'):
+        with self.assertRaisesRegex(ValueError, 'replayable verified discovery (?:intake|evidence)'):
             production_handoff(request)
-        with self.assertRaisesRegex(ValueError, 'replayable verified discovery intake'):
+        with self.assertRaisesRegex(ValueError, 'replayable verified discovery (?:intake|evidence)'):
             validate(request)
         output = self.root / 'forged-cycle'
-        with self.assertRaisesRegex(ValueError, 'replayable verified discovery intake'):
+        with self.assertRaisesRegex(ValueError, 'replayable verified discovery (?:intake|evidence)'):
             run_cycle(ready / 'brief.json', output, voice_python='unused', voice_root='unused')
         self.assertFalse(output.exists())
+
+    def test_discovered_revision_replays_and_retains_exact_evidence(self):
+        request = self.discovered_revision_request()
+        validate(request)
+        raw, lineage, files, proof = production_handoff(request)
+        self.assertEqual(raw, request['revision_input']['brief_json'].encode())
+        self.assertIsNotNone(lineage)
+        self.assertEqual(proof, request['brief']['topic_discovery'])
+        self.assertEqual(set(files), {
+            'discovery-pool.json', 'discovery-research.json', 'discovery.json'})
+        attempt = self.root / 'revision-attempt'
+        attempt.mkdir()
+        (attempt / 'brief.json').write_bytes(raw)
+        for name, value in files.items():
+            (attempt / name).write_bytes(value)
+        verify_attempt_intake(attempt, proof, {'verified_revision_discovery': proof})
+
+    def test_discovered_revision_guardian_passes_evidence_to_cycle(self):
+        import sys
+        from integrations.content_control.cycle_job import run_job
+        from integrations.content_control.test_cycle_job import packet, write
+
+        request = self.discovered_revision_request()
+        raw, lineage, _, proof = production_handoff(request)
+        source = self.root / 'voice-source'
+        (source / 'scripts').mkdir(parents=True)
+        (source / 'scripts/v2_free_voice.py').write_text('')
+        attempt = self.root / 'guarded-revision'
+        attempt.mkdir()
+
+        def runner(command, **kwargs):
+            self.assertIn('revision_discovery_inputs=dict(', command[2])
+            self.assertNotIn('intake_inputs=dict(', command[2])
+            self.assertEqual(command[-3:], [
+                str(attempt / 'discovery-pool.json'),
+                str(attempt / 'discovery-research.json'),
+                str(attempt / 'discovery.json'),
+            ])
+            receipt = packet(attempt / 'cycle', hashlib.sha256(raw).hexdigest(),
+                             source_brief=request['brief'])
+            (attempt / 'cycle/brief.json').write_bytes(raw)
+            receipt['revision_lineage'] = copy.deepcopy(lineage)
+            receipt['verified_revision_discovery'] = copy.deepcopy(proof)
+            write(attempt / 'cycle/cycle.json', receipt)
+
+        with patch('integrations.content_control.cycle_job.collect_snapshot', return_value={}), \
+             patch('integrations.content_control.cycle_job.recommend_capacity',
+                   return_value={'admitted_workers': 1}), \
+             patch('integrations.content_control.cycle_job.guarded_runner',
+                   return_value=runner):
+            result = run_job(request, attempt, voice_python=sys.executable,
+                             voice_root=source)
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(result['verified_revision_discovery'], proof)
+        self.assertFalse(result['publication_enabled'])
+        self.assertFalse(result['paid_generation_enabled'])
+
+    def test_discovered_revision_rejects_missing_tampered_or_substituted_evidence(self):
+        request = self.discovered_revision_request()
+        cases = []
+        missing = copy.deepcopy(request)
+        del missing['revision_input']['discovery_receipt_json']
+        cases.append(missing)
+        for field in ('discovery_pool_json', 'discovery_research_json',
+                      'discovery_receipt_json'):
+            changed = copy.deepcopy(request)
+            changed['revision_input'][field] += ' '
+            cases.append(changed)
+        changed = copy.deepcopy(request)
+        changed['brief']['topic'] = 'A substituted topic'
+        changed['brief_sha256'] = brief_digest(changed['brief'])
+        changed['revision_input']['brief_json'] = json.dumps(changed['brief'], indent=2) + '\n'
+        from integrations.content_control.test_cycle_lineage import handoff
+        from integrations.content_control.cycle_lineage import SCOPE
+        lineage = handoff(hashlib.sha256(
+            changed['revision_input']['brief_json'].encode()).hexdigest())
+        lineage['schema_version'] = 2
+        lineage['topic_discovery_sha256'] = hashlib.sha256(json.dumps(
+            changed['brief']['topic_discovery'], sort_keys=True, separators=(',', ':'),
+            allow_nan=False).encode()).hexdigest()
+        receipt = json.dumps(lineage, indent=2) + '\n'
+        changed['revision_input']['revision_lineage'] = {
+            'schema_version': 1, 'revision_json': receipt,
+            'revision_sha256': hashlib.sha256(receipt.encode()).hexdigest(),
+            'parent_evidence_independently_verified': False,
+            'feedback_resolution_verified': False, 'scope': SCOPE,
+        }
+        cases.append(changed)
+        for item in cases:
+            with self.subTest(fields=set(item['revision_input'])), self.assertRaises(ValueError):
+                validate(item)
 
     def test_discovery_schema_version_rejects_boolean(self):
         _, _, ready = self.discovered_intake()

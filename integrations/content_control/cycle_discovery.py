@@ -182,6 +182,27 @@ def verify_inline_selection(pool_raw, research_raw, receipt_raw):
             'freshness_policy': FRESHNESS_POLICY, 'scope': expected['scope']}
 
 
+def verify_revision_discovery(brief, pool_raw, research_raw, receipt_raw):
+    """Replay discovery evidence and bind it to a revised production brief.
+
+    A revision may change authored fields, but it cannot change or shed the
+    selected topic, sources, reference observations, or discovery proof.
+    """
+    proof = verify_inline_selection(pool_raw, research_raw, receipt_raw)
+    research = json.loads(research_raw.decode('utf-8'), object_pairs_hook=_pairs,
+                          parse_constant=_constant)
+    require(isinstance(research, dict)
+            and set(research) == {'schema_version', 'topic', 'sources', 'reference_observations'}
+            and type(research.get('schema_version')) is int and research['schema_version'] == 1,
+            'Invalid retained discovery research')
+    require(isinstance(brief, dict) and brief.get('topic_discovery') == proof,
+            'Revised brief does not bind this discovery proof')
+    for field in ('topic', 'sources', 'reference_observations'):
+        require(brief.get(field) == research[field],
+                'Revised brief changed selected discovery research')
+    return proof
+
+
 def verify_selection(pool_path, output):
     """Replay an existing selection without changing its files."""
     pool_path, output = Path(os.path.abspath(pool_path)), Path(os.path.abspath(output))

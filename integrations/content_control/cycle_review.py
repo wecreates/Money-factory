@@ -238,6 +238,10 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
     old = snapshot['editorial']
     require(revised.get('idea_learning') == old.get('idea_learning'),
             'Prior idea learning provenance must be preserved')
+    if old.get('topic_discovery') is not None:
+        require(revised.get('topic') == old.get('topic')
+                and revised.get('topic_discovery') == old.get('topic_discovery'),
+                'Prior topic discovery provenance must be preserved')
     require(revised != old, 'Revision must change the editorial brief')
     sources = {source['id']: source for source in revised['sources']}
     require(all(sources.get(source['id']) == source for source in old['sources']), 'Prior source provenance must be preserved')
@@ -245,13 +249,19 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
             'Prior reference provenance must be preserved')
     output = _new_output(output, root, review_path)
     review_hash = digest(review_path)
-    result = {'schema_version': 1, 'status': 'REVISION_BRIEF_READY',
+    discovery = old.get('topic_discovery')
+    result = {'schema_version': 2 if discovery is not None else 1,
+              'status': 'REVISION_BRIEF_READY',
               'supersedes_candidate_sha256': snapshot['candidate_sha256'],
               'recorded_review_sha256': review_hash, 'prior_cycle_sha256': snapshot['files_sha256']['cycle.json'],
               'feedback': review.get('feedback', []), 'feedback_resolution_verified': False,
               'publication_enabled': False, 'paid_generation_enabled': False, 'production_approved': False,
               'full_av_review': False, 'production_ready': False,
               'scope': 'Revised supplied brief; previous approval statements cannot certify a new render.'}
+    if discovery is not None:
+        result['topic_discovery_sha256'] = hashlib.sha256(
+            json.dumps(discovery, sort_keys=True, separators=(',', ':'),
+                       allow_nan=False).encode()).hexdigest()
     require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash,
             'Revision inputs changed')
     output.mkdir()

@@ -14,6 +14,7 @@ HASHES = ('supersedes_candidate_sha256', 'recorded_review_sha256',
 SCOPE = ('Exact supplied revision handoff retained; parent artifacts and review are not '
          'independently revalidated here, and feedback resolution is not verified.')
 RECEIPT_FIELDS = {'schema_version', 'status', 'feedback', 'scope', *FLAGS, *HASHES}
+DISCOVERY_RECEIPT_FIELD = 'topic_discovery_sha256'
 LINEAGE_FIELDS = {'schema_version', 'revision_json', 'revision_sha256',
                   'parent_evidence_independently_verified', 'feedback_resolution_verified', 'scope'}
 
@@ -47,9 +48,18 @@ def validate_lineage(value, expected_brief_sha256):
     require(len(encoded) <= LIMIT, 'Revision handoff exceeds 64 KiB')
     require(hashlib.sha256(encoded).hexdigest() == value.get('revision_sha256'), 'Revision handoff hash mismatch')
     receipt = json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant)
-    require(isinstance(receipt, dict) and set(receipt) == RECEIPT_FIELDS, 'Invalid revision receipt fields')
-    require(type(receipt.get('schema_version')) is int and receipt['schema_version'] == 1 and
-            receipt.get('status') == 'REVISION_BRIEF_READY', 'Revision receipt schema/status mismatch')
+    require(isinstance(receipt, dict)
+            and ((type(receipt.get('schema_version')) is int
+                  and receipt['schema_version'] == 1 and set(receipt) == RECEIPT_FIELDS)
+                 or (type(receipt.get('schema_version')) is int
+                     and receipt['schema_version'] == 2
+                     and set(receipt) == RECEIPT_FIELDS | {DISCOVERY_RECEIPT_FIELD}))
+            and receipt.get('status') == 'REVISION_BRIEF_READY',
+            'Invalid revision receipt fields or schema/status')
+    if receipt['schema_version'] == 2:
+        require(isinstance(receipt[DISCOVERY_RECEIPT_FIELD], str)
+                and SHA.fullmatch(receipt[DISCOVERY_RECEIPT_FIELD]),
+                'Invalid revision discovery identity')
     require(all(receipt.get(flag) is False for flag in FLAGS), 'Revision flags must remain false')
     require(all(isinstance(receipt.get(key), str) and SHA.fullmatch(receipt[key]) for key in HASHES),
             'Invalid revision identity')
