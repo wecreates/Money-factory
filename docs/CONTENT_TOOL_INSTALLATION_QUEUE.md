@@ -2,6 +2,28 @@
 
 Updated 2026-11-21 UTC. The integration inventory below is current to its stated source snapshots; the November 20 installation/candidate sections remain historical evidence. **User sequence: finish the reel-requested installations first, then return to picture videos, end-to-end production, and local/VPN agents.** Target date: **Sunday, 2026-11-22, Pacific time**; this is the requested target, not a verified completion promise. Installation, workspace execution, creative acceptance, and actual-host readiness are separate states.
 
+### November 24, 2026 source/runtime recheck
+
+The dated [C10 source/runtime audit](C10_GAP_AUDIT_2026-11-24.json) separates
+reviewed pins from newly observed upstream heads. `last30days-skill` now points to
+`6fc93af…` and `stickman-video-director` to `1028782…`; that upstream movement
+does not override either full-package safety rejection, replace the reviewed pins,
+or expand the separately permitted restricted workflows.
+
+The creator's current public repository list still exposes no repository that
+identifies itself as the reel's eleven-skill SIM pack. The guessed `sim-skill`
+repository still returns 404, and `master-skills` documents three different master
+skills, so neither is a canonical substitute. Resolution still requires a
+creator-controlled source that explicitly identifies the requested pack; no
+contact, similarly named substitution, or unverified installation is authorized.
+
+OpenMontage's default branch remains the validated `2e003e6…` pin. A fresh,
+ordinary headless-Chromium probe still exits 134 because the execution policy
+denies its process-singleton socket (`EPERM`); no sandbox weakening or
+`--no-sandbox` workaround was attempted. Chromium-backed Remotion rendering
+therefore remains unverified here and needs an ordinary run on an authorized
+PC/VPN/VPS host whose policy permits the socket.
+
 ## Integration inventory and missing-capability matrix — 2026-11-21
 
 Audited Money Factory at `df17376` (including merged local-queue/video wiring

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-24T11:56:10Z",
+  "scope": "Read-only canonical-source and ordinary-runtime recheck. No package installation, safety bypass, credential access, provider call, deployment, publication, or setting change was performed.",
+  "publication_enabled": false,
+  "paid_provider_calls": 0,
+  "sim": {
+    "status": "BLOCKED_CANONICAL_SOURCE_UNAVAILABLE",
+    "requested_source": "https://www.instagram.com/reel/DfqzrDSNS_x/",
+    "creator_repository_owner": "Jakeschincariol",
+    "public_repository_names_searched": [
+      "replica-skill",
+      "founder-skill",
+      "day-trader-skill",
+      "youtube-agent-skill",
+      "instagram-agent-skill",
+      "trader-skill",
+      "arena-skill",
+      "linkedin-agent-skill",
+      "console-skill",
+      "seed-skill",
+      "chatgpt-youtube-agent-skill",
+      "promptmaster-skill",
+      "hunter-skill",
+      "master-skills",
+      "whale-skill",
+      "duel-skill",
+      "closer-skill",
+      "video-production-skills",
+      "x-agent-skill",
+      "unhinged-claude-skills",
+      "claude-illegal-codes"
+    ],
+    "matching_public_repository": null,
+    "guessed_repository_url": "https://github.com/Jakeschincariol/sim-skill",
+    "guessed_repository_http_status": 404,
+    "creator_code_search_phrase": "SIM Claude skill pack",
+    "creator_code_search_relevant_matches": 0,
+    "explicit_nonmatches": [
+      {
+        "url": "https://github.com/Jakeschincariol/master-skills/tree/b5b43e44f0a976ad25bda5095a94c161aab2f086",
+        "reason": "The creator-controlled README describes three master skills, not the reel's described eleven-skill SIM pack."
+      },
+      {
+        "url": "https://github.com/nardovibecoding/simply-skills-curation",
+        "reason": "Generic search result with a different owner and product identity; it is not canonical evidence for the reel."
+      },
+      {
+        "url": "https://github.com/TeeratP/swarm-sim-public",
+        "reason": "Generic search result for a swarm simulator; it is unrelated to the reel's claimed skill pack."
+      }
+    ],
+    "resolution_evidence_required": "A creator-controlled source that explicitly identifies itself as the SIM pack shown in the requested reel. Do not substitute a similarly named repository or contact the creator."
+  },
+  "last30days": {
+    "status": "RESTRICTED_ADAPTATION_RETAINED",
+    "upstream_url": "https://github.com/mvanhorn/last30days-skill",
+    "validated_pin": "bb2f1ed2b9f6d07b90557c5eebd736b566533fec",
+    "fresh_observed_default_branch_head": "6fc93af4246c1a4b698bbb562b1d32b77544be59",
+    "fresh_observed_head_url": "https://github.com/mvanhorn/last30days-skill/commit/6fc93af4246c1a4b698bbb562b1d32b77544be59",
+    "disposition": "The separately installed restricted public-source workflow remains the permitted alternative. Upstream movement does not override the recorded safety rejection or validate replacing the reviewed pin."
+  },
+  "stickman_video_director": {
+    "status": "RESTRICTED_ADAPTATION_RETAINED",
+    "upstream_url": "https://github.com/kaomei/stickman-video-director",
+    "validated_pin": "7fa6a9a543694cac95775200eb2f731b5594da0d",
+    "fresh_observed_default_branch_head": "10287822ba47579321068da1b93801face9160dd",
+    "fresh_observed_head_url": "https://github.com/kaomei/stickman-video-director/commit/10287822ba47579321068da1b93801face9160dd",
+    "disposition": "The separately installed restricted director workflow remains the permitted alternative. Upstream movement does not override the recorded safety rejection or validate replacing the reviewed pin."
+  },
+  "openmontage": {
+    "status": "ORDINARY_CHROMIUM_RUNTIME_BLOCKED",
+    "upstream_url": "https://github.com/OpenMontageInc/OpenMontage",
+    "validated_pin": "2e003e65fa99a0f329478a2c1cdcf26bc481933a",
+    "fresh_observed_default_branch_head": "2e003e65fa99a0f329478a2c1cdcf26bc481933a",
+    "fresh_observed_head_url": "https://github.com/OpenMontageInc/OpenMontage/commit/2e003e65fa99a0f329478a2c1cdcf26bc481933a",
+    "ordinary_probe": {
+      "command_shape": "chromium --headless --disable-gpu --user-data-dir=<temporary-directory> --dump-dom about:blank",
+      "exit_code": 134,
+      "primary_error": "process_singleton_posix.cc:297 socket() failed: Operation not permitted (1)",
+      "secondary_error": "crashpad ptrace: Operation not permitted (1)",
+      "security_bypass_attempted": false
+    },
+    "previously_verified_scope": "Python, FFmpeg, local Backlot endpoints, Piper synthesis, tool-registry discovery, and local stitching were separately exercised at the validated pin.",
+    "still_unverified": [
+      "Chromium-backed Remotion render",
+      "complete full-application render in this execution environment",
+      "final creative quality",
+      "24/7 operation"
+    ],
+    "resolution_evidence_required": "Run the same ordinary Chromium/Remotion path on an authorized normal PC, VPN-connected host, or VPS whose policy permits Chromium process-singleton sockets, then retain an exact-output receipt. Do not weaken this environment's sandbox or add no-sandbox flags."
+  }
+}
