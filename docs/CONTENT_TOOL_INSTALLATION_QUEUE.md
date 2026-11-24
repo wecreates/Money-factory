@@ -24,6 +24,16 @@ denies its process-singleton socket (`EPERM`); no sandbox weakening or
 therefore remains unverified here and needs an ordinary run on an authorized
 PC/VPN/VPS host whose policy permits the socket.
 
+The repository now includes a bounded, credential-stripping
+[ordinary-browser preflight](../integrations/browser_runtime_probe.py) and a
+[dated current-host receipt](../integrations/browser-runtime-proof-20261124.json).
+It renders only a local data URL, accepts no caller-supplied browser flags, and
+fails closed on the known process-singleton socket policy. Its receipt
+explicitly leaves OpenMontage rendering, a browser/media consumer, production
+readiness, and 24-hour operation unverified. Run the same preflight on the
+intended authorized host before attempting any browser-backed consumer; do not
+add sandbox-weakening flags.
+
 ## Integration inventory and missing-capability matrix — 2026-11-21
 
 Audited Money Factory at `df17376` (including merged local-queue/video wiring
