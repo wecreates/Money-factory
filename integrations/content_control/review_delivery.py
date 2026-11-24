@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import sqlite3
 import tempfile
-from zipfile import BadZipFile
+from zipfile import BadZipFile, ZipFile
 
 from integrations.local_agent_queue import canonical, validate
 from integrations.content_control.runtime_doctor import SOURCES
@@ -22,6 +22,25 @@ MAX_FILE = 512 * 1024 * 1024
 MAX_PACKET = 1024 * 1024 * 1024
 FLAGS = dict.fromkeys(('publication_enabled', 'paid_generation_enabled', 'production_ready',
                        'production_approved', 'full_av_review'), False)
+DELIVERY_REPORT_FIELDS = frozenset({
+    'schema_version', 'status', *FLAGS, 'candidate_sha256', 'archive', 'archive_sha256',
+    'entrypoint', 'entrypoint_sha256', 'package_sha256', 'files_sha256',
+    'delivery_identity_sha256', 'provenance', 'scope',
+})
+CYCLE_PROVENANCE_REQUIRED = frozenset({
+    'job_id', 'job_digest', 'attempt', 'completed_at_unix', 'candidate_sha256',
+    'pipeline_receipt_sha256', 'adapter_receipt_sha256', *FLAGS, 'scope', 'adapter',
+    'brief_sha256', 'production_brief_sha256', 'package_sha256', 'review_archive_sha256',
+})
+CYCLE_PROVENANCE_OPTIONAL = frozenset({'minimum_duration_seconds', 'verified_intake'})
+PACKAGE_GATE_FIELDS = frozenset({
+    'publication_enabled', 'paid_generation_enabled', 'production_approved', 'full_av_review',
+    'production_ready', 'thumbnail_performance_verified', 'independent_transcription_verified',
+    'review_required',
+})
+GATE_FIELD = re.compile(
+    r'(?:publish|publication|paid|production|approval|approved|ready|full_av|playback|phone|listen|verified|review)',
+    re.I)
 
 
 def regular(path, *, directory=False, limit=MAX_FILE):
@@ -266,7 +285,7 @@ def export_cycle(review, provenance, queue_root, output_dir):
         'package_sha256': provenance['package_sha256'],
         'archive_sha256': provenance['review_archive_sha256'],
         'entrypoint': entrypoint, 'entrypoint_sha256': files.get('index.html'),
-        'files_sha256': preview_files, **FLAGS,
+        'files_sha256': preview_files, 'provenance': provenance, **FLAGS,
     }
     report = {'schema_version': 1, 'status': 'AWAITING_REVIEW', **FLAGS,
               'candidate_sha256': provenance['candidate_sha256'], 'archive': source.name,
@@ -310,24 +329,175 @@ def export_cycle(review, provenance, queue_root, output_dir):
     return report
 
 
+def verify_exported_cycle(output_dir, expected_delivery_identity_sha256):
+    """Reopen a retained private cycle export without trusting its receipt.
+
+    Export verifies the source queue at copy time.  This verifier is for the
+    other side of that boundary: it rehashes the durable tree and the original
+    archive later, without access to the queue or permission to rewrite it.
+    Playback remains a separate human/device observation.
+    """
+    if (not isinstance(expected_delivery_identity_sha256, str)
+            or not re.fullmatch('[0-9a-f]{64}', expected_delivery_identity_sha256)):
+        raise ValueError('Trusted expected delivery identity is required')
+    output = regular(output_dir, directory=True)
+    if {path.name for path in output.iterdir()} != {'package.json', 'review-package.zip', 'review'}:
+        raise ValueError('Private delivery root inventory changed')
+    report = read_json(output / 'package.json')
+    if set(report) != DELIVERY_REPORT_FIELDS:
+        raise ValueError('Private delivery receipt schema is invalid')
+    if (report.get('schema_version') != 1 or report.get('status') != 'AWAITING_REVIEW'
+            or any(report.get(flag) is not False for flag in FLAGS)
+            or report.get('archive') != 'review-package.zip'
+            or report.get('entrypoint') != 'review/index.html'
+            or report.get('scope') != 'Exact unpublished private preview delivery; playback and creative acceptance remain unverified'):
+        raise ValueError('Private delivery receipt is not an unpublished cycle review')
+
+    hashes = report.get('files_sha256')
+    if not isinstance(hashes, dict) or not hashes:
+        raise ValueError('Private delivery file inventory is invalid')
+    for name, expected in hashes.items():
+        if (not isinstance(name, str)
+                or not re.fullmatch(r'review/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', name)
+                or not isinstance(expected, str) or not re.fullmatch('[0-9a-f]{64}', expected)):
+            raise ValueError('Private delivery file identity is invalid')
+    preview = regular(output / 'review', directory=True)
+    if {path.relative_to(output).as_posix() for path in preview.iterdir()} != set(hashes):
+        raise ValueError('Private preview inventory changed')
+    remaining = MAX_PACKET
+    for name, expected in hashes.items():
+        artifact = regular(output / name, limit=MAX_FILE)
+        remaining -= artifact.stat().st_size
+        if remaining < 0:
+            raise ValueError('Private preview exceeds delivery limit')
+        if digest(artifact) != expected:
+            raise ValueError('Private preview identity changed: ' + name)
+
+    candidate = report.get('candidate_sha256')
+    package_sha = report.get('package_sha256')
+    archive_sha = report.get('archive_sha256')
+    entry_sha = report.get('entrypoint_sha256')
+    if (not all(isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value)
+                for value in (candidate, package_sha, archive_sha, entry_sha))
+            or hashes.get('review/video.mp4') != candidate
+            or hashes.get('review/package.json') != package_sha
+            or hashes.get(report['entrypoint']) != entry_sha):
+        raise ValueError('Private delivery primary identities disagree')
+
+    archive_path = regular(output / report['archive'], limit=MAX_PACKET)
+    if digest(archive_path) != archive_sha:
+        raise ValueError('Private delivery archive identity changed')
+    expected_members = {name.removeprefix('review/'): value for name, value in hashes.items()}
+    with ZipFile(archive_path) as archive:
+        members = archive.infolist()
+        if (len({info.filename for info in members}) != len(members)
+                or {info.filename for info in members} != set(expected_members)
+                or archive.testzip() is not None):
+            raise ValueError('Private delivery archive inventory changed')
+        remaining = MAX_PACKET
+        for info in members:
+            if (info.is_dir() or ((info.external_attr >> 16) & 0o170000) == 0o120000
+                    or info.file_size > MAX_FILE):
+                raise ValueError('Private delivery archive member is invalid')
+            remaining -= info.file_size
+            if remaining < 0:
+                raise ValueError('Private delivery archive exceeds delivery limit')
+            observed = hashlib.sha256()
+            with archive.open(info) as stream:
+                while chunk := stream.read(1024 * 1024):
+                    observed.update(chunk)
+            if observed.hexdigest() != expected_members[info.filename]:
+                raise ValueError('Private delivery archive member changed: ' + info.filename)
+
+    provenance = report.get('provenance')
+    if (not isinstance(provenance, dict)
+            or not CYCLE_PROVENANCE_REQUIRED <= set(provenance)
+            or set(provenance) - CYCLE_PROVENANCE_REQUIRED - CYCLE_PROVENANCE_OPTIONAL
+            or not isinstance(provenance.get('job_id'), str)
+            or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', provenance['job_id'])
+            or not isinstance(provenance.get('job_digest'), str)
+            or not re.fullmatch('[0-9a-f]{64}', provenance['job_digest'])
+            or type(provenance.get('attempt')) is not int or provenance['attempt'] < 1
+            or type(provenance.get('completed_at_unix')) not in (int, float)
+            or not 0 < provenance['completed_at_unix'] < float('inf')
+            or provenance.get('adapter') != 'content-control-cycle'
+            or provenance.get('candidate_sha256') != candidate
+            or provenance.get('package_sha256') != package_sha
+            or provenance.get('review_archive_sha256') != archive_sha
+            or any(not isinstance(provenance.get(name), str)
+                   or not re.fullmatch('[0-9a-f]{64}', provenance[name])
+                   for name in ('pipeline_receipt_sha256', 'adapter_receipt_sha256',
+                                'brief_sha256', 'production_brief_sha256'))
+            or provenance.get('scope') != 'Verified durable queue completion; delivery is not creative or publishing approval'
+            or any(provenance.get(flag) is not False for flag in FLAGS)):
+        raise ValueError('Private delivery provenance is invalid')
+    minimum = provenance.get('minimum_duration_seconds')
+    if ('minimum_duration_seconds' in provenance
+            and (type(minimum) not in (int, float) or not 0 < minimum < float('inf'))):
+        raise ValueError('Private delivery provenance is invalid')
+    intake = provenance.get('verified_intake')
+    if ('verified_intake' in provenance
+            and (not isinstance(intake, dict) or len(canonical(intake).encode()) > MAX_JSON)):
+        raise ValueError('Private delivery provenance is invalid')
+
+    source_package = read_json(output / 'review/package.json')
+    source_hashes = source_package.get('files_sha256')
+    if (source_package.get('schema_version') != 1
+            or source_package.get('status') != 'AWAITING_REVIEW'
+            or source_package.get('technical_status') != 'PASS'
+            or any(source_package.get(flag) is not False for flag in FLAGS)
+            or any(GATE_FIELD.search(key) and key not in PACKAGE_GATE_FIELDS for key in source_package)
+            or source_package.get('candidate_sha256') != candidate
+            or not isinstance(source_hashes, dict)
+            or {'review/' + name: value for name, value in source_hashes.items()}
+               != {name: value for name, value in hashes.items() if name != 'review/package.json'}):
+        raise ValueError('Private delivery source package is invalid')
+    identity = {
+        'job_id': provenance['job_id'], 'job_digest': provenance['job_digest'],
+        'attempt': provenance['attempt'], 'candidate_sha256': candidate,
+        'package_sha256': package_sha, 'archive_sha256': archive_sha,
+        'entrypoint': report['entrypoint'], 'entrypoint_sha256': entry_sha,
+        'files_sha256': hashes, 'provenance': provenance, **FLAGS,
+    }
+    identity_sha = hashlib.sha256(canonical(identity).encode()).hexdigest()
+    if report.get('delivery_identity_sha256') != identity_sha:
+        raise ValueError('Private delivery identity receipt changed')
+    if identity_sha != expected_delivery_identity_sha256:
+        raise ValueError('Private delivery does not match trusted expected identity')
+    return {'schema_version': 1, 'status': 'PASS', **FLAGS,
+            'candidate_sha256': candidate, 'package_sha256': package_sha,
+            'archive_sha256': archive_sha, 'entrypoint': report['entrypoint'],
+            'entrypoint_sha256': entry_sha, 'delivery_identity_sha256': identity_sha,
+            'scope': 'Caller-supplied delivery identity matched durable private bytes; playback and creative acceptance remain unverified'}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--queue', required=True)
-    parser.add_argument('--id', required=True, help='Immutable queued video ID')
+    parser.add_argument('--queue')
+    parser.add_argument('--id', help='Immutable queued video ID')
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('status')
     export = commands.add_parser('export')
     export.add_argument('--output', required=True, help='New private review package directory')
+    verify = commands.add_parser('verify')
+    verify.add_argument('--output', required=True, help='Existing private review package directory')
+    verify.add_argument('--expected-delivery-identity', required=True,
+                        help='Trusted delivery_identity_sha256 received separately from the retained directory')
     args = parser.parse_args(argv)
     try:
-        report = status(args.queue, args.id) if args.command == 'status' else export_review(args.queue, args.id, args.output)
+        if args.command == 'verify':
+            report = verify_exported_cycle(args.output, args.expected_delivery_identity)
+        else:
+            if not args.queue or not args.id:
+                raise ValueError('--queue and --id are required for queue status or export')
+            report = status(args.queue, args.id) if args.command == 'status' else export_review(args.queue, args.id, args.output)
     except (ValueError, OSError, KeyError, TypeError, sqlite3.Error, BadZipFile, RuntimeError) as error:
         print(json.dumps({'status': 'DELIVERY_BLOCKED', 'reason': str(error),
                           'publication_enabled': False, 'paid_generation_enabled': False,
                           'production_ready': False, 'production_approved': False}, indent=2))
         return 2
     print(json.dumps(report, indent=2))
-    return 0 if args.command == 'export' or report.get('delivery_ready') else 2
+    return 0 if args.command in ('export', 'verify') or report.get('delivery_ready') else 2
 
 
 if __name__ == '__main__':
