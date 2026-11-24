@@ -25,6 +25,8 @@ export function normalizeWatch(raw){
     last_change_at:raw.last_change_at??null,
     last_status:raw.last_status??null,
     last_error:raw.last_error??null,
+    unavailable_since:Number.isSafeInteger(raw.unavailable_since) && raw.unavailable_since>0
+      ? raw.unavailable_since:null,
     last_attempt_count:Number.isInteger(raw.last_attempt_count)?raw.last_attempt_count:null,
     last_attempts:Array.isArray(raw.last_attempts)?raw.last_attempts.map(attempt=>({...attempt})):[],
     last_check_recovered_by_retry:typeof raw.last_check_recovered_by_retry==='boolean'?raw.last_check_recovered_by_retry:null
@@ -32,7 +34,7 @@ export function normalizeWatch(raw){
 }
 
 const OBSERVATION_FIELDS=['last_value','last_checked_at','last_change_at','last_status','last_error',
-  'last_attempt_count','last_attempts','last_check_recovered_by_retry'];
+  'unavailable_since','last_attempt_count','last_attempts','last_check_recovered_by_retry'];
 
 export function reconcileWatch(raw,prior){
   const current=normalizeWatch(raw);
@@ -83,6 +85,80 @@ function recordAvailability(events,previous,current){
   events.push({id:crypto.randomUUID(),watch_id:current.id,at:current.last_checked_at,
     type:'availability',label:current.label,target_url:current.targetUrl,
     previous_availability:before,availability:after,http_status:current.last_status});
+}
+
+const ALERT_KINDS=new Set(['outage','recovery']);
+const MAX_EVENTS=500;
+
+export function isPendingAlertIntent(event){
+  if(event===null || typeof event!=='object' || Array.isArray(event)) return false;
+  const exact=new Set(['id','watch_id','at','type','alert_kind','outage_started_at','label',
+    'target_url','delivery_status','delivery_attempts','external_delivery_performed',
+    'publication_enabled']);
+  return Object.keys(event).length===exact.size
+    && Object.keys(event).every(key=>exact.has(key))
+    && typeof event.id==='string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(event.id)
+    && typeof event.watch_id==='string' && event.watch_id.length>0
+    && Number.isSafeInteger(event.at) && event.at>0
+    && event.type==='alert_intent' && ALERT_KINDS.has(event.alert_kind)
+    && Number.isSafeInteger(event.outage_started_at) && event.outage_started_at>0
+    && event.at>=event.outage_started_at
+    && typeof event.label==='string' && event.label.length>0
+    && typeof event.target_url==='string'
+    && ['http:','https:'].includes(new URL(event.target_url).protocol)
+    && event.delivery_status==='pending' && event.delivery_attempts===0
+    && event.external_delivery_performed===false && event.publication_enabled===false;
+}
+
+export function pendingAlertIntents(events){
+  if(!Array.isArray(events)) throw new Error('events must be an array');
+  return events.filter(event=>{
+    try{return isPendingAlertIntent(event);}catch{return false;}
+  }).map(event=>({...event}));
+}
+
+function ensureAlertIntent(events,current,kind,outageStartedAt,at){
+  if(!Number.isSafeInteger(outageStartedAt) || outageStartedAt<=0
+      || !Number.isSafeInteger(at) || at<outageStartedAt) return;
+  const duplicate=pendingAlertIntents(events).some(event=>event.watch_id===current.id
+    && event.target_url===current.targetUrl && event.alert_kind===kind
+    && event.outage_started_at===outageStartedAt);
+  if(duplicate) return;
+  events.push({id:crypto.randomUUID(),watch_id:current.id,at,type:'alert_intent',alert_kind:kind,
+    outage_started_at:outageStartedAt,label:current.label,target_url:current.targetUrl,
+    delivery_status:'pending',delivery_attempts:0,external_delivery_performed:false,
+    publication_enabled:false});
+}
+
+function recordAlertIntents(events,previous,current){
+  const before=availability(previous);
+  const after=availability(current);
+  if(after==='unavailable'){
+    ensureAlertIntent(events,current,'outage',current.unavailable_since,current.unavailable_since);
+  }else if(before==='unavailable' && after==='healthy'){
+    const outageStartedAt=previous.unavailable_since??previous.last_checked_at;
+    // A legacy outage may predate alert-intent support. Retain its pending
+    // outage before recording recovery so the delivery stage cannot silently
+    // skip the original failure.
+    ensureAlertIntent(events,current,'outage',outageStartedAt,outageStartedAt);
+    ensureAlertIntent(events,current,'recovery',outageStartedAt,current.last_checked_at);
+  }
+}
+
+function retainEvents(events){
+  const pending=new Set(events.filter(event=>{
+    try{return isPendingAlertIntent(event);}catch{return false;}
+  }));
+  if(pending.size>MAX_EVENTS){
+    throw new Error(`Pending alert outbox exceeds ${MAX_EVENTS} event limit`);
+  }
+  const ordinary=events.filter(event=>!pending.has(event));
+  const ordinaryCapacity=MAX_EVENTS-pending.size;
+  const retainedOrdinary=new Set(ordinaryCapacity===0?[]:ordinary.slice(-ordinaryCapacity));
+  // Pending delivery work is never silently evicted by change-event volume.
+  // Preserve source ordering so the event log remains deterministic.
+  return events.filter(event=>pending.has(event) || retainedOrdinary.has(event));
 }
 
 export const MAX_RESPONSE_BYTES=2*1024*1024;
@@ -197,7 +273,8 @@ export async function runWorker({
       const check=await fetchHashWithRetry(base.targetUrl,{maxAttempts,requestTimeoutMs,retryBackoffMs});
       const {changed,next}=evaluateCheck(base,check);
       nextState[base.id]={...next,last_error:null,last_attempt_count:check.attempt_count,
-        last_attempts:check.attempts,last_check_recovered_by_retry:check.recovered_by_retry};
+        unavailable_since:null,last_attempts:check.attempts,
+        last_check_recovered_by_retry:check.recovered_by_retry};
       if(changed){
         events.push({id:crypto.randomUUID(),watch_id:base.id,at:check.checkedAt,type:'change',label:base.label,target_url:base.targetUrl});
       }
@@ -212,16 +289,23 @@ export async function runWorker({
     }catch(error){
       const checkedAt=error.checkedAt??Date.now();
       const attempts=Array.isArray(error.attempts)?error.attempts:[];
+      const unavailableSince=base.unavailable_since
+        ?? (availability(base)==='unavailable'?base.last_checked_at:null) ?? checkedAt;
       nextState[base.id]={...base,last_checked_at:checkedAt,last_status:error.status??null,last_error:String(error),
-        last_attempt_count:attempts.length,last_attempts:attempts,last_check_recovered_by_retry:false};
+        unavailable_since:unavailableSince,last_attempt_count:attempts.length,
+        last_attempts:attempts,last_check_recovered_by_retry:false};
       results.push({id:base.id,checked:true,error:String(error),last_checked_at:checkedAt,
         attempt_count:attempts.length,attempts,recovered_by_retry:false});
     }
     recordAvailability(events,base,nextState[base.id]);
+    recordAlertIntents(events,base,nextState[base.id]);
   }
 
-  await writeMonitorPair(storage,nextState,events.slice(-500));
-  return {ran_at:new Date(now).toISOString(),ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>availability(w)==='healthy'),results};
+  const retainedEvents=retainEvents(events);
+  await writeMonitorPair(storage,nextState,retainedEvents);
+  return {ran_at:new Date(now).toISOString(),
+    ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>availability(w)==='healthy'),
+    alert_outbox_pending:pendingAlertIntents(retainedEvents).length,results};
 }
 
 if(isMainEntry(import.meta.url,process.argv[1])){

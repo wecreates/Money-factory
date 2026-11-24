@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeWatch, evaluateCheck, dueForCheck, isMainEntry} from '../worker.mjs';
+import {normalizeWatch, evaluateCheck, dueForCheck, isMainEntry,
+  isPendingAlertIntent, pendingAlertIntents} from '../worker.mjs';
 
 test('normalizeWatch accepts an active HTTPS watch',()=>{
   const w=normalizeWatch({id:'demo',kind:'change',targetUrl:'https://example.com/',label:'Demo',status:'active'});
@@ -164,7 +165,7 @@ test('real HTTP timeout retry retains attempt evidence without masking a persist
     assert.match(failedState.last_error,/TimeoutError/);assert.equal(failedState.last_status,null);
     assert.equal(failedState.last_attempt_count,2);assert.equal(failedState.last_check_recovered_by_retry,false);
     assert.deepEqual((await readEvents()).map(event=>[event.type,event.availability]),
-      [['retry_recovery',undefined],['availability','unavailable']]);
+      [['retry_recovery',undefined],['availability','unavailable'],['alert_intent',undefined]]);
 
     mode='fast';requests=0;
     const nextCycleRecovery=await runWorker(options);
@@ -172,7 +173,8 @@ test('real HTTP timeout retry retains attempt evidence without masking a persist
     assert.equal(nextCycleRecovery.results[0].attempt_count,1);assert.equal(nextCycleRecovery.results[0].recovered_by_retry,false);
     assert.equal((await readState()).last_error,null);
     assert.deepEqual((await readEvents()).map(event=>[event.type,event.availability]),
-      [['retry_recovery',undefined],['availability','unavailable'],['availability','healthy']]);
+      [['retry_recovery',undefined],['availability','unavailable'],['alert_intent',undefined],
+        ['availability','healthy'],['alert_intent',undefined]]);
 
     mode='not-found';requests=0;
     const nonRetryable=await runWorker(options);
@@ -184,6 +186,138 @@ test('real HTTP timeout retry retains attempt evidence without masking a persist
     for(const timer of timers) clearTimeout(timer);
     server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});
   }
+});
+
+test('persistent failure creates one durable pending alert intent and preserves its outage epoch',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-alert-outbox-'));
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),
+    eventsPath:path.join(dir,'events.json'),intervalMs:0,maxAttempts:1};
+  let now=10_000;
+  t.mock.method(Date,'now',()=>now++);
+  t.mock.method(globalThis,'fetch',async()=>{throw new TypeError('fixture offline');});
+  try{
+    const watch={id:'fixture',targetUrl:'https://fixture.invalid/',label:'Fixture'};
+    await fs.writeFile(options.watchesPath,JSON.stringify([watch]));
+    // Simulate a retained legacy outage from before alert-intent support.
+    await fs.writeFile(options.statePath,JSON.stringify({fixture:{...watch,status:'active',
+      last_checked_at:9000,last_status:null,last_error:'legacy timeout'}}));
+    await fs.writeFile(options.eventsPath,'[]');
+
+    const first=await runWorker(options);
+    assert.equal(first.ok,false);assert.equal(first.alert_outbox_pending,1);
+    const state=JSON.parse(await fs.readFile(options.statePath,'utf8')).fixture;
+    assert.equal(state.unavailable_since,9000);
+    const [intent]=pendingAlertIntents(JSON.parse(await fs.readFile(options.eventsPath,'utf8')));
+    assert.equal(isPendingAlertIntent(intent),true);
+    assert.deepEqual({kind:intent.alert_kind,outage:intent.outage_started_at,at:intent.at,
+      status:intent.delivery_status,attempts:intent.delivery_attempts,external:intent.external_delivery_performed},
+    {kind:'outage',outage:9000,at:9000,status:'pending',attempts:0,external:false});
+
+    const second=await runWorker(options);
+    assert.equal(second.alert_outbox_pending,1);
+    assert.equal(pendingAlertIntents(JSON.parse(await fs.readFile(options.eventsPath,'utf8'))).length,1);
+    assert.equal(JSON.parse(await fs.readFile(options.statePath,'utf8')).fixture.unavailable_since,9000);
+  }finally{await fs.rm(dir,{recursive:true,force:true});}
+});
+
+test('recovery retains outage and recovery intents exactly once without claiming delivery',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-alert-recovery-'));
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),
+    eventsPath:path.join(dir,'events.json'),intervalMs:0,maxAttempts:1};
+  let healthy=false,now=20_000;
+  t.mock.method(Date,'now',()=>now++);
+  t.mock.method(globalThis,'fetch',async()=>{
+    if(!healthy) throw new TypeError('fixture offline');
+    return new Response('healthy');
+  });
+  try{
+    await fs.writeFile(options.watchesPath,JSON.stringify([
+      {id:'fixture',targetUrl:'https://fixture.invalid/',label:'Fixture'}]));
+    await runWorker(options);
+    healthy=true;
+    const recovered=await runWorker(options);
+    assert.equal(recovered.ok,true);assert.equal(recovered.alert_outbox_pending,2);
+    const alerts=pendingAlertIntents(JSON.parse(await fs.readFile(options.eventsPath,'utf8')));
+    assert.deepEqual(alerts.map(alert=>alert.alert_kind),['outage','recovery']);
+    assert.equal(alerts[0].outage_started_at,alerts[1].outage_started_at);
+    assert.ok(alerts[1].at>=alerts[0].at);
+    assert.ok(alerts.every(alert=>alert.delivery_status==='pending'
+      && alert.external_delivery_performed===false && alert.publication_enabled===false));
+    assert.equal(JSON.parse(await fs.readFile(options.statePath,'utf8')).fixture.unavailable_since,null);
+    const replay=await runWorker(options);
+    assert.equal(replay.alert_outbox_pending,2);
+  }finally{await fs.rm(dir,{recursive:true,force:true});}
+});
+
+test('forged or evicted alert intents cannot suppress the current outage outbox',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-alert-adversarial-'));
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),
+    eventsPath:path.join(dir,'events.json'),intervalMs:0,maxAttempts:1};
+  t.mock.method(globalThis,'fetch',async()=>{throw new TypeError('fixture offline');});
+  try{
+    const watch={id:'fixture',targetUrl:'https://fixture.invalid/',label:'Fixture'};
+    await fs.writeFile(options.watchesPath,JSON.stringify([watch]));
+    await fs.writeFile(options.statePath,JSON.stringify({fixture:{...watch,status:'active',
+      last_checked_at:30000,unavailable_since:25000,last_status:null,last_error:'offline'}}));
+    const forged={id:crypto.randomUUID(),watch_id:'fixture',at:25000,type:'alert_intent',
+      alert_kind:'outage',outage_started_at:25000,label:'Fixture',target_url:watch.targetUrl,
+      delivery_status:'delivered',delivery_attempts:0,external_delivery_performed:true,
+      publication_enabled:false};
+    const filler=Array.from({length:500},(_,i)=>({id:`filler-${i}`,type:'change'}));
+    await fs.writeFile(options.eventsPath,JSON.stringify([...filler,forged]));
+    const report=await runWorker(options);
+    assert.equal(report.alert_outbox_pending,1);
+    const retained=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+    assert.equal(retained.length,500);
+    const [real]=pendingAlertIntents(retained);
+    assert.equal(real.outage_started_at,25000);assert.equal(real.delivery_status,'pending');
+    assert.equal(real.external_delivery_performed,false);
+  }finally{await fs.rm(dir,{recursive:true,force:true});}
+});
+
+test('pending alerts survive ordinary event pressure and over-capacity fails before persistence',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-alert-capacity-'));
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),
+    eventsPath:path.join(dir,'events.json'),intervalMs:0,maxAttempts:1};
+  let healthy=false;
+  t.mock.method(globalThis,'fetch',async()=>{
+    if(!healthy) throw new TypeError('fixture offline');
+    return new Response('stable');
+  });
+  try{
+    await fs.writeFile(options.watchesPath,JSON.stringify([
+      {id:'fixture',targetUrl:'https://fixture.invalid/',label:'Fixture'}]));
+    await runWorker(options);
+    healthy=true;
+    await runWorker(options);
+    const before=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+    const alertIds=pendingAlertIntents(before).map(alert=>alert.id);
+    assert.equal(alertIds.length,2);
+
+    const ordinary=Array.from({length:500},(_,i)=>({id:`ordinary-${i}`,type:'change'}));
+    await fs.writeFile(options.eventsPath,JSON.stringify([...before,...ordinary]));
+    const retained=await runWorker(options);
+    const retainedEvents=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+    assert.equal(retained.alert_outbox_pending,2);assert.equal(retainedEvents.length,500);
+    assert.deepEqual(pendingAlertIntents(retainedEvents).map(alert=>alert.id),alertIds);
+    assert.equal(retainedEvents.some(event=>event.id==='ordinary-0'),false);
+    assert.equal(retainedEvents.some(event=>event.id==='ordinary-499'),true);
+
+    const template=pendingAlertIntents(retainedEvents)[0];
+    const boundary=Array.from({length:500},(_,i)=>({...template,id:crypto.randomUUID(),
+      alert_kind:i%2?'recovery':'outage',at:template.outage_started_at+i}));
+    await fs.writeFile(options.eventsPath,JSON.stringify([{id:'must-evict',type:'change'},...boundary]));
+    const boundaryReport=await runWorker(options);
+    const boundaryEvents=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+    assert.equal(boundaryReport.alert_outbox_pending,500);assert.equal(boundaryEvents.length,500);
+    assert.equal(boundaryEvents.some(event=>event.id==='must-evict'),false);
+
+    const overflow=[...boundary,{...template,id:crypto.randomUUID(),at:template.outage_started_at+500}];
+    const overflowText=JSON.stringify(overflow);
+    await fs.writeFile(options.eventsPath,overflowText);
+    await assert.rejects(runWorker(options),/Pending alert outbox exceeds 500 event limit/);
+    assert.equal(await fs.readFile(options.eventsPath,'utf8'),overflowText);
+  }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
 
 test('availability transitions record per-probe completion, deduplicate and preserve the content baseline',async()=>{
@@ -217,11 +351,12 @@ test('availability transitions record per-probe completion, deduplicate and pres
     assert.ok(failedTarget.last_checked_at>=responseAt,'failure time precedes the response');
     assert.equal((await readState()).last_checked_at,failedTarget.last_checked_at);
     assert.equal((await readState()).last_value,baseline.last_value);
-    const [failure]=await readEvents();
+    const [failure,outageAlert]=await readEvents();
     assert.deepEqual({type:failure.type,from:failure.previous_availability,to:failure.availability,status:failure.http_status,at:failure.at},
       {type:'availability',from:'healthy',to:'unavailable',status:503,at:failedTarget.last_checked_at});
     await runWorker(options);
-    assert.deepEqual(await readEvents(),[failure]);
+    assert.equal(outageAlert.type,'alert_intent');assert.equal(outageAlert.alert_kind,'outage');
+    assert.deepEqual(await readEvents(),[failure,outageAlert]);
 
     status=200;
     const recovered=await runWorker(options);
@@ -229,11 +364,13 @@ test('availability transitions record per-probe completion, deduplicate and pres
     const recoveredTarget=recovered.results.find(result=>result.id==='target');
     assert.equal(recoveredTarget.changed,false);
     assert.equal((await readState()).last_change_at,baseline.last_change_at);
-    const [,recovery]=await readEvents();
+    const recovery=(await readEvents()).find(event=>event.type==='availability' && event.availability==='healthy');
     assert.deepEqual({type:recovery.type,from:recovery.previous_availability,to:recovery.availability,status:recovery.http_status,at:recovery.at},
       {type:'availability',from:'unavailable',to:'healthy',status:200,at:recoveredTarget.last_checked_at});
     await runWorker(options);
-    assert.deepEqual(await readEvents(),[failure,recovery]);
+    const recoveryAlert=(await readEvents()).find(event=>event.type==='alert_intent' && event.alert_kind==='recovery');
+    assert.ok(recoveryAlert);
+    assert.deepEqual(await readEvents(),[failure,outageAlert,recovery,recoveryAlert]);
 
     body='updated';
     const recent=Array.from({length:498},(_,i)=>({id:`old-${i}`,type:'change'}));
@@ -250,7 +387,7 @@ test('availability transitions record per-probe completion, deduplicate and pres
     const retarget=origin+'/new-target';
     await configure(retarget);
     await runWorker(options);
-    const firstFailure=(await readEvents()).at(-1);
+    const firstFailure=(await readEvents()).filter(event=>event.type==='availability').at(-1);
     assert.equal(firstFailure.previous_availability,'unknown');
     assert.equal(firstFailure.availability,'unavailable');
     assert.equal(firstFailure.target_url,retarget);
@@ -298,16 +435,19 @@ test('decoded body ceiling preserves baseline on declared, chunked and gzip over
       assert.equal(state.last_value,baseline.last_value);
       assert.equal(state.last_change_at,baseline.last_change_at);
       assert.equal(state.last_status,null);
-      const [event,...remaining]=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+      const [event,alert,...remaining]=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
       assert.equal(event.type,'availability');assert.equal(event.availability,'unavailable');
-      assert.equal(event.http_status,null);assert.deepEqual(remaining,[]);
+      assert.equal(event.http_status,null);assert.equal(alert.type,'alert_intent');
+      assert.equal(alert.alert_kind,'outage');assert.deepEqual(remaining,[]);
     }
     mode='exact';
     assert.equal((await runWorker(options)).ok,true);
     const recovered=JSON.parse(await fs.readFile(options.statePath,'utf8')).bounded;
     assert.equal(recovered.last_error,null);assert.equal(recovered.last_value,baseline.last_value);
     const events=JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
-    assert.deepEqual(events.map(event=>[event.type,event.availability]),[['availability','unavailable'],['availability','healthy']]);
+    assert.deepEqual(events.map(event=>[event.type,event.availability]),
+      [['availability','unavailable'],['alert_intent',undefined],
+        ['availability','healthy'],['alert_intent',undefined]]);
   }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
 });
 
@@ -343,7 +483,7 @@ test('configuration controls metadata while only matching observations survive',
   assert.deepEqual(merged.last_attempts,prior.last_attempts);
   for(const changed of [{...raw,kind:'availability'},{...raw,target_url:'https://other.example/'}, {...raw,id:'different'}]){
     const reset=reconcileWatch(changed,prior);
-    for(const field of ['last_value','last_checked_at','last_change_at','last_status','last_error','last_attempt_count','last_attempts','last_check_recovered_by_retry']) assert.equal(reset[field],null);
+    for(const field of ['last_value','last_checked_at','last_change_at','last_status','last_error','unavailable_since','last_attempt_count','last_attempts','last_check_recovered_by_retry']) assert.equal(reset[field],null);
   }
   assert.equal(reconcileWatch(raw,{...prior,targetUrl:'not a url'}).last_value,null);
   assert.equal(reconcileWatch(raw,undefined).last_value,null);
