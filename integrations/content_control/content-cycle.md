@@ -768,6 +768,24 @@ python -m integrations.content_control.cycle_queue_short \
   --output /absolute/new-short --start 0 --end 30 --timeout 180
 ```
 
+To bind the cut to authored scene boundaries already recorded in the durable
+parent render receipt, supply one or more contiguous scene IDs instead of time
+bounds:
+
+```sh
+python -m integrations.content_control.cycle_queue_short \
+  --queue-root /absolute/queue --job-id JOB_ID \
+  --output /absolute/new-short \
+  --scene opening --scene worked-example --timeout 180
+```
+
+Scene IDs must exist, be unique, and appear contiguously in authored order. The
+consumer derives the exact start and end from the package-bound render receipt,
+canonicalizes both to the exporter's millisecond timebase, then replays that
+selection during verification. This proves the cut matches the exportable form
+of those authored scene boundaries; it does not prove they are the best
+editorial selection or confer creative approval.
+
 This read-only queue consumer requires a durably succeeded parent
 `content-control-cycle` attempt and replays the SQLite job/attempt receipt,
 adapter receipt, cycle/package/archive identities and retained intake evidence
