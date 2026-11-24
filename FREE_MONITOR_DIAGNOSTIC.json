@@ -1,9 +1,9 @@
 {
-  "checked_at": "2026-11-24T18:43:46.938Z",
+  "checked_at": "2026-11-24T19:17:12.089Z",
   "test_code": 0,
   "worker_code": 2,
-  "test_output": "\n> test\n> node --test test/*.test.mjs\n\nTAP version 13\n# Subtest: an interrupted second replacement replays before cadence or event decisions\nok 1 - an interrupted second replacement replays before cadence or event decisions\n  ---\n  duration_ms: 345.51397\n  type: 'test'\n  ...\n# Subtest: unexpected evidence errors stop before requests without overwriting artifacts\nok 2 - unexpected evidence errors stop before requests without overwriting artifacts\n  ---\n  duration_ms: 14.183392\n  type: 'test'\n  ...\n# Subtest: configured current watch IDs pass without removed smoke ID\nok 3 - configured current watch IDs pass without removed smoke ID\n  ---\n  duration_ms: 0.994804\n  type: 'test'\n  ...\n# Subtest: empty active set, missing checks, skipped checks, failure and stale times cannot pass\nok 4 - empty active set, missing checks, skipped checks, failure and stale times cannot pass\n  ---\n  duration_ms: 0.976342\n  type: 'test'\n  ...\n# Subtest: one unhealthy target does not mislabel another target while overall verification fails\nok 5 - one unhealthy target does not mislabel another target while overall verification fails\n  ---\n  duration_ms: 0.256924\n  type: 'test'\n  ...\n# Subtest: duplicate active IDs reject ambiguous evidence\nok 6 - duplicate active IDs reject ambiguous evidence\n  ---\n  duration_ms: 0.529581\n  type: 'test'\n  ...\n# Subtest: two real local-fixture HTTP cycles retain current-ID health and timestamps\nok 7 - two real local-fixture HTTP cycles retain current-ID health and timestamps\n  ---\n  duration_ms: 707.470922\n  type: 'test'\n  ...\n# Subtest: malformed configuration replaces stale successful report with failure\nok 8 - malformed configuration replaces stale successful report with failure\n  ---\n  duration_ms: 5.807215\n  type: 'test'\n  ...\n# Subtest: normalizeWatch accepts an active HTTPS watch\nok 9 - normalizeWatch accepts an active HTTPS watch\n  ---\n  duration_ms: 1.074077\n  type: 'test'\n  ...\n# Subtest: dueForCheck is true when no prior check exists\nok 10 - dueForCheck is true when no prior check exists\n  ---\n  duration_ms: 0.221258\n  type: 'test'\n  ...\n# Subtest: dueForCheck honors cadence interval\nok 11 - dueForCheck honors cadence interval\n  ---\n  duration_ms: 0.138354\n  type: 'test'\n  ...\n# Subtest: evaluateCheck records baseline without false change event\nok 12 - evaluateCheck records baseline without false change event\n  ---\n  duration_ms: 0.169488\n  type: 'test'\n  ...\n# Subtest: evaluateCheck flags changed content after baseline\nok 13 - evaluateCheck flags changed content after baseline\n  ---\n  duration_ms: 0.207924\n  type: 'test'\n  ...\n# Subtest: isMainEntry matches a file URL to the executable path\nok 14 - isMainEntry matches a file URL to the executable path\n  ---\n  duration_ms: 0.159899\n  type: 'test'\n  ...\n# Subtest: normalizeWatch preserves status metadata\nok 15 - normalizeWatch preserves status metadata\n  ---\n  duration_ms: 0.239418\n  type: 'test'\n  ...\n# Subtest: duplicate normalized IDs reject before requests or state/event writes\nok 16 - duplicate normalized IDs reject before requests or state/event writes\n  ---\n  duration_ms: 18.871392\n  type: 'test'\n  ...\n# Subtest: retry policy rejects unbounded attempts, timeouts and backoff before reading files\nok 17 - retry policy rejects unbounded attempts, timeouts and backoff before reading files\n  ---\n  duration_ms: 0.581768\n  type: 'test'\n  ...\n# Subtest: real HTTP failure persists 502, exits nonzero, and recovery clears the error\nok 18 - real HTTP failure persists 502, exits nonzero, and recovery clears the error\n  ---\n  duration_ms: 697.353338\n  type: 'test'\n  ...\n# Subtest: real HTTP timeout retry retains attempt evidence without masking a persistent failure\nok 19 - real HTTP timeout retry retains attempt evidence without masking a persistent failure\n  ---\n  duration_ms: 125.332744\n  type: 'test'\n  ...\n# Subtest: persistent failure creates one durable pending alert intent and preserves its outage epoch\nok 20 - persistent failure creates one durable pending alert intent and preserves its outage epoch\n  ---\n  duration_ms: 33.690022\n  type: 'test'\n  ...\n# Subtest: recovery retains outage and recovery intents exactly once without claiming delivery\nok 21 - recovery retains outage and recovery intents exactly once without claiming delivery\n  ---\n  duration_ms: 19.074991\n  type: 'test'\n  ...\n# Subtest: forged or evicted alert intents cannot suppress the current outage outbox\nok 22 - forged or evicted alert intents cannot suppress the current outage outbox\n  ---\n  duration_ms: 10.414838\n  type: 'test'\n  ...\n# Subtest: pending alerts survive ordinary event pressure and over-capacity fails before persistence\nok 23 - pending alerts survive ordinary event pressure and over-capacity fails before persistence\n  ---\n  duration_ms: 40.137012\n  type: 'test'\n  ...\n# Subtest: availability transitions record per-probe completion, deduplicate and preserve the content baseline\nok 24 - availability transitions record per-probe completion, deduplicate and preserve the content baseline\n  ---\n  duration_ms: 1321.047778\n  type: 'test'\n  ...\n# Subtest: decoded body ceiling preserves baseline on declared, chunked and gzip overflow, then recovers\nok 25 - decoded body ceiling preserves baseline on declared, chunked and gzip overflow, then recovers\n  ---\n  duration_ms: 74.169361\n  type: 'test'\n  ...\n# Subtest: overflow cancels the response reader and never reads or hashes remaining body\nok 26 - overflow cancels the response reader and never reads or hashes remaining body\n  ---\n  duration_ms: 8.803313\n  type: 'test'\n  ...\n# Subtest: configuration controls metadata while only matching observations survive\nok 27 - configuration controls metadata while only matching observations survive\n  ---\n  duration_ms: 0.372858\n  type: 'test'\n  ...\n# Subtest: local retarget starts a fresh baseline; pause and reactivate honor current configuration\nok 28 - local retarget starts a fresh baseline; pause and reactivate honor current configuration\n  ---\n  duration_ms: 53.785647\n  type: 'test'\n  ...\n# Subtest: repository watch follows main while cadence evidence uses a separate branch\nok 29 - repository watch follows main while cadence evidence uses a separate branch\n  ---\n  duration_ms: 4.823921\n  type: 'test'\n  ...\n# Subtest: persist step advances only the state branch and retains both files\nok 30 - persist step advances only the state branch and retains both files\n  ---\n  duration_ms: 190.675356\n  type: 'test'\n  ...\n# Subtest: diagnostic persists on the state branch without changing main\nok 31 - diagnostic persists on the state branch without changing main\n  ---\n  duration_ms: 227.495788\n  type: 'test'\n  ...\n# Subtest: diagnostic workflow cannot write operational evidence to main\nok 32 - diagnostic workflow cannot write operational evidence to main\n  ---\n  duration_ms: 0.714345\n  type: 'test'\n  ...\n# Subtest: verification persists on the state branch and retains the last completed pair\nok 33 - verification persists on the state branch and retains the last completed pair\n  ---\n  duration_ms: 231.123036\n  type: 'test'\n  ...\n# Subtest: verification workflow cannot write operational evidence to main\nok 34 - verification workflow cannot write operational evidence to main\n  ---\n  duration_ms: 0.826555\n  type: 'test'\n  ...\n1..34\n# tests 34\n# suites 0\n# pass 34\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 2497.058306",
-  "worker_output": "{\n  \"ran_at\": \"2026-11-24T18:43:06.277Z\",\n  \"ok\": false,\n  \"alert_outbox_pending\": 1,\n  \"results\": [\n    {\n      \"id\": \"cyzor-website\",\n      \"checked\": true,\n      \"error\": \"TimeoutError: The operation was aborted due to timeout\",\n      \"last_checked_at\": 1795545826533,\n      \"attempt_count\": 2,\n      \"attempts\": [\n        {\n          \"attempt\": 1,\n          \"started_at\": 1795545786277,\n          \"completed_at\": 1795545806280,\n          \"outcome\": \"error\",\n          \"http_status\": null,\n          \"error\": \"TimeoutError: The operation was aborted due to timeout\",\n          \"retryable\": true,\n          \"will_retry\": true\n        },\n        {\n          \"attempt\": 2,\n          \"started_at\": 1795545806531,\n          \"completed_at\": 1795545826533,\n          \"outcome\": \"error\",\n          \"http_status\": null,\n          \"error\": \"TimeoutError: The operation was aborted due to timeout\",\n          \"retryable\": true,\n          \"will_retry\": false\n        }\n      ],\n      \"recovered_by_retry\": false\n    },\n    {\n      \"id\": \"money-factory-repository\",\n      \"checked\": true,\n      \"changed\": true,\n      \"status\": 200,\n      \"last_checked_at\": 1795545826878,\n      \"response_bytes\": 35344,\n      \"response_limit_bytes\": 2097152,\n      \"attempt_count\": 1,\n      \"attempts\": [\n        {\n          \"attempt\": 1,\n          \"started_at\": 1795545826534,\n          \"completed_at\": 1795545826878,\n          \"outcome\": \"success\",\n          \"http_status\": 200,\n          \"response_bytes\": 35344,\n          \"response_limit_bytes\": 2097152\n        }\n      ],\n      \"recovered_by_retry\": false\n    }\n  ]\n}",
+  "test_output": "\n> test\n> node --test test/*.test.mjs\n\nTAP version 13\n# Subtest: an interrupted second replacement replays before cadence or event decisions\nok 1 - an interrupted second replacement replays before cadence or event decisions\n  ---\n  duration_ms: 331.76175\n  type: 'test'\n  ...\n# Subtest: unexpected evidence errors stop before requests without overwriting artifacts\nok 2 - unexpected evidence errors stop before requests without overwriting artifacts\n  ---\n  duration_ms: 10.834482\n  type: 'test'\n  ...\n# Subtest: request envelope bounds active watches and complete retry wait\nok 3 - request envelope bounds active watches and complete retry wait\n  ---\n  duration_ms: 0.925879\n  type: 'test'\n  ...\n# Subtest: resource observation binds host, cgroup, filesystem, process and explicit unknown quotas\nok 4 - resource observation binds host, cgroup, filesystem, process and explicit unknown quotas\n  ---\n  duration_ms: 0.909384\n  type: 'test'\n  ...\n# Subtest: missing cgroup limits remain explicit instead of turning host totals into hard enforcement\nok 5 - missing cgroup limits remain explicit instead of turning host totals into hard enforcement\n  ---\n  duration_ms: 0.187078\n  type: 'test'\n  ...\n# Subtest: cgroup reader takes strictest CPU and memory ancestor limits\nok 6 - cgroup reader takes strictest CPU and memory ancestor limits\n  ---\n  duration_ms: 9.403681\n  type: 'test'\n  ...\n# Subtest: cgroup reader uses strictest remaining memory headroom even when a child has the smaller limit\nok 7 - cgroup reader uses strictest remaining memory headroom even when a child has the smaller limit\n  ---\n  duration_ms: 11.898748\n  type: 'test'\n  ...\n# Subtest: live collector is bounded evidence and never claims a complete total-resource ceiling\nok 8 - live collector is bounded evidence and never claims a complete total-resource ceiling\n  ---\n  duration_ms: 1.607994\n  type: 'test'\n  ...\n# Subtest: only the three five-minute monitor workflows declare the retained wall limit\nok 9 - only the three five-minute monitor workflows declare the retained wall limit\n  ---\n  duration_ms: 3.017463\n  type: 'test'\n  ...\n# Subtest: worker retains current resource evidence in the atomic state pair without treating it as a watch\nok 10 - worker retains current resource evidence in the atomic state pair without treating it as a watch\n  ---\n  duration_ms: 39.340339\n  type: 'test'\n  ...\n# Subtest: reserved runtime key is rejected as a watch before requests or persistence\nok 11 - reserved runtime key is rejected as a watch before requests or persistence\n  ---\n  duration_ms: 3.563846\n  type: 'test'\n  ...\n# Subtest: configured current watch IDs pass without removed smoke ID\nok 12 - configured current watch IDs pass without removed smoke ID\n  ---\n  duration_ms: 0.87981\n  type: 'test'\n  ...\n# Subtest: empty active set, missing checks, skipped checks, failure and stale times cannot pass\nok 13 - empty active set, missing checks, skipped checks, failure and stale times cannot pass\n  ---\n  duration_ms: 0.655126\n  type: 'test'\n  ...\n# Subtest: one unhealthy target does not mislabel another target while overall verification fails\nok 14 - one unhealthy target does not mislabel another target while overall verification fails\n  ---\n  duration_ms: 0.184104\n  type: 'test'\n  ...\n# Subtest: duplicate active IDs reject ambiguous evidence\nok 15 - duplicate active IDs reject ambiguous evidence\n  ---\n  duration_ms: 0.366706\n  type: 'test'\n  ...\n# Subtest: two real local-fixture HTTP cycles retain current-ID health and timestamps\nok 16 - two real local-fixture HTTP cycles retain current-ID health and timestamps\n  ---\n  duration_ms: 658.919019\n  type: 'test'\n  ...\n# Subtest: malformed configuration replaces stale successful report with failure\nok 17 - malformed configuration replaces stale successful report with failure\n  ---\n  duration_ms: 3.766507\n  type: 'test'\n  ...\n# Subtest: normalizeWatch accepts an active HTTPS watch\nok 18 - normalizeWatch accepts an active HTTPS watch\n  ---\n  duration_ms: 0.639643\n  type: 'test'\n  ...\n# Subtest: dueForCheck is true when no prior check exists\nok 19 - dueForCheck is true when no prior check exists\n  ---\n  duration_ms: 0.131576\n  type: 'test'\n  ...\n# Subtest: dueForCheck honors cadence interval\nok 20 - dueForCheck honors cadence interval\n  ---\n  duration_ms: 0.061852\n  type: 'test'\n  ...\n# Subtest: evaluateCheck records baseline without false change event\nok 21 - evaluateCheck records baseline without false change event\n  ---\n  duration_ms: 0.078136\n  type: 'test'\n  ...\n# Subtest: evaluateCheck flags changed content after baseline\nok 22 - evaluateCheck flags changed content after baseline\n  ---\n  duration_ms: 0.104135\n  type: 'test'\n  ...\n# Subtest: isMainEntry matches a file URL to the executable path\nok 23 - isMainEntry matches a file URL to the executable path\n  ---\n  duration_ms: 0.070384\n  type: 'test'\n  ...\n# Subtest: normalizeWatch preserves status metadata\nok 24 - normalizeWatch preserves status metadata\n  ---\n  duration_ms: 0.099839\n  type: 'test'\n  ...\n# Subtest: duplicate normalized IDs reject before requests or state/event writes\nok 25 - duplicate normalized IDs reject before requests or state/event writes\n  ---\n  duration_ms: 18.100111\n  type: 'test'\n  ...\n# Subtest: retry policy rejects unbounded attempts, timeouts and backoff before reading files\nok 26 - retry policy rejects unbounded attempts, timeouts and backoff before reading files\n  ---\n  duration_ms: 0.434417\n  type: 'test'\n  ...\n# Subtest: real HTTP failure persists 502, exits nonzero, and recovery clears the error\nok 27 - real HTTP failure persists 502, exits nonzero, and recovery clears the error\n  ---\n  duration_ms: 624.722424\n  type: 'test'\n  ...\n# Subtest: real HTTP timeout retry retains attempt evidence without masking a persistent failure\nok 28 - real HTTP timeout retry retains attempt evidence without masking a persistent failure\n  ---\n  duration_ms: 124.53151\n  type: 'test'\n  ...\n# Subtest: persistent failure creates one durable pending alert intent and preserves its outage epoch\nok 29 - persistent failure creates one durable pending alert intent and preserves its outage epoch\n  ---\n  duration_ms: 17.617864\n  type: 'test'\n  ...\n# Subtest: recovery retains outage and recovery intents exactly once without claiming delivery\nok 30 - recovery retains outage and recovery intents exactly once without claiming delivery\n  ---\n  duration_ms: 21.422959\n  type: 'test'\n  ...\n# Subtest: forged or evicted alert intents cannot suppress the current outage outbox\nok 31 - forged or evicted alert intents cannot suppress the current outage outbox\n  ---\n  duration_ms: 9.392745\n  type: 'test'\n  ...\n# Subtest: pending alerts survive ordinary event pressure and over-capacity fails before persistence\nok 32 - pending alerts survive ordinary event pressure and over-capacity fails before persistence\n  ---\n  duration_ms: 36.529678\n  type: 'test'\n  ...\n# Subtest: availability transitions record per-probe completion, deduplicate and preserve the content baseline\nok 33 - availability transitions record per-probe completion, deduplicate and preserve the content baseline\n  ---\n  duration_ms: 1173.513245\n  type: 'test'\n  ...\n# Subtest: decoded body ceiling preserves baseline on declared, chunked and gzip overflow, then recovers\nok 34 - decoded body ceiling preserves baseline on declared, chunked and gzip overflow, then recovers\n  ---\n  duration_ms: 59.437769\n  type: 'test'\n  ...\n# Subtest: overflow cancels the response reader and never reads or hashes remaining body\nok 35 - overflow cancels the response reader and never reads or hashes remaining body\n  ---\n  duration_ms: 4.836166\n  type: 'test'\n  ...\n# Subtest: configuration controls metadata while only matching observations survive\nok 36 - configuration controls metadata while only matching observations survive\n  ---\n  duration_ms: 0.259397\n  type: 'test'\n  ...\n# Subtest: local retarget starts a fresh baseline; pause and reactivate honor current configuration\nok 37 - local retarget starts a fresh baseline; pause and reactivate honor current configuration\n  ---\n  duration_ms: 31.317272\n  type: 'test'\n  ...\n# Subtest: repository watch follows main while cadence evidence uses a separate branch\nok 38 - repository watch follows main while cadence evidence uses a separate branch\n  ---\n  duration_ms: 4.686538\n  type: 'test'\n  ...\n# Subtest: persist step advances only the state branch and retains both files\nok 39 - persist step advances only the state branch and retains both files\n  ---\n  duration_ms: 188.744885\n  type: 'test'\n  ...\n# Subtest: diagnostic persists on the state branch without changing main\nok 40 - diagnostic persists on the state branch without changing main\n  ---\n  duration_ms: 265.507941\n  type: 'test'\n  ...\n# Subtest: diagnostic workflow cannot write operational evidence to main\nok 41 - diagnostic workflow cannot write operational evidence to main\n  ---\n  duration_ms: 0.671921\n  type: 'test'\n  ...\n# Subtest: verification persists on the state branch and retains the last completed pair\nok 42 - verification persists on the state branch and retains the last completed pair\n  ---\n  duration_ms: 246.611425\n  type: 'test'\n  ...\n# Subtest: verification workflow cannot write operational evidence to main\nok 43 - verification workflow cannot write operational evidence to main\n  ---\n  duration_ms: 0.769365\n  type: 'test'\n  ...\n1..43\n# tests 43\n# suites 0\n# pass 43\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 2309.16971",
+  "worker_output": "{\n  \"ran_at\": \"2026-11-24T19:17:12.058Z\",\n  \"ok\": false,\n  \"alert_outbox_pending\": 1,\n  \"resources\": {\n    \"schema_version\": 1,\n    \"type\": \"monitor_runtime_resources\",\n    \"observed_at\": \"2026-11-24T19:17:12.058Z\",\n    \"started_at\": \"2026-11-24T19:17:12.058Z\",\n    \"elapsed_ms\": 0,\n    \"scope\": \"current_monitor_process_and_execution_host_only\",\n    \"cpu\": {\n      \"available_cores\": 4,\n      \"cgroup_quota_cores\": null,\n      \"effective_ceiling_cores\": 4\n    },\n    \"memory\": {\n      \"host_total_bytes\": 16759431168,\n      \"host_available_bytes\": 15681904640,\n      \"cgroup_limit_bytes\": null,\n      \"cgroup_current_bytes\": null,\n      \"effective_ceiling_bytes\": 16759431168,\n      \"cgroup_available_bytes\": null,\n      \"effective_available_bytes\": 15681904640\n    },\n    \"disk\": {\n      \"filesystem_total_bytes\": 154993672192,\n      \"filesystem_available_bytes\": 93470920704,\n      \"per_process_quota_bytes\": null\n    },\n    \"process\": {\n      \"rss_bytes\": 49512448,\n      \"heap_used_bytes\": 5076400,\n      \"max_rss_kib\": 48352,\n      \"user_cpu_microseconds\": 19570,\n      \"system_cpu_microseconds\": 5871\n    },\n    \"request_budget\": {\n      \"active_watches\": 2,\n      \"max_active_watches\": 4,\n      \"max_attempts\": 2,\n      \"request_timeout_ms\": 20000,\n      \"retry_backoff_ms\": 250,\n      \"request_envelope_ms\": 80500,\n      \"worker_envelope_limit_ms\": 240000,\n      \"workflow_wall_limit_ms\": 300000\n    },\n    \"hard_limits\": {\n      \"cpu_quota_verified\": false,\n      \"memory_limit_verified\": false,\n      \"disk_quota_verified\": false,\n      \"workflow_wall_limit_declared\": true,\n      \"total_resource_ceiling_verified\": false\n    },\n    \"warnings\": [\n      \"hard_cpu_quota_unverified\",\n      \"hard_memory_limit_unverified\",\n      \"per_process_disk_quota_unverified\"\n    ],\n    \"publication_enabled\": false,\n    \"external_delivery_performed\": false\n  },\n  \"results\": [\n    {\n      \"id\": \"cyzor-website\",\n      \"checked\": false,\n      \"reason\": \"not_due\"\n    },\n    {\n      \"id\": \"money-factory-repository\",\n      \"checked\": false,\n      \"reason\": \"not_due\"\n    }\n  ]\n}",
   "state_exists": true,
   "events_exists": true,
   "state_persistence_complete": true,
@@ -15,7 +15,7 @@
       "label": "CYZOR Creations website",
       "status": "active",
       "last_value": "1b6a246850033b95a20fb0169f5b2e4ffb697a70340e3a15a8651b962acf8086",
-      "last_checked_at": 1795545826533,
+      "last_checked_at": 1795547817874,
       "last_change_at": 1793731264853,
       "last_status": null,
       "last_error": "TimeoutError: The operation was aborted due to timeout",
@@ -24,8 +24,8 @@
       "last_attempts": [
         {
           "attempt": 1,
-          "started_at": 1795545786277,
-          "completed_at": 1795545806280,
+          "started_at": 1795547777619,
+          "completed_at": 1795547797622,
           "outcome": "error",
           "http_status": null,
           "error": "TimeoutError: The operation was aborted due to timeout",
@@ -34,8 +34,8 @@
         },
         {
           "attempt": 2,
-          "started_at": 1795545806531,
-          "completed_at": 1795545826533,
+          "started_at": 1795547797873,
+          "completed_at": 1795547817874,
           "outcome": "error",
           "http_status": null,
           "error": "TimeoutError: The operation was aborted due to timeout",
@@ -51,9 +51,9 @@
       "targetUrl": "https://api.github.com/repos/wecreates/Money-factory/commits/main",
       "label": "Money Factory GitHub repository",
       "status": "active",
-      "last_value": "d54362023b27ad50040bf5c41d2f5a2adaa3fa29bd851212b1b65bf1dea7f0c6",
-      "last_checked_at": 1795545826878,
-      "last_change_at": 1795545826878,
+      "last_value": "c3f2d2e4bbe9adb9ab9ab38795a90820e2174b39f411b59f8c3ab3c9a5fb092e",
+      "last_checked_at": 1795547818171,
+      "last_change_at": 1795547818171,
       "last_status": 200,
       "last_error": null,
       "unavailable_since": null,
@@ -61,15 +61,73 @@
       "last_attempts": [
         {
           "attempt": 1,
-          "started_at": 1795545826534,
-          "completed_at": 1795545826878,
+          "started_at": 1795547817875,
+          "completed_at": 1795547818171,
           "outcome": "success",
           "http_status": 200,
-          "response_bytes": 35344,
+          "response_bytes": 34381,
           "response_limit_bytes": 2097152
         }
       ],
       "last_check_recovered_by_retry": false
+    },
+    "_monitor_runtime": {
+      "schema_version": 1,
+      "type": "monitor_runtime_resources",
+      "observed_at": "2026-11-24T19:17:12.058Z",
+      "started_at": "2026-11-24T19:17:12.058Z",
+      "elapsed_ms": 0,
+      "scope": "current_monitor_process_and_execution_host_only",
+      "cpu": {
+        "available_cores": 4,
+        "cgroup_quota_cores": null,
+        "effective_ceiling_cores": 4
+      },
+      "memory": {
+        "host_total_bytes": 16759431168,
+        "host_available_bytes": 15681904640,
+        "cgroup_limit_bytes": null,
+        "cgroup_current_bytes": null,
+        "effective_ceiling_bytes": 16759431168,
+        "cgroup_available_bytes": null,
+        "effective_available_bytes": 15681904640
+      },
+      "disk": {
+        "filesystem_total_bytes": 154993672192,
+        "filesystem_available_bytes": 93470920704,
+        "per_process_quota_bytes": null
+      },
+      "process": {
+        "rss_bytes": 49512448,
+        "heap_used_bytes": 5076400,
+        "max_rss_kib": 48352,
+        "user_cpu_microseconds": 19570,
+        "system_cpu_microseconds": 5871
+      },
+      "request_budget": {
+        "active_watches": 2,
+        "max_active_watches": 4,
+        "max_attempts": 2,
+        "request_timeout_ms": 20000,
+        "retry_backoff_ms": 250,
+        "request_envelope_ms": 80500,
+        "worker_envelope_limit_ms": 240000,
+        "workflow_wall_limit_ms": 300000
+      },
+      "hard_limits": {
+        "cpu_quota_verified": false,
+        "memory_limit_verified": false,
+        "disk_quota_verified": false,
+        "workflow_wall_limit_declared": true,
+        "total_resource_ceiling_verified": false
+      },
+      "warnings": [
+        "hard_cpu_quota_unverified",
+        "hard_memory_limit_unverified",
+        "per_process_disk_quota_unverified"
+      ],
+      "publication_enabled": false,
+      "external_delivery_performed": false
     }
   }
 }

@@ -65,9 +65,9 @@
   "_monitor_runtime": {
     "schema_version": 1,
     "type": "monitor_runtime_resources",
-    "observed_at": "2026-11-24T19:16:58.172Z",
-    "started_at": "2026-11-24T19:16:17.618Z",
-    "elapsed_ms": 40554,
+    "observed_at": "2026-11-24T19:17:12.058Z",
+    "started_at": "2026-11-24T19:17:12.058Z",
+    "elapsed_ms": 0,
     "scope": "current_monitor_process_and_execution_host_only",
     "cpu": {
       "available_cores": 4,
@@ -75,25 +75,25 @@
       "effective_ceiling_cores": 4
     },
     "memory": {
-      "host_total_bytes": 16463405056,
-      "host_available_bytes": 15539998720,
+      "host_total_bytes": 16759431168,
+      "host_available_bytes": 15681904640,
       "cgroup_limit_bytes": null,
       "cgroup_current_bytes": null,
-      "effective_ceiling_bytes": 16463405056,
+      "effective_ceiling_bytes": 16759431168,
       "cgroup_available_bytes": null,
-      "effective_available_bytes": 15539998720
+      "effective_available_bytes": 15681904640
     },
     "disk": {
       "filesystem_total_bytes": 154993672192,
-      "filesystem_available_bytes": 97138851840,
+      "filesystem_available_bytes": 93470920704,
       "per_process_quota_bytes": null
     },
     "process": {
-      "rss_bytes": 72728576,
-      "heap_used_bytes": 8168112,
-      "max_rss_kib": 71024,
-      "user_cpu_microseconds": 128495,
-      "system_cpu_microseconds": 18925
+      "rss_bytes": 49512448,
+      "heap_used_bytes": 5076400,
+      "max_rss_kib": 48352,
+      "user_cpu_microseconds": 19570,
+      "system_cpu_microseconds": 5871
     },
     "request_budget": {
       "active_watches": 2,
