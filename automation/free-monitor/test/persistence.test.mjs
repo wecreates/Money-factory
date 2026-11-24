@@ -47,13 +47,13 @@ test('an interrupted second replacement replays before cadence or event decision
   assert.equal(outage.at,journal.state.fixture.last_checked_at);
 
   await assert.rejects(runWorker(options),{code:'EIO'});
-  assert.equal(requests,2,'a failed replay must stop before the next poll');
+  assert.equal(requests,3,'a failed replay must stop before the next poll');
   assert.deepEqual(await read(options.eventsPath),[outage]);
   interrupt=false;
   const skipped=await runWorker({...options,intervalMs:300000});
   assert.equal(skipped.ok,false);
   assert.equal(skipped.results[0].reason,'not_due');
-  assert.equal(requests,2);
+  assert.equal(requests,3);
   assert.equal((await read(options.statePath)).fixture.last_status,503);
   assert.deepEqual(await read(options.eventsPath),[outage]);
   await assert.rejects(fs.stat(pending),{code:'ENOENT'});

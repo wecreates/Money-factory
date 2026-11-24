@@ -24,11 +24,15 @@ export function normalizeWatch(raw){
     last_checked_at:raw.last_checked_at??null,
     last_change_at:raw.last_change_at??null,
     last_status:raw.last_status??null,
-    last_error:raw.last_error??null
+    last_error:raw.last_error??null,
+    last_attempt_count:Number.isInteger(raw.last_attempt_count)?raw.last_attempt_count:null,
+    last_attempts:Array.isArray(raw.last_attempts)?raw.last_attempts.map(attempt=>({...attempt})):[],
+    last_check_recovered_by_retry:typeof raw.last_check_recovered_by_retry==='boolean'?raw.last_check_recovered_by_retry:null
   };
 }
 
-const OBSERVATION_FIELDS=['last_value','last_checked_at','last_change_at','last_status','last_error'];
+const OBSERVATION_FIELDS=['last_value','last_checked_at','last_change_at','last_status','last_error',
+  'last_attempt_count','last_attempts','last_check_recovered_by_retry'];
 
 export function reconcileWatch(raw,prior){
   const current=normalizeWatch(raw);
@@ -82,9 +86,28 @@ function recordAvailability(events,previous,current){
 }
 
 export const MAX_RESPONSE_BYTES=2*1024*1024;
+export const DEFAULT_MAX_ATTEMPTS=2;
+export const DEFAULT_REQUEST_TIMEOUT_MS=20000;
+export const DEFAULT_RETRY_BACKOFF_MS=250;
 
-async function fetchHash(url){
-  const r=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(20000),headers:{'user-agent':'CYZOR-Free-Monitor/1.0'}});
+function isRetryableError(error){
+  const status=Number(error?.status);
+  if(Number.isInteger(status)) return status===408 || status===425 || status===429 || status>=500;
+  if(error?.name==='TimeoutError' || error?.name==='AbortError' || error instanceof TypeError) return true;
+  const code=error?.code??error?.cause?.code;
+  return ['ECONNRESET','ECONNREFUSED','EHOSTUNREACH','ENETUNREACH','EAI_AGAIN','ETIMEDOUT'].includes(code);
+}
+
+function validateRetryPolicy({maxAttempts,requestTimeoutMs,retryBackoffMs}){
+  if(!Number.isInteger(maxAttempts) || maxAttempts<1 || maxAttempts>3) throw new Error('maxAttempts must be an integer from 1 to 3');
+  if(!Number.isInteger(requestTimeoutMs) || requestTimeoutMs<1 || requestTimeoutMs>60000) throw new Error('requestTimeoutMs must be an integer from 1 to 60000');
+  if(!Number.isInteger(retryBackoffMs) || retryBackoffMs<0 || retryBackoffMs>5000) throw new Error('retryBackoffMs must be an integer from 0 to 5000');
+}
+
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
+async function fetchHash(url,requestTimeoutMs){
+  const r=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(requestTimeoutMs),headers:{'user-agent':'CYZOR-Free-Monitor/1.0'}});
   if(!r.ok){ await r.body?.cancel(); throw Object.assign(new Error(`HTTP ${r.status} from monitored URL`),{status:r.status}); }
   // Fetch exposes decoded bytes, so compressed and chunked responses share the
   // same ceiling. Never trust Content-Length or retain the whole response.
@@ -113,12 +136,42 @@ async function fetchHash(url){
     response_bytes:bytes,response_limit_bytes:MAX_RESPONSE_BYTES};
 }
 
+async function fetchHashWithRetry(url,{maxAttempts,requestTimeoutMs,retryBackoffMs}){
+  const attempts=[];
+  for(let attempt=1;attempt<=maxAttempts;attempt++){
+    const startedAt=Date.now();
+    try{
+      const check=await fetchHash(url,requestTimeoutMs);
+      attempts.push({attempt,started_at:startedAt,completed_at:check.checkedAt,outcome:'success',
+        http_status:check.status,response_bytes:check.response_bytes,response_limit_bytes:check.response_limit_bytes});
+      return {...check,attempts,attempt_count:attempts.length,recovered_by_retry:attempts.length>1};
+    }catch(error){
+      const completedAt=Date.now();
+      const retryable=isRetryableError(error);
+      const willRetry=retryable && attempt<maxAttempts;
+      attempts.push({attempt,started_at:startedAt,completed_at:completedAt,outcome:'error',
+        http_status:error.status??null,error:String(error),retryable,will_retry:willRetry});
+      if(!willRetry){
+        error.attempts=attempts;
+        error.checkedAt=completedAt;
+        throw error;
+      }
+      await sleep(retryBackoffMs*attempt);
+    }
+  }
+  throw new Error('retry loop exhausted without an outcome');
+}
+
 export async function runWorker({
   watchesPath='FREE_MONITOR_WATCHES.json',
   statePath='FREE_MONITOR_STATE.json',
   eventsPath='FREE_MONITOR_EVENTS.json',
-  intervalMs=300000
+  intervalMs=300000,
+  maxAttempts=DEFAULT_MAX_ATTEMPTS,
+  requestTimeoutMs=DEFAULT_REQUEST_TIMEOUT_MS,
+  retryBackoffMs=DEFAULT_RETRY_BACKOFF_MS
 }={}){
+  validateRetryPolicy({maxAttempts,requestTimeoutMs,retryBackoffMs});
   const rawWatches=JSON.parse(await fs.readFile(watchesPath,'utf8'));
   const configuredWatches=rawWatches.map(normalizeWatch);
   // State is keyed by ID. Validate the entire configuration before any fetch
@@ -141,18 +194,28 @@ export async function runWorker({
       continue;
     }
     try{
-      const check=await fetchHash(base.targetUrl);
+      const check=await fetchHashWithRetry(base.targetUrl,{maxAttempts,requestTimeoutMs,retryBackoffMs});
       const {changed,next}=evaluateCheck(base,check);
-      nextState[base.id]={...next,last_error:null};
+      nextState[base.id]={...next,last_error:null,last_attempt_count:check.attempt_count,
+        last_attempts:check.attempts,last_check_recovered_by_retry:check.recovered_by_retry};
       if(changed){
         events.push({id:crypto.randomUUID(),watch_id:base.id,at:check.checkedAt,type:'change',label:base.label,target_url:base.targetUrl});
       }
+      if(check.recovered_by_retry){
+        events.push({id:crypto.randomUUID(),watch_id:base.id,at:check.checkedAt,type:'retry_recovery',
+          label:base.label,target_url:base.targetUrl,attempt_count:check.attempt_count,
+          first_error:check.attempts[0].error,http_status:check.status});
+      }
       results.push({id:base.id,checked:true,changed,status:check.status,last_checked_at:check.checkedAt,
-        response_bytes:check.response_bytes,response_limit_bytes:check.response_limit_bytes});
+        response_bytes:check.response_bytes,response_limit_bytes:check.response_limit_bytes,
+        attempt_count:check.attempt_count,attempts:check.attempts,recovered_by_retry:check.recovered_by_retry});
     }catch(error){
-      const checkedAt=Date.now();
-      nextState[base.id]={...base,last_checked_at:checkedAt,last_status:error.status??null,last_error:String(error)};
-      results.push({id:base.id,checked:true,error:String(error),last_checked_at:checkedAt});
+      const checkedAt=error.checkedAt??Date.now();
+      const attempts=Array.isArray(error.attempts)?error.attempts:[];
+      nextState[base.id]={...base,last_checked_at:checkedAt,last_status:error.status??null,last_error:String(error),
+        last_attempt_count:attempts.length,last_attempts:attempts,last_check_recovered_by_retry:false};
+      results.push({id:base.id,checked:true,error:String(error),last_checked_at:checkedAt,
+        attempt_count:attempts.length,attempts,recovered_by_retry:false});
     }
     recordAvailability(events,base,nextState[base.id]);
   }
