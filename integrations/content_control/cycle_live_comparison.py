@@ -28,12 +28,14 @@ ROOT_FIELDS = {'schema_version', 'candidate_sha256', 'reviewer', 'reviewed_at',
 OBSERVATION_FIELDS = {'duration_seconds', 'intervals'}
 REFERENCE_FIELDS = {'url', 'topic', 'format', 'selection_basis',
                     'selection_evidence_url', 'selected_at', 'observed_at',
-                    'access', 'duration_seconds', 'intervals'}
+                    'access', 'duration_seconds', 'intervals',
+                    'candidate_differences', 'actionable_findings'}
 ACCESS_FIELDS = {'mode', 'playback_permitted', 'media_downloaded', 'accessible',
                  'picture_accessible', 'sound_accessible'}
 INTERVAL_FIELDS = {'start_seconds', 'end_seconds', 'audio_observation',
                    'visual_observation', 'pacing_observation', 'story_observation'}
 FORMATS = {'portrait', 'landscape', 'square'}
+DIFFERENCE_FIELDS = {'audio', 'visual', 'pacing', 'story'}
 FLAGS = ('publication_enabled', 'paid_generation_enabled', 'production_approved',
          'full_av_review', 'production_ready', 'competitor_comparison_verified')
 
@@ -129,11 +131,25 @@ def _intervals(value, duration, field):
     return normalized
 
 
+def _differences(value, field):
+    require(isinstance(value, dict) and set(value) == DIFFERENCE_FIELDS,
+            field + ': exact audio, visual, pacing and story differences required')
+    return {name: _text(value[name], f'{field}.{name}', 1200, minimum=12)
+            for name in sorted(DIFFERENCE_FIELDS)}
+
+
+def _findings(value, field):
+    require(isinstance(value, list) and 1 <= len(value) <= 20,
+            field + ': one to 20 actionable findings required')
+    return [_text(item, f'{field}[{index}]', 600, minimum=12)
+            for index, item in enumerate(value)]
+
+
 def validate_observations(value, candidate_sha256):
     require(isinstance(value, dict) and set(value) == ROOT_FIELDS,
             'Exact live comparison fields required')
-    require(type(value.get('schema_version')) is int and value['schema_version'] == 1,
-            'Live comparison schema version 1 required')
+    require(type(value.get('schema_version')) is int and value['schema_version'] == 2,
+            'Live comparison schema version 2 required')
     require(isinstance(candidate_sha256, str) and SHA.fullmatch(candidate_sha256)
             and value.get('candidate_sha256') == candidate_sha256,
             'Live comparison targets a different candidate')
@@ -184,6 +200,10 @@ def validate_observations(value, candidate_sha256):
             'access': dict(access),
             'duration_seconds': duration,
             'intervals': _intervals(row['intervals'], duration, field + '.intervals'),
+            'candidate_differences': _differences(
+                row['candidate_differences'], field + '.candidate_differences'),
+            'actionable_findings': _findings(
+                row['actionable_findings'], field + '.actionable_findings'),
         })
         require(row['format'] in FORMATS, field + ': supported format required')
         require(datetime.fromisoformat(normalized[-1]['observed_at']) >=
@@ -200,7 +220,7 @@ def validate_observations(value, candidate_sha256):
     reviewed = datetime.fromisoformat(reviewed_at)
     require(all(reviewed >= datetime.fromisoformat(row['observed_at']) for row in normalized),
             'Review time cannot predate reference playback')
-    return {'schema_version': 1, 'candidate_sha256': candidate_sha256,
+    return {'schema_version': 2, 'candidate_sha256': candidate_sha256,
             'reviewer': reviewer, 'reviewed_at': reviewed_at,
             'candidate_observation': candidate_result, 'references': normalized}
 
@@ -240,8 +260,9 @@ def record_live_comparison(cycle_dir, observations_path, output):
         'full_interval_schema_validated': True,
         'independent_verification': False,
         **dict.fromkeys(FLAGS, False),
-        'scope': ('Exact-candidate live-view comparison attestation with two supplied ranking-evidence links. '
-                  'Playback observations, rank, relevance and creative judgments are not independently verified.'),
+        'scope': ('Exact-candidate live-view comparison attestation with two supplied ranking-evidence links, '
+                  'explicit candidate differences and actionable findings. Playback observations, rank, '
+                  'relevance and creative judgments are not independently verified.'),
     }
     require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256']
             and _read_source(source) == raw,
