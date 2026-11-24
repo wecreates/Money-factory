@@ -44,7 +44,12 @@ def _read(path):
 
 
 def _result(selection, selection_sha, hypothesis_index, assessed_at,
-            audience=None, audience_sha=None):
+            audience=None, audience_sha=None, *, schema_version=2,
+            interim_v1=False):
+    require(type(schema_version) is int and schema_version in (1, 2),
+            'Learning readiness schema version 1 or 2 required')
+    require(schema_version != 1 or selection.get('schema_version') == 1,
+            'Schema version 1 readiness requires a schema version 1 selection receipt')
     assessed_at = _timestamp(assessed_at, 'assessed_at')
     require(datetime.fromisoformat(assessed_at)
             >= datetime.fromisoformat(selection['recorded_at']),
@@ -56,7 +61,7 @@ def _result(selection, selection_sha, hypothesis_index, assessed_at,
     performance_status = selection['performance']['status']
     source = 'selection_receipt'
     result = {
-        'schema_version': 1,
+        'schema_version': schema_version,
         'status': 'BLOCKED',
         'reason_code': ('VERIFIED_AUDIENCE_PERFORMANCE_UNAVAILABLE'
                         if performance_status == 'UNAVAILABLE'
@@ -83,6 +88,9 @@ def _result(selection, selection_sha, hypothesis_index, assessed_at,
             'audience verification, causal winner, creative approval, production approval, '
             'paid inference or publication.'),
     }
+    if schema_version == 2 or interim_v1:
+        result['thumbnail'] = selection['thumbnail']
+        result['performance_values_admitted'] = False
     if audience is not None:
         require(audience_sha is not None
                 and audience['selection_receipt_sha256'] == selection_sha,
@@ -108,7 +116,8 @@ def _result(selection, selection_sha, hypothesis_index, assessed_at,
 
 
 def _assessment(cycle_dir, selection_path, selection_receipt, hypothesis_index,
-                assessed_at, audience_observation=None, audience_receipt=None):
+                assessed_at, audience_observation=None, audience_receipt=None, *,
+                schema_version=2, interim_v1=False):
     audience_paths = (audience_observation, audience_receipt)
     require(all(path is None for path in audience_paths)
             or all(path is not None for path in audience_paths),
@@ -121,7 +130,8 @@ def _assessment(cycle_dir, selection_path, selection_receipt, hypothesis_index,
             cycle_dir, selection_path, selection_receipt,
             audience_observation, audience_receipt)
     return _result(selection, selection_sha, hypothesis_index, audience=audience,
-                   audience_sha=audience_sha, assessed_at=assessed_at)
+                   audience_sha=audience_sha, assessed_at=assessed_at,
+                   schema_version=schema_version, interim_v1=interim_v1)
 
 
 def assess_learning_readiness(cycle_dir, selection_path, selection_receipt,
@@ -157,10 +167,16 @@ def verify_learning_readiness(cycle_dir, selection_path, selection_receipt,
                               audience_observation=None, audience_receipt=None):
     """Replay a retained readiness receipt without writing files."""
     receipt, receipt_sha = _read(Path(os.path.abspath(receipt_path)))
+    version = receipt.get('schema_version')
+    require(type(version) is int and version in (1, 2),
+            'Learning readiness receipt schema version 1 or 2 required')
+    interim_v1 = version == 1 and (
+        'thumbnail' in receipt or 'performance_values_admitted' in receipt)
     assessed_at = _timestamp(receipt.get('assessed_at'), 'assessed_at')
     expected = _assessment(cycle_dir, selection_path, selection_receipt,
                            hypothesis_index, assessed_at,
-                           audience_observation, audience_receipt)
+                           audience_observation, audience_receipt,
+                           schema_version=version, interim_v1=interim_v1)
     require(json.dumps(receipt, sort_keys=True) == json.dumps(expected, sort_keys=True),
             'Learning readiness receipt does not match the original evidence')
     return expected, receipt_sha
