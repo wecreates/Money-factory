@@ -8,7 +8,7 @@ from zipfile import BadZipFile, ZipFile
 from integrations.content_control import test_cycle_review as fixtures
 from integrations.content_control.cycle_job import brief_digest, production_handoff
 from integrations.content_control.test_cycle_job import intake_request, synthetic_picture_mp4
-from integrations.content_control.review_delivery import export_review, status
+from integrations.content_control.review_delivery import export_review, status, verify_exported_cycle
 from integrations.content_control.review_package import digest
 from integrations.local_agent_queue import Queue, canonical
 
@@ -51,7 +51,7 @@ class CycleDeliveryTests(unittest.TestCase):
             for target in (delivery, directory / 'render'):
                 fixtures.write(target / 'render.json', dict(render, status='AWAITING_REVIEW'))
             package = json.loads((delivery / 'package.json').read_text())
-            package.update(production_ready=False, candidate_sha256=candidate,
+            package.update(schema_version=1, production_ready=False, candidate_sha256=candidate,
                            render_receipt_sha256=digest(delivery / 'render.json'))
             package['files_sha256']['render.json'] = package['render_receipt_sha256']
             package['files_sha256']['video.mp4'] = candidate
@@ -107,17 +107,161 @@ class CycleDeliveryTests(unittest.TestCase):
             'attempt': result['provenance']['attempt'], 'candidate_sha256': result['candidate_sha256'],
             'package_sha256': result['package_sha256'], 'archive_sha256': result['archive_sha256'],
             'entrypoint': result['entrypoint'], 'entrypoint_sha256': result['entrypoint_sha256'],
-            'files_sha256': result['files_sha256'],
+            'files_sha256': result['files_sha256'], 'provenance': result['provenance'],
             'publication_enabled': False, 'paid_generation_enabled': False,
             'production_ready': False, 'production_approved': False, 'full_av_review': False,
         }
         self.assertEqual(result['delivery_identity_sha256'],
                          hashlib.sha256(canonical(identity).encode()).hexdigest())
         self.assertFalse(result['production_approved'])
+        verified = verify_exported_cycle(output, result['delivery_identity_sha256'])
+        self.assertEqual(verified['status'], 'PASS')
+        self.assertEqual(verified['delivery_identity_sha256'], result['delivery_identity_sha256'])
         for path in (output, queue.root / 'other'):
             with self.assertRaisesRegex(ValueError, 'outside the queue'):
                 export_review(queue.root, 'cycle-test', path)
         self.assertEqual(before, db.read_bytes())
+
+    def test_retained_export_verifier_rejects_tree_archive_and_receipt_changes(self):
+        queue, _, _ = self.queue_review()
+        output = self.base / 'export'
+        result = export_review(queue.root, 'cycle-test', output)
+        expected = result['delivery_identity_sha256']
+        self.assertEqual(verify_exported_cycle(output, expected)['candidate_sha256'], self.candidate)
+        cases = (
+            output / 'review/video.mp4',
+            output / 'review/index.html',
+            output / 'review-package.zip',
+            output / 'package.json',
+        )
+        for path in cases:
+            with self.subTest(path=path.name):
+                original = path.read_bytes()
+                path.write_bytes(original + b'changed')
+                with self.assertRaises(ValueError):
+                    verify_exported_cycle(output, expected)
+                path.write_bytes(original)
+        extra = output / 'review/unbound.txt'
+        extra.write_text('unbound')
+        with self.assertRaisesRegex(ValueError, 'inventory changed'):
+            verify_exported_cycle(output, expected)
+        extra.unlink()
+        receipt = json.loads((output / 'package.json').read_text())
+        receipt['delivery_identity_sha256'] = '0' * 64
+        fixtures.write(output / 'package.json', receipt)
+        with self.assertRaisesRegex(ValueError, 'identity receipt changed'):
+            verify_exported_cycle(output, expected)
+
+    def test_retained_verifier_requires_external_identity_and_strict_gate_schema(self):
+        queue, _, _ = self.queue_review()
+        output = self.base / 'export'
+        result = export_review(queue.root, 'cycle-test', output)
+        expected = result['delivery_identity_sha256']
+        for supplied in (None, '', '0' * 63):
+            with self.subTest(supplied=supplied):
+                with self.assertRaisesRegex(ValueError, 'Trusted expected'):
+                    verify_exported_cycle(output, supplied)
+        path = output / 'package.json'
+        original = path.read_bytes()
+        for field in ('phone_playback_verified', 'listening_verified', 'publishing_enabled'):
+            with self.subTest(field=field):
+                receipt = json.loads(original)
+                receipt[field] = True
+                fixtures.write(path, receipt)
+                with self.assertRaisesRegex(ValueError, 'schema is invalid'):
+                    verify_exported_cycle(output, expected)
+        receipt = json.loads(original)
+        receipt['scope'] = 'Phone playback accepted'
+        fixtures.write(path, receipt)
+        with self.assertRaisesRegex(ValueError, 'not an unpublished cycle review'):
+            verify_exported_cycle(output, expected)
+        path.write_bytes(original)
+
+    def test_forged_cycle_provenance_is_rejected_even_with_matching_supplied_identity(self):
+        queue, _, _ = self.queue_review()
+        output = self.base / 'export'
+        export_review(queue.root, 'cycle-test', output)
+        path = output / 'package.json'
+        original = path.read_bytes()
+        for field, value in (('adapter', 'other-adapter'), ('completed_at_unix', 0)):
+            with self.subTest(field=field):
+                receipt = json.loads(original)
+                receipt['provenance'][field] = value
+                identity = {
+                    'job_id': receipt['provenance']['job_id'],
+                    'job_digest': receipt['provenance']['job_digest'],
+                    'attempt': receipt['provenance']['attempt'],
+                    'candidate_sha256': receipt['candidate_sha256'],
+                    'package_sha256': receipt['package_sha256'],
+                    'archive_sha256': receipt['archive_sha256'],
+                    'entrypoint': receipt['entrypoint'],
+                    'entrypoint_sha256': receipt['entrypoint_sha256'],
+                    'files_sha256': receipt['files_sha256'],
+                    'provenance': receipt['provenance'],
+                    'publication_enabled': False, 'paid_generation_enabled': False,
+                    'production_ready': False, 'production_approved': False, 'full_av_review': False,
+                }
+                receipt['delivery_identity_sha256'] = hashlib.sha256(canonical(identity).encode()).hexdigest()
+                fixtures.write(path, receipt)
+                with self.assertRaisesRegex(ValueError, 'provenance is invalid'):
+                    verify_exported_cycle(output, receipt['delivery_identity_sha256'])
+        path.write_bytes(original)
+
+    def test_coherent_self_contained_rewrite_cannot_replace_trusted_identity(self):
+        queue, _, _ = self.queue_review()
+        output = self.base / 'export'
+        result = export_review(queue.root, 'cycle-test', output)
+        expected = result['delivery_identity_sha256']
+        video = output / 'review/video.mp4'
+        video.write_bytes(b'coherently replaced video')
+        package_path = output / 'review/package.json'
+        package = json.loads(package_path.read_text())
+        candidate = digest(video)
+        package['candidate_sha256'] = candidate
+        package['files_sha256']['video.mp4'] = candidate
+        fixtures.write(package_path, package)
+        package_sha = digest(package_path)
+        archive_path = output / 'review-package.zip'
+        with ZipFile(archive_path, 'w') as archive:
+            for artifact in sorted((output / 'review').iterdir()):
+                archive.write(artifact, artifact.name)
+        archive_sha = digest(archive_path)
+        receipt_path = output / 'package.json'
+        receipt = json.loads(receipt_path.read_text())
+        receipt['candidate_sha256'] = candidate
+        receipt['package_sha256'] = package_sha
+        receipt['archive_sha256'] = archive_sha
+        receipt['files_sha256']['review/video.mp4'] = candidate
+        receipt['files_sha256']['review/package.json'] = package_sha
+        receipt['provenance'].update(candidate_sha256=candidate, package_sha256=package_sha,
+                                     review_archive_sha256=archive_sha)
+        identity = {
+            'job_id': receipt['provenance']['job_id'], 'job_digest': receipt['provenance']['job_digest'],
+            'attempt': receipt['provenance']['attempt'], 'candidate_sha256': candidate,
+            'package_sha256': package_sha, 'archive_sha256': archive_sha,
+            'entrypoint': receipt['entrypoint'], 'entrypoint_sha256': receipt['entrypoint_sha256'],
+            'files_sha256': receipt['files_sha256'], 'provenance': receipt['provenance'],
+            'publication_enabled': False, 'paid_generation_enabled': False,
+            'production_ready': False, 'production_approved': False, 'full_av_review': False,
+        }
+        receipt['delivery_identity_sha256'] = hashlib.sha256(canonical(identity).encode()).hexdigest()
+        fixtures.write(receipt_path, receipt)
+        with self.assertRaisesRegex(ValueError, 'trusted expected identity'):
+            verify_exported_cycle(output, expected)
+
+    def test_retained_export_has_queue_independent_verification_cli(self):
+        import subprocess
+        import sys
+        queue, _, _ = self.queue_review()
+        output = self.base / 'export'
+        exported = export_review(queue.root, 'cycle-test', output)
+        result = subprocess.run([
+            sys.executable, '-m', 'integrations.content_control.review_delivery',
+            'verify', '--output', str(output),
+            '--expected-delivery-identity', exported['delivery_identity_sha256'],
+        ], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(result.stdout)['status'], 'PASS')
 
     def test_minimum_duration_is_rechecked_from_queue_before_export(self):
         queue, _, _ = self.queue_review(minimum=510, picture_seconds=509.99)
