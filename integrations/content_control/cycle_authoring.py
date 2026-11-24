@@ -78,7 +78,7 @@ def _build(research_raw, discovery):
          'visual': 'Points Monk enters on the opposite side and reveals the second source card for comparison.',
          'visual_spec': {'kind': 'comparison', 'headline': 'Counterweight',
                          'labels': ['Source one', 'Source two'], 'values': ['Check', 'Compare'],
-                         'reveal_after_seconds': 0.75, 'gesture': 'point_left'},
+                         'reveal_on_phrase': second_claim, 'gesture': 'point_right'},
          'source_ids': [second['id']], 'factual': True, 'speaker': 'points_monk', 'duration_seconds': 8},
         {'id': 'takeaway',
          'narration': f'Now compare both before you act. First: {first_claim} Second: {second_claim}',

@@ -430,6 +430,40 @@ class RenderValidationTests(unittest.TestCase):
                             dark = sum(histogram[:120])
                             self.assertGreater(dark, 20)
 
+    def test_phrase_reveal_uses_measured_narration_position(self):
+        scene = brief()['scenes'][0]
+        scene['narration'] = 'First claim is due. But interest can remain on the balance.'
+        scene['visual_spec'] = {'kind': 'comparison', 'labels': ['DUE', 'BALANCE'],
+                                'values': ['PAY', 'INTEREST'],
+                                'reveal_on_phrase': 'But interest can remain',
+                                'gesture': 'point_right'}
+        render.validate({'publication_enabled': False, 'production_approved': False,
+                         'full_av_review': False, 'paid_generation_enabled': False,
+                         'scenes': [scene]})
+        _, reveal = render.picture_filters(scene, 240, narration_duration=9.0)
+        expected = math.ceil(9.0 * scene['narration'].index('But interest') /
+                             len(scene['narration']) * 24)
+        self.assertEqual(reveal['first_visible_scene_frame'], expected)
+        self.assertEqual(reveal['requested_phrase'], 'But interest can remain')
+        self.assertEqual(reveal['alignment_method'], 'measured_duration_character_fraction')
+        self.assertGreater(reveal['rendered_offset_seconds'], 2.5)
+
+    def test_phrase_reveal_rejects_ambiguous_or_mixed_timing(self):
+        scene = brief()['scenes'][0]
+        scene['narration'] = 'Repeat cue. Repeat cue.'
+        complete = {'kind': 'comparison', 'labels': ['A', 'B'], 'values': ['1', '2'],
+                    'reveal_on_phrase': 'Repeat cue'}
+        scene['visual_spec'] = complete
+        editorial = {'publication_enabled': False, 'production_approved': False,
+                     'full_av_review': False, 'paid_generation_enabled': False,
+                     'scenes': [scene]}
+        with self.assertRaisesRegex(ValueError, 'exactly once'):
+            render.validate(editorial)
+        scene['narration'] = 'Repeat cue once.'
+        scene['visual_spec'] = dict(complete, reveal_after_seconds=1)
+        with self.assertRaisesRegex(ValueError, 'exactly one timing method'):
+            render.validate(editorial)
+
     @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
     def test_long_checklist_label_wraps_inside_its_row_in_both_layouts(self):
         from PIL import Image, ImageChops
