@@ -132,6 +132,69 @@ class QueueTests(unittest.TestCase):
         self.assertEqual([r['state'] for r in result['receipts']], ['blocked', 'failed'])
         self.assertEqual(result['attempts'], 2)
 
+    def test_bounded_automatic_retry_requires_durable_adapter_authorization(self):
+        self.queue.enqueue(job(attempts=3))
+        calls = []
+        def execute(attempt):
+            calls.append(attempt['number'])
+            if attempt['number'] == 1:
+                return {'status': 'BLOCKED', 'reason': 'fixture capacity busy',
+                        'retryable': True, 'publication_enabled': False,
+                        'paid_generation_enabled': False}
+            return {'status': 'PASS', 'text': 'fixture recovered'}
+        report = work(self.queue, max_jobs=2, auto_retry=True, executor=execute)
+        self.assertEqual(calls, [1, 2])
+        self.assertEqual([row['state'] for row in report['processed']], ['blocked', 'succeeded'])
+        self.assertEqual([row['automatic_retry_queued'] for row in report['processed']], [True, False])
+        result = self.queue.get('storyboard')
+        self.assertEqual(result['state'], 'succeeded')
+        self.assertEqual(result['attempts'], 2)
+        self.assertEqual([row['state'] for row in result['receipts']], ['blocked', 'succeeded'])
+        self.assertEqual(result['automatic_retries'][0]['from_attempt'], 1)
+        self.assertEqual(result['automatic_retries'][0]['reason'], 'adapter_marked_retryable')
+        self.assertEqual(self.queue.health()['automatic_retry_events'], 1)
+
+    def test_automatic_retry_never_replays_unmarked_interrupted_or_exhausted_work(self):
+        self.queue.enqueue(job('unmarked', attempts=2))
+        first = work(self.queue, auto_retry=True,
+                     executor=lambda _: {'status': 'BLOCKED', 'reason': 'fixture'})
+        self.assertFalse(first['processed'][0]['automatic_retry_queued'])
+        self.assertEqual(self.queue.get('unmarked')['state'], 'blocked')
+
+        self.queue.enqueue(job('exhausted', attempts=1))
+        second = work(self.queue, auto_retry=True, executor=lambda _: {
+            'status': 'BLOCKED', 'retryable': True, 'reason': 'fixture'})
+        self.assertFalse(second['processed'][0]['automatic_retry_queued'])
+        self.assertEqual(self.queue.get('exhausted')['state'], 'blocked')
+
+        self.queue.enqueue(job('interrupted', attempts=2))
+        with self.queue.consumer():
+            attempt = self.queue.claim()
+        with self.queue.consumer():
+            self.queue.recover()
+            self.assertFalse(self.queue.automatic_retry('interrupted'))
+        self.assertEqual(self.queue.get('interrupted')['state'], 'interrupted')
+        self.assertEqual(self.queue.get('interrupted')['automatic_retries'], [])
+
+    def test_automatic_retry_flag_is_explicit_and_retry_history_survives_restart(self):
+        for value in (0, 1, None, 'yes'):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                work(self.queue, auto_retry=value)
+        self.queue.enqueue(job(attempts=2))
+        report = work(self.queue, max_jobs=1, auto_retry=True, executor=lambda _: {
+            'status': 'ERROR', 'retryable': True, 'reason': 'fixture'})
+        self.assertTrue(report['processed'][0]['automatic_retry_queued'])
+        self.assertEqual(self.queue.get('storyboard')['state'], 'queued')
+        other = Queue(self.root)
+        try:
+            result = other.get('storyboard')
+            self.assertEqual(result['state'], 'queued')
+            self.assertEqual(result['automatic_retries'][0]['from_attempt'], 1)
+            work(other, auto_retry=True, executor=lambda _: {'status': 'PASS'})
+            self.assertEqual(other.get('storyboard')['state'], 'succeeded')
+        finally:
+            other.close()
+
     def test_retry_does_not_reset_running_or_successful_job(self):
         self.queue.enqueue(job())
         with self.queue.consumer():

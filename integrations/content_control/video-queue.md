@@ -70,7 +70,10 @@ Killing the consumer cannot silently free the budget while its FFmpeg/ASR stage
 continues. On restart, an unfinished durable claim becomes `interrupted` and is
 not replayed. A complete-looking raw video does not convert that unknown outcome
 into success. Inspect its receipts, explicitly retry if appropriate, and retain
-the earlier attempt. Re-enqueuing an already completed identical job does not
+the earlier attempt. Operator-enabled `--auto-retry` is limited to durable
+blocked/failed receipts that explicitly mark themselves retryable; interrupted
+video work is never eligible, and every automatic decision is retained against
+its source attempt. Re-enqueuing an already completed identical job does not
 render again. These are queue dispatch guarantees, not exactly-once rendering
 across a crash or a claim of unattended 24/7 service.
 
