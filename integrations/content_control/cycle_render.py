@@ -36,7 +36,9 @@ ASR_ASSETS = {
 }
 MOTION_FRAMES = 24
 MOTION_FPS = 8
-MOTION_SCOPE = 'Deterministic three-second arm-gesture loop; static diagrams and typography. No lip sync or full character animation.'
+MOTION_KIND = 'periodic_whole_character_sway_bob_v1'
+MOTION_SCOPE = ('Deterministic three-second arm gesture with subtle whole-character sway and bob; '
+                'diagrams, typography, and speaker labels stay fixed. No lip sync or facial animation.')
 AUTHORED_GESTURES = ('point_left', 'point_right', 'open_hands')
 PANEL_BACKGROUND = '#f7f1e6'
 COMPARISON_BOUNDS = ((60, 340, 345, 710), (375, 340, 660, 710))
@@ -245,7 +247,7 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
     """Fresh diagram and character composition with a bounded periodic gesture.
 
     Phase is a fraction of one loop. Zero preserves the representative pose;
-    only the arms move, leaving labels, diagrams and character identity fixed.
+    the character sways and bobs while labels, diagrams and identity stay fixed.
     """
     if type(phase) not in (int, float) or not math.isfinite(phase):
         raise ValueError('Finite numeric motion phase required')
@@ -253,7 +255,8 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
     if speaker_label_position is not None and (speaker_label_position != 'above' or layout is not None):
         raise ValueError('speaker_label_position: omit or use above on portrait')
     validate_visual_shape(scene.get('visual_spec', {}))
-    gesture = math.sin(2 * math.pi * (phase % 1.0)) * .18
+    wave = math.sin(2 * math.pi * (phase % 1.0))
+    gesture = wave * .18
     from PIL import Image, ImageDraw, ImageFont
     # The shared diagram layer preserves existing labels, artwork and font bounds.
     image = Image.new('RGB', (PORTRAIT_SIZE[0], DIAGRAM_LAYER_BOTTOM) if layout else size,
@@ -378,7 +381,13 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
         wrapped(headline, 42, size=42, width=1070, max_lines=2, center=640)
     # Recurring character silhouette. Direction is visible above, not misreported
     # as an AI-generated image. Three poses vary between scenes.
-    x,y=(265,350) if layout == 'landscape' else (360,970)
+    base_x,base_y=(265,350) if layout == 'landscape' else (360,970)
+    # Moving the complete silhouette, rather than only a few arm pixels, keeps
+    # the picture visibly alive at phone size while leaving the information
+    # layer and speaker identity anchored.  The loop starts and ends on the
+    # exact representative pose, so panel receipts remain deterministic.
+    x = base_x + round(wave * 18)
+    y = base_y - round(abs(wave) * 10)
     draw.ellipse((x-38,y-100,x+38,y-24),outline=ink,width=6)
     draw.ellipse((x-16,y-76,x-9,y-69),fill=ink)
     draw.ellipse((x+9,y-76,x+16,y-69),fill=ink)
@@ -401,8 +410,8 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
     draw.line((x,y+80,x-45,y+140),fill=ink,width=7)
     draw.line((x,y+80,x+45,y+140),fill=ink,width=7)
     speaker=scene.get('speaker','narrator').replace('_',' ').upper()
-    label_y = PORTRAIT_ABOVE_LABEL_Y if speaker_label_position == 'above' else y+160
-    draw.text((x,label_y),speaker,font=font(23),fill=accent,anchor='mt')
+    label_y = PORTRAIT_ABOVE_LABEL_Y if speaker_label_position == 'above' else base_y+160
+    draw.text((base_x,label_y),speaker,font=font(23),fill=accent,anchor='mt')
     draw.text((size[0]-60, 22 if layout == 'landscape' else 50),
               f'{index+1}/{count}',font=font(22),fill=ink,anchor='rt')
     image.save(path)
@@ -483,7 +492,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
              'full_av_review':False,'editorial_sha256':editorial_digest(editorial),
              'started_at':datetime.now(timezone.utc).isoformat(),
              'scope':'Fresh offline speech and original diagram-based picture video; technical verification only.',
-             'motion':{'kind':'periodic_arm_gesture','frame_count':MOTION_FRAMES,
+             'motion':{'kind':MOTION_KIND,'frame_count':MOTION_FRAMES,
                        'source_fps':MOTION_FPS,'loop_seconds':MOTION_FRAMES/MOTION_FPS,
                        'output_fps':24,'scope':MOTION_SCOPE}}
     if layout:
@@ -554,9 +563,11 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                 rows[-1]['authored_gesture'] = scene['visual_spec']['gesture']
             if reveal:
                 rows[-1]['visual_reveal'] = reveal
-                receipt['motion']['scope'] = ('Deterministic three-second arm-gesture loop. Opted comparison '
+                receipt['motion']['scope'] = ('Deterministic three-second arm gesture with subtle whole-character '
+                                             'sway and bob. Opted comparison '
                                              'scenes reveal the second card once on the rendered scene clock. '
-                                             'No lip sync or automatic speech alignment.')
+                                             'Diagrams, typography, and speaker labels stay fixed. No lip sync '
+                                             'or automatic speech alignment.')
             segments.append(segment.name);start+=duration
         (output/'segments.txt').write_text(''.join("file '"+name+"'\n" for name in segments))
         staged_video = output/'concatenated.mp4'
