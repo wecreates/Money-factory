@@ -40,6 +40,18 @@ python -m integrations.content_control.cycle_intake \
 The verification result identifies the four retained byte sets. Supply the
 same prior selection paths described below if the intake used idea learning.
 
+To require this verification as part of standalone production, use the intake
+directory's original `brief.json` as `--brief` and add `--intake-research` and
+`--intake-draft` with the original inputs. If the intake used idea learning,
+also add `--intake-prior-cycle`, `--intake-selection`, and
+`--intake-selection-receipt` with the original paths. Production checks
+the saved brief and receipt before rendering and rechecks the intake before
+success. The cycle receipt keeps `verified_intake`, including the original
+research, draft, brief and intake receipt hashes. Production from a supplied
+brief and queued production keep their existing options. Verified intake establishes byte
+provenance, while source discovery, factual checking and authorship still
+require separate evidence.
+
 To carry a prior thumbnail review into the next draft, add an `idea_learning`
 object to the draft with `selection_receipt_sha256`, a one-based
 `hypothesis_index`, and an `application` describing the change to test.
