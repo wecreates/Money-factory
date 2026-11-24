@@ -155,34 +155,42 @@ def check_completed(directory, expected_brief_sha256, *, minimum_duration=None, 
         observed = stage_receipt.get('minimum_duration_seconds')
         if observed != minimum_duration or type(observed) is not type(minimum_duration):
             raise ValueError('Completed minimum duration differs from queued request')
+    picture = rendered.get('encoded_picture_duration_seconds')
     if minimum_duration is not None:
         frame_budget = rendered.get('measured_narration_frame_budget')
-        encoded_duration = rendered.get('encoded_picture_duration_seconds')
         if (type(frame_budget) is not int or not minimum_duration * 24 <= frame_budget <= 600 * 24
-                or type(encoded_duration) not in (int, float)
-                or not minimum_duration <= encoded_duration <= 600.25):
+                or type(picture) not in (int, float) or not minimum_duration <= picture <= 600.25):
             raise ValueError('Completed render does not verify the queued minimum picture duration')
-        try:
-            observed = inspect_media(directory/'delivery/video.mp4', deadline=deadline,
-                                     decode=False, include_picture_duration=True)['picture_duration_seconds']
-        except (ValueError, OSError, RuntimeError, KeyError, TypeError) as error:
-            raise ValueError('Cannot verify queued minimum picture duration from delivered media') from error
-        if not minimum_duration <= observed <= 600.25 or float(observed) != encoded_duration:
-            raise ValueError('Delivered video does not match the queued minimum picture duration evidence')
     field = 'maximum_duration_seconds'
+    maximum = None
     if field in receipt or field in rendered or require_portrait_duration and 'portrait_handoff' in source_brief:
         maximum = portrait_duration_limit(source_brief, editorial)
         if maximum is None or any(type(obj.get(field)) is not int or obj[field] != maximum
                                   for obj in (receipt, rendered)):
             raise ValueError('Completed maximum duration differs from the portrait handoff')
         frame_budget = rendered.get('measured_narration_frame_budget')
-        picture = rendered.get('encoded_picture_duration_seconds')
         container = rendered.get('encoded_container_duration_seconds')
         media = package.get('media')
         if (type(frame_budget) is not int or not 0 < frame_budget <= maximum * 24
                 or any(type(value) not in (int, float) or not 0 < value <= maximum for value in (picture, container))
                 or not isinstance(media, dict) or container != media.get('duration_seconds')):
             raise ValueError('Completed render does not verify the portrait maximum duration')
+    if minimum_duration is not None or maximum is not None:
+        try:
+            observed_media = inspect_media(directory/'delivery/video.mp4', deadline=deadline,
+                                           decode=False, include_picture_duration=True)
+            observed_picture = observed_media['picture_duration_seconds']
+            if maximum is not None:
+                observed_container = observed_media['duration_seconds']
+        except (ValueError, OSError, RuntimeError, KeyError, TypeError) as error:
+            limit = 'queued minimum picture duration' if minimum_duration is not None else 'portrait maximum duration'
+            raise ValueError(f'Cannot verify {limit} from delivered media') from error
+        if minimum_duration is not None and (not minimum_duration <= observed_picture <= 600.25
+                                             or float(observed_picture) != picture):
+            raise ValueError('Delivered video does not match the queued minimum picture duration evidence')
+        if maximum is not None and (not 0 < observed_picture <= maximum or not 0 < observed_container <= maximum
+                                    or float(observed_picture) != picture or observed_container != container):
+            raise ValueError('Delivered video does not match the portrait maximum duration evidence')
     archive = directory/'delivery/review-package.zip'
     if not archive.is_file() or digest(archive) != receipt.get('archive_sha256'):
         raise ValueError('Package archive identity mismatch')
