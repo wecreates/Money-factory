@@ -6,7 +6,7 @@
     "label": "CYZOR Creations website",
     "status": "active",
     "last_value": "1b6a246850033b95a20fb0169f5b2e4ffb697a70340e3a15a8651b962acf8086",
-    "last_checked_at": 1795545826533,
+    "last_checked_at": 1795547817874,
     "last_change_at": 1793731264853,
     "last_status": null,
     "last_error": "TimeoutError: The operation was aborted due to timeout",
@@ -15,8 +15,8 @@
     "last_attempts": [
       {
         "attempt": 1,
-        "started_at": 1795545786277,
-        "completed_at": 1795545806280,
+        "started_at": 1795547777619,
+        "completed_at": 1795547797622,
         "outcome": "error",
         "http_status": null,
         "error": "TimeoutError: The operation was aborted due to timeout",
@@ -25,8 +25,8 @@
       },
       {
         "attempt": 2,
-        "started_at": 1795545806531,
-        "completed_at": 1795545826533,
+        "started_at": 1795547797873,
+        "completed_at": 1795547817874,
         "outcome": "error",
         "http_status": null,
         "error": "TimeoutError: The operation was aborted due to timeout",
@@ -42,9 +42,9 @@
     "targetUrl": "https://api.github.com/repos/wecreates/Money-factory/commits/main",
     "label": "Money Factory GitHub repository",
     "status": "active",
-    "last_value": "d54362023b27ad50040bf5c41d2f5a2adaa3fa29bd851212b1b65bf1dea7f0c6",
-    "last_checked_at": 1795545826878,
-    "last_change_at": 1795545826878,
+    "last_value": "c3f2d2e4bbe9adb9ab9ab38795a90820e2174b39f411b59f8c3ab3c9a5fb092e",
+    "last_checked_at": 1795547818171,
+    "last_change_at": 1795547818171,
     "last_status": 200,
     "last_error": null,
     "unavailable_since": null,
@@ -52,14 +52,72 @@
     "last_attempts": [
       {
         "attempt": 1,
-        "started_at": 1795545826534,
-        "completed_at": 1795545826878,
+        "started_at": 1795547817875,
+        "completed_at": 1795547818171,
         "outcome": "success",
         "http_status": 200,
-        "response_bytes": 35344,
+        "response_bytes": 34381,
         "response_limit_bytes": 2097152
       }
     ],
     "last_check_recovered_by_retry": false
+  },
+  "_monitor_runtime": {
+    "schema_version": 1,
+    "type": "monitor_runtime_resources",
+    "observed_at": "2026-11-24T19:16:58.172Z",
+    "started_at": "2026-11-24T19:16:17.618Z",
+    "elapsed_ms": 40554,
+    "scope": "current_monitor_process_and_execution_host_only",
+    "cpu": {
+      "available_cores": 4,
+      "cgroup_quota_cores": null,
+      "effective_ceiling_cores": 4
+    },
+    "memory": {
+      "host_total_bytes": 16463405056,
+      "host_available_bytes": 15539998720,
+      "cgroup_limit_bytes": null,
+      "cgroup_current_bytes": null,
+      "effective_ceiling_bytes": 16463405056,
+      "cgroup_available_bytes": null,
+      "effective_available_bytes": 15539998720
+    },
+    "disk": {
+      "filesystem_total_bytes": 154993672192,
+      "filesystem_available_bytes": 97138851840,
+      "per_process_quota_bytes": null
+    },
+    "process": {
+      "rss_bytes": 72728576,
+      "heap_used_bytes": 8168112,
+      "max_rss_kib": 71024,
+      "user_cpu_microseconds": 128495,
+      "system_cpu_microseconds": 18925
+    },
+    "request_budget": {
+      "active_watches": 2,
+      "max_active_watches": 4,
+      "max_attempts": 2,
+      "request_timeout_ms": 20000,
+      "retry_backoff_ms": 250,
+      "request_envelope_ms": 80500,
+      "worker_envelope_limit_ms": 240000,
+      "workflow_wall_limit_ms": 300000
+    },
+    "hard_limits": {
+      "cpu_quota_verified": false,
+      "memory_limit_verified": false,
+      "disk_quota_verified": false,
+      "workflow_wall_limit_declared": true,
+      "total_resource_ceiling_verified": false
+    },
+    "warnings": [
+      "hard_cpu_quota_unverified",
+      "hard_memory_limit_unverified",
+      "per_process_disk_quota_unverified"
+    ],
+    "publication_enabled": false,
+    "external_delivery_performed": false
   }
 }
