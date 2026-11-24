@@ -4,6 +4,7 @@ Thumbnail variants are review choices, not measured CTR winners. This module
 never promotes audiovisual, financial-claim or competitor quality approval.
 """
 from datetime import datetime, timezone
+from fractions import Fraction
 import hashlib
 import html
 import json
@@ -56,7 +57,18 @@ def declared_speaker_label(editorial, receipt):
     return 'above'
 
 
-def inspect_media(path, *, deadline=None, layout=None, decode=True):
+def picture_duration(video_stream):
+    """Read the exact video stream duration in seconds from its timescale."""
+    ticks = video_stream.get('duration_ts')
+    try:
+        time_base = Fraction(video_stream['time_base'])
+    except (KeyError, TypeError, ValueError, ZeroDivisionError) as error:
+        raise ValueError('Invalid picture duration timescale') from error
+    require(type(ticks) is int and ticks > 0 and time_base > 0, 'Invalid picture duration metadata')
+    return ticks * time_base
+
+
+def inspect_media(path, *, deadline=None, layout=None, decode=True, include_picture_duration=False):
     probe = json.loads(run(['ffprobe', '-v', 'error', '-protocol_whitelist', 'file,pipe',
                            '-f', 'mov', '-enable_drefs', '0', '-use_absolute_path', '0',
                            '-show_streams', '-show_format', '-of', 'json', str(path)], 30, deadline=deadline))
@@ -74,6 +86,8 @@ def inspect_media(path, *, deadline=None, layout=None, decode=True):
                 not any(item.get('rotation', 0) for item in videos[0].get('side_data_list', [])),
                 'Rotated/anamorphic sources unsupported')
     media = {'duration_seconds': duration, 'width': width, 'height': height}
+    if include_picture_duration:
+        media['picture_duration_seconds'] = picture_duration(videos[0])
     if decode:
         run(['ffmpeg', '-v', 'error', '-xerror', '-nostdin', '-protocol_whitelist', 'file,pipe',
              '-threads', '2', '-f', 'mov', '-enable_drefs', '0', '-use_absolute_path', '0',
