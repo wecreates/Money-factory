@@ -16,6 +16,25 @@ not measured media duration, and `long_form_production_verified`, authorship,
 originality, factual, creative, listening, competitor, phone, deployment and
 publication acceptance all remain false until separately evidenced.
 
+To assemble those three prerequisites and the exact durable-queue envelope in
+one fail-closed step, without manually supplying a script, run:
+
+```sh
+python -m integrations.content_control.cycle_offline_handoff \
+  --pool /absolute/candidate-pool.json \
+  --output /absolute/fresh-offline-handoff \
+  --job-id content-cycle-001 --format long-form
+```
+
+The fresh output retains the exact external pool, selected research, discovery
+receipt, deterministic script/storyboard, verified intake, and a validated
+`queue-job.json`. It does **not** enqueue or execute that job. Recheck the saved
+bytes without changing them using `--verify /absolute/fresh-offline-handoff`.
+The pool is still externally observed: this handoff performs no live research,
+retrieval, trend measurement, originality check, factual review, creative or
+audiovisual review, production, competitor acceptance, deployment, publishing,
+or paid inference. Those flags remain false in both the manifest and request.
+
 ## Input and editorial scope
 
 Start with `examples/statement-balance-brief.json`. A brief contains HTTPS source links, retrieval timestamps, short supporting excerpts, explicitly typed reference observations, and original scene writing with claim-to-source IDs. `compile_editorial` validates structure and binds these inputs; it **does not fetch the URLs, invent research, or automatically write the scenes**. This example was researched and written with connected tools. The workflow reel is a transcript observation, while Oddsofmind is only an unobserved user preference. Neither is labeled an audiovisual comparison.
