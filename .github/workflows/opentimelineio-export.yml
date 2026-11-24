@@ -15,7 +15,7 @@ permissions:
   contents: read
 jobs:
   native-roundtrip:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -28,10 +28,16 @@ jobs:
           python -m pip install --require-hashes --only-binary=:all: -r integrations/opentimelineio/requirements.lock
       - name: Install free media tools on disposable runner
         run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            timeout 90 sudo apt-get update -qq
-            timeout 480 sudo apt-get install -y --no-install-recommends ffmpeg
+          media_tools_ready() {
+            timeout 10s ffmpeg -version >/dev/null 2>&1 &&
+            timeout 10s ffprobe -version >/dev/null 2>&1
+          }
+          if ! media_tools_ready; then
+            apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=30)
+            timeout --kill-after=10s 180s sudo apt-get "${apt_options[@]}" update -qq
+            timeout --kill-after=10s 180s sudo apt-get "${apt_options[@]}" install -y --no-install-recommends ffmpeg
           fi
-          ffmpeg -version
-          ffprobe -version
+          media_tools_ready || { echo 'FFmpeg or FFprobe is unavailable' >&2; exit 2; }
+          timeout 10s ffmpeg -version
+          timeout 10s ffprobe -version
       - run: python -m unittest discover -s integrations/opentimelineio -p 'test_*.py' -v
