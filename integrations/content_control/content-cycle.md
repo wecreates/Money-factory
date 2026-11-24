@@ -566,6 +566,27 @@ of variant 1. No audience metrics, full audiovisual approval or phone playback
 acceptance was available. C08 still requires available verified performance
 evidence and its use in subsequent ideation.
 
+Use the learning-readiness gate before treating any retained selection or later
+audience receipt as performance evidence:
+
+```bash
+python -m integrations.content_control.cycle_learning_readiness \
+  --cycle-dir /absolute/prior-cycle \
+  --selection /absolute/submitted-selection.json \
+  --selection-receipt /absolute/recorded-selection.json \
+  --hypothesis-index 1 --output /absolute/learning-readiness.json
+```
+
+Add `--audience-observation` and `--audience-receipt` together to assess a later
+observation. Current receipts are `UNAVAILABLE` or `SUPPLIED_UNVERIFIED`, so the
+gate intentionally returns `BLOCKED` (exit code 2) while preserving the exact
+selection, package, thumbnail, hypothesis, and optional audience identities. It
+does not copy counts or CTR into an automated decision. Re-run with
+`--verify-receipt` instead of `--output` to replay a retained result. A future
+trusted read-only analytics adapter must bind the exact package and observation
+window before performance-informed learning can become ready; this command does
+not authenticate an account or convert submitted metrics into verified data.
+
 ### Character motion in picture scenes
 
 Each scene now uses a bounded three-second arm gesture loop: 24 deterministic
