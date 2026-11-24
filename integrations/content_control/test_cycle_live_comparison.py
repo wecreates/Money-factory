@@ -7,7 +7,8 @@ import unittest
 from unittest.mock import patch
 
 from integrations.content_control.cycle_live_comparison import (
-    record_live_comparison, validate_observations,
+    record_live_comparison, validate_observations, validate_recorded_comparison,
+    verify_live_comparison,
 )
 
 
@@ -87,10 +88,40 @@ class LiveComparisonTests(unittest.TestCase):
             self.assertEqual(result, json.loads(output.read_text()))
             self.assertEqual(result['status'], 'COMPARISON_ATTESTATION_RECORDED')
             self.assertTrue(result['full_interval_schema_validated'])
+            self.assertRegex(result['normalized_observations_sha256'], r'^[a-f0-9]{64}$')
             for field in ('independent_verification', 'competitor_comparison_verified',
                           'full_av_review', 'production_approved', 'production_ready',
                           'publication_enabled', 'paid_generation_enabled'):
                 self.assertIs(result[field], False)
+
+    def test_replays_retained_source_and_receipt_and_rejects_tampering(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); cycle = root / 'cycle'; cycle.mkdir()
+            (cycle / 'delivery').mkdir()
+            (cycle / 'delivery/render.json').write_text(json.dumps({'duration_seconds': 10}))
+            source = root / 'observations.json'; receipt = root / 'outside' / 'comparison.json'
+            source.write_text(json.dumps(packet()))
+            snapshot = {'candidate_sha256': SHA,
+                        'cycle': {'finished_at': '2026-11-24T09:00:00+00:00'},
+                        'editorial': {'topic': 'Minimum payment credit-card explainer'},
+                        'files_sha256': {'cycle.json': 'b' * 64}}
+            with patch('integrations.content_control.cycle_live_comparison.inspect_cycle',
+                       return_value=copy.deepcopy(snapshot)):
+                recorded = record_live_comparison(cycle, source, receipt)
+                replayed, receipt_sha = verify_live_comparison(cycle, source, receipt)
+                self.assertEqual(recorded, replayed)
+                self.assertRegex(receipt_sha, r'^[a-f0-9]{64}$')
+
+                changed = copy.deepcopy(recorded)
+                changed['references'][0]['candidate_differences']['audio'] = (
+                    'A changed statement must not retain the old comparison identity.')
+                with self.assertRaisesRegex(ValueError, 'identity, evidence or scope changed'):
+                    validate_recorded_comparison(cycle, changed)
+
+                future = copy.deepcopy(recorded)
+                future['recorded_at'] = '2999-01-01T00:00:00+00:00'
+                with self.assertRaisesRegex(ValueError, 'future'):
+                    validate_recorded_comparison(cycle, future)
 
     def test_rejects_missing_inaccessible_downloaded_duplicate_or_unranked_references(self):
         cases = []
