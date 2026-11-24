@@ -675,6 +675,50 @@ class RenderValidationTests(unittest.TestCase):
                             dark = sum(histogram[:120])
                             self.assertGreater(dark, 20)
 
+    @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
+    def test_authored_emphasis_hold_interrupts_periodic_sway_without_moving_information(self):
+        from PIL import Image, ImageChops
+        with tempfile.TemporaryDirectory() as td:
+            scene = brief()['scenes'][0]
+            scene['visual_spec'].update(gesture='point_left', motion_pattern='emphasis_hold')
+            phases = (0, .15, .4, .65, .85, 1)
+            paths = [Path(td)/f'emphasis-{index}.png' for index in range(len(phases))]
+            for path, phase in zip(paths, phases):
+                render.draw_panel(scene, path, 0, 1, phase=phase)
+            with (Image.open(paths[0]) as start, Image.open(paths[1]) as opening,
+                  Image.open(paths[2]) as hold_start, Image.open(paths[3]) as hold_end,
+                  Image.open(paths[4]) as return_frame, Image.open(paths[5]) as end):
+                # The opening still and sustained hold are intentional pattern
+                # interrupts, not samples from another sine-wave sway.
+                self.assertIsNone(ImageChops.difference(start, opening).getbbox())
+                self.assertIsNone(ImageChops.difference(hold_start, hold_end).getbbox())
+                self.assertIsNone(ImageChops.difference(start, end).getbbox())
+                self.assertIsNotNone(ImageChops.difference(start, hold_start).getbbox())
+                self.assertIsNotNone(ImageChops.difference(hold_start, return_frame).getbbox())
+                # Headline, diagram, speaker label, and scene counter remain fixed.
+                self.assertIsNone(ImageChops.difference(start, hold_start).crop((0, 0, 720, 850)).getbbox())
+                self.assertIsNone(ImageChops.difference(start, hold_start).crop((0, 1120, 720, 1280)).getbbox())
+            self.assertEqual(render.character_motion(scene['visual_spec'], .4),
+                             render.character_motion(scene['visual_spec'], .65))
+            self.assertEqual(render.character_motion(scene['visual_spec'], 0), (0, 0, 0.0))
+            self.assertEqual(render.character_motion(scene['visual_spec'], 1), (0, 0, 0.0))
+
+    def test_authored_motion_pattern_is_bounded_and_rejects_unrecognized_values(self):
+        scene = brief()['scenes'][0]
+        for invalid in ('sway', 'emphasis-hold', '', None, True, 1, {'kind': 'hold'}):
+            scene['visual_spec']['motion_pattern'] = invalid
+            with self.assertRaisesRegex(ValueError, 'Motion pattern must be emphasis_hold'):
+                render.validate_visual_shape(scene['visual_spec'])
+        scene['visual_spec']['motion_pattern'] = 'emphasis_hold'
+        render.validate_visual_shape(scene['visual_spec'])
+        self.assertEqual(render.character_motion(scene['visual_spec'], .15), (0, 0, 0.0))
+        self.assertEqual(render.character_motion(scene['visual_spec'], .4), (22, -8, .2))
+        scene['visual_spec']['gesture'] = 'point_left'
+        self.assertEqual(render.character_motion(scene['visual_spec'], .4), (-22, -8, .2))
+        for invalid_phase in (True, float('nan'), float('inf'), '0'):
+            with self.assertRaisesRegex(ValueError, 'Finite numeric motion phase required'):
+                render.character_motion(scene['visual_spec'], invalid_phase)
+
     def test_phrase_reveal_uses_measured_narration_position(self):
         scene = brief()['scenes'][0]
         scene['narration'] = 'First claim is due. But interest can remain on the balance.'
@@ -845,9 +889,9 @@ class RenderValidationTests(unittest.TestCase):
             self.assertEqual(result['timestamp_normalization']['audio_start_seconds'], 0)
             self.assertEqual(result['motion']['loop_seconds'],3)
             self.assertEqual(result['motion']['output_fps'],24)
-            self.assertEqual(result['motion']['kind'],'periodic_whole_character_sway_bob_v1')
+            self.assertEqual(result['motion']['kind'],'authored_scene_motion_v2')
             self.assertEqual(result['motion']['kind'],render.MOTION_KIND)
-            self.assertIn('whole-character sway and bob',result['motion']['scope'])
+            self.assertIn('periodic sway/bob',result['motion']['scope'])
             row=result['scenes'][0]
             self.assertEqual(len(row['motion_frames_sha256']),24)
             self.assertEqual(row['motion_frames_sha256']['frame-00.png'],row['panel_sha256'])
@@ -863,12 +907,18 @@ class RenderValidationTests(unittest.TestCase):
 
             revealed=brief()
             revealed['scenes'][0]['visual_spec']={'kind':'comparison','headline':'SAME DINNER',
-                'labels':['PENDING','POSTED'],'values':['20','24'],'reveal_after_seconds':.51,'gesture':'point_right'}
+                'labels':['PENDING','POSTED'],'values':['20','24'],'reveal_after_seconds':.51,
+                'gesture':'point_right','motion_pattern':'emphasis_hold'}
             timed=Path(td)/'timed'
             result=render.render_cycle(revealed,timed,voice_python=sys.executable,voice_root=td,timeout=60)
             self.assertEqual(result['status'],'AWAITING_REVIEW',result)
             self.assertEqual(result['scenes'][0]['visual_reveal']['first_visible_scene_frame'],13)
             self.assertEqual(result['scenes'][0]['authored_gesture'],'point_right')
+            self.assertEqual(result['scenes'][0]['authored_motion_pattern'],'emphasis_hold')
+            self.assertFalse(result['publication_enabled'])
+            self.assertFalse(result['paid_generation_enabled'])
+            self.assertFalse(result['production_approved'])
+            self.assertFalse(result['full_av_review'])
             region=subprocess.check_output(['ffmpeg','-v','error','-i',str(timed/'segment-00.mp4'),
                 '-vf',r'select=eq(n\,0)+eq(n\,12)+eq(n\,13)+eq(n\,84),crop=240:300:396:360',
                 '-vsync','0','-frames:v','4','-f','rawvideo','-pix_fmt','rgb24','-threads','1','-'])

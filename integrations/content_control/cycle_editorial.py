@@ -340,7 +340,10 @@ def compile_editorial(brief, *, validate_visual_shapes=False):
                     spec['reveal_on_phrase'], 'scene.visual_spec.reveal_on_phrase', 300)
             if 'gesture' in spec:
                 scene['visual_spec']['gesture'] = spec['gesture']
-        if validate_visual_shapes or {'reveal_after_seconds', 'reveal_on_phrase', 'gesture'} & scene.get('visual_spec', {}).keys():
+            if 'motion_pattern' in spec:
+                scene['visual_spec']['motion_pattern'] = spec['motion_pattern']
+        if validate_visual_shapes or {'reveal_after_seconds', 'reveal_on_phrase', 'gesture',
+                                      'motion_pattern'} & scene.get('visual_spec', {}).keys():
             from integrations.content_control.cycle_render import validate_visual_shape
             validate_visual_shape(scene.get('visual_spec', {}))
         cursor += duration
