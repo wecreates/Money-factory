@@ -24,6 +24,13 @@ import time
 import wave
 
 VOICE_ASSIGNMENTS = {'dave': 'am_fenrir', 'points_monk': 'am_michael', 'narrator': 'am_adam'}
+VOICE_TARGET_RMS = .075
+VOICE_MAX_PEAK = .95
+VOICE_MAX_GAIN = 1.8
+VOICE_LEVEL_ALGORITHM = 'bounded_isolated_narration_rms_v1'
+VOICE_LEVEL_SCOPE = ('Deterministic isolated-narration level matching only; direct full-mix listening '
+                     'is still required for voice and sound acceptance.')
+PCM_QUANTIZATION_TOLERANCE = 1 / 32767 + 1e-12
 KINDS = {'card', 'receipt', 'balance', 'checklist', 'comparison'}
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 ASR_REPOSITORY = 'Systran/faster-whisper-base.en'
@@ -69,6 +76,117 @@ def editorial_digest(editorial):
 
 def write(path, data):
     Path(path).write_text(json.dumps(data, indent=2, sort_keys=True, allow_nan=False) + '\n')
+
+
+def normalize_voice_samples(samples, *, target_rms=VOICE_TARGET_RMS,
+                            peak_ceiling=VOICE_MAX_PEAK, max_gain=VOICE_MAX_GAIN):
+    """Apply bounded deterministic level matching; never claim listening quality.
+
+    Kokoro voices can have materially different generated levels for the same
+    program.  Match each isolated narration clip to one conservative RMS target,
+    while a hard peak ceiling and maximum boost prevent clipping or excessive
+    amplification.  This is a signal-level repair only: direct full-mix
+    listening remains required for naturalness, pronunciation and mix approval.
+    """
+    if (type(target_rms) not in (int, float) or not math.isfinite(target_rms)
+            or not 0 < target_rms < 1):
+        raise ValueError('Voice target RMS must be finite and between zero and one')
+    if (type(peak_ceiling) not in (int, float) or not math.isfinite(peak_ceiling)
+            or not 0 < peak_ceiling <= 1):
+        raise ValueError('Voice peak ceiling must be finite and at most one')
+    if (type(max_gain) not in (int, float) or not math.isfinite(max_gain)
+            or not 1 <= max_gain <= 4):
+        raise ValueError('Voice maximum gain must be finite from one through four')
+    values = tuple(float(value) for value in samples)
+    if not values or any(not math.isfinite(value) or abs(value) > 1 for value in values):
+        raise ValueError('Invalid voice samples')
+    source_rms = math.sqrt(sum(value * value for value in values) / len(values))
+    source_peak = max(abs(value) for value in values)
+    if source_rms < .001 or source_peak <= 0:
+        raise ValueError('Silent generated narration')
+    gain = min(target_rms / source_rms, peak_ceiling / source_peak, max_gain)
+    normalized = tuple(value * gain for value in values)
+    output_rms = math.sqrt(sum(value * value for value in normalized) / len(normalized))
+    output_peak = max(abs(value) for value in normalized)
+    evidence = {
+        'algorithm': VOICE_LEVEL_ALGORITHM,
+        'target_rms': target_rms,
+        'peak_ceiling': peak_ceiling,
+        'maximum_gain': max_gain,
+        'source_rms': source_rms,
+        'source_peak': source_peak,
+        'applied_gain': gain,
+        'output_rms': output_rms,
+        'output_peak': output_peak,
+        'listening_verified': False,
+        'scope': VOICE_LEVEL_SCOPE,
+    }
+    return normalized, evidence
+
+
+def wave_pcm_stats(path):
+    """Measure exact bound PCM bytes and reject any alternate WAV contract."""
+    try:
+        with wave.open(str(path), 'rb') as pcm:
+            if (pcm.getnchannels() != 1 or pcm.getsampwidth() != 2
+                    or pcm.getframerate() != 24000 or pcm.getcomptype() != 'NONE'):
+                raise ValueError('Narration WAV must be mono 16-bit 24kHz uncompressed PCM')
+            frames = pcm.getnframes()
+            if not 0 < frames <= 24000 * 90:
+                raise ValueError('Invalid narration sample rate or duration')
+            payload = pcm.readframes(frames)
+    except wave.Error as error:
+        raise ValueError('Invalid narration WAV') from error
+    if len(payload) != frames * 2:
+        raise ValueError('Narration WAV payload is incomplete')
+    samples = struct.unpack('<' + 'h' * frames, payload)
+    values = tuple(value / 32767 for value in samples)
+    rms = math.sqrt(sum(value * value for value in values) / frames)
+    peak = max(abs(value) for value in values)
+    return {'frames': frames, 'duration_seconds': frames / 24000,
+            'rms': rms, 'peak': peak}
+
+
+def validate_voice_normalization(clip, wav_stats):
+    """Revalidate the child receipt against exact WAV bytes before encoding."""
+    value = clip.get('level_normalization')
+    fields = {'algorithm', 'target_rms', 'peak_ceiling', 'maximum_gain',
+              'source_rms', 'source_peak', 'applied_gain', 'output_rms',
+              'output_peak', 'listening_verified', 'scope'}
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError('Exact voice normalization receipt required')
+    if (value.get('algorithm') != VOICE_LEVEL_ALGORITHM
+            or value.get('target_rms') != VOICE_TARGET_RMS
+            or value.get('peak_ceiling') != VOICE_MAX_PEAK
+            or value.get('maximum_gain') != VOICE_MAX_GAIN
+            or value.get('listening_verified') is not False
+            or value.get('scope') != VOICE_LEVEL_SCOPE):
+        raise ValueError('Voice normalization algorithm or scope changed')
+    numeric = ('source_rms', 'source_peak', 'applied_gain', 'output_rms', 'output_peak')
+    if any(type(value.get(name)) not in (int, float) or not math.isfinite(value[name])
+           or value[name] <= 0 for name in numeric):
+        raise ValueError('Voice normalization measurements must be finite and positive')
+    if (not .001 <= value['source_rms'] <= value['source_peak'] <= 1):
+        raise ValueError('Voice normalization source measurements are outside the accepted domain')
+    expected_gain = min(VOICE_TARGET_RMS / value['source_rms'],
+                        VOICE_MAX_PEAK / value['source_peak'], VOICE_MAX_GAIN)
+    if not math.isclose(value['applied_gain'], expected_gain, rel_tol=0, abs_tol=1e-12):
+        raise ValueError('Voice normalization gain is inconsistent')
+    for source, output in (('source_rms', 'output_rms'), ('source_peak', 'output_peak')):
+        expected = value[source] * value['applied_gain']
+        if not math.isclose(value[output], expected, rel_tol=0,
+                            abs_tol=PCM_QUANTIZATION_TOLERANCE):
+            raise ValueError('Voice normalization source and output measurements disagree')
+    if value['output_peak'] > VOICE_MAX_PEAK + PCM_QUANTIZATION_TOLERANCE:
+        raise ValueError('Voice normalization exceeded peak ceiling')
+    if (not math.isclose(value['output_rms'], wav_stats['rms'], rel_tol=0,
+                         abs_tol=PCM_QUANTIZATION_TOLERANCE)
+            or not math.isclose(value['output_peak'], wav_stats['peak'], rel_tol=0,
+                                abs_tol=PCM_QUANTIZATION_TOLERANCE)
+            or type(clip.get('rms')) not in (int, float)
+            or not math.isclose(clip['rms'], wav_stats['rms'], rel_tol=0,
+                                abs_tol=PCM_QUANTIZATION_TOLERANCE)):
+        raise ValueError('Voice normalization receipt does not match bound WAV')
 
 
 def validate_visual_shape(spec):
@@ -237,23 +355,23 @@ def synthesize(editorial, output, voice_root):
         samples, rate = synth(scene['narration'], VOICE_ASSIGNMENTS[speaker], 1.0)
         if rate != 24000 or not 0 < len(samples) <= rate * 90:
             raise ValueError('Invalid voice output length')
-        if any(not math.isfinite(float(v)) or abs(float(v)) > 1 for v in samples):
-            raise ValueError('Invalid voice samples')
-        rms = math.sqrt(sum(float(v) ** 2 for v in samples) / len(samples))
-        if rms < .001:
-            raise ValueError('Silent generated narration')
+        samples, normalization = normalize_voice_samples(samples)
         path = output / f'voice-{index:02d}.wav'
         with wave.open(str(path), 'wb') as wav:
             wav.setparams((1, 2, rate, 0, 'NONE', 'not compressed'))
             wav.writeframes(struct.pack('<' + 'h' * len(samples), *[round(float(v) * 32767) for v in samples]))
+        actual = wave_pcm_stats(path)
+        normalization.update(output_rms=actual['rms'], output_peak=actual['peak'])
         clips.append({'scene_id': scene['id'], 'speaker': speaker, 'voice_id': VOICE_ASSIGNMENTS[speaker],
                       'file': path.name, 'audio_sha256': digest(path), 'duration_seconds': len(samples) / rate,
-                      'text_sha256': hashlib.sha256(scene['narration'].encode()).hexdigest(), 'rms': rms})
+                      'text_sha256': hashlib.sha256(scene['narration'].encode()).hexdigest(),
+                      'rms': actual['rms'], 'level_normalization': normalization})
     if digest(generator) != generator_hash:
         raise ValueError('Voice generator changed during synthesis')
     write(output / 'voice.json', {'status': 'GENERATED_PENDING_LISTENING_REVIEW', 'clips': clips,
           'generator_sha256': generator_hash, **module.model_identity(), 'publication_enabled': False,
-          'production_approved': False, 'full_av_review': False, 'voice_assignments': VOICE_ASSIGNMENTS})
+          'paid_generation_enabled': False, 'production_approved': False, 'full_av_review': False,
+          'voice_assignments': VOICE_ASSIGNMENTS})
 
 
 def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_label_position=None):
@@ -474,21 +592,35 @@ def picture_filters(scene, frame_count, layout=None, narration_duration=None):
                      **timing}
 
 
-def measured_clip_frames(scenes, clips, output):
+def measured_clip_frames(scenes, voice, output):
     """Check the exact narration and compute the 24 fps frame budget before encoding."""
+    if (not isinstance(voice, dict)
+            or voice.get('status') != 'GENERATED_PENDING_LISTENING_REVIEW'
+            or voice.get('voice_assignments') != VOICE_ASSIGNMENTS
+            or any(voice.get(field) is not False for field in
+                   ('publication_enabled', 'paid_generation_enabled',
+                    'production_approved', 'full_av_review'))):
+        raise ValueError('Exact pending-listening voice receipt contract required')
+    clips = voice.get('clips')
+    if not isinstance(clips, list):
+        raise ValueError('Voice clips must be a list')
     if len(clips) != len(scenes):
         raise ValueError('Missing voice clips')
     frames = []
     for index, (scene, clip) in enumerate(zip(scenes, clips)):
         wav = output / f'voice-{index:02d}.wav'
-        if (clip['audio_sha256'] != digest(wav)
-                or clip['text_sha256'] != hashlib.sha256(scene['narration'].encode()).hexdigest()):
+        speaker = scene.get('speaker', 'narrator')
+        if (not isinstance(clip, dict)
+                or clip.get('scene_id') != scene['id']
+                or clip.get('speaker') != speaker
+                or clip.get('voice_id') != VOICE_ASSIGNMENTS[speaker]
+                or clip.get('file') != wav.name
+                or clip.get('audio_sha256') != digest(wav)
+                or clip.get('text_sha256') != hashlib.sha256(scene['narration'].encode()).hexdigest()):
             raise ValueError('Narration binding mismatch')
-        with wave.open(str(wav), 'rb') as pcm:
-            samples = pcm.getnframes()
-            if pcm.getframerate() != 24000 or not 0 < samples <= 24000 * 90:
-                raise ValueError('Invalid narration sample rate or duration')
-        duration = samples / 24000
+        stats = wave_pcm_stats(wav)
+        validate_voice_normalization(clip, stats)
+        duration = stats['duration_seconds']
         if clip['duration_seconds'] != duration:
             raise ValueError('Narration duration does not match WAV')
         frames.append(math.ceil((duration + .28) * 24))
@@ -544,7 +676,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
              '--output',output,'--voice-root',Path(voice_root).resolve()],output/'voice.log',deadline,env)
         voice=json.loads((output/'voice.json').read_text())
         clips=voice['clips']
-        frames = measured_clip_frames(scenes, clips, output)
+        frames = measured_clip_frames(scenes, voice, output)
         planned_frames = sum(frames)
         if planned_frames > 600 * 24:
             raise ValueError('Video exceeds ten minute limit')
