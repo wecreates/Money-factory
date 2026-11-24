@@ -9,7 +9,7 @@ import zipfile
 
 from integrations.content_control import test_cycle_review as review_fixture
 from integrations.content_control import cycle_review
-from integrations.content_control.cycle_review import record_review
+from integrations.content_control.cycle_review import record_review, revision_brief
 from integrations.content_control.review_package import digest
 from integrations.rea_video import analyze_cycle as analyzer
 
@@ -145,7 +145,10 @@ class AnalyzerTests(unittest.TestCase):
         delivery = self.root/'delivery'
         render_receipt = delivery/'render.json'
         render = json.loads(render_receipt.read_text())
-        render['scenes'] = [{'scene_id': 's1', 'start': 0}, {'scene_id': 's2', 'start': .625}]
+        render['scenes'] = [
+            {'scene_id': 's1', 'start': 0, 'end': .625},
+            {'scene_id': 's2', 'start': .625, 'end': 1},
+        ]
         review_fixture.write(render_receipt, render)
         (self.root/'render/render.json').write_bytes(render_receipt.read_bytes())
         package = json.loads((delivery/'package.json').read_text())
@@ -157,6 +160,45 @@ class AnalyzerTests(unittest.TestCase):
         with zipfile.ZipFile(delivery/'review-package.zip', 'w') as archive:
             for member in (*package['files_sha256'], 'package.json'):
                 archive.write(delivery/member, member)
+
+    def ready_sampler(self, root, target, *, timeout):
+        from integrations.content_control import cycle_scene_review
+
+        snapshot = analyzer.inspect_cycle(self.root)
+        target.mkdir()
+        for name, body in {
+            'scene-01.png': b'FRAME_ONE', 'scene-02.png': b'FRAME_TWO',
+            'contact-sheet.jpg': b'CONTACT', 'index.html': b'<html>bound gallery</html>',
+        }.items():
+            (target/name).write_bytes(body)
+        artifacts = {path.name: digest(path) for path in target.iterdir()}
+        receipt = {
+            'schema_version': 1, 'status': 'SCENE_SAMPLES_READY',
+            'candidate_sha256': snapshot['candidate_sha256'],
+            'source_files_sha256': snapshot['files_sha256'],
+            'sampled_scene_count': 2, 'tool_sha256': digest(cycle_scene_review.__file__),
+            'finished_at': '2026-01-03T01:00:00+00:00',
+            'artifacts_sha256': artifacts,
+            'media': {'duration_seconds': 1},
+            'timing_source': 'delivery/render.json scenes (measured renderer timeline)',
+            'planned_storyboard_times_used': False,
+            'scope': cycle_scene_review.SCOPE,
+            'scenes': [
+                {'scene_number': 1, 'scene_id': 's1', 'start_seconds': 0,
+                 'end_seconds': .625, 'requested_sample_seconds': .3125,
+                 'decoded_frame_pts_seconds': .333333,
+                 'frame': 'scene-01.png', 'frame_sha256': artifacts['scene-01.png']},
+                {'scene_number': 2, 'scene_id': 's2', 'start_seconds': .625,
+                 'end_seconds': 1, 'requested_sample_seconds': .8125,
+                 'decoded_frame_pts_seconds': .833333,
+                 'frame': 'scene-02.png', 'frame_sha256': artifacts['scene-02.png']},
+            ],
+            **dict.fromkeys(('publication_enabled', 'paid_generation_enabled',
+                'production_approved', 'production_ready', 'full_av_review',
+                'listening_verified', 'independent_creative_verification'), False),
+        }
+        review_fixture.write(target/'scene-review.json', receipt)
+        return receipt
 
     def test_reports_missing_authored_cut_and_retains_bound_samples(self):
         self.add_render_scene_starts()
@@ -184,6 +226,107 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(retained['status'], 'SCENE_SAMPLES_READY')
         self.assertEqual(retained['receipt_sha256'], digest(self.base/'analysis'/retained['receipt']))
         self.assertFalse(result['full_av_review'])
+
+    def test_review_consumes_exact_authored_gallery_and_feeds_revision_actions(self):
+        self.add_render_scene_starts()
+        self.detected_starts = [0, .125]
+        with patch.object(analyzer, '_run', side_effect=self.fake_run), patch(
+            'integrations.content_control.cycle_scene_review.make_scene_review',
+            side_effect=self.ready_sampler
+        ):
+            result = self.call()
+        review_fixture.write(self.packet.submitted,
+                             dict(self.packet.review, reviewed_at=result['finished_at']))
+        recorded = record_review(self.root, self.packet.submitted, self.packet.recorded,
+                                 rea_analysis=self.base/'analysis/analysis.json')
+        self.assertEqual(recorded['status'], 'REVISION_REQUIRED')
+        self.assertEqual(recorded['rea_diagnostics']['authored_scene_samples']['status'],
+                         'SCENE_SAMPLES_READY')
+        self.assertEqual(recorded['rea_diagnostics']['authored_scene_samples']['artifact_count'], 4)
+        self.assertEqual(recorded['diagnostic_findings'][0]['scene_id'], 's2')
+        self.assertIn('human audiovisual judgment', recorded['diagnostic_findings'][0]['action'])
+        self.assertFalse(recorded['full_av_review'])
+
+        updated = review_fixture.brief()
+        updated['scenes'][1]['narration'] = 'My wallet requests another review.'
+        handoff = revision_brief(self.root, self.packet.recorded, updated,
+                                 self.base/'diagnostic-revision')
+        self.assertEqual(handoff['review_diagnostic_findings'], recorded['diagnostic_findings'])
+        self.assertEqual(handoff['rea_diagnostics_receipt_sha256'],
+                         recorded['rea_diagnostics']['receipt_sha256'])
+        self.assertFalse(handoff['feedback_resolution_verified'])
+
+    def test_authored_gallery_tamper_and_removed_diagnostic_action_fail_closed(self):
+        self.add_render_scene_starts()
+        self.detected_starts = [0, .125]
+        with patch.object(analyzer, '_run', side_effect=self.fake_run), patch(
+            'integrations.content_control.cycle_scene_review.make_scene_review',
+            side_effect=self.ready_sampler
+        ):
+            result = self.call()
+        review_fixture.write(self.packet.submitted,
+                             dict(self.packet.review, reviewed_at=result['finished_at']))
+        gallery = self.base/'analysis/authored-scenes/index.html'
+        original = gallery.read_bytes(); gallery.write_bytes(b'TAMPERED')
+        with self.assertRaisesRegex(ValueError, 'artifact identity mismatch'):
+            record_review(self.root, self.packet.submitted, self.packet.recorded,
+                          rea_analysis=self.base/'analysis/analysis.json')
+        self.assertFalse(self.packet.recorded.exists())
+        gallery.write_bytes(original)
+        record_review(self.root, self.packet.submitted, self.packet.recorded,
+                      rea_analysis=self.base/'analysis/analysis.json')
+        recorded = json.loads(self.packet.recorded.read_text())
+        del recorded['diagnostic_findings']
+        recorded['feedback'] = [item for item in recorded['feedback']
+                                if item.get('source') != 'rea_video_diagnostic']
+        review_fixture.write(self.packet.recorded, recorded)
+        updated = review_fixture.brief()
+        updated['scenes'][1]['narration'] = 'My wallet requests another review.'
+        with self.assertRaisesRegex(ValueError, 'missing or changed'):
+            revision_brief(self.root, self.packet.recorded, updated,
+                           self.base/'tampered-diagnostic-revision')
+
+    def test_truncated_and_substituted_authored_scene_plans_fail_closed(self):
+        self.add_render_scene_starts()
+        self.detected_starts = [0, .125]
+
+        def truncate(receipt, target):
+            receipt['sampled_scene_count'] = 1
+            receipt['scenes'] = receipt['scenes'][:1]
+            receipt['artifacts_sha256'].pop('scene-02.png')
+            (target/'scene-02.png').unlink()
+
+        def substitute_id(receipt, target):
+            receipt['scenes'][1]['scene_id'] = 's1'
+
+        def substitute_frame(receipt, target):
+            first, second = receipt['scenes']
+            first['frame'], second['frame'] = second['frame'], first['frame']
+            first['frame_sha256'], second['frame_sha256'] = (
+                second['frame_sha256'], first['frame_sha256'])
+
+        for index, mutation in enumerate((truncate, substitute_id, substitute_frame)):
+            with self.subTest(mutation=mutation.__name__):
+                output = self.base/f'malformed-plan-{index}'
+
+                def sampler(root, target, *, timeout):
+                    receipt = self.ready_sampler(root, target, timeout=timeout)
+                    mutation(receipt, target)
+                    review_fixture.write(target/'scene-review.json', receipt)
+                    return receipt
+
+                with patch.object(analyzer, '_run', side_effect=self.fake_run), patch(
+                    'integrations.content_control.cycle_scene_review.make_scene_review',
+                    side_effect=sampler
+                ):
+                    result = self.call(output)
+                self.assertEqual(result['status'], 'DIAGNOSTIC_COMPLETE')
+                review_fixture.write(self.packet.submitted,
+                                     dict(self.packet.review, reviewed_at=result['finished_at']))
+                with self.assertRaisesRegex(ValueError, 'incomplete|does not match|substituted'):
+                    record_review(self.root, self.packet.submitted,
+                                  self.base/f'malformed-review-{index}.json',
+                                  rea_analysis=output/'analysis.json')
 
     def test_blocked_sampler_retains_successful_detector_diagnostics(self):
         self.add_render_scene_starts()

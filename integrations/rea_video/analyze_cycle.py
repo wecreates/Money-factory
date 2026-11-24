@@ -185,6 +185,129 @@ def _cut_coverage(render, editorial_scenes, summary):
             'matched_cuts': matched, 'missing_cuts': missing, 'unmatched_detected_seconds': unmatched}
 
 
+def _verified_authored_samples(path, receipt, snapshot, render, coverage, analysis_finished, deadline):
+    """Authenticate the authored-frame consumer retained beside an analysis.
+
+    REA's boundary detector is only a diagnostic.  The separately generated
+    authored frames are the review navigation for a detector miss, so a review
+    must not name that gallery without replaying its complete manifest.
+    """
+    value = receipt.get('authored_scene_samples')
+    require(isinstance(value, dict), 'Authored sample status missing')
+    status = value.get('status')
+    if coverage.get('status') != 'MISSING_AUTHORED_CUTS':
+        require(value == {'status': 'NOT_REQUESTED', 'reason': coverage.get('status')},
+                'Unexpected authored sample claim')
+        return value, None
+    if status == 'BLOCKED':
+        require(set(value) == {'status', 'reason'} and isinstance(value.get('reason'), str)
+                and 0 < len(value['reason']) <= 1000, 'Invalid blocked authored sample status')
+        return value, None
+    require(status == 'SCENE_SAMPLES_READY'
+            and value.get('receipt') == 'authored-scenes/scene-review.json'
+            and value.get('gallery') == 'authored-scenes/index.html'
+            and type(value.get('sampled_scene_count')) is int
+            and 0 < value['sampled_scene_count'] <= 30
+            and set(value) == {'status', 'receipt', 'receipt_sha256', 'gallery',
+                               'sampled_scene_count', 'scope'},
+            'Invalid authored sample identity')
+    directory = path.parent / 'authored-scenes'
+    no_symlinks(directory)
+    review_path = _regular(directory / 'scene-review.json')
+    raw = review_path.read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == value.get('receipt_sha256'),
+            'Authored sample receipt identity mismatch')
+    review = json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant)
+    require(isinstance(review, dict) and type(review.get('schema_version')) is int
+            and review['schema_version'] == 1 and review.get('status') == 'SCENE_SAMPLES_READY'
+            and review.get('candidate_sha256') == snapshot['candidate_sha256']
+            and review.get('source_files_sha256') == snapshot['files_sha256']
+            and review.get('sampled_scene_count') == value['sampled_scene_count']
+            and all(review.get(key) is False for key in ('publication_enabled',
+                'paid_generation_enabled', 'production_approved', 'production_ready',
+                'full_av_review', 'listening_verified', 'independent_creative_verification')),
+            'Authored sample receipt does not bind the reviewed cycle')
+    from integrations.content_control import cycle_scene_review
+    require(review.get('tool_sha256') == digest(cycle_scene_review.__file__)
+            and review.get('timing_source') == 'delivery/render.json scenes (measured renderer timeline)'
+            and review.get('planned_storyboard_times_used') is False
+            and review.get('scope') == cycle_scene_review.SCOPE,
+            'Authored sample tool or timing identity mismatch')
+    finished = _timestamp(review.get('finished_at'), 'scene_review.finished_at')
+    require(datetime.fromisoformat(snapshot['cycle']['finished_at'])
+            <= datetime.fromisoformat(finished) <= datetime.fromisoformat(analysis_finished),
+            'Authored samples must follow the cycle and precede the analysis receipt')
+    manifest = review.get('artifacts_sha256')
+    require(isinstance(manifest, dict) and 3 <= len(manifest) <= 70
+            and {'index.html', 'contact-sheet.jpg'} <= set(manifest),
+            'Authored sample artifact manifest missing')
+    require({item.name for item in directory.iterdir()} == set(manifest) | {'scene-review.json'},
+            'Unexpected authored sample artifacts')
+    total = 0
+    for name, expected in manifest.items():
+        check_deadline(deadline)
+        require(isinstance(name, str) and Path(name).name == name and name not in ('.', '..')
+                and isinstance(expected, str)
+                and len(expected) == 64 and all(char in '0123456789abcdef' for char in expected),
+                'Invalid authored sample artifact identity')
+        artifact = _regular(directory / name, 64 * 1024 * 1024)
+        total += artifact.stat().st_size
+        require(total <= 256 * 1024 * 1024 and digest(artifact, deadline) == expected,
+                'Authored sample artifact identity mismatch')
+    scenes = review.get('scenes')
+    measured = render.get('scenes') if isinstance(render, dict) else None
+    editorial = snapshot['editorial'].get('scenes')
+    media = review.get('media')
+    duration = media.get('duration_seconds') if isinstance(media, dict) else None
+    require(isinstance(scenes, list) and isinstance(measured, list)
+            and isinstance(editorial, list) and 1 <= len(editorial) <= 30
+            and len(scenes) == len(measured) == len(editorial) == value['sampled_scene_count']
+            and len({item.get('id') for item in editorial if isinstance(item, dict)}) == len(editorial)
+            and type(duration) in (int, float) and math.isfinite(duration) and duration > 0,
+            'Authored scene plan is incomplete')
+    expected_frames = set()
+    prior_end = 0.0
+    for index, (scene, timing, authored) in enumerate(zip(scenes, measured, editorial), 1):
+        require(isinstance(scene, dict) and isinstance(timing, dict) and isinstance(authored, dict)
+                and set(scene) == {'scene_number', 'scene_id', 'start_seconds', 'end_seconds',
+                                   'requested_sample_seconds', 'frame',
+                                   'decoded_frame_pts_seconds', 'frame_sha256'},
+                'Invalid authored scene row')
+        identity = authored.get('id')
+        start, end = timing.get('start'), timing.get('end')
+        requested = (start + end) / 2 if type(start) in (int, float) and type(end) in (int, float) else None
+        frame = f'scene-{index:02}.png'
+        decoded = scene.get('decoded_frame_pts_seconds')
+        require(isinstance(identity, str) and identity
+                and timing.get('scene_id') == identity
+                and type(scene.get('scene_number')) is int and scene['scene_number'] == index
+                and scene.get('scene_id') == identity
+                and type(start) in (int, float) and type(end) in (int, float)
+                and all(math.isfinite(value) for value in (start, end))
+                and abs(start - prior_end) <= 1e-6 and start < end <= duration + .1
+                and end - start >= .1
+                and scene.get('start_seconds') == start and scene.get('end_seconds') == end
+                and scene.get('requested_sample_seconds') == requested
+                and scene.get('frame') == frame and frame in manifest
+                and scene.get('frame_sha256') == manifest[frame]
+                and type(decoded) in (int, float) and math.isfinite(decoded)
+                and requested <= decoded < end,
+                'Authored scene plan does not match exact editorial/measured timing')
+        prior_end = end
+        expected_frames.add(frame)
+    require(abs(prior_end - duration) <= .1
+            and {name for name in manifest if name.startswith('scene-') and name.endswith('.png')}
+            == expected_frames,
+            'Authored scene frame manifest is incomplete or substituted')
+    return {'status': status, 'receipt_sha256': value['receipt_sha256'],
+            'gallery_sha256': manifest['index.html'],
+            'sampled_scene_count': value['sampled_scene_count'],
+            'artifact_count': len(manifest),
+            'runtime_execution_independently_verified': False,
+            'scope': 'Exact authored-frame navigation for detector misses; sampled stills are not full audiovisual review.'}, \
+           (review_path, raw, manifest)
+
+
 def review_evidence(receipt_path, cycle_dir, snapshot, reviewed_at):
     """Return diagnostic evidence and a bounded final check for the review writer."""
     path = _regular(Path(receipt_path).absolute())
@@ -214,19 +337,33 @@ def review_evidence(receipt_path, cycle_dir, snapshot, reviewed_at):
         render_raw = stream.read(1024 * 1024 + 1)
     require(hashlib.sha256(render_raw).hexdigest() == snapshot['files_sha256']['delivery/render.json'],
             'Render receipt changed before linking REA diagnostics')
-    summary['authored_cut_coverage'] = _cut_coverage(json.loads(render_raw), snapshot['editorial']['scenes'], summary)
+    render = json.loads(render_raw)
+    summary['authored_cut_coverage'] = _cut_coverage(render, snapshot['editorial']['scenes'], summary)
     require(summary == receipt.get('summary'), 'REA detector summary does not match retained diagnostics')
+    samples, sample_state = _verified_authored_samples(
+        path, receipt, snapshot, render, summary['authored_cut_coverage'], finished, deadline)
     receipt_sha = hashlib.sha256(raw).hexdigest()
     evidence = {'receipt_sha256': receipt_sha, 'source_commit': PIN, 'status': receipt['status'],
                 'finished_at': finished, 'diagnostic_artifact_count': len(manifest),
                 'detected_segments': summary['detected_segments'],
                 'authored_cut_coverage': summary['authored_cut_coverage'],
+                'authored_scene_samples': samples,
                 'runtime_execution_independently_verified': False,
-                'scope': 'Detector artifact identity only. Authored gallery and runtime execution are separate evidence.'}
+                'scope': 'Detector and exact authored-frame navigation identities only; runtime execution and creative judgments are not independently verified.'}
 
     def recheck():
         require(_manifest(diagnostics, deadline) == manifest, 'REA diagnostic artifacts changed while recording review')
         require(digest(path, deadline) == receipt_sha, 'REA analysis receipt changed')
+        if sample_state is not None:
+            review_path, sample_raw, sample_manifest = sample_state
+            require(review_path.read_bytes() == sample_raw,
+                    'Authored sample receipt changed while recording review')
+            directory = review_path.parent
+            require({item.name for item in directory.iterdir()} == set(sample_manifest) | {'scene-review.json'},
+                    'Authored sample artifacts changed while recording review')
+            require(all(digest(directory / name, deadline) == expected
+                        for name, expected in sample_manifest.items()),
+                    'Authored sample artifacts changed while recording review')
 
     return evidence, recheck
 
