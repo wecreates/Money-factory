@@ -392,7 +392,8 @@ def _rea_diagnostic_findings(evidence):
     return findings
 
 
-def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
+def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
+                  live_comparison_source=None, live_comparison_receipt=None):
     root, review_path = Path(os.path.abspath(cycle_dir)), Path(os.path.abspath(review_path))
     snapshot = inspect_cycle(root)
     review = _load(review_path)
@@ -419,6 +420,7 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
             feedback.append({'check': name, 'action': action})
     listener = None
     watcher = None
+    comparison = None
     if 'full_audiovisual' in checks:
         watcher, watcher_feedback, all_watcher_checks_passed = _watcher_attestation(
             root, snapshot, review.get('watcher_review'))
@@ -431,6 +433,19 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
         require(checks['voice_naturalness']['passed'] is all_listener_checks_passed,
                 'Voice naturalness summary disagrees with granular listener checks')
         feedback.extend(listener_feedback)
+    if 'reference_comparison' in checks:
+        from integrations.content_control.cycle_live_comparison import verify_live_comparison
+
+        require(live_comparison_source is not None and live_comparison_receipt is not None,
+                'Retained live comparison source and receipt required')
+        comparison, comparison_receipt_sha = verify_live_comparison(
+            root, live_comparison_source, live_comparison_receipt)
+        require(datetime.fromisoformat(reviewed_at) >=
+                datetime.fromisoformat(comparison['reviewed_at']),
+                'Editorial review predates the live comparison')
+    else:
+        require(live_comparison_source is None and live_comparison_receipt is None,
+                'Live comparison inputs require a reference comparison check')
     result = {'schema_version': 1, 'status': 'REVISION_REQUIRED' if feedback else 'EDITORIAL_REVIEW_RECORDED',
               'candidate_sha256': snapshot['candidate_sha256'], 'reviewer': reviewer,
               'reviewed_at': reviewed_at, 'recorded_at': datetime.now(timezone.utc).isoformat(),
@@ -443,6 +458,9 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
         result['listener_review'] = listener
     if watcher is not None:
         result['watcher_review'] = watcher
+    if comparison is not None:
+        result['live_comparison_receipt'] = comparison
+        result['live_comparison_receipt_file_sha256'] = comparison_receipt_sha
     recheck_rea = None
     if rea_analysis is not None:
         from integrations.rea_video.analyze_cycle import review_evidence
@@ -470,6 +488,13 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
         rechecked = _watcher_attestation(root, snapshot, review.get('watcher_review'))
         require(rechecked == (watcher, watcher_feedback, all_watcher_checks_passed),
                 'Watcher evidence changed before final recording')
+    if comparison is not None:
+        from integrations.content_control.cycle_live_comparison import verify_live_comparison
+
+        require(verify_live_comparison(
+            root, live_comparison_source, live_comparison_receipt) ==
+            (comparison, comparison_receipt_sha),
+                'Live comparison evidence changed before final recording')
     with output.open('x') as stream:
         json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False); stream.write('\n')
     return result
@@ -504,6 +529,23 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
                 and recorded_checks['voice_naturalness']['passed'] is
                     _validate_recorded_listener(root, snapshot, review.get('listener_review')),
                 'Recorded listener result disagrees with voice naturalness summary')
+    comparison = None
+    if 'reference_comparison' in recorded_checks:
+        from integrations.content_control.cycle_live_comparison import validate_recorded_comparison
+
+        comparison = validate_recorded_comparison(
+            root, review.get('live_comparison_receipt'))
+        comparison_receipt_sha = review.get('live_comparison_receipt_file_sha256')
+        require(isinstance(comparison_receipt_sha, str)
+                and SHA.fullmatch(comparison_receipt_sha),
+                'Recorded live comparison receipt file identity required')
+        require(datetime.fromisoformat(_timestamp(review.get('reviewed_at'), 'reviewed_at')) >=
+                datetime.fromisoformat(comparison['reviewed_at']),
+                'Recorded editorial review predates the live comparison')
+    else:
+        require('live_comparison_receipt' not in review
+                and 'live_comparison_receipt_file_sha256' not in review,
+                'Live comparison receipt requires a reference comparison check')
     recorded_feedback = review.get('feedback')
     require(isinstance(recorded_feedback, list), 'Recorded feedback must be a list')
     diagnostic_findings = (_rea_diagnostic_findings(review['rea_diagnostics'])
@@ -539,6 +581,13 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
     if diagnostic_findings:
         result['review_diagnostic_findings'] = diagnostic_findings
         result['rea_diagnostics_receipt_sha256'] = review['rea_diagnostics']['receipt_sha256']
+    if comparison is not None:
+        result['live_comparison_receipt_sha256'] = hashlib.sha256(json.dumps(
+            comparison, sort_keys=True, separators=(',', ':'),
+            allow_nan=False).encode()).hexdigest()
+        result['live_comparison_observations_sha256'] = comparison[
+            'submitted_observations_sha256']
+        result['live_comparison_receipt_file_sha256'] = comparison_receipt_sha
     if discovery is not None:
         result['topic_discovery_sha256'] = hashlib.sha256(
             json.dumps(discovery, sort_keys=True, separators=(',', ':'),
@@ -553,6 +602,11 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
         require(recorded_checks['full_audiovisual']['passed'] is
                 _validate_recorded_watcher(root, snapshot, review.get('watcher_review')),
                 'Recorded watcher evidence changed before revision')
+    if comparison is not None:
+        from integrations.content_control.cycle_live_comparison import validate_recorded_comparison
+
+        require(validate_recorded_comparison(root, review.get('live_comparison_receipt')) == comparison,
+                'Recorded live comparison evidence changed before revision')
     output.mkdir()
     try:
         with (output / 'brief.json').open('x') as stream:
@@ -577,27 +631,37 @@ def main():
     diagnostics.add_argument('--package-lint', action='store_true', help='Collect pinned YouTube title and thumbnail copy diagnostics.')
     parser.add_argument('--rea-runtime', help='Absolute Python interpreter from the installed REA Video environment.')
     parser.add_argument('--rea-analysis', help='Link a retained REA analysis.json to a submitted review.')
+    parser.add_argument('--live-comparison-source',
+                        help='Retained raw live-comparison observations; required with its receipt.')
+    parser.add_argument('--live-comparison-receipt',
+                        help='Retained live-comparison receipt; required with its source observations.')
     parser.add_argument('--timeout', type=int, default=300)
     args = parser.parse_args()
     if args.package_lint:
-        if args.review or args.revision_brief or args.rea_runtime or args.rea_analysis:
+        if (args.review or args.revision_brief or args.rea_runtime or args.rea_analysis
+                or args.live_comparison_source or args.live_comparison_receipt):
             parser.error('--package-lint cannot be combined with review, revision, or REA runtime options')
         result = lint_package(args.cycle_dir, args.output)
         print(json.dumps(result, indent=2))
         return 0 if result.get('status') == 'DIAGNOSTIC_COMPLETE' else 2
     if args.analyze:
-        if not args.rea_runtime or args.review or args.revision_brief or args.rea_analysis:
+        if (not args.rea_runtime or args.review or args.revision_brief or args.rea_analysis
+                or args.live_comparison_source or args.live_comparison_receipt):
             parser.error('--analyze requires --rea-runtime and cannot be combined with --review or --revision-brief')
         from integrations.rea_video.analyze_cycle import analyze_cycle
         result = analyze_cycle(args.cycle_dir, args.output, runtime=args.rea_runtime, timeout=args.timeout)
         print(json.dumps(result, indent=2))
         return 0 if result.get('status') == 'DIAGNOSTIC_COMPLETE' else 2
-    if not args.review or args.rea_runtime or (args.revision_brief and args.rea_analysis):
+    if not args.review or args.rea_runtime or (args.revision_brief and (
+            args.rea_analysis or args.live_comparison_source or args.live_comparison_receipt)):
         parser.error('Review/revision requires --review; --rea-analysis is only for recording a review')
     if args.revision_brief:
         result = revision_brief(args.cycle_dir, args.review, _load(Path(args.revision_brief)), args.output)
     else:
         options = {'rea_analysis': args.rea_analysis} if args.rea_analysis is not None else {}
+        if args.live_comparison_source is not None or args.live_comparison_receipt is not None:
+            options.update(live_comparison_source=args.live_comparison_source,
+                           live_comparison_receipt=args.live_comparison_receipt)
         result = record_review(args.cycle_dir, args.review, args.output, **options)
     print(json.dumps(result, indent=2))
     return 0

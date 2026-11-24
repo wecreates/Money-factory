@@ -58,7 +58,10 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(inspect_cycle(output), before)
         self.assertEqual(result['status'], 'RESTORED_AWAITING_REVIEW')
         for flag in self.flags: self.assertFalse(result[flag])
-        review = record_review(output, self.submitted, self.recorded)
+        review = record_review(
+            output, self.submitted, self.recorded,
+            live_comparison_source=self.comparison_source,
+            live_comparison_receipt=self.comparison_receipt)
         self.assertEqual(review['candidate_sha256'], self.candidate)
         self.assertFalse(review['production_approved'])
 

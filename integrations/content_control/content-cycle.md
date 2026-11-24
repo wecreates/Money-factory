@@ -213,6 +213,16 @@ python -m integrations.content_control.cycle_live_comparison \
   --output /absolute/new-comparison-receipt.json
 ```
 
+Replay a retained source and receipt against the unchanged cycle without
+writing a new receipt:
+
+```bash
+python -m integrations.content_control.cycle_live_comparison \
+  --cycle-dir /absolute/completed-cycle \
+  --observations /absolute/live-comparison.json \
+  --verify-receipt /absolute/new-comparison-receipt.json
+```
+
 The input names the exact candidate SHA, reviewer and review time, one complete
 candidate observation, schema version 2, and exactly two distinct competitor references. Candidate
 and reference observations are contiguous intervals from zero through the full
@@ -229,7 +239,8 @@ coverage, duplicate references, inaccessible playback, a candidate mismatch or
 missing separate ranking evidence fails closed.
 
 The resulting `COMPARISON_ATTESTATION_RECORDED` receipt binds the exact candidate,
-cycle/package identities and submitted observation bytes. It deliberately keeps
+cycle/package identities, normalized observations and submitted observation
+bytes. It deliberately keeps
 `independent_verification`, `competitor_comparison_verified`, `full_av_review`,
 production approval/readiness, publication and paid generation false. Schema
 validation proves neither that playback happened nor that a competitor is truly
@@ -465,10 +476,12 @@ audience performance and audiovisual approval still require separate evidence.
 ```sh
 python -m integrations.content_control.cycle_review \
   --cycle-dir /absolute/attempt --review /absolute/reviewer-observations.json \
+  --live-comparison-source /absolute/live-comparison.json \
+  --live-comparison-receipt /absolute/new-comparison-receipt.json \
   --output /absolute/new-recorded-review.json
 ```
 
-Review JSON contains `candidate_sha256`, `reviewer`, timezone-bearing `reviewed_at`, and a `checks` object. Each check has boolean `passed` and concrete `evidence`: `factual_accuracy`, `full_audiovisual`, `voice_naturalness`, `visual_readability`, `originality`, `reference_comparison`. A supplied `full_audiovisual` judgment also requires `watcher_review`: the exact candidate and captions, a named watcher and time, `basis: direct_full_audiovisual_watch_and_listen`, contiguous coverage from zero through the bound rendered duration, and all five granular checks (`picture_continuity`, `caption_readability`, `audio_visual_sync`, `pacing_and_transitions`, `creative_coherence`). Its pass/fail result must agree with the summary check. A supplied `voice_naturalness` judgment also requires `listener_review`: the exact candidate, a named listener and time, `basis: direct_full_mix_listening`, the same complete-duration coverage, and all six granular checks (`naturalness`, `pronunciation`, `character_consistency`, `music_and_sfx`, `transitions`, `mix_balance`). The recorder replays the bound `render/voice.json` receipt and canonical Dave / Points Monk / narrator assignments. Checkpoints retain that small receipt, not voice models or raw stems. ASR, transcripts, signal measurements and sampled frames are rejected as watching or listening bases. Missing or failed checks yield `REVISION_REQUIRED`; all complete checks yield `EDITORIAL_REVIEW_RECORDED`, explicitly an attestation, never independent verification or publishing approval. Do not mark listening/watching complete from transcription or still frames.
+Review JSON contains `candidate_sha256`, `reviewer`, timezone-bearing `reviewed_at`, and a `checks` object. Each check has boolean `passed` and concrete `evidence`: `factual_accuracy`, `full_audiovisual`, `voice_naturalness`, `visual_readability`, `originality`, `reference_comparison`. A supplied `full_audiovisual` judgment also requires `watcher_review`: the exact candidate and captions, a named watcher and time, `basis: direct_full_audiovisual_watch_and_listen`, contiguous coverage from zero through the bound rendered duration, and all five granular checks (`picture_continuity`, `caption_readability`, `audio_visual_sync`, `pacing_and_transitions`, `creative_coherence`). Its pass/fail result must agree with the summary check. A supplied `voice_naturalness` judgment also requires `listener_review`: the exact candidate, a named listener and time, `basis: direct_full_mix_listening`, the same complete-duration coverage, and all six granular checks (`naturalness`, `pronunciation`, `character_consistency`, `music_and_sfx`, `transitions`, `mix_balance`). A supplied `reference_comparison` judgment requires the retained raw comparison source and exact `COMPARISON_ATTESTATION_RECORDED` file through the two explicit CLI options above. The recorder re-hashes both files, replays the receipt's candidate, cycle and normalized-observation identities, then retains both verified hashes in the review. A later revision replays the embedded normalized receipt and carries those already-verified file identities; it does not claim to re-read absent raw source bytes. Free-form comparison text alone is insufficient. The recorder replays the bound `render/voice.json` receipt and canonical Dave / Points Monk / narrator assignments. Checkpoints retain those small receipts, not voice models, raw stems or competitor media. ASR, transcripts, signal measurements and sampled frames are rejected as watching or listening bases. Missing or failed checks yield `REVISION_REQUIRED`; all complete checks yield `EDITORIAL_REVIEW_RECORDED`, explicitly an attestation, never independent verification or publishing approval. Do not mark listening/watching complete from transcription or still frames.
 
 To feed an edited brief back into production:
 
