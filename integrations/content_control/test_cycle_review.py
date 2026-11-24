@@ -9,7 +9,7 @@ import zipfile
 
 from integrations.content_control.cycle_editorial import LEARNING_IDENTITIES, compile_editorial
 from integrations.content_control.cycle_package import editorial_digest
-from integrations.content_control.cycle_review import (CHECKS, LISTENER_CHECKS, inspect_cycle,
+from integrations.content_control.cycle_review import (CHECKS, LISTENER_CHECKS, WATCHER_CHECKS, inspect_cycle,
                                                        lint_package, record_review, revision_brief)
 from integrations.content_control.cycle_render import VOICE_ASSIGNMENTS
 from integrations.content_control.review_package import digest
@@ -75,6 +75,15 @@ class ReviewTests(unittest.TestCase):
                        'reviewed_at': '2026-01-04T00:00:00Z',
                        'checks': {name: {'passed': True, 'evidence': 'Synthetic fixture statement for ' + name}
                                   for name in CHECKS},
+                       'watcher_review': {
+                           'schema_version': 1, 'candidate_sha256': self.candidate,
+                           'caption_sha256': captions, 'watcher': 'Fixture direct watcher',
+                           'watched_at': '2026-01-04T00:00:00Z',
+                           'basis': 'direct_full_audiovisual_watch_and_listen',
+                           'coverage': [{'start_seconds': 0.0, 'end_seconds': 10.0}],
+                           'checks': {name: {'passed': True,
+                                            'evidence': 'Direct fixture audiovisual statement for ' + name}
+                                      for name in WATCHER_CHECKS}},
                        'listener_review': {
                            'schema_version': 1, 'candidate_sha256': self.candidate,
                            'listener': 'Fixture direct listener', 'listened_at': '2026-01-04T00:00:00Z',
@@ -96,12 +105,43 @@ class ReviewTests(unittest.TestCase):
         self.assertFalse(result['production_approved'])
         self.assertFalse(result['full_av_review'])
         self.assertFalse(result['publication_enabled'])
+        watcher = result['watcher_review']
+        self.assertTrue(watcher['watcher_attestation_recorded'])
+        self.assertFalse(watcher['independent_full_audiovisual_verification'])
+        self.assertEqual(watcher['candidate_sha256'], self.candidate)
+        self.assertEqual(set(watcher['checks']), set(WATCHER_CHECKS))
         listener = result['listener_review']
         self.assertTrue(listener['listener_attestation_recorded'])
         self.assertFalse(listener['independent_listening_verification'])
         self.assertEqual(listener['candidate_sha256'], self.candidate)
         self.assertEqual(set(listener['checks']), set(LISTENER_CHECKS))
         self.assertEqual(inspect_cycle(self.root), before)
+
+    def test_full_av_requires_direct_complete_granular_watching_and_listening(self):
+        cases = []
+        missing = copy.deepcopy(self.review); del missing['watcher_review']; cases.append(missing)
+        sampled = copy.deepcopy(self.review); sampled['watcher_review']['basis'] = 'sampled_frames'; cases.append(sampled)
+        wrong = copy.deepcopy(self.review); wrong['watcher_review']['candidate_sha256'] = '0' * 64; cases.append(wrong)
+        captions = copy.deepcopy(self.review); captions['watcher_review']['caption_sha256'] = '0' * 64; cases.append(captions)
+        gap = copy.deepcopy(self.review); gap['watcher_review']['coverage'] = [
+            {'start_seconds': 0.0, 'end_seconds': 4.0},
+            {'start_seconds': 5.0, 'end_seconds': 10.0}]; cases.append(gap)
+        incomplete = copy.deepcopy(self.review)
+        del incomplete['watcher_review']['checks']['audio_visual_sync']; cases.append(incomplete)
+        for index, review in enumerate(cases):
+            with self.subTest(index=index):
+                write(self.submitted, review)
+                with self.assertRaises(ValueError):
+                    record_review(self.root, self.submitted, self.recorded)
+                self.assertFalse(self.recorded.exists())
+
+    def test_full_av_summary_must_match_all_granular_watcher_judgments(self):
+        self.review['watcher_review']['checks']['audio_visual_sync'] = {
+            'passed': False, 'evidence': 'Narration visibly leads the scene change at second 6.',
+            'feedback': 'Align the scene change to the spoken transition at second 6.'}
+        write(self.submitted, self.review)
+        with self.assertRaisesRegex(ValueError, 'audiovisual summary disagrees'):
+            record_review(self.root, self.submitted, self.recorded)
 
     def test_voice_check_requires_direct_complete_granular_listening(self):
         cases = []
@@ -185,6 +225,15 @@ class ReviewTests(unittest.TestCase):
         write(voice_path, voice)
         with self.assertRaisesRegex(ValueError, 'voice receipt identity'):
             revision_brief(self.root, self.recorded, updated, self.base / 'bad-voice')
+
+    def test_revision_revalidates_recorded_watcher_identity(self):
+        record_review(self.root, self.submitted, self.recorded)
+        updated = brief(); updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
+        changed_review = json.loads(self.recorded.read_text())
+        changed_review['watcher_review']['caption_sha256'] = '0' * 64
+        write(self.recorded, changed_review)
+        with self.assertRaisesRegex(ValueError, 'different captions'):
+            revision_brief(self.root, self.recorded, updated, self.base / 'bad-watcher')
 
     def test_incomplete_and_failed_checks_produce_actionable_revision(self):
         del self.review['checks']['originality']
