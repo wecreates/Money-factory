@@ -97,6 +97,68 @@ class RenderValidationTests(unittest.TestCase):
         words[1]['start']=.1
         with self.assertRaises(ValueError):render.observed_captions(words,1)
 
+    def test_caption_display_rejoins_only_source_adjacent_compounds(self):
+        words=[{'word':'three','start':0,'end':.2,'probability':.9},
+               {'word':'-year','start':.2,'end':.4,'probability':.8},
+               {'word':'and','start':.4,'end':.6,'probability':.9},
+               {'word':'non','start':.6,'end':.8,'probability':.9},
+               {'word':'-negotiable.','start':.8,'end':1.0,'probability':.8}]
+        original=[dict(word) for word in words]
+        display,joins=render.caption_display_words(
+            words,'three-year and non-negotiable.')
+        self.assertEqual([word['word'] for word in display],
+                         ['three-year','and','non-negotiable.'])
+        self.assertEqual((display[0]['start'],display[0]['end']),(0,.4))
+        self.assertEqual([join['display'] for join in joins],
+                         ['three-year','non-negotiable.'])
+        self.assertEqual(words,original)
+        self.assertIn('three-year and non-negotiable.',
+                      render.observed_captions(display,1))
+        capped=[{'word':word,'start':index*.1,'end':(index+1)*.1}
+                for index,word in enumerate(
+                    ['When','your','statement','shows','the','full','three','-year','comparison.'])]
+        capped_display,_=render.caption_display_words(
+            capped,'When your statement shows the full three-year comparison.')
+        cues=render.observed_captions(capped_display,1).strip().split('\n\n')[1:]
+        self.assertEqual([cue.splitlines()[1] for cue in cues],
+                         ['When your statement shows the full','three-year comparison.'])
+        self.assertNotIn('\n-year',render.observed_captions(capped_display,1))
+        joined=[{'word':'three-year','start':0,'end':.4}]
+        self.assertEqual(render.caption_display_words(joined,'three-year'),(joined,[]))
+
+    def test_caption_display_does_not_invent_hyphen_compounds(self):
+        words=[{'word':'three','start':0,'end':.2},
+               {'word':'-year','start':.2,'end':.4},
+               {'word':'cost','start':.4,'end':.6},
+               {'word':'-10','start':.6,'end':.8}]
+        for text in ('three -year cost-10','three year cost-10','unrelated'):
+            with self.subTest(text=text):
+                display,joins=render.caption_display_words(words,text)
+                self.assertEqual([word['word'] for word in display],
+                                 ['three','-year','cost','-10'])
+                self.assertEqual(joins,[])
+        delayed=[dict(word) for word in words]
+        delayed[1]['start']=.23
+        self.assertEqual(render.caption_display_words(
+            delayed,'three-year cost-10')[1],[])
+        self.assertEqual(render.caption_display_words(
+            words,'three-year cost-10',scene_boundaries=(.3,))[1],[])
+        multiword=[{'word':'two or three','start':0,'end':.3},
+                   {'word':'-year','start':.3,'end':.5}]
+        self.assertEqual(render.caption_display_words(
+            multiword,'two or three-year'),(multiword,[]))
+        multiword=[{'word':'three','start':0,'end':.3},
+                   {'word':'-year comparison','start':.3,'end':.5}]
+        self.assertEqual(render.caption_display_words(
+            multiword,'three-year comparison'),(multiword,[]))
+        contained=[{'word':'three','start':.05,'end':.12},
+                   {'word':'-year','start':.102,'end':.108},
+                   {'word':'comparison','start':.09,'end':.15}]
+        self.assertEqual(render.caption_display_words(
+            contained,'three-year comparison'),(contained,[]))
+        with self.assertRaisesRegex(ValueError,'Recognized caption text'):
+            render.caption_display_words(words,None)
+
     def test_caption_groups_break_sentences_and_preserve_timestamps(self):
         words=[{'word':w,'start':i*.2,'end':(i+1)*.2}
                for i,w in enumerate(['Interest','disappears.', 'Paying','more','helps!', 'Really?”', 'Yes.'])]
