@@ -93,7 +93,8 @@ def read_job(queue_root, job_id):
         job = dict(job)
         spec = parse_json(job['spec'])
         validate(spec)
-        if (spec['id'] != job_id or spec['adapter'] not in ('content-control-video', 'content-control-cycle')
+        if (spec['id'] != job_id or spec['adapter'] not in (
+                'content-control-video', 'content-control-cycle', 'content-control-external-media')
                 or hashlib.sha256(canonical(spec).encode()).hexdigest() != job['digest']
                 or spec['max_attempts'] != job['max_attempts']):
             raise ValueError('Immutable video request identity mismatch')
@@ -117,7 +118,12 @@ def verify_delivery(queue_root, job_id):
     stored = parse_json(latest['receipt'])
     attempt = regular(root / 'attempts' / job_id / str(latest['number']), directory=True)
     fresh = spec['adapter'] == 'content-control-cycle'
-    adapter_path = attempt / ('cycle-adapter-receipt.json' if fresh else 'video-adapter-receipt.json')
+    adapter_names = {
+        'content-control-cycle': 'cycle-adapter-receipt.json',
+        'content-control-video': 'video-adapter-receipt.json',
+        'content-control-external-media': 'external-media-adapter-receipt.json',
+    }
+    adapter_path = attempt / adapter_names[spec['adapter']]
     with regular(adapter_path, limit=MAX_JSON).open('rb') as stream:
         adapter_raw = stream.read(MAX_JSON + 1)
     adapter = parse_json(adapter_raw.decode('utf-8'))
@@ -134,6 +140,8 @@ def verify_delivery(queue_root, job_id):
                   'scope': 'Verified durable queue completion; delivery is not creative or publishing approval'}
     if fresh:
         return verify_cycle_delivery(attempt, spec['request'], stored, provenance)
+    if spec['adapter'] == 'content-control-external-media':
+        return verify_external_media_delivery(attempt, spec['request'], stored, provenance)
     if (stored.get('artifact_directory') != 'review' or stored.get('source_inputs_unchanged') is not True
             or any(stored.get(key) != spec['request'][key] for key in ('source_commit', 'source_manifest_sha256'))):
         raise ValueError('Completion is not a source-bound unpublished review')
@@ -173,6 +181,38 @@ def verify_delivery(queue_root, job_id):
     provenance.update(source_commit=spec['request']['source_commit'],
                       source_manifest_sha256=spec['request']['source_manifest_sha256'])
     return review, provenance
+
+
+def verify_external_media_delivery(attempt, request, stored, provenance):
+    """Bind durable queue completion back to the exact offline source packet."""
+    from integrations.content_control.external_media_job import check_completed
+
+    pinned = ('source_candidate_sha256', 'transformed_source_sha256', 'candidate_sha256',
+              'external_receipt_sha256', 'prior_tool_receipt_sha256',
+              'review_run_sha256', 'tool_commit')
+    if (stored.get('artifact_directory') != 'review'
+            or stored.get('package_directory') != 'delivery'
+            or stored.get('source_inputs_unchanged') is not True
+            or stored.get('provider_calls') != 0
+            or any(stored.get(name) != request[name] for name in pinned)
+            or stored.get('pipeline_receipt_sha256') != request['review_run_sha256']):
+        raise ValueError('Completion is not a source-bound offline external-media review')
+    completed = check_completed(attempt, request)
+    if (completed['package_sha256'] != stored.get('package_sha256')
+            or completed['archive_sha256'] != stored.get('archive_sha256')):
+        raise ValueError('External-media review package changed after completion')
+    provenance.update(
+        adapter='content-control-external-media',
+        source_candidate_sha256=request['source_candidate_sha256'],
+        transformed_source_sha256=request['transformed_source_sha256'],
+        external_receipt_sha256=request['external_receipt_sha256'],
+        prior_tool_receipt_sha256=request['prior_tool_receipt_sha256'],
+        tool_commit=request['tool_commit'],
+        package_sha256=completed['package_sha256'],
+        review_archive_sha256=completed['archive_sha256'],
+        provider_calls=0,
+    )
+    return completed['review'], provenance
 
 
 def verify_cycle_delivery(attempt, request, stored, provenance):

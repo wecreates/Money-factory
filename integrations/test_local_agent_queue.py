@@ -102,6 +102,18 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(worker.call_args.kwargs['cycle_capacity_cpu_cores'], 4)
         self.assertEqual(worker.call_args.kwargs['cycle_capacity_memory_mb'], 6144)
 
+    def test_work_cli_forwards_external_media_root_as_trusted_host_configuration(self):
+        completed = {'processed': [], 'recovered_interrupted_ids': [],
+                     'worker': {}, 'publication_enabled': False,
+                     'paid_generation_enabled': False, 'production_ready': False}
+        with patch('integrations.local_agent_queue.work', return_value=completed) as worker, \
+             patch('sys.stdout', new_callable=io.StringIO):
+            self.assertEqual(main([
+                '--queue', str(self.root), 'work',
+                '--external-media-root', '/operator/reviewed-offline-packet']), 0)
+        self.assertEqual(worker.call_args.kwargs['external_media_root'],
+                         '/operator/reviewed-offline-packet')
+
     def test_batch_rejects_conflicts_and_rolls_back_new_inserts(self):
         self.queue.enqueue(job())
         changed = job(attempts=1)
