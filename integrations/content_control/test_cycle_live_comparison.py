@@ -33,9 +33,18 @@ def packet():
     common = {'topic': 'Minimum payment credit-card explainer', 'format': 'portrait',
               'selection_basis': 'Relevant high-performing finance explainer in the same topic and vertical format.',
               'selected_at': '2026-11-24T09:30:00Z',
-              'observed_at': '2026-11-24T10:00:00Z', 'access': access}
+              'observed_at': '2026-11-24T10:00:00Z', 'access': access,
+              'candidate_differences': {
+                  'audio': 'The reference uses a denser music bed than the candidate.',
+                  'visual': 'The reference changes visual focus more often than the candidate.',
+                  'pacing': 'The reference reaches its first concrete example sooner.',
+                  'story': 'The reference states the viewer consequence before the explanation.',
+              },
+              'actionable_findings': [
+                  'Test an earlier consequence card without changing the sourced claim.',
+              ]}
     return {
-        'schema_version': 1, 'candidate_sha256': SHA,
+        'schema_version': 2, 'candidate_sha256': SHA,
         'reviewer': 'Playback review operator', 'reviewed_at': '2026-11-24T10:30:00Z',
         'candidate_observation': {'duration_seconds': 10, 'intervals': intervals(10)},
         'references': [
@@ -57,6 +66,9 @@ class LiveComparisonTests(unittest.TestCase):
         self.assertEqual(len(normalized['references']), 2)
         self.assertEqual(normalized['references'][0]['access']['mode'], 'live_view_only')
         self.assertEqual(normalized['candidate_observation']['intervals'][-1]['end_seconds'], 10)
+        self.assertEqual(set(normalized['references'][0]['candidate_differences']),
+                         {'audio', 'visual', 'pacing', 'story'})
+        self.assertEqual(len(normalized['references'][0]['actionable_findings']), 1)
 
     def test_records_exact_candidate_and_source_hash_without_mutating_cycle(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -129,6 +141,32 @@ class LiveComparisonTests(unittest.TestCase):
         for value in cases:
             with self.assertRaises(ValueError):
                 validate_observations(value, SHA)
+
+    def test_rejects_observations_without_explicit_differences_or_actions(self):
+        cases = []
+        missing_differences = packet()
+        missing_differences['references'][0].pop('candidate_differences')
+        cases.append(missing_differences)
+        partial_differences = packet()
+        partial_differences['references'][0]['candidate_differences'].pop('audio')
+        cases.append(partial_differences)
+        blank_difference = packet()
+        blank_difference['references'][0]['candidate_differences']['story'] = ''
+        cases.append(blank_difference)
+        no_findings = packet()
+        no_findings['references'][0]['actionable_findings'] = []
+        cases.append(no_findings)
+        vague_finding = packet()
+        vague_finding['references'][0]['actionable_findings'] = ['fix it']
+        cases.append(vague_finding)
+        for value in cases:
+            with self.assertRaises(ValueError):
+                validate_observations(value, SHA)
+
+        legacy = packet()
+        legacy['schema_version'] = 1
+        with self.assertRaisesRegex(ValueError, 'schema version 2'):
+            validate_observations(legacy, SHA)
 
     def test_rejects_wrong_candidate_nonspecific_links_and_time_reversal(self):
         with self.assertRaisesRegex(ValueError, 'different candidate'):
