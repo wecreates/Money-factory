@@ -90,6 +90,10 @@ class Queue:
                 job_id TEXT NOT NULL REFERENCES jobs(id), number INTEGER NOT NULL,
                 state TEXT NOT NULL, started REAL NOT NULL, finished REAL,
                 receipt TEXT, PRIMARY KEY(job_id, number));
+            CREATE TABLE IF NOT EXISTS automatic_retry_events (
+                job_id TEXT NOT NULL REFERENCES jobs(id), from_attempt INTEGER NOT NULL,
+                created REAL NOT NULL, reason TEXT NOT NULL,
+                PRIMARY KEY(job_id, from_attempt));
         ''')
 
     def close(self):
@@ -170,6 +174,9 @@ class Queue:
             'SELECT number,state,started,finished,receipt FROM attempts WHERE job_id=? ORDER BY number', (job_id,))]
         for attempt in result['receipts']:
             attempt['receipt'] = json.loads(attempt['receipt']) if attempt['receipt'] else None
+        result['automatic_retries'] = [dict(r) for r in self.db.execute(
+            'SELECT from_attempt,created,reason FROM automatic_retry_events '
+            'WHERE job_id=? ORDER BY from_attempt', (job_id,))]
         return result
 
     def recover(self):
@@ -231,6 +238,39 @@ class Queue:
                 raise ValueError('Attempt limit reached; previous receipts are retained')
             self.db.execute("UPDATE jobs SET state='queued',updated=? WHERE id=?", (time.time(), job_id))
         return self.get(job_id)
+
+    def automatic_retry(self, job_id):
+        """Queue one explicit adapter-authorized retry and retain the decision.
+
+        Interrupted work is deliberately ineligible because its external outcome
+        is unknown.  Exceptions raised before a durable adapter receipt are also
+        ineligible.  The immutable attempt limit remains authoritative.
+        """
+        self._require_owner()
+        with self.transaction():
+            row = self.db.execute(
+                'SELECT state,attempts,max_attempts FROM jobs WHERE id=?',
+                (job_id,)).fetchone()
+            if (not row or row['state'] not in ('blocked', 'failed')
+                    or row['attempts'] >= row['max_attempts']):
+                return False
+            attempt = self.db.execute(
+                'SELECT state,receipt FROM attempts WHERE job_id=? AND number=?',
+                (job_id, row['attempts'])).fetchone()
+            if not attempt or attempt['state'] != row['state'] or not attempt['receipt']:
+                raise ValueError('Latest attempt does not match durable job state')
+            try:
+                receipt = json.loads(attempt['receipt'])
+            except (json.JSONDecodeError, TypeError) as error:
+                raise ValueError('Latest attempt receipt is invalid') from error
+            if not isinstance(receipt, dict) or receipt.get('retryable') is not True:
+                return False
+            now = time.time()
+            self.db.execute(
+                'INSERT INTO automatic_retry_events VALUES (?,?,?,?)',
+                (job_id, row['attempts'], now, 'adapter_marked_retryable'))
+            self.db.execute("UPDATE jobs SET state='queued',updated=? WHERE id=?", (now, job_id))
+        return True
 
 
     def start_run(self, config):
@@ -303,6 +343,8 @@ class Queue:
             run['observed_state'] = 'interrupted_unrecovered' if run['finished'] is None and held is False else run['state']
         return {'run': run, 'consumer_lock_held': held,
                 'job_counts': {r['state']: r['n'] for r in self.db.execute('SELECT state,COUNT(*) n FROM jobs GROUP BY state')},
+                'automatic_retry_events': self.db.execute(
+                    'SELECT COUNT(*) FROM automatic_retry_events').fetchone()[0],
                 'scope': 'Foreground process liveness and queue state only; not model, VPN, video quality, or production health',
                 'publication_enabled': False, 'paid_generation_enabled': False, 'production_ready': False}
 
@@ -364,16 +406,20 @@ def execute_adapter(queue, attempt, *, ruflo_runtime=None, openclaw_runtime=None
                     Path(openclaw_runtime) if openclaw_runtime else directory / 'runtime')
 
 
-def work(queue, *, max_jobs=1, watch_seconds=0, poll_seconds=1, executor=None, **runtimes):
+def work(queue, *, max_jobs=1, watch_seconds=0, poll_seconds=1, auto_retry=False,
+         executor=None, **runtimes):
     if type(max_jobs) is not int or not 1 <= max_jobs <= 1000 or type(watch_seconds) is not int or not 0 <= watch_seconds <= 86400:
         raise ValueError('Bound work to 1..1000 jobs and 0..86400 foreground watch seconds')
     if type(poll_seconds) not in (int, float) or not math.isfinite(poll_seconds) or not .2 <= poll_seconds <= 60:
         raise ValueError('Polling interval must be finite, between .2 and 60 seconds')
+    if type(auto_retry) is not bool:
+        raise ValueError('Automatic retry must be an explicit boolean')
     processed = []
     deadline = time.monotonic() + watch_seconds
     with queue.consumer():
         recovered = queue.recover()
-        run_id = queue.start_run({'max_jobs': max_jobs, 'watch_seconds': watch_seconds, 'poll_seconds': poll_seconds})
+        run_id = queue.start_run({'max_jobs': max_jobs, 'watch_seconds': watch_seconds,
+                                  'poll_seconds': poll_seconds, 'auto_retry': auto_retry})
         reason = 'job_limit'
         try:
             with RunHeartbeat(queue, run_id, poll_seconds) as heartbeat:
@@ -403,7 +449,10 @@ def work(queue, *, max_jobs=1, watch_seconds=0, poll_seconds=1, executor=None, *
                     except Exception as exc:
                         queue.finish(attempt, {'status': 'ERROR', 'reason': 'Adapter failed before durable completion', 'exception_type': type(exc).__name__, 'publication_enabled': False, 'paid_generation_enabled': False, 'production_ready': False})
                     completed = queue.get(attempt['id'])
-                    processed.append({key: completed[key] for key in ('id', 'state', 'attempts')})
+                    summary = {key: completed[key] for key in ('id', 'state', 'attempts')}
+                    summary['automatic_retry_queued'] = (
+                        queue.automatic_retry(attempt['id']) if auto_retry else False)
+                    processed.append(summary)
                     queue.update_run(run_id, processed=len(processed))
         except BaseException as exc:
             reason = 'interrupted' if isinstance(exc, (KeyboardInterrupt, SystemExit)) else 'error'
@@ -430,6 +479,8 @@ def main(argv=None):
     run.add_argument('--max-jobs', type=int, default=1)
     run.add_argument('--watch-seconds', type=int, default=0)
     run.add_argument('--poll-seconds', type=float, default=1)
+    run.add_argument('--auto-retry', action='store_true',
+                     help='Retry only durable blocked/failed receipts that explicitly set retryable=true')
     run.add_argument('--ruflo-runtime'); run.add_argument('--openclaw-runtime')
     run.add_argument('--content-control-root'); run.add_argument('--video-python'); run.add_argument('--picture-python')
     run.add_argument('--cycle-voice-python'); run.add_argument('--cycle-voice-root'); run.add_argument('--cycle-transcription-python')
@@ -454,7 +505,8 @@ def main(argv=None):
         elif args.command == 'status':
             report = queue.get(args.id) if args.id else [dict(r) for r in queue.db.execute('SELECT id,state,attempts,max_attempts FROM jobs ORDER BY created,id')]
         else:
-            report = work(queue, max_jobs=args.max_jobs, watch_seconds=args.watch_seconds, poll_seconds=args.poll_seconds,
+            report = work(queue, max_jobs=args.max_jobs, watch_seconds=args.watch_seconds,
+                          poll_seconds=args.poll_seconds, auto_retry=args.auto_retry,
                           ruflo_runtime=args.ruflo_runtime, openclaw_runtime=args.openclaw_runtime,
                           content_control_root=args.content_control_root, video_python=args.video_python, picture_python=args.picture_python,
                           cycle_voice_python=args.cycle_voice_python, cycle_voice_root=args.cycle_voice_root,

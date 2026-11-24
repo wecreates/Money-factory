@@ -149,9 +149,18 @@ python -m integrations.local_agent_queue --queue /path/to/local-agent-queue work
 1–3. Every claimed attempt counts, including a blocked capacity probe. Only
 blocked, failed, or interrupted jobs can be retried, and earlier receipts are
 retained. Use a new job ID only for a genuinely new task; do not bypass the bound
-by automatically generating new IDs. There is no retry loop or automatic retry.
+by automatically generating new IDs. By default there is no retry loop. An
+operator may add `--auto-retry` to a bounded `work` command. That mode only
+requeues a durable `blocked` or `failed` attempt whose adapter receipt explicitly
+contains `"retryable": true`; it never replays an interrupted/unknown-outcome
+attempt or an exception that lacks an adapter receipt. The immutable
+one-to-three-attempt limit and the worker's `--max-jobs` bound still apply.
+Every automatic decision is retained in `automatic_retry_events` with its source
+attempt, and `status --id` exposes the history. A recovered final success does
+not hide the earlier failed receipt or make the CLI's overall work result clean.
 A failed or partially completed Ruflo batch may contain successful individual
-results; review those before deliberately retrying the entire batch.
+results; adapters should not mark such a batch retryable until replay of the
+whole batch is safe.
 
 The SQLite `attempts.receipt` is authoritative. Raw OpenClaw artifacts, if written,
 remain in `attempts/JOB_ID/ATTEMPT/`; a crash can leave a partial raw file. The
