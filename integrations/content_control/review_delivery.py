@@ -239,17 +239,44 @@ def export_review(queue_root, job_id, output_dir):
 
 def export_cycle(review, provenance, queue_root, output_dir):
     from integrations.content_control.cycle_checkpoint import _publish_restore
-    from integrations.content_control.review_package import LIMIT, no_symlinks
+    from integrations.content_control.review_package import LIMIT, SHA, no_symlinks
 
     output = Path(os.path.abspath(output_dir))
     no_symlinks(output)
     if output.exists() or output.is_relative_to(Path(os.path.abspath(queue_root))):
         raise ValueError('Fresh export directory outside the queue required')
     source = regular(review / 'review-package.zip', limit=LIMIT)
+    package_path = regular(review / 'package.json', limit=MAX_JSON)
+    package = read_json(package_path)
+    files = package.get('files_sha256')
+    if (digest(package_path) != provenance['package_sha256'] or not isinstance(files, dict)
+            or not files or files.get('video.mp4') != provenance['candidate_sha256']):
+        raise ValueError('Verified cycle package identity changed before export')
+    for name, expected in files.items():
+        if (not isinstance(name, str) or Path(name).name != name or name in ('.', '..')
+                or not isinstance(expected, str) or not SHA.fullmatch(expected)):
+            raise ValueError('Invalid verified cycle preview identity')
+
+    entrypoint = 'review/index.html'
+    preview_files = {'review/' + name: expected for name, expected in files.items()}
+    preview_files['review/package.json'] = provenance['package_sha256']
+    identity = {
+        'job_id': provenance['job_id'], 'job_digest': provenance['job_digest'],
+        'attempt': provenance['attempt'], 'candidate_sha256': provenance['candidate_sha256'],
+        'package_sha256': provenance['package_sha256'],
+        'archive_sha256': provenance['review_archive_sha256'],
+        'entrypoint': entrypoint, 'entrypoint_sha256': files.get('index.html'),
+        'files_sha256': preview_files, **FLAGS,
+    }
     report = {'schema_version': 1, 'status': 'AWAITING_REVIEW', **FLAGS,
               'candidate_sha256': provenance['candidate_sha256'], 'archive': source.name,
-              'archive_sha256': provenance['review_archive_sha256'], 'entrypoint': 'index.html',
-              'provenance': provenance}
+              'archive_sha256': provenance['review_archive_sha256'], 'entrypoint': entrypoint,
+              'entrypoint_sha256': files.get('index.html'),
+              'package_sha256': provenance['package_sha256'],
+              'files_sha256': preview_files,
+              'delivery_identity_sha256': hashlib.sha256(canonical(identity).encode()).hexdigest(),
+              'provenance': provenance,
+              'scope': 'Exact unpublished private preview delivery; playback and creative acceptance remain unverified'}
     with tempfile.TemporaryDirectory(prefix='.cycle-export-', dir=output.parent) as directory:
         stage = Path(directory) / 'review'; stage.mkdir(mode=0o700)
         archive = stage / source.name
@@ -262,6 +289,22 @@ def export_cycle(review, provenance, queue_root, output_dir):
                 outgoing.write(chunk)
         if digest(archive) != report['archive_sha256']:
             raise ValueError('Review archive changed during export')
+        preview = stage / 'review'; preview.mkdir(mode=0o700)
+        remaining = MAX_PACKET
+        for name, expected in sorted({**files, 'package.json': provenance['package_sha256']}.items()):
+            origin = regular(review / name, limit=MAX_FILE)
+            remaining -= origin.stat().st_size
+            if remaining < 0:
+                raise ValueError('Private preview exceeds delivery limit')
+            target = preview / name
+            with origin.open('rb') as incoming, target.open('xb') as outgoing:
+                while chunk := incoming.read(1024 * 1024):
+                    outgoing.write(chunk)
+            if digest(target) != expected:
+                raise ValueError('Private preview changed during export: ' + name)
+        if (digest(source) != report['archive_sha256']
+                or digest(package_path) != provenance['package_sha256']):
+            raise ValueError('Verified cycle delivery changed during export')
         (stage / 'package.json').write_text(json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + '\n')
         _publish_restore(stage, output)
     return report

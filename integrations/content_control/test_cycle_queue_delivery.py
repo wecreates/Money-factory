@@ -1,4 +1,5 @@
 """Synthetic queue and package fixtures cover durable fresh-cycle delivery."""
+import hashlib
 import json
 import shutil
 import unittest
@@ -92,6 +93,26 @@ class CycleDeliveryTests(unittest.TestCase):
         self.assertEqual(result['candidate_sha256'], self.candidate)
         self.assertEqual(result['archive_sha256'], digest(output / 'review-package.zip'))
         self.assertEqual(result['archive_sha256'], digest(directory / 'delivery/review-package.zip'))
+        self.assertEqual(result['entrypoint'], 'review/index.html')
+        self.assertEqual(result['entrypoint_sha256'], digest(output / result['entrypoint']))
+        self.assertEqual(result['candidate_sha256'], digest(output / 'review/video.mp4'))
+        self.assertEqual(result['package_sha256'], digest(output / 'review/package.json'))
+        self.assertEqual(result['files_sha256']['review/index.html'], result['entrypoint_sha256'])
+        self.assertEqual(result['files_sha256']['review/video.mp4'], result['candidate_sha256'])
+        self.assertEqual(
+            {path.relative_to(output).as_posix() for path in (output / 'review').iterdir()},
+            set(result['files_sha256']))
+        identity = {
+            'job_id': result['provenance']['job_id'], 'job_digest': result['provenance']['job_digest'],
+            'attempt': result['provenance']['attempt'], 'candidate_sha256': result['candidate_sha256'],
+            'package_sha256': result['package_sha256'], 'archive_sha256': result['archive_sha256'],
+            'entrypoint': result['entrypoint'], 'entrypoint_sha256': result['entrypoint_sha256'],
+            'files_sha256': result['files_sha256'],
+            'publication_enabled': False, 'paid_generation_enabled': False,
+            'production_ready': False, 'production_approved': False, 'full_av_review': False,
+        }
+        self.assertEqual(result['delivery_identity_sha256'],
+                         hashlib.sha256(canonical(identity).encode()).hexdigest())
         self.assertFalse(result['production_approved'])
         for path in (output, queue.root / 'other'):
             with self.assertRaisesRegex(ValueError, 'outside the queue'):

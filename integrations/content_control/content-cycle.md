@@ -353,10 +353,13 @@ python -m integrations.content_control.review_delivery --queue /local/queue --id
 The read-only command verifies SQLite completion against the adapter receipt,
 exact production brief, revision lineage, and packaged candidate. On Linux or
 WSL2 it atomically creates a separate directory containing the original
-`review-package.zip` and a `package.json` receipt that binds queue, candidate,
-and archive. Extract the ZIP and open its `index.html`. Interrupted or changed
-attempts cannot be exported. Local delivery does not verify device playback or
-creative acceptance.
+`review-package.zip`, an immediately openable `review/index.html` tree and a
+root `package.json`. The root receipt binds the durable job digest and attempt,
+exact candidate, source package, archive, entrypoint and every copied preview
+file in one `delivery_identity_sha256`. Interrupted or changed attempts cannot
+be exported. The preview remains private and unpublished; this identity proves
+copied bytes, not browser/device playback, creative approval or durable off-host
+storage.
 
 For a revised brief, retain the standard request fields above, including
 `brief_sha256` computed from the canonical `brief` object, and add an optional
