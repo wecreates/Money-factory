@@ -6,6 +6,16 @@ This opt-in route connects a new researched editorial brief to the existing Mone
 
 `python -m integrations.content_control.cycle_authoring --pool /absolute/candidate-pool.json --research /absolute/selection/research.json --discovery-receipt /absolute/selection/discovery.json --output /absolute/draft.json` can turn that exact verified selection into a deterministic offline first script/storyboard draft. It preserves the narrator → Dave → Points Monk → narrator assignments, produces authored stick-figure visual specifications, and embeds the pool/research/receipt and script/storyboard identities. Intake replays the algorithm byte for byte and rejects edited or substituted drafts. This is a free, model-free authored prerequisite only: `authorship_verified`, originality review, factual review, competitor comparison, audiovisual review, approval, paid generation and publication all remain false.
 
+Add `--format long-form` to produce a source-bound landscape manuscript and
+storyboard with at least eight scenes and at least 120 seconds of planning
+duration. The long-form receipt binds the complete repeated narrator/Dave/
+Points Monk speaker sequence, exact planned duration and a distinct replay
+algorithm. Intake and the durable queue replay it byte for byte. This only
+opens the existing renderer's greater-than-60-second path; planning duration is
+not measured media duration, and `long_form_production_verified`, authorship,
+originality, factual, creative, listening, competitor, phone, deployment and
+publication acceptance all remain false until separately evidenced.
+
 ## Input and editorial scope
 
 Start with `examples/statement-balance-brief.json`. A brief contains HTTPS source links, retrieval timestamps, short supporting excerpts, explicitly typed reference observations, and original scene writing with claim-to-source IDs. `compile_editorial` validates structure and binds these inputs; it **does not fetch the URLs, invent research, or automatically write the scenes**. This example was researched and written with connected tools. The workflow reel is a transcript observation, while Oddsofmind is only an unobserved user preference. Neither is labeled an audiovisual comparison.
