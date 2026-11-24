@@ -62,6 +62,8 @@ def _selection_result(snapshot, selection, source_hash, recorded_at):
         observed = _timestamp(performance.get('observed_at'), 'observed_at')
         require(datetime.fromisoformat(start) <= datetime.fromisoformat(end) <= datetime.fromisoformat(observed), 'Invalid performance window')
         require(datetime.fromisoformat(start) >= datetime.fromisoformat(snapshot['cycle']['finished_at']), 'Performance predates candidate')
+        require(datetime.fromisoformat(recorded_at) >= datetime.fromisoformat(observed),
+                'Receipt predates performance observation')
         metrics = {'status': 'SUPPLIED_UNVERIFIED', 'impressions': counts[0], 'clicks': counts[1],
                    'ctr': counts[1] / counts[0] if counts[0] else None,
                    'window_start': start, 'window_end': end, 'observed_at': observed,

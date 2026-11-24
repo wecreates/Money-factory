@@ -402,7 +402,8 @@ Omit `performance` or set it to null when analytics are unavailable. The receipt
 keeps impressions, clicks and CTR null, never invented zero values. Optional
 supplied performance must bind the same candidate/title/thumbnail and provide
 integer impressions/clicks, `window_start`, `window_end`, `observed_at`,
-`source_url` and `evidence`; it remains explicitly unverified, even when CTR can
+`source_url` and `evidence`. The receipt timestamp must be at or after the
+observation. The performance remains explicitly unverified, even when CTR can
 be calculated. A selection never grants creative or publishing approval.
 
 [The November 21 selection receipt](cycle-selection-proof-20261121.json) records
