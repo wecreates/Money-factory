@@ -568,9 +568,10 @@ The parent span and planned portrait duration must be at most 60 seconds.
 Production checks the portable handoff's scene order and evidence identities.
 It also checks the bound narration's frame budget before drawing and verifies
 the encoded picture and container lengths before transcription and delivery.
-The queue verifies both measured lengths and the bound maximum in fresh
-producer receipts. An overlength portrait handoff stops with its measured
-evidence. Existing retained packets remain readable.
+The queue remeasures the picture and container lengths from the bound MP4 and
+checks them against the producer receipts and 60-second maximum. A mismatched
+or overlength delivery fails review and export. Retained packets without a
+maximum-duration claim remain readable.
 Measure the actual export separately. No cropping or reuse of a landscape
 audio stream occurs in this path.
 
