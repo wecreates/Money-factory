@@ -710,6 +710,25 @@ python -m integrations.content_control.cycle_short \
   --start 0 --end 30 --timeout 180
 ```
 
+When the parent came from the durable local queue, consume it by immutable job
+ID instead of supplying an artifact path:
+
+```sh
+python -m integrations.content_control.cycle_queue_short \
+  --queue-root /absolute/queue --job-id JOB_ID \
+  --output /absolute/new-short --start 0 --end 30 --timeout 180
+```
+
+This read-only queue consumer requires a durably succeeded parent
+`content-control-cycle` attempt and replays the SQLite job/attempt receipt,
+adapter receipt, cycle/package/archive identities and retained intake evidence
+before and after the existing Short exporter runs. `queue-short.json` binds the
+job digest and attempt to the parent candidate/cycle, exact Short MP4 and VTT,
+encoded H.264/AAC packet hashes and an ordered decoded RGB-frame hash. The
+consumer has a separate read-only verifier and never changes queue state.
+These identities prove byte/stream/frame continuity, not picture quality,
+listening quality, editorial selection, phone playback or creative acceptance.
+
 The source must already have 9:16 portrait framing and exactly one audio stream;
 landscape, rotated or anamorphic inputs fail instead of receiving an invented
 crop. The interval must be finite, within source duration and at most 60 seconds.

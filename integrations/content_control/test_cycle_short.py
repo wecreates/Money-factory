@@ -1,5 +1,6 @@
 """Synthetic fixture tests establish transport/encoding, not creative acceptance."""
 import json
+import re
 from fractions import Fraction
 from pathlib import Path
 import subprocess
@@ -53,6 +54,10 @@ class ShortTests(unittest.TestCase):
         self.assertEqual((r['media']['width'],r['media']['height']),(90,160))
         self.assertEqual(r['boundary_cue_numbers'],[1,2])
         self.assertEqual(r['candidate_sha256'],m.digest(self.base/'short/video.mp4'))
+        self.assertRegex(r['decoded_picture_sha256'], r'^[0-9a-f]{64}$')
+        self.assertEqual(set(r['encoded_streams_sha256']), {'video', 'audio'})
+        self.assertTrue(all(re.fullmatch(r'[0-9a-f]{64}', value)
+                            for value in r['encoded_streams_sha256'].values()))
         self.assertEqual(r['parent_candidate_sha256'],'a'*64)
         review = self.base / 'short/automated-review.json'
         self.assertEqual(r['automated_review_sha256'], m.digest(review))
@@ -175,7 +180,8 @@ class ShortTests(unittest.TestCase):
             source = {'width': 90, 'height': 160, 'duration_seconds': 3}
             actual = {**source, 'duration_seconds': container, 'picture_duration_seconds': picture}
             with self.subTest(shorter=label), patch.object(m, 'inspect_cycle', return_value=self.snapshot), \
-                 patch.object(m, '_probe', side_effect=[source, actual]), patch.object(m, '_run', side_effect=fake_run):
+                 patch.object(m, '_probe', side_effect=[source, actual]), patch.object(m, '_run', side_effect=fake_run), \
+                 patch.object(m, 'media_identities', return_value=({'video':'1'*64,'audio':'2'*64},'3'*64)):
                 result = m.make_short(self.root, output, start=.5, end=2)
                 self.assertEqual(result['status'], 'AWAITING_REVIEW', result)
                 self.assertIn('00:00:01.450', (output/'captions.vtt').read_text())
