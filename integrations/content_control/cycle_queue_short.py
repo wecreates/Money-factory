@@ -51,6 +51,83 @@ def _artifacts(output):
     return values
 
 
+def _scene_selection(cycle, scene_ids):
+    """Resolve exact contiguous authored scenes from the bound render receipt."""
+    if (not isinstance(scene_ids, (list, tuple)) or not scene_ids
+            or any(not isinstance(value, str) or not value or len(value) > 128
+                   for value in scene_ids)
+            or len(set(scene_ids)) != len(scene_ids)):
+        raise ValueError('Scene selection requires unique nonempty scene IDs')
+    path = cycle / 'delivery/render.json'
+    if (path.is_symlink() or not path.is_file()
+            or path.stat().st_size > 1024 * 1024):
+        raise ValueError('Bound render receipt is unavailable for scene selection')
+    render = read_json(path)
+    rows = render.get('scenes') if isinstance(render, dict) else None
+    if not isinstance(rows, list) or not rows:
+        raise ValueError('Bound render receipt has no authored scene timeline')
+    ordered, positions = [], {}
+    previous_end = None
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError('Bound authored scene timeline is invalid')
+        scene_id, start, end = row.get('scene_id'), row.get('start'), row.get('end')
+        if (not isinstance(scene_id, str) or not scene_id or scene_id in positions
+                or type(start) not in (int, float) or type(end) not in (int, float)
+                or not math.isfinite(start) or not math.isfinite(end)
+                or not 0 <= start < end
+                or (previous_end is not None and abs(start - previous_end) > .001)):
+            raise ValueError('Bound authored scene timeline is invalid')
+        ordered.append((scene_id, float(start), float(end)))
+        positions[scene_id] = index
+        previous_end = end
+    try:
+        indexes = [positions[value] for value in scene_ids]
+    except KeyError as error:
+        raise ValueError('Requested scene is absent from the bound render receipt') from error
+    if indexes != list(range(indexes[0], indexes[0] + len(indexes))):
+        raise ValueError('Short scenes must be contiguous and in authored order')
+    raw_start, raw_end = ordered[indexes[0]][1], ordered[indexes[-1]][2]
+    start, end = round(raw_start * 1000) / 1000, round(raw_end * 1000) / 1000
+    if start >= end:
+        raise ValueError('Authored scene span is shorter than one exporter millisecond')
+    if end - start > 60:
+        raise ValueError('Authored scene span exceeds the 60-second Short limit')
+    return {
+        'method': 'authored_contiguous_scene_span_v1',
+        'scene_ids': list(scene_ids),
+        'render_receipt_sha256': digest(path),
+        'start_seconds': start,
+        'end_seconds': end,
+        'editorial_selection_verified': False,
+        'scope': ('Contiguous authored scene boundaries from the durable parent render receipt, '
+                  'canonicalized to the exporter millisecond contract. This binds the cut; it does not '
+                  'establish that the scenes are the best creative selection.'),
+    }
+
+
+def _selection(cycle, start, end, scene_ids):
+    if scene_ids:
+        if start is not None or end is not None:
+            raise ValueError('Use either authored scenes or explicit time bounds, not both')
+        return _scene_selection(cycle, scene_ids)
+    if start is None or end is None:
+        raise ValueError('Both explicit time bounds or at least one authored scene are required')
+    if (type(start) not in (int, float) or type(end) not in (int, float)
+            or not math.isfinite(start) or not math.isfinite(end)
+            or not 0 <= start < end or end - start > 60):
+        raise ValueError('Explicit finite interval of at most 60 seconds required')
+    start, end = round(start * 1000) / 1000, round(end * 1000) / 1000
+    if start >= end:
+        raise ValueError('Explicit interval must span at least one exporter millisecond')
+    return {
+        'method': 'explicit_time_bounds_v1', 'scene_ids': [],
+        'render_receipt_sha256': None, 'start_seconds': start, 'end_seconds': end,
+        'editorial_selection_verified': False,
+        'scope': 'Explicit supplied time bounds; not automatic editorial selection or creative approval.',
+    }
+
+
 def _verify_payload(cycle, source, output, receipt, deadline):
     """Cross-check both receipts, every named artifact and decoded media."""
     short = read_json(output / 'short.json')
@@ -69,6 +146,20 @@ def _verify_payload(cycle, source, output, receipt, deadline):
         'decoded_picture_sha256': picture,
         'media': media,
     }
+    selection = receipt.get('selection')
+    if not isinstance(selection, dict):
+        raise ValueError('Short selection receipt is missing')
+    if selection.get('method') == 'authored_contiguous_scene_span_v1':
+        expected_selection = _scene_selection(cycle, selection.get('scene_ids'))
+    elif selection.get('method') == 'explicit_time_bounds_v1':
+        expected_selection = _selection(cycle, selection.get('start_seconds'),
+                                        selection.get('end_seconds'), None)
+    else:
+        raise ValueError('Short selection method is unsupported')
+    if (selection != expected_selection
+            or selection.get('start_seconds') != receipt.get('start_seconds')
+            or selection.get('end_seconds') != receipt.get('end_seconds')):
+        raise ValueError('Short selection no longer matches the durable parent')
     if (short.get('schema_version') != 1
             or receipt.get('schema_version') != 1
             or short.get('status') != 'AWAITING_REVIEW'
@@ -91,8 +182,8 @@ def _verify_payload(cycle, source, output, receipt, deadline):
     return artifacts, short
 
 
-def consume_short(queue_root, job_id, output, *, start, end, timeout=180,
-                  hide_source_counter=False, compact_captions=False):
+def consume_short(queue_root, job_id, output, *, start=None, end=None, scene_ids=None,
+                  timeout=180, hide_source_counter=False, compact_captions=False):
     """Run the existing exporter against one exact durable queue completion."""
     if any(os.environ.get(key, 'false').lower() != 'false'
            for key in ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')):
@@ -102,12 +193,15 @@ def consume_short(queue_root, job_id, output, *, start, end, timeout=180,
     if output.exists() or output.is_relative_to(Path(os.path.abspath(queue_root))):
         raise ValueError('Fresh Short output directory outside the queue required')
     cycle, before = _source(queue_root, job_id)
+    selection = _selection(cycle, start, end, scene_ids)
+    start, end = selection['start_seconds'], selection['end_seconds']
     result = make_short(cycle, output, start=start, end=end, timeout=timeout,
                         hide_source_counter=hide_source_counter,
                         compact_captions=compact_captions)
     consumer_path = output / 'queue-short.json'
     receipt = {'schema_version': 1, 'status': 'BLOCKED', **FLAGS,
                'job_id': job_id, 'source_provenance': before,
+               'selection': selection,
                'started_at': datetime.now(timezone.utc).isoformat(),
                'scope': ('Exact durable parent-cycle queue completion consumed by the existing '
                          'bounded Short exporter; no creative, listening, phone or publishing approval.')}
@@ -126,7 +220,11 @@ def consume_short(queue_root, job_id, output, *, start, end, timeout=180,
                 or not SHA.fullmatch(result['decoded_picture_sha256'])):
             raise ValueError('Short encoded-stream or decoded-frame identity is missing')
         cycle_after, after = _source(queue_root, job_id)
-        if cycle_after != cycle or after != before:
+        current_selection = (_scene_selection(cycle_after, selection['scene_ids'])
+                             if selection['scene_ids'] else
+                             _selection(cycle_after, selection['start_seconds'],
+                                        selection['end_seconds'], None))
+        if cycle_after != cycle or after != before or current_selection != selection:
             raise ValueError('Durable source changed while producing the Short')
         artifacts = _artifacts(output)
         if (artifacts['video.mp4'] != result.get('candidate_sha256')
@@ -157,7 +255,7 @@ def consume_short(queue_root, job_id, output, *, start, end, timeout=180,
         if final_cycle != cycle or final_source != before or _artifacts(output) != artifacts:
             raise ValueError('Source or Short artifacts changed before completion')
     except (ValueError, OSError, KeyError, TypeError, RuntimeError) as error:
-        receipt['reason'] = str(error)
+        receipt.update(status='BLOCKED', technical_status='FAIL', reason=str(error))
     finally:
         receipt['finished_at'] = datetime.now(timezone.utc).isoformat()
         _write(consumer_path, receipt)
@@ -201,14 +299,17 @@ def main():
     parser.add_argument('--queue-root', required=True)
     parser.add_argument('--job-id', required=True)
     parser.add_argument('--output', required=True)
-    parser.add_argument('--start', type=float, required=True)
-    parser.add_argument('--end', type=float, required=True)
+    parser.add_argument('--start', type=float)
+    parser.add_argument('--end', type=float)
+    parser.add_argument('--scene', action='append', dest='scene_ids',
+                        help='Authored scene ID; repeat for one contiguous span')
     parser.add_argument('--timeout', type=int, default=180)
     parser.add_argument('--hide-source-counter', action='store_true')
     parser.add_argument('--compact-captions', action='store_true')
     args = parser.parse_args()
     result = consume_short(args.queue_root, args.job_id, args.output,
-                           start=args.start, end=args.end, timeout=args.timeout,
+                           start=args.start, end=args.end, scene_ids=args.scene_ids,
+                           timeout=args.timeout,
                            hide_source_counter=args.hide_source_counter,
                            compact_captions=args.compact_captions)
     print(json.dumps(result, indent=2))
