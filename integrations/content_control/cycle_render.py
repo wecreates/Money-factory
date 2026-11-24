@@ -45,10 +45,12 @@ ASR_ASSETS = {
 }
 MOTION_FRAMES = 24
 MOTION_FPS = 8
-MOTION_KIND = 'periodic_whole_character_sway_bob_v1'
-MOTION_SCOPE = ('Deterministic three-second arm gesture with subtle whole-character sway and bob; '
-                'diagrams, typography, and speaker labels stay fixed. No lip sync or facial animation.')
+MOTION_KIND = 'authored_scene_motion_v2'
+MOTION_SCOPE = ('Deterministic three-second character motion. Existing scenes retain the periodic sway/bob; '
+                'an opted scene can use one authored emphasis-and-hold pattern interrupt. Diagrams, typography, '
+                'and speaker labels stay fixed. No lip sync or facial animation.')
 AUTHORED_GESTURES = ('point_left', 'point_right', 'open_hands')
+AUTHORED_MOTION_PATTERNS = ('emphasis_hold',)
 PANEL_BACKGROUND = '#f7f1e6'
 COMPARISON_BOUNDS = ((60, 340, 345, 710), (375, 340, 660, 710))
 PORTRAIT_SIZE = (720, 1280)
@@ -204,6 +206,8 @@ def validate_visual_shape(spec):
         raise ValueError('Invalid headline')
     if 'gesture' in spec and spec['gesture'] not in AUTHORED_GESTURES:
         raise ValueError('Gesture must be point_left, point_right or open_hands')
+    if 'motion_pattern' in spec and spec['motion_pattern'] not in AUTHORED_MOTION_PATTERNS:
+        raise ValueError('Motion pattern must be emphasis_hold')
     for key, limit in [('labels', 50), ('values', 30)]:
         fields = spec.get(key, [])
         if not isinstance(fields, list) or any(not isinstance(v, str) or len(v) > limit for v in fields):
@@ -381,20 +385,46 @@ def synthesize(editorial, output, voice_root):
           'voice_assignments': VOICE_ASSIGNMENTS})
 
 
-def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_label_position=None):
-    """Fresh diagram and character composition with a bounded periodic gesture.
+def character_motion(spec, phase):
+    """Return deterministic character translation and arm emphasis for one scene.
 
-    Phase is a fraction of one loop. Zero preserves the representative pose;
-    the character sways and bobs while labels, diagrams and identity stay fixed.
+    The default exactly preserves the original periodic sway/bob. The authored
+    emphasis pattern introduces a still opening, a short eased move, a sustained
+    hold, and an eased return. It is deliberately opt-in so old editorials and
+    their character identities remain unchanged.
     """
     if type(phase) not in (int, float) or not math.isfinite(phase):
         raise ValueError('Finite numeric motion phase required')
+    normalized = phase % 1.0
+    if spec.get('motion_pattern') != 'emphasis_hold':
+        wave = math.sin(2 * math.pi * normalized)
+        return round(wave * 18), -round(abs(wave) * 10), wave * .18
+    if normalized < .2:
+        emphasis = 0.0
+    elif normalized < .32:
+        progress = (normalized - .2) / .12
+        emphasis = progress * progress * (3 - 2 * progress)
+    elif normalized < .72:
+        emphasis = 1.0
+    else:
+        progress = (1 - normalized) / .28
+        emphasis = progress * progress * (3 - 2 * progress)
+    direction = -1 if spec.get('gesture') == 'point_left' else 1
+    return round(direction * emphasis * 22), -round(emphasis * 8), emphasis * .2
+
+
+def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_label_position=None):
+    """Fresh diagram and character composition with bounded authored motion.
+
+    Phase is a fraction of one loop. Zero preserves the representative pose;
+    labels, diagrams and identity stay fixed for every supported motion pattern.
+    """
     size = panel_size(layout)
     if speaker_label_position is not None and (speaker_label_position != 'above' or layout is not None):
         raise ValueError('speaker_label_position: omit or use above on portrait')
     validate_visual_shape(scene.get('visual_spec', {}))
-    wave = math.sin(2 * math.pi * (phase % 1.0))
-    gesture = wave * .18
+    spec = scene.get('visual_spec', {})
+    x_offset, y_offset, gesture = character_motion(spec, phase)
     from PIL import Image, ImageDraw, ImageFont
     # The shared diagram layer preserves existing labels, artwork and font bounds.
     image = Image.new('RGB', (PORTRAIT_SIZE[0], DIAGRAM_LAYER_BOTTOM) if layout else size,
@@ -450,7 +480,6 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
                     draw.text(position, line, font=f, fill=color, anchor=anchor)
                 return
         raise ValueError('Visual text exceeds readable panel bounds')
-    spec = scene.get('visual_spec', {})
     headline = spec.get('headline') or scene['visual'][:60]
     if layout is None:
         wrapped(headline, 105, size=42, max_lines=3)
@@ -524,8 +553,8 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
     # the picture visibly alive at phone size while leaving the information
     # layer and speaker identity anchored.  The loop starts and ends on the
     # exact representative pose, so panel receipts remain deterministic.
-    x = base_x + round(wave * 18)
-    y = base_y - round(abs(wave) * 10)
+    x = base_x + x_offset
+    y = base_y + y_offset
     draw.ellipse((x-38,y-100,x+38,y-24),outline=ink,width=6)
     draw.ellipse((x-16,y-76,x-9,y-69),fill=ink)
     draw.ellipse((x+9,y-76,x+16,y-69),fill=ink)
@@ -730,13 +759,12 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                          'motion_directory':motion_dir.name,'motion_frames_sha256':motion_hashes})
             if 'gesture' in scene.get('visual_spec', {}):
                 rows[-1]['authored_gesture'] = scene['visual_spec']['gesture']
+            if 'motion_pattern' in scene.get('visual_spec', {}):
+                rows[-1]['authored_motion_pattern'] = scene['visual_spec']['motion_pattern']
             if reveal:
                 rows[-1]['visual_reveal'] = reveal
-                receipt['motion']['scope'] = ('Deterministic three-second arm gesture with subtle whole-character '
-                                             'sway and bob. Opted comparison '
-                                             'scenes reveal the second card once on the rendered scene clock. '
-                                             'Diagrams, typography, and speaker labels stay fixed. No lip sync '
-                                             'or automatic speech alignment.')
+                receipt['motion']['scope'] = (MOTION_SCOPE + ' Opted comparison scenes reveal the second card once '
+                                             'on the rendered scene clock; no automatic speech alignment.')
             segments.append(segment.name);start+=duration
         (output/'segments.txt').write_text(''.join("file '"+name+"'\n" for name in segments))
         staged_video = output/'concatenated.mp4'

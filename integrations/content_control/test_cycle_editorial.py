@@ -71,6 +71,24 @@ class EditorialTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Gesture must'):
                 compile_editorial(subject)
 
+    def test_explicit_scene_motion_pattern_is_bound_and_validated(self):
+        subject = brief()
+        subject['scenes'][0]['visual_spec'] = {
+            'kind': 'comparison', 'headline': 'COMPARE TOTALS',
+            'gesture': 'point_left', 'motion_pattern': 'emphasis_hold'}
+        compiled = compile_editorial(subject)
+        visual = compiled['scenes'][0]['visual_spec']
+        self.assertEqual(visual['gesture'], 'point_left')
+        self.assertEqual(visual['motion_pattern'], 'emphasis_hold')
+        self.assertFalse(compiled['publication_enabled'])
+        self.assertFalse(compiled['paid_generation_enabled'])
+        self.assertFalse(compiled['production_approved'])
+        self.assertFalse(compiled['full_av_review'])
+        for unsupported in ('sway', 'emphasis-hold', '', None, True, []):
+            subject['scenes'][0]['visual_spec']['motion_pattern'] = unsupported
+            with self.assertRaisesRegex(ValueError, 'Motion pattern must be emphasis_hold'):
+                compile_editorial(subject)
+
     def test_above_speaker_label_is_portrait_only_and_bound(self):
         base = compile_editorial(brief())
         revised = compile_editorial(dict(brief(), speaker_label_position='above'))
