@@ -197,11 +197,13 @@ python -m integrations.content_control.cycle_live_comparison \
 ```
 
 The input names the exact candidate SHA, reviewer and review time, one complete
-candidate observation, and exactly two distinct competitor references. Candidate
+candidate observation, schema version 2, and exactly two distinct competitor references. Candidate
 and reference observations are contiguous intervals from zero through the full
 declared playback duration. Every interval records audio, visuals, pacing and
-story observations. Each reference also carries its topic/format, selection
-basis, a separate dated ranking-evidence URL, and dated playback evidence. Its
+story observations. Each reference also carries explicit audio, visual, pacing
+and story differences from the candidate plus at least one actionable finding;
+generic observation text alone is insufficient. Each reference carries its
+topic/format, selection basis, a separate dated ranking-evidence URL, and dated playback evidence. Its
 access record must explicitly say `live_view_only`, playback permitted, media
 not downloaded, accessible, picture accessible and sound accessible. A specific
 Instagram reel URL is accepted only under those live-view conditions; the
