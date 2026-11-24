@@ -20,6 +20,15 @@ pending file. A fresh hosted runner cannot replay an interrupted runner's local
 filesystem, and external readers that open both files outside the worker can
 observe an in-flight write. Retained Git commits contain only completed pairs.
 
+The scheduled worker restores and persists those completed pairs on the
+dedicated `cyzor-free-monitor-state` branch. It must not commit cadence state to
+`main`: doing so changed the repository page being watched, generated a false
+repository-change event on the next cycle, and bypassed reviewed-PR history for
+operational data. The repository watch now hashes GitHub's public `commits/main`
+response, while the state branch changes independently. This prevents the
+monitor from alerting on its own cadence writes. It does not make the monitor a
+deployed alert-delivery service or establish 24-hour acceptance.
+
 ## November 21, 2026 investigation
 
 At repository base `c73ca61d239c7f8e2dde3da60087a2c164695635`, the verifier still
