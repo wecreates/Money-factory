@@ -75,6 +75,7 @@ class CheckpointTests(unittest.TestCase):
             self.assertNotIn('secret.txt', bundle.namelist())
             self.assertIn('render/video.mp4', bundle.namelist())
             self.assertIn('render/captions.vtt', bundle.namelist())
+            self.assertIn('render/voice.json', bundle.namelist())
 
     def test_extra_traversal_duplicate_or_missing_member_rejected(self):
         for name in ('../escape', '/absolute', 'cycle.json', 'render\\escape'):

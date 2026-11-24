@@ -2,6 +2,8 @@
 
 Only the files needed to inspect/review/revise a completed cycle are retained.
 Voice models, raw stems, motion frames, credentials and unrelated files are not.
+The small voice receipt is retained so later listeners can verify character
+assignments without retaining synthesis assets.
 """
 import argparse
 import ctypes
@@ -24,7 +26,7 @@ FILES = frozenset(['cycle.json', 'brief.json', 'editorial.json'] +
                   ['delivery/' + n for n in ('video.mp4', 'captions.vtt', 'render.json',
                    'editorial.json', 'index.html', 'thumbnail-1.png', 'thumbnail-2.png',
                    'thumbnail-3.png', 'package.json', 'review-package.zip')])
-OPTIONAL_FILES = frozenset({'delivery/automated-review.json'})
+OPTIONAL_FILES = frozenset({'delivery/automated-review.json', 'render/voice.json'})
 FILE_LIMIT = 256 * 1024 * 1024
 TOTAL_LIMIT = 1024 * 1024 * 1024
 MANIFEST_LIMIT = 64 * 1024
@@ -54,7 +56,8 @@ def create_checkpoint(cycle_dir, output):
     snapshot = inspect_cycle(root)
     snapshot_names = set(snapshot['files_sha256'])
     require(snapshot_names <= FILES | OPTIONAL_FILES, 'Unsupported additional package files')
-    files = FILES | (snapshot_names & OPTIONAL_FILES)
+    optional = {name for name in OPTIONAL_FILES if (root / name).is_file()}
+    files = FILES | optional
     identities = _identities(root, files)
     manifest = {'schema_version': 1, 'candidate_sha256': snapshot['candidate_sha256'],
                 'files': identities, 'created_at': datetime.now(timezone.utc).isoformat(), **FLAGS,
@@ -141,7 +144,8 @@ def restore_checkpoint(archive, output, *, expected_sha256):
                 require(digest(path) == expected['sha256'], 'Restored member identity mismatch: ' + name)
         snapshot = inspect_cycle(temporary)
         require(snapshot['candidate_sha256'] == manifest.get('candidate_sha256')
-                and (artifacts & OPTIONAL_FILES) == (set(snapshot['files_sha256']) & OPTIONAL_FILES)
+                and (artifacts & {'delivery/automated-review.json'}) ==
+                    (set(snapshot['files_sha256']) & {'delivery/automated-review.json'})
                 and _identities(temporary, artifacts) == files,
                 'Restored checkpoint differs from manifest')
         require(digest(archive) == expected_sha256, 'Checkpoint changed during restore')

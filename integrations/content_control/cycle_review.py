@@ -20,6 +20,8 @@ from integrations.content_control.review_package import digest, no_symlinks, req
 
 CHECKS = ('factual_accuracy', 'full_audiovisual', 'voice_naturalness',
           'visual_readability', 'originality', 'reference_comparison')
+LISTENER_CHECKS = ('naturalness', 'pronunciation', 'character_consistency',
+                   'music_and_sfx', 'transitions', 'mix_balance')
 FLAGS = ('publication_enabled', 'paid_generation_enabled', 'production_approved', 'full_av_review')
 
 
@@ -37,6 +39,122 @@ def _load(path):
 
 def _unapproved(value):
     require(all(value.get(flag) is False for flag in FLAGS), 'Publication and approval flags must remain false')
+
+
+def _verified_voice(root, editorial, render):
+    """Authenticate an optional renderer voice receipt and canonical assignments."""
+    from integrations.content_control.cycle_render import VOICE_ASSIGNMENTS
+
+    voice_path = root / 'render/voice.json'
+    declared = render.get('voice_receipt_sha256')
+    present = voice_path.exists()
+    if not present and declared is None:
+        return None
+    require(present and isinstance(declared, str) and SHA.fullmatch(declared),
+            'Voice receipt file and identity must appear together')
+    voice = _load(voice_path)
+    voice_hash = digest(voice_path)
+    require(declared == voice_hash, 'Rendered voice receipt identity mismatch')
+    require(voice.get('status') == 'GENERATED_PENDING_LISTENING_REVIEW'
+            and voice.get('voice_assignments') == VOICE_ASSIGNMENTS
+            and all(voice.get(key) is False for key in
+                    ('publication_enabled', 'production_approved', 'full_av_review')),
+            'Voice receipt or assignments changed')
+    clips = voice.get('clips')
+    scenes = editorial.get('scenes')
+    require(isinstance(clips, list) and isinstance(scenes, list) and len(clips) == len(scenes),
+            'Voice clips do not match authored scenes')
+    for clip, scene in zip(clips, scenes):
+        speaker = scene.get('speaker', 'narrator')
+        require(isinstance(clip, dict) and clip.get('scene_id') == scene.get('id')
+                and clip.get('speaker') == speaker
+                and clip.get('voice_id') == VOICE_ASSIGNMENTS.get(speaker),
+                'Character voice assignment changed')
+    assignments_sha = hashlib.sha256(json.dumps(
+        VOICE_ASSIGNMENTS, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+    return {'voice_receipt_sha256': voice_hash, 'voice_assignments_sha256': assignments_sha}
+
+
+def _listener_attestation(root, snapshot, value):
+    """Bind direct full-mix listening notes to the exact candidate and voices.
+
+    This records a supplied human judgment.  It deliberately rejects ASR and
+    signal diagnostics as substitutes and never promotes the judgment to an
+    independently verified approval.
+    """
+    require(isinstance(value, dict) and set(value) == {
+        'schema_version', 'candidate_sha256', 'listener', 'listened_at',
+        'basis', 'coverage', 'checks'}, 'Exact listener review fields required')
+    require(type(value.get('schema_version')) is int and value['schema_version'] == 1,
+            'Listener review schema mismatch')
+    require(value.get('candidate_sha256') == snapshot['candidate_sha256'],
+            'Listener review targets a different candidate')
+    listener = _text(value.get('listener'), 'listener_review.listener', 200)
+    listened_at = _timestamp(value.get('listened_at'), 'listener_review.listened_at')
+    require(datetime.fromisoformat(listened_at) >= datetime.fromisoformat(snapshot['cycle']['finished_at']),
+            'Listener review predates completed cycle')
+    require(value.get('basis') == 'direct_full_mix_listening',
+            'ASR and technical diagnostics cannot substitute for direct listening')
+
+    render = _load(root / 'delivery/render.json')
+    duration = render.get('duration_seconds')
+    require(type(duration) in (int, float) and not isinstance(duration, bool)
+            and 0 < duration <= 1800, 'Bounded rendered duration required for listener coverage')
+    coverage = value.get('coverage')
+    require(isinstance(coverage, list) and 1 <= len(coverage) <= 100,
+            'Listener coverage intervals required')
+    normalized_coverage, prior = [], 0.0
+    for interval in coverage:
+        require(isinstance(interval, dict) and set(interval) == {'start_seconds', 'end_seconds'},
+                'Exact listener coverage interval fields required')
+        start, end = interval['start_seconds'], interval['end_seconds']
+        require(all(type(item) in (int, float) and not isinstance(item, bool) for item in (start, end))
+                and 0 <= start < end <= duration + .001 and abs(start - prior) <= .001,
+                'Listener coverage must be contiguous from zero')
+        normalized_coverage.append({'start_seconds': start, 'end_seconds': end})
+        prior = end
+    require(abs(prior - duration) <= .001, 'Listener coverage must include the complete program')
+
+    checks = value.get('checks')
+    require(isinstance(checks, dict) and set(checks) == set(LISTENER_CHECKS),
+            'All granular listener checks are required')
+    normalized_checks, feedback = {}, []
+    for name in LISTENER_CHECKS:
+        item = checks[name]
+        require(isinstance(item, dict) and set(item) in ({'passed', 'evidence'},
+                {'passed', 'evidence', 'feedback'}) and type(item.get('passed')) is bool,
+                'Exact granular listener check fields required')
+        evidence = _text(item.get('evidence'), 'listener_review.' + name + '.evidence', 4000, minimum=12)
+        normalized_checks[name] = {'passed': item['passed'], 'evidence': evidence}
+        if item['passed']:
+            require('feedback' not in item, 'Passing listener checks cannot carry repair feedback')
+        else:
+            action = _text(item.get('feedback', evidence), 'listener_review.' + name + '.feedback',
+                           4000, minimum=12)
+            normalized_checks[name]['feedback'] = action
+            feedback.append({'check': 'listener.' + name, 'action': action})
+
+    voice_identity = _verified_voice(root, snapshot['editorial'], render)
+    require(voice_identity is not None, 'Authenticated voice receipt required for listening review')
+    return ({'schema_version': 1, 'candidate_sha256': snapshot['candidate_sha256'],
+             'listener': listener, 'listened_at': listened_at,
+             'basis': 'direct_full_mix_listening', 'coverage': normalized_coverage,
+             'checks': normalized_checks, **voice_identity,
+             'listener_attestation_recorded': True,
+             'independent_listening_verification': False,
+             'scope': 'Supplied direct full-mix listening attestation; ASR and signal diagnostics are excluded.'},
+            feedback, all(item['passed'] for item in normalized_checks.values()))
+
+
+def _validate_recorded_listener(root, snapshot, value):
+    require(isinstance(value, dict), 'Recorded listener review required')
+    submitted_fields = {'schema_version', 'candidate_sha256', 'listener', 'listened_at',
+                        'basis', 'coverage', 'checks'}
+    require(submitted_fields <= set(value), 'Recorded listener review is incomplete')
+    expected, _, passed = _listener_attestation(
+        root, snapshot, {key: value[key] for key in submitted_fields})
+    require(value == expected, 'Recorded listener review identity or scope changed')
+    return passed
 
 
 def inspect_cycle(cycle_dir):
@@ -106,8 +224,11 @@ def inspect_cycle(cycle_dir):
     for name in ('video.mp4', 'captions.vtt', 'render.json'):
         _regular(root / 'render' / name, 256 * 1024 * 1024)
         require(digest(root / 'render' / name) == digest(delivery / name), 'Original render artifact changed: ' + name)
+    voice_identity = _verified_voice(root, editorial, render)
     identities = {name: digest(root / name) for name in ('cycle.json', 'brief.json', 'editorial.json',
                    'render/render.json', 'delivery/package.json', 'delivery/review-package.zip')}
+    if voice_identity is not None:
+        identities['render/voice.json'] = voice_identity['voice_receipt_sha256']
     identities.update({'delivery/' + name: expected for name, expected in files.items()})
     return {'cycle': cycle, 'editorial': editorial, 'candidate_sha256': candidate, 'files_sha256': identities}
 
@@ -195,6 +316,13 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
             action = _text(item.get('feedback', evidence), name + '.feedback', 4000, minimum=12)
             normalized[name]['feedback'] = action
             feedback.append({'check': name, 'action': action})
+    listener = None
+    if 'voice_naturalness' in checks:
+        listener, listener_feedback, all_listener_checks_passed = _listener_attestation(
+            root, snapshot, review.get('listener_review'))
+        require(checks['voice_naturalness']['passed'] is all_listener_checks_passed,
+                'Voice naturalness summary disagrees with granular listener checks')
+        feedback.extend(listener_feedback)
     result = {'schema_version': 1, 'status': 'REVISION_REQUIRED' if feedback else 'EDITORIAL_REVIEW_RECORDED',
               'candidate_sha256': snapshot['candidate_sha256'], 'reviewer': reviewer,
               'reviewed_at': reviewed_at, 'recorded_at': datetime.now(timezone.utc).isoformat(),
@@ -203,6 +331,8 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
               'scope': 'Candidate-bound reviewer attestation only; supplied judgments are not independently verified.',
               'publication_enabled': False, 'paid_generation_enabled': False, 'production_approved': False,
               'full_av_review': False, 'production_ready': False}
+    if listener is not None:
+        result['listener_review'] = listener
     recheck_rea = None
     if rea_analysis is not None:
         from integrations.rea_video.analyze_cycle import review_evidence
@@ -215,6 +345,12 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
     output = _new_output(output, root, review_path)
     if recheck_rea is not None:
         recheck_rea()
+    require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash,
+            'Review inputs changed before final recording')
+    if listener is not None:
+        rechecked = _listener_attestation(root, snapshot, review.get('listener_review'))
+        require(rechecked == (listener, listener_feedback, all_listener_checks_passed),
+                'Listener evidence changed before final recording')
     with output.open('x') as stream:
         json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False); stream.write('\n')
     return result
@@ -234,6 +370,15 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
     require(review.get('candidate_sha256') == snapshot['candidate_sha256'] and
             review.get('source_files_sha256') == snapshot['files_sha256'], 'Review does not bind current cycle')
     require(review.get('independent_verification') is False, 'Review scope mismatch')
+    recorded_checks = review.get('checks')
+    require(isinstance(recorded_checks, dict) and set(recorded_checks) <= set(CHECKS),
+            'Recorded review checks are invalid')
+    if 'voice_naturalness' in recorded_checks:
+        require(isinstance(recorded_checks['voice_naturalness'], dict)
+                and type(recorded_checks['voice_naturalness'].get('passed')) is bool
+                and recorded_checks['voice_naturalness']['passed'] is
+                    _validate_recorded_listener(root, snapshot, review.get('listener_review')),
+                'Recorded listener result disagrees with voice naturalness summary')
     revised = compile_editorial(new_brief)
     old = snapshot['editorial']
     require(revised.get('idea_learning') == old.get('idea_learning'),
@@ -264,6 +409,10 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
                        allow_nan=False).encode()).hexdigest()
     require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash,
             'Revision inputs changed')
+    if 'voice_naturalness' in recorded_checks:
+        require(recorded_checks['voice_naturalness']['passed'] is
+                _validate_recorded_listener(root, snapshot, review.get('listener_review')),
+                'Recorded listener evidence changed before revision')
     output.mkdir()
     try:
         with (output / 'brief.json').open('x') as stream:
