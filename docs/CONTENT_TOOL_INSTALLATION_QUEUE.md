@@ -6,7 +6,7 @@ Updated 2026-11-21 UTC. The integration inventory below is current to its stated
 
 The dated [C10 source/runtime audit](C10_GAP_AUDIT_2026-11-24.json) separates
 reviewed pins from newly observed upstream heads. `last30days-skill` now points to
-`6fc93af…` and `stickman-video-director` to `1028782…`; that upstream movement
+`7c2e1c2…` and `stickman-video-director` to `1028782…`; that upstream movement
 does not override either full-package safety rejection, replace the reviewed pins,
 or expand the separately permitted restricted workflows.
 

@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "recorded_at": "2026-11-24T11:56:10Z",
+  "schema_version": 2,
+  "recorded_at": "2026-11-24T21:14:53Z",
   "scope": "Read-only canonical-source and ordinary-runtime recheck. No package installation, safety bypass, credential access, provider call, deployment, publication, or setting change was performed.",
   "publication_enabled": false,
   "paid_provider_calls": 0,
@@ -36,6 +36,12 @@
     "guessed_repository_http_status": 404,
     "creator_code_search_phrase": "SIM Claude skill pack",
     "creator_code_search_relevant_matches": 0,
+    "ambiguous_creator_candidate": {
+      "url": "https://github.com/Jakeschincariol/founder-skill/tree/fd9385b0cfe1b96bebce3898fbd506d73eff5a9d",
+      "identity": "The Founder skill: 11 Claude skills, v1.0",
+      "disposition": "Not installed. The repository is creator-controlled and contains eleven business-planning skills, but no creator-controlled evidence links it to the requested reel or identifies it as the SIM pack. Eleven-skill count alone is not canonical identity evidence."
+    },
+    "current_skill_catalog_match": null,
     "explicit_nonmatches": [
       {
         "url": "https://github.com/Jakeschincariol/master-skills/tree/b5b43e44f0a976ad25bda5095a94c161aab2f086",
@@ -56,8 +62,21 @@
     "status": "RESTRICTED_ADAPTATION_RETAINED",
     "upstream_url": "https://github.com/mvanhorn/last30days-skill",
     "validated_pin": "bb2f1ed2b9f6d07b90557c5eebd736b566533fec",
-    "fresh_observed_default_branch_head": "6fc93af4246c1a4b698bbb562b1d32b77544be59",
-    "fresh_observed_head_url": "https://github.com/mvanhorn/last30days-skill/commit/6fc93af4246c1a4b698bbb562b1d32b77544be59",
+    "fresh_observed_default_branch_head": "7c2e1c2b099b13abd4397910168c4f53e638bb21",
+    "fresh_observed_head_url": "https://github.com/mvanhorn/last30days-skill/commit/7c2e1c2b099b13abd4397910168c4f53e638bb21",
+    "installed_permitted_alternative": {
+      "skill_id": "6b00bc5fbd2c8191afd5ac345fb4dc7b",
+      "name": "last30days",
+      "skill_md_sha256": "936a982709258f03b8d121bb9b3ca53168bcb8c6eb873b8c67af36c33b3ddbe4",
+      "files": [
+        "LICENSE",
+        "SKILL.md",
+        "agents/openai.yaml",
+        "assets/icon.svg"
+      ],
+      "contains_upstream_executable": false,
+      "scope": "Restricted read-only public-source research instructions; not the full upstream runtime."
+    },
     "disposition": "The separately installed restricted public-source workflow remains the permitted alternative. Upstream movement does not override the recorded safety rejection or validate replacing the reviewed pin."
   },
   "stickman_video_director": {
@@ -66,6 +85,25 @@
     "validated_pin": "7fa6a9a543694cac95775200eb2f731b5594da0d",
     "fresh_observed_default_branch_head": "10287822ba47579321068da1b93801face9160dd",
     "fresh_observed_head_url": "https://github.com/kaomei/stickman-video-director/commit/10287822ba47579321068da1b93801face9160dd",
+    "installed_permitted_alternative": {
+      "skill_id": "6b00bd74aea88191acb0815f40318914",
+      "name": "directing-stickman-videos",
+      "skill_md_sha256": "21fecf898788d6bfd89f61eca12712d597b2b10d69791a8cda7be2e24471ab52",
+      "files": [
+        "LICENSE",
+        "SKILL.md",
+        "agents/openai.yaml",
+        "assets/icon.svg"
+      ],
+      "contains_upstream_executable": false,
+      "scope": "Restricted storyboard and review instructions; not the full upstream runtime or reference library."
+    },
+    "in_repository_runtime_alternative": {
+      "path": "integrations/content_control/cycle_render.py",
+      "commit": "23749a60a8828ba7243d67c3e9b7e78d8cbe70ed",
+      "sha256": "44452aba04e1650b50cb5ece0d7ea5f6ea143ebcb51f3ff995637e8ed21b6b27",
+      "scope": "Existing CYZOR stick-character renderer with bounded authored motion; it is not the upstream Stickman package and does not establish creative acceptance."
+    },
     "disposition": "The separately installed restricted director workflow remains the permitted alternative. Upstream movement does not override the recorded safety rejection or validate replacing the reviewed pin."
   },
   "openmontage": {
@@ -74,6 +112,27 @@
     "validated_pin": "2e003e65fa99a0f329478a2c1cdcf26bc481933a",
     "fresh_observed_default_branch_head": "2e003e65fa99a0f329478a2c1cdcf26bc481933a",
     "fresh_observed_head_url": "https://github.com/OpenMontageInc/OpenMontage/commit/2e003e65fa99a0f329478a2c1cdcf26bc481933a",
+    "installed_workflow_router": {
+      "skill_id": "6b00bcc226008191824fdbecf5bfd35a",
+      "name": "openmontage",
+      "skill_md_sha256": "b106f8f201da38a18db4461ac879e5e687733f1f5eb75e1fd1a349c9f541a4ae",
+      "scope": "Workflow router and reviewed guide snapshot only; not the application, dependencies, models, or a worker."
+    },
+    "local_checkout": {
+      "origin": "https://github.com/OpenMontageInc/OpenMontage.git",
+      "base_commit": "2e003e65fa99a0f329478a2c1cdcf26bc481933a",
+      "local_patch_commit": "cadc4f0f540e4aef8fccd258ce3d9b363636e6b6",
+      "local_patch_scope": "Normalize showcase-card output to square pixels with setsar=1 and add a regression test.",
+      "worktree_clean": true,
+      "remotion_version": "4.0.484",
+      "publication_enabled": false,
+      "paid_generation_enabled": false
+    },
+    "content_control_legacy_adapter": {
+      "documented_repository": "https://github.com/calesthio/OpenMontage",
+      "validated_pin": "9327439db69021ab4b0e2776729bf3b58fdb5a87",
+      "relationship": "The pin is an ancestor of the current canonical source by 270 commits, but this adapter is intentionally limited to reviewed local FFprobe/FFmpeg probe-and-concat interfaces. It is not the full application or the workflow router."
+    },
     "ordinary_probe": {
       "command_shape": "chromium --headless --disable-gpu --user-data-dir=<temporary-directory> --dump-dom about:blank",
       "exit_code": 134,
