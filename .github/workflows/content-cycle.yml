@@ -25,6 +25,17 @@ jobs:
             test -s /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
           }
           if ! media_tools_ready; then
+            ubuntu_sources=/etc/apt/sources.list.d/ubuntu.sources
+            mirrorlist_uri='URIs: mirror+file:/etc/apt/apt-mirrors.txt'
+            if test -f "$ubuntu_sources" && grep -Fqx "$mirrorlist_uri" "$ubuntu_sources"; then
+              # The hosted mirrorlist repeatedly selected a cross-region EC2
+              # mirror that could not deliver FFmpeg before the hard deadline.
+              # Keep Ubuntu's signed suites/components, but use Canonical's
+              # official archive endpoint for the disposable runner.
+              sudo sed -i \
+                's|^URIs: mirror+file:/etc/apt/apt-mirrors.txt$|URIs: https://archive.ubuntu.com/ubuntu|' \
+                "$ubuntu_sources"
+            fi
             apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=30)
             timeout --kill-after=10s 180s sudo apt-get "${apt_options[@]}" update -qq
             timeout --kill-after=10s 180s sudo apt-get "${apt_options[@]}" install -y --no-install-recommends ffmpeg fonts-dejavu-core
