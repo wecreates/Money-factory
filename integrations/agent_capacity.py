@@ -35,6 +35,13 @@ def _memory_available_mb():
     return None
 
 
+def _disk_available_mb(path=None):
+    """Return free bytes on the filesystem that will hold the current job."""
+    target = Path(path or os.getcwd())
+    values = os.statvfs(target)
+    return values.f_bavail * values.f_frsize / MIB
+
+
 def _cgroup_v2_limits(root=Path('/sys/fs/cgroup'), membership=Path('/proc/self/cgroup')):
     """Read current cgroup and ancestor limits; unknown bounded usage fails closed."""
     root = Path(root)
@@ -79,7 +86,23 @@ def _cgroup_v2_limits(root=Path('/sys/fs/cgroup'), membership=Path('/proc/self/c
     return min(cpu_limits, default=None), min(memory_limits, default=None), sorted(set(warnings))
 
 
-def collect_snapshot():
+def collect_snapshot(*, declared_cpu_cores=None, declared_memory_mb=None,
+                     disk_path=None):
+    """Collect a fresh host snapshot with an optional operator ceiling.
+
+    The declared values are host configuration, never queue-job input.  Both
+    are required together.  They only cap OS observations; they cannot expand
+    readable affinity, memory or cgroup limits.  On hosts that intentionally do
+    not mount cgroup controls, the explicit ceiling is the only allowed
+    fallback.  Missing cgroup data without that ceiling remains blocked.
+    """
+    if (declared_cpu_cores is None) != (declared_memory_mb is None):
+        raise ValueError('Both declared CPU and memory ceilings are required')
+    if declared_cpu_cores is not None:
+        declared_cpu_cores = _number(
+            declared_cpu_cores, 'declared_cpu_cores', .01)
+        declared_memory_mb = _number(
+            declared_memory_mb, 'declared_memory_mb', 1)
     warnings = []
     cpus = os.cpu_count()
     try:
@@ -90,6 +113,11 @@ def collect_snapshot():
         available = _memory_available_mb()
     except (OSError, KeyError, ValueError, AttributeError):
         available = None
+    try:
+        disk_available = _disk_available_mb(disk_path)
+    except (OSError, ValueError, AttributeError):
+        disk_available = None
+    resource_boundary = 'native_os'
     if platform.system() == 'Linux':
         try:
             quota, memory, notices = _cgroup_v2_limits()
@@ -98,12 +126,31 @@ def collect_snapshot():
                 cpus = min(cpus or quota, quota)
             if memory is not None:
                 available = min(available, memory) if available is not None else memory
-            # Unknown container limits must not turn host totals into capacity.
-            if notices:
+            if not notices:
+                resource_boundary = 'linux_cgroup_v2'
+            elif declared_cpu_cores is not None:
+                cpus = min(cpus or declared_cpu_cores, declared_cpu_cores)
+                available = min(available, declared_memory_mb) \
+                    if available is not None else declared_memory_mb
+                resource_boundary = 'operator_declared_ceiling'
+                warnings.append('using_explicit_operator_ceiling')
+            else:
                 cpus, available = None, None
+                resource_boundary = 'unknown_linux_container'
         except (OSError, ValueError):
             warnings.append('cgroup_limits_unavailable')
             cpus, available = None, None
+            resource_boundary = 'unknown_linux_container'
+    if declared_cpu_cores is not None and cpus is not None and available is not None:
+        cpus = min(cpus, declared_cpu_cores)
+        available = min(available, declared_memory_mb)
+        declared_ceiling = {
+            'cpu_cores': declared_cpu_cores,
+            'memory_mb': declared_memory_mb,
+            'source': 'explicit_host_operator_configuration',
+        }
+    else:
+        declared_ceiling = None
     return {
         'schema_version': 1,
         'observed_at': datetime.now(timezone.utc).isoformat(),
@@ -111,6 +158,9 @@ def collect_snapshot():
         'platform': platform.system(),
         'effective_cpu_cores': cpus,
         'memory_available_mb': available,
+        'disk_available_mb': disk_available,
+        'resource_boundary': resource_boundary,
+        'declared_ceiling': declared_ceiling,
         'warnings': warnings,
         'vpn_capacity_verified': False,
         'model_execution_verified': False,
@@ -224,10 +274,18 @@ def main():
     parser.add_argument('--render-cpu', type=float, default=0)
     parser.add_argument('--reserve-cpu', type=float, default=2)
     parser.add_argument('--cpu-per-worker', type=float, default=1)
+    parser.add_argument('--declared-cpu-cores', type=float)
+    parser.add_argument('--declared-memory-mb', type=float)
+    parser.add_argument('--disk-path')
     args = parser.parse_args()
-    snapshot = collect_snapshot()
+    snapshot = collect_snapshot(
+        declared_cpu_cores=args.declared_cpu_cores,
+        declared_memory_mb=args.declared_memory_mb,
+        disk_path=args.disk_path)
     try:
-        recommendation = recommend_capacity(snapshot, **vars(args))
+        recommendation = recommend_capacity(snapshot, **{
+            key: value for key, value in vars(args).items()
+            if key not in ('declared_cpu_cores', 'declared_memory_mb', 'disk_path')})
     except ValueError as exc:
         parser.error(str(exc))
     print(json.dumps({'snapshot': snapshot, 'recommendation': recommendation}, indent=2))

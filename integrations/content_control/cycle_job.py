@@ -318,7 +318,9 @@ def check_completed(directory, expected_brief_sha256, *, minimum_duration=None, 
     return receipt
 
 
-def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcription_python=None):
+def run_job(request, attempt_dir, *, voice_python=None, voice_root=None,
+            transcription_python=None, capacity_cpu_cores=None,
+            capacity_memory_mb=None):
     validate(request)
     brief_bytes, lineage, intake_files, intake = production_handoff(request)
     minimum = request.get('minimum_duration_seconds')
@@ -357,8 +359,13 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
                 stream.flush(); os.fsync(stream.fileno())
         deadline = time.monotonic() + request['timeout_seconds']
         with interruptible_processes(), shared_admission_lock() as lease:
-            budget = recommend_capacity(collect_snapshot(), requested_workers=1,
+            snapshot = collect_snapshot(
+                declared_cpu_cores=capacity_cpu_cores,
+                declared_memory_mb=capacity_memory_mb,
+                disk_path=attempt_dir)
+            budget = recommend_capacity(snapshot, requested_workers=1,
                                         worker_memory_mb=2048, cpu_per_worker=2, max_workers=1)
+            result['capacity_snapshot'] = snapshot
             result['capacity'] = budget
             if budget['admitted_workers'] != 1:
                 raise ValueError('Fresh host capacity does not admit a content cycle')

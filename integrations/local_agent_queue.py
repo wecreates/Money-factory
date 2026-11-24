@@ -380,7 +380,12 @@ class RunHeartbeat:
         self.thread.join(timeout=2)
 
 
-def execute_adapter(queue, attempt, *, ruflo_runtime=None, openclaw_runtime=None, content_control_root=None, video_python=None, picture_python=None, cycle_voice_python=None, cycle_voice_root=None, cycle_transcription_python=None):
+def execute_adapter(queue, attempt, *, ruflo_runtime=None, openclaw_runtime=None,
+                    content_control_root=None, video_python=None,
+                    picture_python=None, cycle_voice_python=None,
+                    cycle_voice_root=None, cycle_transcription_python=None,
+                    cycle_capacity_cpu_cores=None,
+                    cycle_capacity_memory_mb=None):
     spec = attempt['spec']
     validate(spec)  # Revalidate persisted input immediately before execution.
     directory = queue.root / 'attempts' / attempt['id'] / str(attempt['number'])
@@ -388,8 +393,17 @@ def execute_adapter(queue, attempt, *, ruflo_runtime=None, openclaw_runtime=None
     request = spec['request']
     if spec['adapter'] == 'content-control-cycle':
         from integrations.content_control.cycle_job import run_job
-        return run_job(request, directory, voice_python=cycle_voice_python, voice_root=cycle_voice_root,
-                       transcription_python=cycle_transcription_python)
+        options = {
+            'voice_python': cycle_voice_python,
+            'voice_root': cycle_voice_root,
+            'transcription_python': cycle_transcription_python,
+        }
+        if cycle_capacity_cpu_cores is not None \
+                or cycle_capacity_memory_mb is not None:
+            options.update(
+                capacity_cpu_cores=cycle_capacity_cpu_cores,
+                capacity_memory_mb=cycle_capacity_memory_mb)
+        return run_job(request, directory, **options)
     if spec['adapter'] == 'content-control-video':
         from integrations.content_control.video_job import run_job
         return run_job(request, directory, content_control_root=content_control_root,
@@ -484,7 +498,14 @@ def main(argv=None):
     run.add_argument('--ruflo-runtime'); run.add_argument('--openclaw-runtime')
     run.add_argument('--content-control-root'); run.add_argument('--video-python'); run.add_argument('--picture-python')
     run.add_argument('--cycle-voice-python'); run.add_argument('--cycle-voice-root'); run.add_argument('--cycle-transcription-python')
+    run.add_argument('--cycle-capacity-cpu-cores', type=float,
+                     help='Explicit trusted host ceiling; requires --cycle-capacity-memory-mb')
+    run.add_argument('--cycle-capacity-memory-mb', type=float,
+                     help='Explicit trusted host ceiling; requires --cycle-capacity-cpu-cores')
     args = parser.parse_args(argv)
+    if args.command == 'work' and ((args.cycle_capacity_cpu_cores is None)
+                                   != (args.cycle_capacity_memory_mb is None)):
+        parser.error('Both cycle capacity CPU and memory ceilings are required')
     queue = Queue(args.queue)
     try:
         if args.command in ('enqueue', 'enqueue-batch'):
@@ -510,7 +531,9 @@ def main(argv=None):
                           ruflo_runtime=args.ruflo_runtime, openclaw_runtime=args.openclaw_runtime,
                           content_control_root=args.content_control_root, video_python=args.video_python, picture_python=args.picture_python,
                           cycle_voice_python=args.cycle_voice_python, cycle_voice_root=args.cycle_voice_root,
-                          cycle_transcription_python=args.cycle_transcription_python)
+                          cycle_transcription_python=args.cycle_transcription_python,
+                          cycle_capacity_cpu_cores=args.cycle_capacity_cpu_cores,
+                          cycle_capacity_memory_mb=args.cycle_capacity_memory_mb)
         print(json.dumps(report, indent=2))
         if args.command == 'work':
             return 2 if report['recovered_interrupted_ids'] or any(job['state'] != 'succeeded' for job in report['processed']) else 0

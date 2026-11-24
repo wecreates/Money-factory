@@ -8,7 +8,8 @@ import time
 import unittest
 from unittest.mock import patch
 
-from integrations.agent_capacity import _cgroup_v2_limits, collect_snapshot, recommend_capacity, _admission_lock_at, AdmissionBusy
+from integrations.agent_capacity import (_cgroup_v2_limits, collect_snapshot, recommend_capacity,
+                                         _admission_lock_at, AdmissionBusy)
 
 NOW = datetime(2026, 11, 20, tzinfo=timezone.utc)
 
@@ -100,6 +101,39 @@ class CapacityTests(unittest.TestCase):
             self.assertIsNone(result['memory_available_mb'])
             self.assertIs(result['model_execution_verified'], False)
             self.assertEqual(result['scope'], 'current_execution_host_only')
+
+    def test_explicit_operator_ceiling_bounds_missing_cgroup_mount(self):
+        with patch('integrations.agent_capacity.platform.system', return_value='Linux'), \
+             patch('integrations.agent_capacity.os.cpu_count', return_value=12), \
+             patch('integrations.agent_capacity.os.sched_getaffinity', return_value=set(range(9))), \
+             patch('integrations.agent_capacity._memory_available_mb', return_value=8192), \
+             patch('integrations.agent_capacity._disk_available_mb', return_value=4096), \
+             patch('integrations.agent_capacity._cgroup_v2_limits',
+                   return_value=(None, None, ['cgroup_v2_unavailable'])):
+            result = collect_snapshot(
+                declared_cpu_cores=4, declared_memory_mb=6144,
+                disk_path='/queue')
+        self.assertEqual(result['effective_cpu_cores'], 4)
+        self.assertEqual(result['memory_available_mb'], 6144)
+        self.assertEqual(result['disk_available_mb'], 4096)
+        self.assertEqual(result['resource_boundary'], 'operator_declared_ceiling')
+        self.assertEqual(result['declared_ceiling'], {
+            'cpu_cores': 4, 'memory_mb': 6144,
+            'source': 'explicit_host_operator_configuration'})
+        self.assertIn('using_explicit_operator_ceiling', result['warnings'])
+
+    def test_missing_or_partial_operator_ceiling_still_fails_closed(self):
+        with patch('integrations.agent_capacity.platform.system', return_value='Linux'), \
+             patch('integrations.agent_capacity._memory_available_mb', return_value=48000), \
+             patch('integrations.agent_capacity._cgroup_v2_limits',
+                   return_value=(None, None, ['cgroup_v2_unavailable'])):
+            result = collect_snapshot()
+        self.assertIsNone(result['effective_cpu_cores'])
+        self.assertIsNone(result['memory_available_mb'])
+        self.assertEqual(result['resource_boundary'], 'unknown_linux_container')
+        for values in ({'declared_cpu_cores': 2}, {'declared_memory_mb': 4096}):
+            with self.assertRaisesRegex(ValueError, 'Both declared'):
+                collect_snapshot(**values)
 
     def test_shared_lock_blocks_other_framework_and_recovers_after_exit(self):
         with tempfile.TemporaryDirectory() as tmp:

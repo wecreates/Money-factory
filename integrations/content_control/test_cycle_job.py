@@ -183,6 +183,26 @@ class CycleJobTests(unittest.TestCase):
                 self.assertEqual(queue.get('new-video')['state'], 'succeeded')
             finally: queue.close()
 
+    def test_dispatch_capacity_ceiling_is_host_only_and_explicit(self):
+        with tempfile.TemporaryDirectory() as td:
+            queue = Queue(Path(td)/'queue')
+            try:
+                queue.enqueue(job())
+                with patch('integrations.content_control.cycle_job.run_job', return_value={
+                        'status': 'PASS', 'review_status': 'AWAITING_REVIEW',
+                        'publication_enabled': False,
+                        'paid_generation_enabled': False}) as run:
+                    work(queue, cycle_voice_python='/host/python',
+                         cycle_voice_root='/host/source',
+                         cycle_capacity_cpu_cores=4,
+                         cycle_capacity_memory_mb=6144)
+                self.assertEqual(run.call_args.kwargs['capacity_cpu_cores'], 4)
+                self.assertEqual(run.call_args.kwargs['capacity_memory_mb'], 6144)
+                self.assertNotIn('capacity_cpu_cores', run.call_args.args[0])
+                self.assertNotIn('capacity_memory_mb', run.call_args.args[0])
+            finally:
+                queue.close()
+
     def test_delivered_bytes_and_approval_must_match(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)/'cycle'; receipt = packet(root, request()['brief_sha256'])
