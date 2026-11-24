@@ -22,6 +22,8 @@ CHECKS = ('factual_accuracy', 'full_audiovisual', 'voice_naturalness',
           'visual_readability', 'originality', 'reference_comparison')
 LISTENER_CHECKS = ('naturalness', 'pronunciation', 'character_consistency',
                    'music_and_sfx', 'transitions', 'mix_balance')
+WATCHER_CHECKS = ('picture_continuity', 'caption_readability', 'audio_visual_sync',
+                  'pacing_and_transitions', 'creative_coherence')
 FLAGS = ('publication_enabled', 'paid_generation_enabled', 'production_approved', 'full_av_review')
 
 
@@ -75,6 +77,86 @@ def _verified_voice(root, editorial, render):
     return {'voice_receipt_sha256': voice_hash, 'voice_assignments_sha256': assignments_sha}
 
 
+def _complete_coverage(root, value, label):
+    render = _load(root / 'delivery/render.json')
+    duration = render.get('duration_seconds')
+    require(type(duration) in (int, float) and not isinstance(duration, bool)
+            and 0 < duration <= 1800, 'Bounded rendered duration required for ' + label + ' coverage')
+    coverage = value.get('coverage')
+    require(isinstance(coverage, list) and 1 <= len(coverage) <= 100,
+            label.capitalize() + ' coverage intervals required')
+    normalized, prior = [], 0.0
+    for interval in coverage:
+        require(isinstance(interval, dict) and set(interval) == {'start_seconds', 'end_seconds'},
+                'Exact ' + label + ' coverage interval fields required')
+        start, end = interval['start_seconds'], interval['end_seconds']
+        require(all(type(item) in (int, float) and not isinstance(item, bool) for item in (start, end))
+                and 0 <= start < end <= duration + .001 and abs(start - prior) <= .001,
+                label.capitalize() + ' coverage must be contiguous from zero')
+        normalized.append({'start_seconds': start, 'end_seconds': end})
+        prior = end
+    require(abs(prior - duration) <= .001, label.capitalize() + ' coverage must include the complete program')
+    return normalized
+
+
+def _watcher_attestation(root, snapshot, value):
+    """Bind direct complete audiovisual notes to the exact video and captions."""
+    require(isinstance(value, dict) and set(value) == {
+        'schema_version', 'candidate_sha256', 'caption_sha256', 'watcher', 'watched_at',
+        'basis', 'coverage', 'checks'}, 'Exact watcher review fields required')
+    require(type(value.get('schema_version')) is int and value['schema_version'] == 1,
+            'Watcher review schema mismatch')
+    require(value.get('candidate_sha256') == snapshot['candidate_sha256'],
+            'Watcher review targets a different candidate')
+    caption_sha256 = snapshot['files_sha256']['delivery/captions.vtt']
+    require(value.get('caption_sha256') == caption_sha256,
+            'Watcher review targets different captions')
+    watcher = _text(value.get('watcher'), 'watcher_review.watcher', 200)
+    watched_at = _timestamp(value.get('watched_at'), 'watcher_review.watched_at')
+    require(datetime.fromisoformat(watched_at) >= datetime.fromisoformat(snapshot['cycle']['finished_at']),
+            'Watcher review predates completed cycle')
+    require(value.get('basis') == 'direct_full_audiovisual_watch_and_listen',
+            'Frames, transcripts and technical diagnostics cannot substitute for direct audiovisual review')
+    coverage = _complete_coverage(root, value, 'watcher')
+    checks = value.get('checks')
+    require(isinstance(checks, dict) and set(checks) == set(WATCHER_CHECKS),
+            'All granular watcher checks are required')
+    normalized_checks, feedback = {}, []
+    for name in WATCHER_CHECKS:
+        item = checks[name]
+        require(isinstance(item, dict) and set(item) in ({'passed', 'evidence'},
+                {'passed', 'evidence', 'feedback'}) and type(item.get('passed')) is bool,
+                'Exact granular watcher check fields required')
+        evidence = _text(item.get('evidence'), 'watcher_review.' + name + '.evidence', 4000, minimum=12)
+        normalized_checks[name] = {'passed': item['passed'], 'evidence': evidence}
+        if item['passed']:
+            require('feedback' not in item, 'Passing watcher checks cannot carry repair feedback')
+        else:
+            action = _text(item.get('feedback', evidence), 'watcher_review.' + name + '.feedback',
+                           4000, minimum=12)
+            normalized_checks[name]['feedback'] = action
+            feedback.append({'check': 'watcher.' + name, 'action': action})
+    return ({'schema_version': 1, 'candidate_sha256': snapshot['candidate_sha256'],
+             'caption_sha256': caption_sha256, 'watcher': watcher, 'watched_at': watched_at,
+             'basis': 'direct_full_audiovisual_watch_and_listen', 'coverage': coverage,
+             'checks': normalized_checks, 'watcher_attestation_recorded': True,
+             'independent_full_audiovisual_verification': False,
+             'scope': ('Supplied direct complete audiovisual attestation; frames, transcripts and '
+                       'technical diagnostics are excluded.')},
+            feedback, all(item['passed'] for item in normalized_checks.values()))
+
+
+def _validate_recorded_watcher(root, snapshot, value):
+    require(isinstance(value, dict), 'Recorded watcher review required')
+    submitted_fields = {'schema_version', 'candidate_sha256', 'caption_sha256', 'watcher',
+                        'watched_at', 'basis', 'coverage', 'checks'}
+    require(submitted_fields <= set(value), 'Recorded watcher review is incomplete')
+    expected, _, passed = _watcher_attestation(
+        root, snapshot, {key: value[key] for key in submitted_fields})
+    require(value == expected, 'Recorded watcher review identity or scope changed')
+    return passed
+
+
 def _listener_attestation(root, snapshot, value):
     """Bind direct full-mix listening notes to the exact candidate and voices.
 
@@ -97,23 +179,7 @@ def _listener_attestation(root, snapshot, value):
             'ASR and technical diagnostics cannot substitute for direct listening')
 
     render = _load(root / 'delivery/render.json')
-    duration = render.get('duration_seconds')
-    require(type(duration) in (int, float) and not isinstance(duration, bool)
-            and 0 < duration <= 1800, 'Bounded rendered duration required for listener coverage')
-    coverage = value.get('coverage')
-    require(isinstance(coverage, list) and 1 <= len(coverage) <= 100,
-            'Listener coverage intervals required')
-    normalized_coverage, prior = [], 0.0
-    for interval in coverage:
-        require(isinstance(interval, dict) and set(interval) == {'start_seconds', 'end_seconds'},
-                'Exact listener coverage interval fields required')
-        start, end = interval['start_seconds'], interval['end_seconds']
-        require(all(type(item) in (int, float) and not isinstance(item, bool) for item in (start, end))
-                and 0 <= start < end <= duration + .001 and abs(start - prior) <= .001,
-                'Listener coverage must be contiguous from zero')
-        normalized_coverage.append({'start_seconds': start, 'end_seconds': end})
-        prior = end
-    require(abs(prior - duration) <= .001, 'Listener coverage must include the complete program')
+    normalized_coverage = _complete_coverage(root, value, 'listener')
 
     checks = value.get('checks')
     require(isinstance(checks, dict) and set(checks) == set(LISTENER_CHECKS),
@@ -352,6 +418,13 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
             normalized[name]['feedback'] = action
             feedback.append({'check': name, 'action': action})
     listener = None
+    watcher = None
+    if 'full_audiovisual' in checks:
+        watcher, watcher_feedback, all_watcher_checks_passed = _watcher_attestation(
+            root, snapshot, review.get('watcher_review'))
+        require(checks['full_audiovisual']['passed'] is all_watcher_checks_passed,
+                'Full audiovisual summary disagrees with granular watcher checks')
+        feedback.extend(watcher_feedback)
     if 'voice_naturalness' in checks:
         listener, listener_feedback, all_listener_checks_passed = _listener_attestation(
             root, snapshot, review.get('listener_review'))
@@ -368,6 +441,8 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
               'full_av_review': False, 'production_ready': False}
     if listener is not None:
         result['listener_review'] = listener
+    if watcher is not None:
+        result['watcher_review'] = watcher
     recheck_rea = None
     if rea_analysis is not None:
         from integrations.rea_video.analyze_cycle import review_evidence
@@ -391,6 +466,10 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
         rechecked = _listener_attestation(root, snapshot, review.get('listener_review'))
         require(rechecked == (listener, listener_feedback, all_listener_checks_passed),
                 'Listener evidence changed before final recording')
+    if watcher is not None:
+        rechecked = _watcher_attestation(root, snapshot, review.get('watcher_review'))
+        require(rechecked == (watcher, watcher_feedback, all_watcher_checks_passed),
+                'Watcher evidence changed before final recording')
     with output.open('x') as stream:
         json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False); stream.write('\n')
     return result
@@ -413,6 +492,12 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
     recorded_checks = review.get('checks')
     require(isinstance(recorded_checks, dict) and set(recorded_checks) <= set(CHECKS),
             'Recorded review checks are invalid')
+    if 'full_audiovisual' in recorded_checks:
+        require(isinstance(recorded_checks['full_audiovisual'], dict)
+                and type(recorded_checks['full_audiovisual'].get('passed')) is bool
+                and recorded_checks['full_audiovisual']['passed'] is
+                    _validate_recorded_watcher(root, snapshot, review.get('watcher_review')),
+                'Recorded watcher result disagrees with full audiovisual summary')
     if 'voice_naturalness' in recorded_checks:
         require(isinstance(recorded_checks['voice_naturalness'], dict)
                 and type(recorded_checks['voice_naturalness'].get('passed')) is bool
@@ -464,6 +549,10 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
         require(recorded_checks['voice_naturalness']['passed'] is
                 _validate_recorded_listener(root, snapshot, review.get('listener_review')),
                 'Recorded listener evidence changed before revision')
+    if 'full_audiovisual' in recorded_checks:
+        require(recorded_checks['full_audiovisual']['passed'] is
+                _validate_recorded_watcher(root, snapshot, review.get('watcher_review')),
+                'Recorded watcher evidence changed before revision')
     output.mkdir()
     try:
         with (output / 'brief.json').open('x') as stream:
