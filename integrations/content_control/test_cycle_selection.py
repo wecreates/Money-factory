@@ -3,7 +3,7 @@ import copy
 import unittest
 from unittest.mock import patch
 
-from integrations.content_control.cycle_selection import record_selection
+from integrations.content_control.cycle_selection import record_selection, verify_selection
 from integrations.content_control.cycle_review import inspect_cycle
 from integrations.content_control import test_cycle_review as fixtures
 
@@ -80,6 +80,18 @@ class SelectionTests(unittest.TestCase):
     def test_zero_impressions_has_no_ctr(self):
         selection = self.selection(); selection['performance'] = self.performance(selection, 0, 0)
         self.assertIsNone(self.record(selection)['performance']['ctr'])
+
+    def test_historical_receipt_cannot_predate_its_performance_observation(self):
+        selection = self.selection()
+        selection['performance'] = self.performance(selection)
+        receipt = self.record(selection)
+        receipt['recorded_at'] = '2026-01-06T00:00:00+00:00'
+        write(self.recorded, receipt)
+        self.assertEqual(verify_selection(self.root, self.submitted, self.recorded)[0], receipt)
+        receipt['recorded_at'] = '2026-01-05T12:00:00+00:00'
+        write(self.recorded, receipt)
+        with self.assertRaisesRegex(ValueError, 'Receipt predates performance observation'):
+            verify_selection(self.root, self.submitted, self.recorded)
 
     def test_invalid_metrics_and_false_provenance_rejected(self):
         selection = self.selection(); selection['performance'] = self.performance(selection)
