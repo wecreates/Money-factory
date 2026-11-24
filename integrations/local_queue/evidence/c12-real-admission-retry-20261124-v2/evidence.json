@@ -1,0 +1,57 @@
+{
+  "artifacts": {
+    "README.md": "64dae1582e8527e1062562ca578307d9552a48c7b93246d4cd80b2d5d4441903",
+    "job.json": "7dc8dd2cef77b4da8551f90b5e42396f9ffecfa55c13842e726ea7d8338a608d",
+    "process/launcher.json": "9644d37073d07ad8388d5621392e37be508f754c48d56c9aa4af935b10c86314",
+    "process/lock-holder.json": "bddddbd7eff82c56429086b98a7b04e1950c324cae91e99a1dc78a9019945ca2",
+    "process/worker-1-stdout.json": "3a635e30c37ef2d32ef442596a8fc1152886202b7eee0bae8a32511072856923",
+    "process/worker-1.json": "8f1d00ccb5fe7f1fd1366d03643ff7dc128c468f6b36490f6dae4f88f0218ac0",
+    "process/worker-2-stdout.json": "5cc5a3efa2bd612bd1d482f88c85bdb9485a65352a2d6b3917d17f0b40b5594f",
+    "process/worker-2.json": "974358da4723b7b8e1416288f3811824c9726c04d5a265fe931633eb025f25d5",
+    "runtime/attempts/c12-real-admission-retry-20261124v2/1/video-adapter-receipt.json": "15854e091875119d9a5e6f105afe19c46869e02ff5660eca70bbc50da79a3160",
+    "runtime/attempts/c12-real-admission-retry-20261124v2/2/video-adapter-receipt.json": "b9ce130c3b1d3cf7dcddee7a7e315620382c28d02c65fb053f747fa555b75496",
+    "runtime/queue.sqlite3": "a456a1ced8077828a1de942b7d379c9f4d1a78614852b8dac9f18d90195c3360"
+  },
+  "attempts": [
+    {
+      "finished_epoch": 1795522213.1018052,
+      "number": 1,
+      "receipt": "runtime/attempts/c12-real-admission-retry-20261124v2/1/video-adapter-receipt.json",
+      "retryable": true,
+      "started_epoch": 1795522213.0816581
+    },
+    {
+      "finished_epoch": 1795522218.4458456,
+      "number": 2,
+      "receipt": "runtime/attempts/c12-real-admission-retry-20261124v2/2/video-adapter-receipt.json",
+      "retryable": false,
+      "started_epoch": 1795522213.1851978
+    }
+  ],
+  "automatic_retry": {
+    "created_epoch": 1795522213.1034575,
+    "from_attempt": 1,
+    "reason": "adapter_marked_retryable"
+  },
+  "claims_not_made": [
+    "successful media production",
+    "full audiovisual acceptance",
+    "actual-PC/VPN/VPS acceptance",
+    "24-hour soak acceptance",
+    "unattended production readiness"
+  ],
+  "job_digest": "224cfc1685ed8b87c035a5716166f6c836bea6ae5be290b3a09dadb4e6f1faa3",
+  "limits": {
+    "attempts_used": 2,
+    "automatic_retry_events": 1,
+    "job_max_attempts": 2,
+    "request_timeout_seconds": 120,
+    "worker_max_jobs": 1,
+    "worker_process_exit": 2
+  },
+  "observed_epoch": 1795522218.4652731,
+  "paid_generation_enabled": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "schema_version": 2
+}

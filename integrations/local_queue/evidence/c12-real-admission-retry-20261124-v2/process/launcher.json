@@ -1,0 +1,31 @@
+{
+  "finished_epoch": 1795522218.463659,
+  "holder_exit_code": 0,
+  "holder_sanitized_command": [
+    "python",
+    "-m",
+    "integrations.local_queue.run_retry_evidence",
+    "--hold-lock",
+    "--receipt",
+    "$EVIDENCE_ROOT/process/lock-holder.json",
+    "--release",
+    "$EVIDENCE_ROOT/process/release.signal",
+    "--hold-timeout",
+    "30"
+  ],
+  "lock_holder_pid": 5,
+  "paid_generation_enabled": false,
+  "parent_pid": 1,
+  "pid": 2,
+  "publication_enabled": false,
+  "schema_version": 1,
+  "started_epoch": 1795522212.9899287,
+  "worker_pids": [
+    6,
+    8
+  ],
+  "worker_run_ids": [
+    "99afb06e9f1c45eab399f4e69f80c4b9",
+    "cf63b325d9b64afbb0854032cd496c93"
+  ]
+}

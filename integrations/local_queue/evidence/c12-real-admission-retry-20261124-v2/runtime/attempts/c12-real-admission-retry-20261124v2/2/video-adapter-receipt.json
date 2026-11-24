@@ -1,0 +1,69 @@
+{
+  "blocker": "Video runtime prerequisites are blocked",
+  "full_av_review": false,
+  "operation": "produce-episode1-review",
+  "paid_generation_enabled": false,
+  "production_approved": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "runtime_prerequisites": {
+    "blockers": [
+      "transcription_python",
+      "picture_python",
+      "cached_asr"
+    ],
+    "checks": {
+      "cached_asr": false,
+      "caption_font": true,
+      "ffmpeg": true,
+      "node": true,
+      "npm_packages": true,
+      "picture_python": false,
+      "transcription_python": false
+    },
+    "details": {
+      "caption_font": {
+        "family": "DejaVu Sans"
+      },
+      "ffmpeg": {
+        "encoders": [
+          "libx264",
+          "aac"
+        ],
+        "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+        "ffprobe": "ffprobe version 7.1.5-0+deb13u1 Copyright (c) 2007-2026 the FFmpeg developers",
+        "filters": [
+          "subtitles",
+          "amix",
+          "adelay",
+          "tpad",
+          "fps",
+          "volumedetect",
+          "ebur128",
+          "astats",
+          "silencedetect"
+        ]
+      },
+      "node": {
+        "scope": "Shared Node version compatible with pinned agent adapters",
+        "version": "v24.22.3"
+      },
+      "npm_packages": {
+        "scope": "Required package versions match lock; installed dependency bytes are not reauthenticated",
+        "versions": {
+          "esbuild": "0.28.1",
+          "react": "19.1.1",
+          "react-dom": "19.1.1",
+          "remotion": "4.0.540"
+        }
+      }
+    },
+    "scope": "Offline runtime prerequisites only; no inference or rendering verified",
+    "status": "BLOCKED"
+  },
+  "schema_version": 1,
+  "scope": "Local queue execution and technical review packet only; no audiovisual or publishing approval",
+  "source_commit": "3edefe86a6342c6a2792ef71138a3a694c64855a",
+  "source_manifest_sha256": "142340d184b9aa295dc239a8fa2f330a5b653ac313b00ae69991b209fd527432",
+  "status": "BLOCKED"
+}

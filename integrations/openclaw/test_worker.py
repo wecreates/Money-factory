@@ -124,7 +124,8 @@ class WorkerTests(unittest.TestCase):
     def test_shared_lock_contention_blocks_execution(self):
         with patch.object(agent_capacity,'shared_admission_lock',side_effect=agent_capacity.AdmissionBusy()),patch.object(worker,'run_isolated') as call:
             result=worker.dispatch(self.job,self.root/'runtime')
-        self.assertEqual(result['blockers'],['OPENCLAW_SHARED_BUDGET_BUSY']);call.assert_not_called()
+        self.assertEqual(result['blockers'],['OPENCLAW_SHARED_BUDGET_BUSY'])
+        self.assertTrue(result['retryable']);call.assert_not_called()
 
     def test_capacity_block_stops_before_model_call(self):
         with patch.object(worker.shutil,'which',return_value='openclaw'),patch.object(agent_capacity,'recommend_capacity',return_value={'admitted_workers':0}),patch.object(worker,'run_isolated') as call:

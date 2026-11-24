@@ -1,0 +1,21 @@
+{
+  "acquired": true,
+  "acquired_epoch": 1795522213.0433538,
+  "lock_identity": {
+    "content_sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "device": 41,
+    "identity_sha256": "3a6b76b5ec851d9202770cb90d64194b7493ec9643d64b52fc28f1267af6bf24",
+    "inode": 12,
+    "mode": 384,
+    "path_sha256": "911995ab85e9e700d0817a9a2a94e05aee56459d0ed8e9821a83b216dac903e4",
+    "size": 1
+  },
+  "paid_generation_enabled": false,
+  "parent_pid": 2,
+  "pid": 5,
+  "publication_enabled": false,
+  "released": true,
+  "released_epoch": 1795522213.1255865,
+  "schema_version": 1,
+  "started_epoch": 1795522213.0432162
+}

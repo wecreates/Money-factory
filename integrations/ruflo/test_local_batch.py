@@ -59,7 +59,7 @@ class BatchTests(unittest.TestCase):
         module=types.SimpleNamespace(shared_admission_lock=locked, AdmissionBusy=Busy)
         with patch.dict(sys.modules,{'agent_capacity':module}), patch.object(m,'admitted_batch') as execute:
             result=m.run_batch(self.batch,'/different-runtime')
-        self.assertEqual(result['status'],'BLOCKED');execute.assert_not_called()
+        self.assertEqual(result['status'],'BLOCKED');self.assertTrue(result['retryable']);execute.assert_not_called()
 
     def test_shared_host_lock_is_held_through_batch(self):
         state=[]
