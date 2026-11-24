@@ -890,6 +890,54 @@ accuracy, phone playback and long-form-to-Shorts acceptance remain open, includi
 when a source already happens to be shorter than a minute. All publishing and
 creative approval flags remain false; prior source approval never transfers.
 
+### Bind Short repair review and caption revision
+
+A durable queue Short can retain exact repair findings without converting those
+findings into audiovisual approval. Submit a JSON object with the exact Short
+`candidate_sha256` and `caption_sha256`, the exact `queue_short_sha256`,
+`short_receipt_sha256`, and `preview_caption_mode` reviewed, a reviewer and
+timezone-bearing `reviewed_at`,
+`basis: supplied_repair_findings_not_acceptance`, and one or more `findings`.
+Each finding has exact `check`, `evidence`, and `action` fields. The
+supported checks are `caption_accuracy`, `caption_readability`,
+`voice_and_sound`, `visual_storytelling`, `pacing`, `creative_coherence`,
+`reference_comparison`, and `phone_playback`. These are repair notes only; they
+do not certify that any check was completed or passed.
+
+```sh
+python -m integrations.content_control.cycle_queue_short_review record \
+  --queue-root /absolute/queue --job-id JOB_ID \
+  --short-dir /absolute/short --review /absolute/repair-findings.json \
+  --output /absolute/recorded-short-review.json
+```
+
+The recorder replays the durable queue completion and queue Short verifier. The
+result binds the exact MP4/VTT, encoded streams, decoded picture, authored scene
+selection, parent candidate/cycle, both Short receipts, and submitted review
+bytes. Its status is always `REVISION_REQUIRED`; audiovisual acceptance, phone
+playback, production readiness, publishing, and paid generation remain false.
+
+For a sidecar-caption Short with a recorded caption finding, prepare a JSON
+revision with exact `candidate_sha256`, `caption_sha256`,
+`recorded_review_sha256`, `editor`, `rationale`, and `caption_edits`. Caption
+edits use the same one-based cue/line and exact before/after contract as the
+cycle caption repair command.
+
+```sh
+python -m integrations.content_control.cycle_queue_short_review revise-captions \
+  --queue-root /absolute/queue --job-id JOB_ID \
+  --short-dir /absolute/short \
+  --recorded-review /absolute/recorded-short-review.json \
+  --revision /absolute/caption-revision.json \
+  --output /absolute/short-caption-revision
+```
+
+The output contains only corrected `captions.vtt` and its immutable revision
+handoff. The video and voice identities remain unchanged. This is intentionally
+not a consumable revised Short: it must feed a fresh derivative package and
+fresh review. A burned-caption Short fails closed because changing its sidecar
+alone would leave visible words in the video unchanged.
+
 ### Repair captions without regenerating speech
 
 Use a new immutable cycle for an explicit text correction. The original media,
