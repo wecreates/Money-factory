@@ -667,6 +667,65 @@ def _caption_sentence_end(text):
     return not all(len(part) == 1 and part.isalpha() for part in parts)
 
 
+def caption_display_words(words, recognized_text, *, scene_boundaries=()):
+    """Rejoin recognizer-confirmed hyphen compounds for caption display only.
+
+    Faster Whisper can expose ``three-year`` in recognized segment text while
+    returning two timed words, ``three`` and ``-year``. A plain space join then
+    manufactures ``three -year`` and can split the suffix into a later cue.
+    Rejoin only when the complete timed-word character stream aligns to the
+    independent recognized text and the source characters at this boundary are
+    adjacent. Raw ASR words remain unchanged in the transcription report.
+    """
+    if not isinstance(recognized_text, str):
+        raise ValueError('Recognized caption text required')
+    if not isinstance(scene_boundaries, (tuple, list)):
+        raise ValueError('Caption scene boundaries must be a sequence')
+    tokens = [''.join(word['word'].split()) for word in words]
+    source = [(character, index) for index, character in enumerate(recognized_text)
+              if not character.isspace()]
+    if ''.join(tokens) != ''.join(character for character, _ in source):
+        return [dict(word) for word in words], []
+    offsets = []
+    position = 0
+    for token in tokens:
+        offsets.append(position)
+        position += len(token)
+    display = []
+    joins = []
+    index = 0
+    while index < len(words):
+        current = words[index]
+        if index + 1 < len(words):
+            following = words[index + 1]
+            left, right = tokens[index], tokens[index + 1]
+            left_raw = ' '.join(current['word'].split())
+            right_raw = ' '.join(following['word'].split())
+            boundary = offsets[index] + len(left)
+            candidate = left + right
+            gap = following['start'] - current['end']
+            span_end = max(current['end'], following['end'])
+            source_adjacent = (boundary > 0 and boundary < len(source)
+                               and source[boundary][1] == source[boundary - 1][1] + 1)
+            crosses_scene = any(current['start'] < marker < span_end
+                                for marker in scene_boundaries)
+            if (source_adjacent and left_raw == left and right_raw == right
+                    and re.fullmatch(r'[A-Za-z]+', left)
+                    and re.fullmatch(r'-[A-Za-z]+(?:[.!?])?', right)
+                    and -.02 <= gap <= .02 and following['end'] >= current['end']
+                    and not crosses_scene):
+                merged = dict(current)
+                merged.update(word=candidate, end=span_end)
+                display.append(merged)
+                joins.append({'left': left, 'right': right, 'display': candidate,
+                              'start': current['start'], 'end': span_end})
+                index += 2
+                continue
+        display.append(dict(current))
+        index += 1
+    return display, joins
+
+
 def observed_captions(words, duration, *, scene_boundaries=()):
     """Group observed words at punctuation/0.5s pauses, with a seven-word cap.
 
@@ -804,12 +863,19 @@ def transcribe_encoded(editorial, output, voice_root, *, timeline=None):
             'production_approved':False,'full_av_review':False,
             'scope':'Encoded speech recognition and observed word timing; not semantic equivalence, factual, creative or listening approval.'}
     if comparison['passed']:
-        captions=observed_captions(words,media_duration,scene_boundaries=boundaries)
+        # Validate every original observation before a display-only join can
+        # replace two constituent timings with one outer interval.
+        observed_captions(words,media_duration,scene_boundaries=boundaries)
+        display_words, display_joins = caption_display_words(
+            words, actual, scene_boundaries=boundaries or ())
+        captions=observed_captions(display_words,media_duration,scene_boundaries=boundaries)
         if digest(video)!=candidate_hash:raise ValueError('Candidate changed during ASR')
         if timeline is not None and digest(timeline) != timeline_sha:
             raise ValueError('Scene timeline changed during ASR')
         (output/'captions.vtt').write_text(captions)
-        report.update(status='PASS',caption_sha256=digest(output/'captions.vtt'),timeline_sha256=timeline_sha)
+        report.update(status='PASS',caption_sha256=digest(output/'captions.vtt'),timeline_sha256=timeline_sha,
+                      caption_typography={'mode':'recognized_contiguous_hyphen_compounds_v1',
+                                          'joins':display_joins})
     write(output/'transcription.json',report)
     if report['status']!='PASS':raise ValueError('Independent encoded speech comparison failed')
 

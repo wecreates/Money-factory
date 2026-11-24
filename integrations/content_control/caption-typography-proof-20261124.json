@@ -1,0 +1,109 @@
+{
+  "acceptance_limits": {
+    "competitor_comparison_verified": false,
+    "creative_review_verified": false,
+    "deployed_preview_verified": false,
+    "full_audiovisual_review_verified": false,
+    "listening_verified": false,
+    "phone_playback_verified": false,
+    "production_ready": false
+  },
+  "caption_repair": {
+    "mode": "recognized_contiguous_hyphen_compounds_v1",
+    "raw_asr_words_changed": false,
+    "recognized_joins": [
+      {
+        "display": "three-year",
+        "end_seconds": 12.52,
+        "left": "three",
+        "right": "-year",
+        "start_seconds": 12.0
+      },
+      {
+        "display": "three-year",
+        "end_seconds": 35.68,
+        "left": "three",
+        "right": "-year",
+        "start_seconds": 35.26
+      },
+      {
+        "display": "non-negotiable.",
+        "end_seconds": 44.5,
+        "left": "non",
+        "right": "-negotiable.",
+        "start_seconds": 43.66
+      }
+    ],
+    "source_caption_sha256": "954da1c09ccae4916808e36c2ca173eb2460de101ccb1e66b044c38bc9af8161",
+    "whitespace_hyphen_defects_remaining": []
+  },
+  "execution": {
+    "duration_seconds": 45.418333,
+    "finished_at": "2026-11-24T14:30:34.672039+00:00",
+    "first_attempt": {
+      "reason": "Pinned ASR snapshot unavailable because the selected ASR cache variable was omitted.",
+      "status": "BLOCKED"
+    },
+    "full_decode_passed": true,
+    "package_sha256": "9762cfdd8125a71fd34171fb48f7ead22d487895f54a91a424b69c6a4d2db4f2",
+    "portrait_candidate_sha256": "06bc932881ded682d090616e776b86ef25ed1521f3593b68b24e18b509fd8654",
+    "portrait_cycle_sha256": "b4688640604e37e14df09a8547819db17b9eebbefd436ddf15ffd919e835e361",
+    "portrait_render_receipt_sha256": "01991bea4ee86228e418b4c4eeb6f65ea2e8ea91c41ebd15dfbc7ac1e9850572",
+    "portrait_transcription_receipt_sha256": "a526c3d0f8b0c6c4f3002e76fe1ef88bfb247aee3966ebe18007c94d5e289856",
+    "portrait_voice_receipt_sha256": "77676f2ddcb498e72a7c8e8ab0377cdc919398db3846a2ec03d1ab08d6580d0c",
+    "recovery": "A fresh second attempt selected the existing verified offline cache and completed without changing publication or paid-generation settings.",
+    "review_package_archive_sha256": "98de0f9de6ce6d11029c69a4820d938112d23199eff06a1a75d0767ce8ef1f3f",
+    "started_at": "2026-11-24T14:29:42.311626+00:00",
+    "status": "AWAITING_REVIEW"
+  },
+  "prior_defect": {
+    "caption_sha256": "31182aea7cd246d39a97d0474a0bb7306f1ca0e2db752908c6382ff703885218",
+    "observed_strings": [
+      "three -year",
+      "-year comparison",
+      "non -negotiable"
+    ],
+    "short_candidate_sha256": "25a71b429c82894d932fdf67b10969db12b38416a015e148b375929ac58615b6"
+  },
+  "publication_enabled": false,
+  "paid_generation_enabled": false,
+  "schema_version": 1,
+  "short": {
+    "automated_review_sha256": "b72b01c99fccef842f683a9f9d7dce980425bb6655cc6ca28c4118ecd4d628e3",
+    "caption_sha256": "3baf8e0c3eb5aa5797c4a74ce999eaa8f4e646f48a7a26837c8ad5b21773bb4f",
+    "candidate_sha256": "bfbcac544ad2f972e5a004c8ea0d8d36f8f08394cc56b12aea00479a753ebe02",
+    "decoded_picture_sha256": "b5e0d4dbaf578e3fc3bdb2b0687c4835721c44b56c0ef41bf9be8d74de4b21c8",
+    "duration_seconds": 45.418,
+    "encoded_streams_sha256": {
+      "audio": "5d91c2890e5eaa9d91b04ddaed4190cb2f54888a6735d110578a064411fee29f",
+      "video": "2752d53754e166056c94c45d6ed8b926cb1e0ef958752a8f88a50b2f3dad7f2a"
+    },
+    "full_decode_passed": true,
+    "preview_sha256": "e96fb88a491ab49c93039811a8ccb14ae808e21c13b5f80146ffb2ad6a6bf980",
+    "receipt_sha256": "e7197f5281325775a1cb01184c31a6be5703b360090bb77f1bc3cea1c592d18f"
+  },
+  "tests": {
+    "focused_tests_passed": 140,
+    "result": "PASS"
+  },
+  "visual_spot_check": {
+    "basis": "Decoded frames from the exact burned Short; sampled frames are not full-duration audiovisual review.",
+    "frames": [
+      {
+        "caption_observation": "the three-year comparison",
+        "png_sha256": "1ddad28dda2d56ce966f34173737717f295a16de36d3bee736cc81142204ace6",
+        "timestamp_seconds": 12.3
+      },
+      {
+        "caption_observation": "The three-year estimate",
+        "png_sha256": "64e8d3acde5e3c412dc015c08cdd2f5f3794fc42553a9ddd9b58929adb466f9a",
+        "timestamp_seconds": 35.5
+      },
+      {
+        "caption_observation": "date non-negotiable.",
+        "png_sha256": "c6405045a51a6d765782f05bc796ed8cdc1d404909b6c088d7febab54b47e78e",
+        "timestamp_seconds": 44.1
+      }
+    ]
+  }
+}
