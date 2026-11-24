@@ -22,6 +22,12 @@ LEARNING_IDENTITIES = ('selection_receipt_sha256', 'prior_candidate_sha256',
 AUDIENCE_LEARNING_IDENTITIES = ('audience_observation_sha256', 'audience_receipt_sha256')
 
 
+def authored_content_sha(title, scenes):
+    """Identity of the literal script/storyboard fields before timeline normalization."""
+    return hashlib.sha256(json.dumps({'title': title, 'scenes': scenes}, sort_keys=True,
+                                     separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
 def _text(value, name, maximum, *, minimum=1):
     if not isinstance(value, str) or not minimum <= len(value.strip()) <= maximum:
         raise ValueError(f'{name}: nonempty text up to {maximum} characters required')
@@ -109,6 +115,37 @@ def _learning(value):
         raise ValueError('idea_learning: audience receipt must remain supplied and unverified')
     return {**value, 'hypothesis': _text(value['hypothesis'], 'idea_learning.hypothesis', 1000, minimum=12),
             'application': _text(value['application'], 'idea_learning.application', 2000, minimum=12)}
+
+
+def _authoring(value, title, scenes, discovery):
+    identities = {'research_sha256', 'pool_sha256', 'discovery_receipt_sha256',
+                  'script_storyboard_sha256'}
+    fields = {'schema_version', 'status', 'algorithm', 'selected_candidate_id',
+              'speaker_sequence', 'authorship_verified', 'originality_review_complete',
+              'scope', *identities, *FALSE_FLAGS}
+    if (not isinstance(value, dict) or set(value) != fields
+            or type(value.get('schema_version')) is not int or value['schema_version'] != 1
+            or value.get('status') != 'OFFLINE_DRAFT_AUTHORED'
+            or value.get('algorithm') != 'source-claim-scenes-v1'
+            or value.get('speaker_sequence') != ['narrator', 'dave', 'points_monk', 'narrator']
+            or value.get('authorship_verified') is not False
+            or value.get('originality_review_complete') is not False
+            or any(value[key] is not False for key in FALSE_FLAGS)
+            or any(not isinstance(value[key], str) or not re.fullmatch('[0-9a-f]{64}', value[key])
+                   for key in identities)):
+        raise ValueError('original_authoring: exact unapproved offline handoff required')
+    if (not isinstance(discovery, dict)
+            or value['research_sha256'] != discovery.get('research_sha256')
+            or value['pool_sha256'] != discovery.get('pool_sha256')
+            or value['discovery_receipt_sha256'] != discovery.get('discovery_receipt_sha256')
+            or value['selected_candidate_id'] != discovery.get('selected_candidate_id')):
+        raise ValueError('original_authoring: identities differ from verified topic discovery')
+    if value['script_storyboard_sha256'] != authored_content_sha(title, scenes):
+        raise ValueError('original_authoring: script/storyboard identity mismatch')
+    return {**value,
+            'selected_candidate_id': _identifier(value['selected_candidate_id'],
+                                                  'original_authoring.selected_candidate_id'),
+            'scope': _text(value['scope'], 'original_authoring.scope', 1000)}
 
 
 def _discovery(value):
@@ -306,6 +343,12 @@ def compile_editorial(brief, *, validate_visual_shapes=False):
         result['idea_learning'] = _learning(brief['idea_learning'])
     if 'topic_discovery' in brief:
         result['topic_discovery'] = _discovery(brief['topic_discovery'])
+    if 'original_authoring' in brief:
+        result['original_authoring'] = _authoring(
+            brief['original_authoring'], brief.get('title'), brief.get('scenes'),
+            result.get('topic_discovery'))
+        result['script_scope'] = ('Deterministic offline draft from retained source claims; '
+                                  'authorship and originality review remain unverified.')
     result['editorial_sha256'] = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(',', ':'),
                                                          allow_nan=False).encode()).hexdigest()
     return result
