@@ -94,6 +94,8 @@ python -m integrations.local_agent_queue --queue /path/to/local-agent-queue stop
 separate bounded-rate heartbeat persists while the main thread is inside a
 bounded adapter. `health` reports the run ID, phase, active job, processed count,
 last heartbeat, consumer-lock observation, queue counts, and final exit reason.
+`heartbeat_fresh` requires an unfinished run, an observed held consumer lock, and
+a heartbeat age between zero and the greater of five seconds or three poll intervals.
 This verifies process liveness only, not model availability, VPN reachability,
 video quality, or production readiness. A free consumer lock with an unfinished
 run is reported as `interrupted_unrecovered`, never as a live running worker.

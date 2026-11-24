@@ -294,8 +294,12 @@ class Queue:
         held = self.consumer_lock_held()
         if run:
             run['config'] = json.loads(run['config'])
-            run['heartbeat_age_seconds'] = max(0, time.time() - run['heartbeat'])
-            run['heartbeat_fresh'] = run['finished'] is None and run['heartbeat_age_seconds'] <= max(5, run['config']['poll_seconds'] * 3)
+            heartbeat_age = time.time() - run['heartbeat']
+            run['heartbeat_age_seconds'] = max(0, heartbeat_age)
+            freshness_window = max(5, run['config']['poll_seconds'] * 3)
+            run['heartbeat_fresh'] = (
+                held is True and run['finished'] is None and 0 <= heartbeat_age <= freshness_window
+            )
             run['observed_state'] = 'interrupted_unrecovered' if run['finished'] is None and held is False else run['state']
         return {'run': run, 'consumer_lock_held': held,
                 'job_counts': {r['state']: r['n'] for r in self.db.execute('SELECT state,COUNT(*) n FROM jobs GROUP BY state')},

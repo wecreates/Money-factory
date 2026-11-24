@@ -67,6 +67,7 @@ print(json.dumps(r))
         run_id = first['run']['id']
         self.assertEqual(first['run']['active_job'], 'first')
         self.assertTrue(first['consumer_lock_held'])
+        self.assertTrue(first['run']['heartbeat_fresh'])
         self.assertTrue(eventually(lambda: self.queue.health()['run']['heartbeat'] > first['run']['heartbeat']))
         self.assertEqual(self.queue.request_stop(run_id)['status'], 'STOP_REQUESTED')
         self.assertIsNone(child.poll(), 'Stop must finish, not kill, the active bounded job')
@@ -114,10 +115,22 @@ work(Queue(sys.argv[1]),watch_seconds=20,poll_seconds=.2)
         self.assertTrue(eventually(lambda: self.queue.health()['run'] is not None))
         run_id = self.queue.health()['run']['id']
         child.kill(); child.communicate(timeout=5)
-        self.assertEqual(self.queue.health()['run']['observed_state'], 'interrupted_unrecovered')
-        self.assertFalse(self.queue.health()['consumer_lock_held'])
+        health = self.queue.health()
+        self.assertEqual(health['run']['observed_state'], 'interrupted_unrecovered')
+        self.assertFalse(health['consumer_lock_held'])
+        # A recent heartbeat survives SIGKILL in SQLite, while the OS unlocks immediately.
+        self.assertFalse(health['run']['heartbeat_fresh'])
         work(self.queue)
         self.assertEqual(self.queue.health(run_id)['run']['state'], 'interrupted')
+
+    def test_clock_rollback_does_not_report_fresh_heartbeat(self):
+        with self.queue.consumer():
+            with patch('integrations.local_agent_queue.time.time', return_value=100):
+                run_id = self.queue.start_run({'poll_seconds': .2})
+            with patch('integrations.local_agent_queue.time.time', return_value=99):
+                health = self.queue.health(run_id)
+            self.assertTrue(health['consumer_lock_held'])
+            self.assertFalse(health['run']['heartbeat_fresh'])
 
     def test_watch_deadline_and_poll_bounds(self):
         report = work(self.queue, watch_seconds=1, poll_seconds=.2)
