@@ -109,6 +109,29 @@ class CyclePackageTest(unittest.TestCase):
                                     for role in ('analysis', 'watcher', 'listener', 'competitor_comparison')))
                 self.assertFalse(report['full_audiovisual_review_verified'])
 
+    def test_av_scan_uses_separate_streams_and_shared_deadline(self):
+        from integrations.content_control.cycle_av_review import scan_media
+
+        picture_log = b'[blackdetect @ 0x123] black_start: 0.2 black_end: 0.5\n'
+        audio_log = (b'[silencedetect @ 0x456] silence_start: 0\n'
+                     b'metadata mean_volume: -1.0 dB\n'
+                     b'[Parsed_volumedetect_1 @ 0x789] mean_volume: -91.0 dB\n'
+                     b'[Parsed_volumedetect_1 @ 0x789] max_volume: -90.0 dB\n')
+        deadline = time.monotonic() + 10
+        with patch('integrations.content_control.cycle_av_review.run',
+                   side_effect=[picture_log, audio_log]) as scanner:
+            result = scan_media(self.render / 'video.mp4', deadline=deadline,
+                                media={'width': 160, 'height': 240, 'duration_seconds': 1.0})
+        self.assertEqual(scanner.call_count, 2)
+        for call, stream, muted in zip(scanner.call_args_list, ('0:v:0', '0:a:0'), ('-an', '-vn')):
+            command = call.args[0]
+            self.assertEqual(command[command.index('-map') + 1], stream)
+            self.assertIn(muted, command)
+            self.assertEqual(call.kwargs['deadline'], deadline)
+        self.assertEqual(result['watcher']['black_intervals'], [[.2, .5]])
+        self.assertEqual(result['listener']['mean_dbfs'], -91.0)
+        self.assertEqual(result['listener']['silence_seconds'], 1.0)
+
     def test_native_landscape_binds_layout_and_uses_uncropped_frames(self):
         target = self.render / 'video.mp4'
         subprocess.run(['ffmpeg', '-v', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i',
