@@ -186,6 +186,37 @@ comparison requires genuine observed playback with audio and is still pending
 after the technical comparison. Blocked comparison does not discard a private
 candidate or turn on publication or paid inference.
 
+After permitted live playback, record two full audiovisual observations against
+the exact unpublished candidate with:
+
+```bash
+python -m integrations.content_control.cycle_live_comparison \
+  --cycle-dir /absolute/completed-cycle \
+  --observations /absolute/live-comparison.json \
+  --output /absolute/new-comparison-receipt.json
+```
+
+The input names the exact candidate SHA, reviewer and review time, one complete
+candidate observation, and exactly two distinct competitor references. Candidate
+and reference observations are contiguous intervals from zero through the full
+declared playback duration. Every interval records audio, visuals, pacing and
+story observations. Each reference also carries its topic/format, selection
+basis, a separate dated ranking-evidence URL, and dated playback evidence. Its
+access record must explicitly say `live_view_only`, playback permitted, media
+not downloaded, accessible, picture accessible and sound accessible. A specific
+Instagram reel URL is accepted only under those live-view conditions; the
+command never opens or downloads it. Missing picture or sound, partial interval
+coverage, duplicate references, inaccessible playback, a candidate mismatch or
+missing separate ranking evidence fails closed.
+
+The resulting `COMPARISON_ATTESTATION_RECORDED` receipt binds the exact candidate,
+cycle/package identities and submitted observation bytes. It deliberately keeps
+`independent_verification`, `competitor_comparison_verified`, `full_av_review`,
+production approval/readiness, publication and paid generation false. Schema
+validation proves neither that playback happened nor that a competitor is truly
+high-performing; those claims still require independently supported runtime and
+creative acceptance evidence.
+
 ### Native landscape review renders
 
 Set the brief's top-level `layout` to `"landscape"` to render a 1280×720
