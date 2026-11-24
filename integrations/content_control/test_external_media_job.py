@@ -11,6 +11,7 @@ from integrations.local_agent_queue import Queue, work
 from integrations.content_control.external_media_job import run_job, validate
 from integrations.content_control.review_package import digest
 from integrations.content_control.review_delivery import export_review, status, verify_delivery
+from integrations.queue_monitor import inspect_queue
 
 
 def write_json(path, value):
@@ -162,6 +163,22 @@ class ExternalMediaJobTests(unittest.TestCase):
         exported = export_review(queue.root, self.spec['id'], self.root / 'private-export')
         self.assertEqual(exported['candidate_sha256'], self.candidate_sha)
         self.assertEqual(exported['provenance']['provider_calls'], 0)
+
+    def test_completed_external_job_is_visible_in_read_only_queue_monitor(self):
+        queue, _report = self.run_queue()
+        result = inspect_queue(queue.root)
+        self.assertEqual(result['status'], 'HEALTHY')
+        self.assertEqual(result['jobs'], [{
+            'id': self.spec['id'], 'adapter': 'content-control-external-media',
+            'state': 'succeeded', 'attempts': 1,
+            'resource_limits': {'max_attempts': 1, 'timeout_seconds': 30},
+        }])
+        self.assertEqual(result['alerts'], [])
+        self.assertNotIn(self.request['external_receipt_sha256'], json.dumps(result))
+        self.assertFalse(result['publication_enabled'])
+        self.assertFalse(result['paid_generation_enabled'])
+        self.assertFalse(result['deployed_monitor_verified'])
+        self.assertFalse(result['twenty_four_hour_soak_verified'])
 
     def test_request_cannot_select_paths_commands_providers_or_approval(self):
         for key, value in (

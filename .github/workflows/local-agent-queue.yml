@@ -3,7 +3,9 @@ on:
   pull_request:
     paths:
       - 'integrations/local_agent_queue.py'
+      - 'integrations/queue_monitor.py'
       - 'integrations/test_local_agent_queue.py'
+      - 'integrations/test_queue_monitor.py'
       - 'integrations/test_local_agent_operator.py'
       - 'integrations/test_local_queue_process_recovery.py'
       - 'integrations/owned_process.py'
@@ -17,7 +19,9 @@ on:
     branches: [main]
     paths:
       - 'integrations/local_agent_queue.py'
+      - 'integrations/queue_monitor.py'
       - 'integrations/test_local_agent_queue.py'
+      - 'integrations/test_queue_monitor.py'
       - 'integrations/test_local_agent_operator.py'
       - 'integrations/test_local_queue_process_recovery.py'
       - 'integrations/owned_process.py'
@@ -38,3 +42,4 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest integrations.test_local_agent_queue integrations.test_local_queue_process_recovery integrations.test_local_agent_operator integrations.content_control.test_runtime_doctor integrations.content_control.test_video_job integrations.content_control.test_review_package integrations.content_control.test_produce_review_bundle integrations.content_control.test_review_delivery -v
+      - run: python -m unittest integrations.test_queue_monitor integrations.content_control.test_external_media_job -v
