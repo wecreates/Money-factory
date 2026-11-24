@@ -8,6 +8,7 @@ from integrations.content_control.cycle_audience import record_audience_observat
 from integrations.content_control.cycle_learning_readiness import (
     assess_learning_readiness, verify_learning_readiness,
 )
+from integrations.content_control.cycle_selection import _read_selection, _selection_result
 from integrations.content_control import test_cycle_selection as selection_fixtures
 
 
@@ -40,6 +41,8 @@ class LearningReadinessTests(unittest.TestCase):
         self.assertEqual(result['hypothesis'], recorded['next_idea_hypotheses'][0])
         self.assertTrue(result['reviewer_hypothesis_replayable'])
         self.assertFalse(result['performance_informed_learning_ready'])
+        self.assertFalse(result['performance_values_admitted'])
+        self.assertEqual(result['thumbnail'], recorded['thumbnail'])
         self.assertTrue({'impressions', 'clicks', 'ctr'}.isdisjoint(result))
         self.assertFalse(result['publication_enabled'])
 
@@ -50,6 +53,7 @@ class LearningReadinessTests(unittest.TestCase):
         self.assertEqual(result['performance_status'], 'SUPPLIED_UNVERIFIED')
         self.assertFalse(result['audience_performance_verified'])
         self.assertFalse(result['winner_inferred'])
+        self.assertFalse(result['performance_values_admitted'])
         self.assertTrue({'impressions', 'clicks', 'ctr', 'source_url', 'evidence'}.isdisjoint(result))
 
     def audience(self):
@@ -109,6 +113,26 @@ class LearningReadinessTests(unittest.TestCase):
             assess_learning_readiness(
                 self.fixture.root, self.fixture.submitted, self.fixture.recorded,
                 2, self.fixture.base / 'other-readiness.json')
+
+    def test_schema_one_readiness_receipt_remains_replayable(self):
+        selection = self.fixture.selection()
+        selection.pop('schema_version')
+        selection_fixtures.write(self.fixture.submitted, selection)
+        source_hash = _read_selection(self.fixture.submitted)[1]
+        receipt = _selection_result(
+            selection_fixtures.inspect_cycle(self.fixture.root), selection,
+            source_hash, '2026-01-06T00:00:00+00:00', schema_version=1,
+            legacy_replay=True)
+        selection_fixtures.write(self.fixture.recorded, receipt)
+        result = self.assess()
+        result['schema_version'] = 1
+        result.pop('thumbnail')
+        result.pop('performance_values_admitted')
+        selection_fixtures.write(self.output, result)
+        replayed, _ = verify_learning_readiness(
+            self.fixture.root, self.fixture.submitted, self.fixture.recorded,
+            1, self.output)
+        self.assertEqual(replayed, result)
 
     def test_replay_rejects_assessment_that_predates_retained_evidence(self):
         self.record()

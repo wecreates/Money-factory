@@ -558,7 +558,8 @@ python -m integrations.content_control.cycle_selection \
   --output /absolute/path/to/new-selection-receipt.json
 ```
 
-The input requires `candidate_sha256`, `package_sha256`, `thumbnail` (one of
+New inputs use `schema_version: 2` and require `candidate_sha256`,
+`package_sha256`, `thumbnail` (one of
 `thumbnail-1.png` through `thumbnail-3.png`), `thumbnail_sha256`, the exact packaged
 `title`, `reviewer`, timezone-qualified `reviewed_at`, and `rationale`.
 An optional `thumbnail_copy` in a new or revised editorial brief prints separate
@@ -573,11 +574,18 @@ separate draft can explicitly carry one forward using the intake option above.
 
 Omit `performance` or set it to null when analytics are unavailable. The receipt
 keeps impressions, clicks and CTR null, never invented zero values. Optional
-supplied performance must bind the same candidate/title/thumbnail and provide
+supplied performance must use the exact documented fields, bind the same
+candidate/package/title/thumbnail filename and SHA-256, and provide
 integer impressions/clicks, `window_start`, `window_end`, `observed_at`,
 `source_url` and `evidence`. The receipt timestamp must be at or after the
-observation. The performance remains explicitly unverified, even when CTR can
-be calculated. A selection never grants creative or publishing approval.
+observation, and its window must not begin before `reviewed_at`. Do not supply
+unknown outer selection fields or `ctr`, winner, verification, status, or audience
+conclusion fields: CTR is derived from the submitted counts, while every such
+packet remains explicitly unverified and inadmissible to performance-informed
+learning. A selection never grants creative or publishing approval.
+Schema-version-1 selection receipts and the immediately preceding version-1
+readiness layout remain replayable from their retained original inputs, but all
+newly recorded selection and learning-readiness receipts use schema version 2.
 
 When counts become available only after the editorial selection was recorded,
 retain them as a separate exact-selection observation:
@@ -623,7 +631,9 @@ Add `--audience-observation` and `--audience-receipt` together to assess a later
 observation. Current receipts are `UNAVAILABLE` or `SUPPLIED_UNVERIFIED`, so the
 gate intentionally returns `BLOCKED` (exit code 2) while preserving the exact
 selection, package, thumbnail, hypothesis, and optional audience identities. It
-does not copy counts or CTR into an automated decision. Re-run with
+also retains the selected thumbnail filename and explicitly records that
+performance values were not admitted. It does not copy counts or CTR into an
+automated decision. Re-run with
 `--verify-receipt` instead of `--output` to replay a retained result. A future
 trusted read-only analytics adapter must bind the exact package and observation
 window before performance-informed learning can become ready; this command does
