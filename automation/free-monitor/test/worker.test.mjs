@@ -78,6 +78,16 @@ test('duplicate normalized IDs reject before requests or state/event writes',asy
   }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
 
+test('retry policy rejects unbounded attempts, timeouts and backoff before reading files',async()=>{
+  for(const [option,value,message] of [
+    ['maxAttempts',4,/maxAttempts/],
+    ['requestTimeoutMs',60001,/requestTimeoutMs/],
+    ['retryBackoffMs',5001,/retryBackoffMs/]
+  ]){
+    await assert.rejects(runWorker({[option]:value,watchesPath:'/missing'}),message);
+  }
+});
+
 test('real HTTP failure persists 502, exits nonzero, and recovery clears the error',async()=>{
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-health-'));
   let status=502;
@@ -103,6 +113,77 @@ test('real HTTP failure persists 502, exits nonzero, and recovery clears the err
     assert.equal((await runWorker(options)).ok,false);
     assert.equal(JSON.parse(await fs.readFile(options.statePath,'utf8')).fixture.last_status,null);
   }finally{server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});}
+});
+
+test('real HTTP timeout retry retains attempt evidence without masking a persistent failure',async()=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-retry-'));
+  let mode='flaky-timeout',requests=0;
+  const timers=new Set();
+  const server=http.createServer((req,res)=>{
+    requests++;
+    const shouldDelay=mode==='persistent-timeout' || (mode==='flaky-timeout' && requests===1);
+    if(shouldDelay){
+      const timer=setTimeout(()=>{
+        timers.delete(timer);
+        if(!res.destroyed) res.end('late response');
+      },250);
+      timers.add(timer);
+      return;
+    }
+    if(mode==='not-found') res.writeHead(404);
+    res.end('healthy');
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),
+    eventsPath:path.join(dir,'events.json'),intervalMs:0,maxAttempts:2,requestTimeoutMs:25,retryBackoffMs:0};
+  const readState=async()=>JSON.parse(await fs.readFile(options.statePath,'utf8')).fixture;
+  const readEvents=async()=>JSON.parse(await fs.readFile(options.eventsPath,'utf8'));
+  try{
+    await fs.writeFile(options.watchesPath,JSON.stringify([{id:'fixture',targetUrl:'http://127.0.0.1:'+server.address().port}]));
+
+    const recoveredByRetry=await runWorker(options);
+    assert.equal(recoveredByRetry.ok,true);assert.equal(requests,2);
+    const recoveredResult=recoveredByRetry.results[0];
+    assert.equal(recoveredResult.attempt_count,2);assert.equal(recoveredResult.recovered_by_retry,true);
+    assert.deepEqual(recoveredResult.attempts.map(attempt=>[attempt.outcome,attempt.retryable,attempt.will_retry]),
+      [['error',true,true],['success',undefined,undefined]]);
+    assert.match(recoveredResult.attempts[0].error,/TimeoutError/);
+    const recoveredState=await readState();
+    assert.equal(recoveredState.last_attempt_count,2);assert.equal(recoveredState.last_check_recovered_by_retry,true);
+    const [retryRecovery]=await readEvents();
+    assert.equal(retryRecovery.type,'retry_recovery');assert.equal(retryRecovery.attempt_count,2);
+    assert.match(retryRecovery.first_error,/TimeoutError/);
+
+    mode='persistent-timeout';requests=0;
+    const persistent=await runWorker(options);
+    assert.equal(persistent.ok,false);assert.equal(requests,2);
+    assert.equal(persistent.results[0].attempt_count,2);assert.equal(persistent.results[0].recovered_by_retry,false);
+    assert.deepEqual(persistent.results[0].attempts.map(attempt=>[attempt.outcome,attempt.retryable,attempt.will_retry]),
+      [['error',true,true],['error',true,false]]);
+    const failedState=await readState();
+    assert.match(failedState.last_error,/TimeoutError/);assert.equal(failedState.last_status,null);
+    assert.equal(failedState.last_attempt_count,2);assert.equal(failedState.last_check_recovered_by_retry,false);
+    assert.deepEqual((await readEvents()).map(event=>[event.type,event.availability]),
+      [['retry_recovery',undefined],['availability','unavailable']]);
+
+    mode='fast';requests=0;
+    const nextCycleRecovery=await runWorker(options);
+    assert.equal(nextCycleRecovery.ok,true);assert.equal(requests,1);
+    assert.equal(nextCycleRecovery.results[0].attempt_count,1);assert.equal(nextCycleRecovery.results[0].recovered_by_retry,false);
+    assert.equal((await readState()).last_error,null);
+    assert.deepEqual((await readEvents()).map(event=>[event.type,event.availability]),
+      [['retry_recovery',undefined],['availability','unavailable'],['availability','healthy']]);
+
+    mode='not-found';requests=0;
+    const nonRetryable=await runWorker(options);
+    assert.equal(nonRetryable.ok,false);assert.equal(requests,1);
+    assert.equal(nonRetryable.results[0].attempt_count,1);
+    assert.equal(nonRetryable.results[0].attempts[0].retryable,false);
+    assert.equal(nonRetryable.results[0].attempts[0].will_retry,false);
+  }finally{
+    for(const timer of timers) clearTimeout(timer);
+    server.closeAllConnections();server.close();await fs.rm(dir,{recursive:true,force:true});
+  }
 });
 
 test('availability transitions record per-probe completion, deduplicate and preserve the content baseline',async()=>{
@@ -251,14 +332,18 @@ test('overflow cancels the response reader and never reads or hashes remaining b
 import {reconcileWatch} from '../worker.mjs';
 
 test('configuration controls metadata while only matching observations survive',()=>{
-  const prior={id:'same',targetUrl:'https://example.com',kind:'change',label:'Old',status:'active',last_value:'hash',last_checked_at:100,last_change_at:90,last_status:200,last_error:null};
-  const raw={id:'same',target_url:'https://example.com/',label:'New',status:'paused',last_value:'untrusted-config-hash'};
+  const prior={id:'same',targetUrl:'https://example.com',kind:'change',label:'Old',status:'active',last_value:'hash',last_checked_at:100,last_change_at:90,last_status:200,last_error:null,
+    last_attempt_count:2,last_attempts:[{attempt:1,outcome:'error'},{attempt:2,outcome:'success'}],last_check_recovered_by_retry:true};
+  const raw={id:'same',target_url:'https://example.com/',label:'New',status:'paused',last_value:'untrusted-config-hash',
+    last_attempt_count:99,last_attempts:[{outcome:'untrusted'}],last_check_recovered_by_retry:false};
   const merged=reconcileWatch(raw,prior);
   assert.equal(merged.targetUrl,'https://example.com/');assert.equal(merged.label,'New');assert.equal(merged.status,'paused');
   assert.equal(merged.last_value,'hash');assert.equal(merged.last_checked_at,100);
+  assert.equal(merged.last_attempt_count,2);assert.equal(merged.last_check_recovered_by_retry,true);
+  assert.deepEqual(merged.last_attempts,prior.last_attempts);
   for(const changed of [{...raw,kind:'availability'},{...raw,target_url:'https://other.example/'}, {...raw,id:'different'}]){
     const reset=reconcileWatch(changed,prior);
-    for(const field of ['last_value','last_checked_at','last_change_at','last_status','last_error']) assert.equal(reset[field],null);
+    for(const field of ['last_value','last_checked_at','last_change_at','last_status','last_error','last_attempt_count','last_attempts','last_check_recovered_by_retry']) assert.equal(reset[field],null);
   }
   assert.equal(reconcileWatch(raw,{...prior,targetUrl:'not a url'}).last_value,null);
   assert.equal(reconcileWatch(raw,undefined).last_value,null);

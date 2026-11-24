@@ -128,3 +128,25 @@ still records the website timeout at 2026-11-22T15:43:02.034Z and repository
 HTTP 200 at 15:43:22.666Z. A separate public fetch on November 22 also timed out.
 Neither this fix nor the repository response establishes website recovery,
 self-serve onboarding, intended-host operation or 24-hour acceptance.
+
+## Bounded retry evidence
+
+Each due target now receives at most two attempts. A request keeps the existing
+20-second per-attempt timeout; a retry waits 250 milliseconds and occurs only
+for timeouts, fetch/network errors, HTTP 408/425/429, or HTTP 5xx. HTTP 4xx
+responses outside that allowlist and response-size failures are not retried.
+The worker validates hard ceilings of three attempts, 60 seconds per attempt,
+and five seconds of configured base backoff even when called programmatically.
+
+Every completed check retains its attempt count and per-attempt timing/outcome
+in state and the worker report. A successful retry also records a
+`retry_recovery` event; a target that exhausts its attempts remains unavailable
+and retains each failure. An availability recovery still requires a later
+successful check and is recorded separately. Local HTTP fixtures cover a first
+attempt timeout followed by success, two exhausted timeouts, next-cycle
+recovery, and a non-retryable 404.
+
+This is bounded retry/recovery instrumentation, not evidence that the CYZOR
+website recovered, that alerts were delivered, or that monitoring stayed live
+for 24 hours. The public fetch path still timed out on November 24, 2026, and
+deployment/network logs remain necessary to locate the origin of the delay.
