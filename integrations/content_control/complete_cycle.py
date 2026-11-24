@@ -15,7 +15,7 @@ from integrations.content_control.cycle_editorial import compile_editorial, port
 from integrations.content_control.cycle_intake import verify_intake
 from integrations.content_control.cycle_render import render_cycle
 from integrations.content_control.cycle_package import package_cycle
-from integrations.content_control.cycle_lineage import read_revision
+from integrations.content_control.cycle_lineage import read_revision, validate_lineage
 
 
 def digest(path):
@@ -38,8 +38,28 @@ def safe_path(path):
     return path
 
 
+def _revision_discovery(brief, inputs):
+    required = {'pool_path', 'research_path', 'receipt_path'}
+    if not isinstance(inputs, dict) or set(inputs) != required:
+        raise ValueError('Revision discovery requires exact retained evidence paths')
+    from integrations.content_control.cycle_discovery import (
+        MAX_POOL, MAX_RECEIPT, verify_revision_discovery,
+    )
+    from integrations.content_control.cycle_intake import MAX_INPUT
+    values = {}
+    for field, limit in (('pool_path', MAX_POOL), ('research_path', MAX_INPUT),
+                         ('receipt_path', MAX_RECEIPT)):
+        path = safe_path(inputs[field])
+        if not path.is_file() or not 0 < path.stat().st_size <= limit:
+            raise ValueError('Missing or oversized retained revision discovery evidence')
+        values[field] = path.read_bytes()
+    return verify_revision_discovery(brief, values['pool_path'],
+                                     values['research_path'], values['receipt_path'])
+
+
 def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, transcription_python=None,
-              revision_path=None, minimum_duration=None, intake_inputs=None):
+              revision_path=None, minimum_duration=None, intake_inputs=None,
+              revision_discovery_inputs=None):
     """Create one immutable attempt; a failed attempt is never resumed as PASS."""
     if type(timeout) is not int or not 30 <= timeout <= 1800:
         raise ValueError('Timeout must be 30..1800 seconds')
@@ -65,15 +85,38 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         intake = verify_intake(intake_dir=source.parent, **intake_inputs)
         if intake['brief_sha256'] != brief_hash:
             raise ValueError('Verified intake does not match the production brief')
-    if 'topic_discovery' in brief and (intake is None or 'topic_discovery' not in intake):
-        raise ValueError('Topic discovery requires replayable verified discovery intake')
     revision_source = safe_path(revision_path) if revision_path is not None else None
     lineage = read_revision(revision_source, brief_hash) if revision_source is not None else None
+    lineage_receipt = validate_lineage(lineage, brief_hash) if lineage is not None else None
+    revision_discovery = None
+    if revision_discovery_inputs is not None:
+        if lineage is None or intake is not None:
+            raise ValueError('Revision discovery requires a revision handoff without fresh intake')
+        revision_discovery = _revision_discovery(brief, revision_discovery_inputs)
+    claimed_discovery = 'topic_discovery' in brief
+    discovery_identity = (hashlib.sha256(json.dumps(
+        brief['topic_discovery'], sort_keys=True, separators=(',', ':'),
+        allow_nan=False).encode()).hexdigest() if claimed_discovery else None)
+    if claimed_discovery and intake is None and lineage_receipt is not None and (
+            lineage_receipt.get('schema_version') != 2
+            or lineage_receipt.get('topic_discovery_sha256') != discovery_identity):
+        raise ValueError('Revision lineage does not retain topic discovery provenance')
+    if not claimed_discovery and lineage_receipt is not None \
+            and lineage_receipt.get('schema_version') == 2:
+        raise ValueError('Revision brief dropped retained topic discovery provenance')
+    if claimed_discovery != (('topic_discovery' in intake) if intake is not None
+                             else revision_discovery is not None):
+        raise ValueError('Topic discovery requires replayable verified discovery evidence')
     output = safe_path(output)
     if output == source or output in source.parents:
         raise ValueError('Output cannot contain the input brief')
     if revision_source is not None and (output == revision_source or output in revision_source.parents):
         raise ValueError('Output cannot contain the revision handoff')
+    if revision_discovery_inputs is not None:
+        for path in revision_discovery_inputs.values():
+            evidence = safe_path(path)
+            if output == evidence or output in evidence.parents:
+                raise ValueError('Output cannot contain revision discovery evidence')
     output.mkdir(parents=True, exist_ok=False)
     receipt = {'schema_version': 1, 'status': 'BLOCKED', 'technical_status': 'PENDING',
                'started_at': stamp(), 'publication_enabled': False,
@@ -85,6 +128,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
     module_root = Path(__file__).parent
     if lineage is not None:
         receipt['revision_lineage'] = lineage
+    if revision_discovery is not None:
+        receipt['verified_revision_discovery'] = revision_discovery
     if minimum_duration is not None:
         receipt['minimum_duration_seconds'] = minimum_duration
     if maximum_duration is not None:
@@ -96,6 +141,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         tool_names += ('cycle_intake.py', 'cycle_selection.py')
         if 'topic_discovery' in intake:
             tool_names += ('cycle_discovery.py',)
+    if revision_discovery is not None:
+        tool_names += ('cycle_discovery.py',)
     receipt['tool_sha256'] = {name: digest(module_root/name) for name in tool_names}
     deadline = time.monotonic() + timeout
     stage = 'editorial'
@@ -152,6 +199,13 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
             if time.monotonic() >= deadline:
                 raise TimeoutError('Cycle budget exhausted while rechecking intake')
             receipt['steps'].append({'name': stage, 'status': 'PASS'})
+        if revision_discovery is not None:
+            stage = 'revision_discovery'
+            if _revision_discovery(brief, revision_discovery_inputs) != revision_discovery:
+                raise ValueError('Revision discovery evidence changed during the cycle')
+            if time.monotonic() >= deadline:
+                raise TimeoutError('Cycle budget exhausted while rechecking revision discovery')
+            receipt['steps'].append({'name': stage, 'status': 'PASS'})
         if receipt['tool_sha256'] != {name: digest(module_root/name) for name in tool_names}:
             raise ValueError('Cycle implementation changed during execution')
         receipt.update(status='AWAITING_REVIEW', technical_status='PASS')
@@ -179,6 +233,9 @@ def main():
     parser.add_argument('--intake-selection-receipt')
     parser.add_argument('--intake-discovery-pool')
     parser.add_argument('--intake-discovery-receipt')
+    parser.add_argument('--revision-discovery-pool')
+    parser.add_argument('--revision-discovery-research')
+    parser.add_argument('--revision-discovery-receipt')
     parser.add_argument('--timeout', type=int, default=900)
     parser.add_argument('--minimum-duration', type=int,
                         help='Require this many seconds of picture from measured narration and from the encoded video.')
@@ -200,10 +257,22 @@ def main():
                              '--intake-discovery-receipt')
             intake_inputs.update(discovery_pool=args.intake_discovery_pool,
                                  discovery_receipt=args.intake_discovery_receipt)
+    revision_discovery_inputs = None
+    revision_discovery_values = (args.revision_discovery_pool, args.revision_discovery_research,
+                                 args.revision_discovery_receipt)
+    if any(value is not None for value in revision_discovery_values):
+        if not all(value is not None for value in revision_discovery_values):
+            parser.error('Revision discovery requires pool, research and receipt')
+        revision_discovery_inputs = {
+            'pool_path': args.revision_discovery_pool,
+            'research_path': args.revision_discovery_research,
+            'receipt_path': args.revision_discovery_receipt,
+        }
     result = run_cycle(args.brief, args.output, voice_python=args.voice_python,
                        voice_root=args.voice_root, timeout=args.timeout,
                        transcription_python=args.transcription_python, revision_path=args.revision,
-                       minimum_duration=args.minimum_duration, intake_inputs=intake_inputs)
+                       minimum_duration=args.minimum_duration, intake_inputs=intake_inputs,
+                       revision_discovery_inputs=revision_discovery_inputs)
     if args.checkpoint and result['status'] == 'AWAITING_REVIEW':
         from integrations.content_control.cycle_checkpoint import create_checkpoint
         try:

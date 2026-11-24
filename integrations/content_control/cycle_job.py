@@ -95,12 +95,16 @@ def production_handoff(request):
         if claimed_discovery != ('topic_discovery' in proof):
             raise ValueError('Topic discovery requires replayable verified discovery intake')
         return encoded, None, files, proof
-    if claimed_discovery:
-        raise ValueError('Topic discovery requires replayable verified discovery intake')
     if 'revision_input' not in request:
+        if claimed_discovery:
+            raise ValueError('Topic discovery requires replayable verified discovery evidence')
         return canonical(request['brief']).encode('utf-8'), None, {}, None
     revision = request['revision_input']
-    if not isinstance(revision, dict) or set(revision) != {'brief_json', 'revision_lineage'}:
+    core = {'brief_json', 'revision_lineage'}
+    discovery_fields = {'discovery_pool_json', 'discovery_research_json', 'discovery_receipt_json'}
+    if (not isinstance(revision, dict)
+            or set(revision) not in (core, core | discovery_fields)
+            or claimed_discovery != (discovery_fields <= set(revision))):
         raise ValueError('Require exact inline revision_input fields')
     raw = revision['brief_json']
     if not isinstance(raw, str):
@@ -115,15 +119,60 @@ def production_handoff(request):
     parsed = json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant)
     if canonical(parsed) != canonical(request['brief']):
         raise ValueError('Revision brief differs from queued brief')
-    validate_lineage(revision['revision_lineage'], hashlib.sha256(encoded).hexdigest())
-    return encoded, revision['revision_lineage'], {}, None
+    lineage_receipt = validate_lineage(
+        revision['revision_lineage'], hashlib.sha256(encoded).hexdigest())
+    discovery_identity = (hashlib.sha256(canonical(
+        parsed['topic_discovery']).encode()).hexdigest() if claimed_discovery else None)
+    if claimed_discovery:
+        if (lineage_receipt.get('schema_version') != 2
+                or lineage_receipt.get('topic_discovery_sha256') != discovery_identity):
+            raise ValueError('Revision lineage does not retain topic discovery provenance')
+    elif lineage_receipt.get('schema_version') == 2:
+        raise ValueError('Revision brief dropped retained topic discovery provenance')
+    if not claimed_discovery:
+        return encoded, revision['revision_lineage'], {}, None
+    from integrations.content_control.cycle_discovery import (
+        MAX_POOL, MAX_RECEIPT, verify_revision_discovery,
+    )
+    from integrations.content_control.cycle_intake import MAX_INPUT
+    names = {
+        'discovery_pool_json': ('discovery-pool.json', MAX_POOL),
+        'discovery_research_json': ('discovery-research.json', MAX_INPUT),
+        'discovery_receipt_json': ('discovery.json', MAX_RECEIPT),
+    }
+    files = {}
+    for field, (name, limit) in names.items():
+        try:
+            evidence = revision[field].encode('utf-8') if isinstance(revision[field], str) else b''
+        except UnicodeError as error:
+            raise ValueError('Revision discovery inputs must be bounded UTF-8 text') from error
+        if not 0 < len(evidence) <= limit:
+            raise ValueError('Revision discovery inputs must be bounded UTF-8 text')
+        files[name] = evidence
+    proof = verify_revision_discovery(parsed, files['discovery-pool.json'],
+                                      files['discovery-research.json'], files['discovery.json'])
+    return encoded, revision['revision_lineage'], files, proof
 
 
 def verify_attempt_intake(attempt, intake, cycle_receipt):
     """Recheck the owned attempt against the immutable request and cycle receipt."""
-    if cycle_receipt.get('verified_intake') != intake:
-        raise ValueError('Completed verified intake differs from queued handoff')
-    if intake is not None:
+    if intake is None:
+        if 'verified_intake' in cycle_receipt or 'verified_revision_discovery' in cycle_receipt:
+            raise ValueError('Completed evidence differs from queued handoff')
+        return
+    if intake.get('status') == 'DISCOVERY_VERIFIED':
+        if cycle_receipt.get('verified_revision_discovery') != intake:
+            raise ValueError('Completed revision discovery differs from queued handoff')
+        from integrations.content_control.cycle_discovery import verify_revision_discovery
+        brief = json.loads((attempt/'brief.json').read_text())
+        if verify_revision_discovery(
+                brief, (attempt/'discovery-pool.json').read_bytes(),
+                (attempt/'discovery-research.json').read_bytes(),
+                (attempt/'discovery.json').read_bytes()) != intake:
+            raise ValueError('Retained revision discovery differs from queued handoff')
+    else:
+        if cycle_receipt.get('verified_intake') != intake:
+            raise ValueError('Completed verified intake differs from queued handoff')
         from integrations.content_control.cycle_intake import verify_intake
         discovered = 'topic_discovery' in intake
         if verify_intake(attempt/'research.json', attempt/'draft.json', attempt,
@@ -307,26 +356,38 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
                 raise ValueError('Two CPU affinity slots are required')
             result['cpu_affinity'] = cpus
             # Fixed trusted bootstrap; user input is only JSON data and arguments.
-            discovered = 'discovery-pool.json' in intake_files
-            intake_expression = 'intake_inputs=dict(research_path=sys.argv[9],draft_path=sys.argv[10])'
-            intake_paths = ([str(attempt_dir/name) for name in ('research.json', 'draft.json')]
-                            if intake_files else [])
+            fresh_intake = 'intake.json' in intake_files
+            discovered = fresh_intake and 'discovery-pool.json' in intake_files
+            revision_discovery = 'discovery-research.json' in intake_files
+            intake_expression = 'intake_inputs=None'
+            revision_discovery_expression = 'revision_discovery_inputs=None'
+            evidence_paths = []
+            if fresh_intake:
+                intake_expression = 'intake_inputs=dict(research_path=sys.argv[9],draft_path=sys.argv[10])'
+                evidence_paths = [str(attempt_dir/name) for name in ('research.json', 'draft.json')]
             if discovered:
                 intake_expression = ('intake_inputs=dict(research_path=sys.argv[9],draft_path=sys.argv[10],'
                                      'discovery_pool=sys.argv[11],discovery_receipt=sys.argv[12])')
-                intake_paths += [str(attempt_dir/'discovery-pool.json'), str(attempt_dir/'discovery.json')]
+                evidence_paths += [str(attempt_dir/'discovery-pool.json'), str(attempt_dir/'discovery.json')]
+            if revision_discovery:
+                revision_discovery_expression = (
+                    'revision_discovery_inputs=dict(pool_path=sys.argv[9],research_path=sys.argv[10],'
+                    'receipt_path=sys.argv[11])')
+                evidence_paths = [str(attempt_dir/'discovery-pool.json'),
+                                  str(attempt_dir/'discovery-research.json'),
+                                  str(attempt_dir/'discovery.json')]
             bootstrap = ('import sys;from integrations.content_control.complete_cycle import run_cycle;'
                          'r=run_cycle(sys.argv[1],sys.argv[2],voice_python=sys.argv[3],'
                          'voice_root=sys.argv[4],timeout=int(sys.argv[5]),transcription_python=sys.argv[6] or None,'
                          'revision_path=sys.argv[7] or None,minimum_duration=int(sys.argv[8]) if sys.argv[8] else None,'
-                         + (intake_expression if intake_files else 'intake_inputs=None') + ');'
+                         + intake_expression + ',' + revision_discovery_expression + ');'
                          'sys.exit(0 if r.get("status")=="AWAITING_REVIEW" else 2)')
             guarded_runner(lease, cpus)(
                 [sys.executable, '-c', bootstrap, str(attempt_dir/'brief.json'),
                  str(attempt_dir/'cycle'), str(runtime), str(root), str(request['timeout_seconds']),
                  str(transcription_python) if transcription_python else '',
                  str(revision_path) if revision_path else '', str(minimum) if minimum is not None else '',
-                 *intake_paths],
+                 *evidence_paths],
                 cwd=ROOT, log=attempt_dir/'cycle.log', deadline=deadline, env=os.environ)
             receipt = check_completed(attempt_dir/'cycle', production_hash, minimum_duration=minimum,
                                       require_portrait_duration=True, deadline=deadline)
@@ -339,8 +400,10 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
             result.update(status='PASS', review_status='AWAITING_REVIEW',
                           candidate_sha256=receipt['candidate_sha256'], artifact_directory='cycle',
                           pipeline_receipt_sha256=digest(attempt_dir/'cycle/cycle.json'))
-            if intake is not None:
+            if intake is not None and intake.get('status') == 'INTAKE_VERIFIED':
                 result['verified_intake'] = intake
+            elif intake is not None:
+                result['verified_revision_discovery'] = intake
     except (ValueError, OSError, RuntimeError, KeyError, TypeError, AdmissionBusy) as error:
         result['blocker'] = str(error) if isinstance(error, ValueError) else type(error).__name__
     with (attempt_dir/'cycle-adapter-receipt.json').open('x') as stream:
