@@ -2,6 +2,7 @@
 import argparse
 from contextlib import nullcontext
 from datetime import datetime, timezone
+from fractions import Fraction
 import json
 import math
 import os
@@ -12,7 +13,7 @@ import tempfile
 import time
 
 from integrations.content_control.cycle_review import inspect_cycle
-from integrations.content_control.cycle_package import diagram_thumbnail_crop
+from integrations.content_control.cycle_package import diagram_thumbnail_crop, picture_duration
 from integrations.content_control.review_package import digest, no_symlinks, require
 from integrations.owned_process import owned_process
 
@@ -71,7 +72,7 @@ def _run(command, deadline, *, cwd=None):
         return stream.read()
 
 
-def _probe(path, deadline):
+def _probe(path, deadline, *, include_picture_duration=False):
     data = json.loads(_run(['ffprobe','-v','error','-protocol_whitelist','file,pipe','-f','mov',
                            '-show_streams','-show_format','-of','json',str(path)], deadline))
     videos = [s for s in data['streams'] if s['codec_type']=='video']
@@ -84,7 +85,10 @@ def _probe(path, deadline):
             not any(s.get('rotation',0) for s in v.get('side_data_list',[])), 'Rotated/anamorphic sources unsupported')
     duration=float(data['format']['duration'])
     require(math.isfinite(duration) and 0 < duration <= 1800, 'Invalid media duration')
-    return {'width':width,'height':height,'duration_seconds':duration}
+    media = {'width':width,'height':height,'duration_seconds':duration}
+    if include_picture_duration:
+        media['picture_duration_seconds'] = picture_duration(v)
+    return media
 
 
 def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counter=False, compact_captions=False):
@@ -142,10 +146,19 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
                   '-f','mov','-i',str(media),'-ss',str(start_ms/1000),'-t',str((end_ms-start_ms)/1000),
                   '-map','0:v:0','-map','0:a:0','-map_metadata','-1',*counter_filter,'-c:v','libx264','-threads','2',
                   '-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart','-fs',str(256*1024*1024),str(encoded)],deadline)
-            actual=_probe(encoded,deadline)
-            require(abs(actual['duration_seconds']-(end_ms-start_ms)/1000)<=.1,'Encoded duration differs from requested interval')
+            actual = _probe(encoded, deadline, include_picture_duration=True)
+            picture = actual['picture_duration_seconds']
+            container = Fraction(str(actual['duration_seconds']))
+            receipt.update(encoded_picture_duration_seconds=float(picture),
+                           encoded_container_duration_seconds=actual['duration_seconds'])
+            require(picture <= 60 and container <= 60, 'Encoded video exceeds the 60-second Short limit')
+            requested = Fraction(end_ms - start_ms, 1000)
+            require(all(abs(observed - requested) <= Fraction(1, 10) for observed in (picture, container)),
+                    'Encoded picture or container duration differs from requested interval')
             require(actual['width']==source['width'] and actual['height']==source['height'],'Framing changed')
-            clipped, boundary = clip_captions(captions.read_text(), start_ms, min(end_ms, start_ms + math.floor(actual['duration_seconds']*1000)))
+            caption_end_ms = min(end_ms, start_ms + math.floor(min(picture, container) * 1000))
+            require(caption_end_ms > start_ms, 'Encoded excerpt must span at least one caption millisecond')
+            clipped, boundary = clip_captions(captions.read_text(), start_ms, caption_end_ms)
             if compact_captions:
                 require(clipped != 'WEBVTT\n\n', 'No captions remain within the encoded excerpt')
                 (stage/'captions.vtt').write_text(clipped)
@@ -154,7 +167,8 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
                       '-vf',f"subtitles=filename=captions.vtt:force_style='{COMPACT_STYLE}'",'-filter_threads','1',
                       '-c:v','libx264','-threads','2','-pix_fmt','yuv420p','-c:a','copy','-movflags','+faststart',
                       '-fs',str(256*1024*1024),str(output/'video.mp4')],deadline,cwd=stage)
-                require(_probe(output/'video.mp4',deadline) == actual, 'Caption burn changed media framing or duration')
+                require(_probe(output/'video.mp4', deadline, include_picture_duration=True) == actual,
+                        'Caption burn changed media framing or duration')
                 receipt['caption_overlay'] = {'style': COMPACT_STYLE, 'audio_mode': 'stream_copy_from_excerpt',
                                               'scope': 'Burned rebased sidecar into a private phone-size review derivative.'}
         _run(['ffmpeg','-v','error','-xerror','-nostdin','-threads','2','-i',str(output/'video.mp4'),'-f','null','-'],deadline)
@@ -163,6 +177,7 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
         require(inspect_cycle(root)==snapshot,'Source cycle changed while clipping')
         candidate, caption_sha = digest(output/'video.mp4'), digest(output/'captions.vtt')
         from integrations.content_control.cycle_av_review import write_automated_review
+        actual.pop('picture_duration_seconds')
         write_automated_review(output, candidate, caption_sha, deadline=deadline, media=actual)
         receipt.update(status='AWAITING_REVIEW',technical_status='PASS',media=actual,
                        candidate_sha256=candidate,caption_sha256=caption_sha,
