@@ -41,29 +41,35 @@ test('an interrupted second replacement replays before cadence or event decision
   assert.deepEqual(await read(options.statePath),baseline);
   assert.deepEqual(await read(options.eventsPath),journal.events);
   assert.equal(journal.state.fixture.last_status,503);
-  assert.equal(journal.events.length,1);
-  const [outage]=journal.events;
+  assert.equal(journal.events.length,2);
+  const [outage,outageAlert]=journal.events;
   assert.equal(outage.availability,'unavailable');
   assert.equal(outage.at,journal.state.fixture.last_checked_at);
+  assert.equal(outageAlert.type,'alert_intent');
+  assert.equal(outageAlert.alert_kind,'outage');
+  assert.equal(outageAlert.delivery_status,'pending');
 
   await assert.rejects(runWorker(options),{code:'EIO'});
   assert.equal(requests,3,'a failed replay must stop before the next poll');
-  assert.deepEqual(await read(options.eventsPath),[outage]);
+  assert.deepEqual(await read(options.eventsPath),[outage,outageAlert]);
   interrupt=false;
   const skipped=await runWorker({...options,intervalMs:300000});
   assert.equal(skipped.ok,false);
   assert.equal(skipped.results[0].reason,'not_due');
   assert.equal(requests,3);
   assert.equal((await read(options.statePath)).fixture.last_status,503);
-  assert.deepEqual(await read(options.eventsPath),[outage]);
+  assert.deepEqual(await read(options.eventsPath),[outage,outageAlert]);
   await assert.rejects(fs.stat(pending),{code:'ENOENT'});
 
   status=200;
   assert.equal((await runWorker(options)).ok,true);
-  const [retained,recovery,...extra]=await read(options.eventsPath);
+  const [retained,retainedAlert,recovery,recoveryAlert,...extra]=await read(options.eventsPath);
   assert.deepEqual(retained,outage);
+  assert.deepEqual(retainedAlert,outageAlert);
   assert.equal(recovery.previous_availability,'unavailable');
   assert.equal(recovery.availability,'healthy');
+  assert.equal(recoveryAlert.type,'alert_intent');
+  assert.equal(recoveryAlert.alert_kind,'recovery');
   assert.deepEqual(extra,[]);
 });
 

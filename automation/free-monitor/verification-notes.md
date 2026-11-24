@@ -150,3 +150,28 @@ This is bounded retry/recovery instrumentation, not evidence that the CYZOR
 website recovered, that alerts were delivered, or that monitoring stayed live
 for 24 hours. The public fetch path still timed out on November 24, 2026, and
 deployment/network logs remain necessary to locate the origin of the delay.
+
+## Pending alert outbox prerequisite
+
+The worker now retains a strictly shaped `alert_intent` beside the state/event
+pair when a target becomes unavailable. Repeated failures reuse the original
+`unavailable_since` outage epoch and do not create duplicate pending work. If a
+legacy retained outage has no alert intent, the next failed check backfills one.
+Recovery retains both any missing outage intent and a separate recovery intent,
+each explicitly marked `delivery_status: pending`, zero delivery attempts,
+`external_delivery_performed: false`, and `publication_enabled: false`.
+
+Pending intents share the existing crash-replay journal with state and events,
+so an interrupted pair replacement replays before cadence decisions. Ordinary
+change-event volume cannot evict pending delivery work: pending intents are
+retained first and only the newest ordinary events fill the 500-event ceiling.
+If pending work alone exceeds that ceiling, the worker fails before replacing
+the retained pair rather than silently dropping an alert. Local adversarial
+fixtures cover replay, legacy outage backfill, deduplication, forged delivered
+records, recovery pairing, ordinary-event pressure and outbox overflow.
+
+This is only a durable, bounded delivery prerequisite. It does not select or
+contact an alert destination, send an external message, acknowledge delivery,
+retry a delivery consumer, prove the hosted workflow is on cadence, prove
+website recovery, or establish 24-hour acceptance. Those remain open C12
+integration and runtime-evidence gaps. Publishing remains disabled.
