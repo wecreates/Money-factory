@@ -405,9 +405,15 @@ The review command rehashes the accompanying `diagnostics/` directory, compares
 the detector summary to the exact bound render, and requires the diagnostics to
 finish between the completed cycle and the review date. It retains the receipt
 identity, detector status, and authored-cut coverage in the recorded review.
-Altered or fully blocked results cannot be attached. Existing review calls
-remain valid without this option. The separate authored stills, runtime execution,
-creative judgments and publication approvals require their own evidence.
+When a detector miss caused the analyzer to build authored-scene navigation,
+the review also replays the complete scene receipt and every gallery/frame hash.
+Each missed authored cut becomes an exact scene/time diagnostic action in the
+recorded review and revision handoff: a human must inspect that transition and
+rerender only if audiovisual review confirms a defect. Missing-cut detection is
+not itself a creative verdict. Altered or fully blocked results cannot be
+attached. Existing review calls remain valid without this option. Runtime
+execution, full motion/audio judgments and publication approval still require
+their own evidence.
 
 Use `--package-lint` for a separate advisory check of the completed cycle's
 title and thumbnail copy. It runs the registered, pinned YouTube Agent Skill

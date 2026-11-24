@@ -291,6 +291,41 @@ def lint_package(cycle_dir, output):
     return result
 
 
+def _rea_diagnostic_findings(evidence):
+    """Turn exact detector misses into bounded human-review actions, not verdicts."""
+    require(isinstance(evidence, dict), 'Invalid REA diagnostic evidence')
+    coverage = evidence.get('authored_cut_coverage')
+    samples = evidence.get('authored_scene_samples')
+    require(isinstance(coverage, dict) and isinstance(samples, dict),
+            'Incomplete REA diagnostic evidence')
+    if coverage.get('status') != 'MISSING_AUTHORED_CUTS':
+        return []
+    missing = coverage.get('missing_cuts')
+    tolerance = coverage.get('tolerance_seconds')
+    require(isinstance(missing, list) and missing and type(tolerance) in (int, float)
+            and 0 < tolerance <= 1 and samples.get('status') in ('SCENE_SAMPLES_READY', 'BLOCKED'),
+            'Invalid missing-cut evidence')
+    findings = []
+    for item in missing:
+        require(isinstance(item, dict) and set(item) == {'scene_id', 'authored_seconds'}
+                and isinstance(item['scene_id'], str) and 0 < len(item['scene_id']) <= 200
+                and type(item['authored_seconds']) in (int, float) and item['authored_seconds'] >= 0,
+                'Invalid missing-cut identity')
+        findings.append({
+            'source': 'rea_video_diagnostic',
+            'check': 'visual_readability',
+            'scene_id': item['scene_id'],
+            'authored_seconds': item['authored_seconds'],
+            'tolerance_seconds': tolerance,
+            'sample_navigation_status': samples['status'],
+            'action': ('Inspect the exact transition into scene ' + item['scene_id']
+                       + ' at authored second ' + str(item['authored_seconds'])
+                       + '; the bound detector found no boundary within ±' + str(tolerance)
+                       + ' seconds. Record a human audiovisual judgment and rerender only if that review confirms a defect.'),
+        })
+    return findings
+
+
 def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
     root, review_path = Path(os.path.abspath(cycle_dir)), Path(os.path.abspath(review_path))
     snapshot = inspect_cycle(root)
@@ -340,6 +375,11 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
         require(not Path(os.path.abspath(output)).is_relative_to(Path(os.path.abspath(rea_analysis)).parent),
                 'Review output must be separate from the REA analysis directory')
         result['rea_diagnostics'], recheck_rea = review_evidence(rea_analysis, root, snapshot, reviewed_at)
+        findings = _rea_diagnostic_findings(result['rea_diagnostics'])
+        if findings:
+            feedback.extend(findings)
+            result['diagnostic_findings'] = findings
+            result['status'] = 'REVISION_REQUIRED'
     require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash,
             'Review inputs changed while recording')
     output = _new_output(output, root, review_path)
@@ -379,6 +419,14 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
                 and recorded_checks['voice_naturalness']['passed'] is
                     _validate_recorded_listener(root, snapshot, review.get('listener_review')),
                 'Recorded listener result disagrees with voice naturalness summary')
+    recorded_feedback = review.get('feedback')
+    require(isinstance(recorded_feedback, list), 'Recorded feedback must be a list')
+    diagnostic_findings = (_rea_diagnostic_findings(review['rea_diagnostics'])
+                           if 'rea_diagnostics' in review else [])
+    require(('diagnostic_findings' in review) == bool(diagnostic_findings)
+            and review.get('diagnostic_findings', []) == diagnostic_findings
+            and all(item in recorded_feedback for item in diagnostic_findings),
+            'Recorded diagnostic findings are missing or changed')
     revised = compile_editorial(new_brief)
     old = snapshot['editorial']
     require(revised.get('idea_learning') == old.get('idea_learning'),
@@ -403,6 +451,9 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
               'publication_enabled': False, 'paid_generation_enabled': False, 'production_approved': False,
               'full_av_review': False, 'production_ready': False,
               'scope': 'Revised supplied brief; previous approval statements cannot certify a new render.'}
+    if diagnostic_findings:
+        result['review_diagnostic_findings'] = diagnostic_findings
+        result['rea_diagnostics_receipt_sha256'] = review['rea_diagnostics']['receipt_sha256']
     if discovery is not None:
         result['topic_discovery_sha256'] = hashlib.sha256(
             json.dumps(discovery, sort_keys=True, separators=(',', ':'),
