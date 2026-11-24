@@ -2,6 +2,8 @@
 
 This opt-in route connects a new researched editorial brief to the existing Money Factory queue, Content Control's pinned free voice generator, fresh picture-video rendering, encoded speech checks, three thumbnail choices, and portable review delivery. It does not overwrite the existing Episode 1/Remotion route or its voices.
 
+`python -m integrations.content_control.cycle_discovery --pool /absolute/candidate-pool.json --output /absolute/selection` is an optional offline prerequisite for unattended research. It selects among two or more externally observed, sourced topic candidates using conservatively normalized source-domain coverage, every declared source/reference timestamp, and a stable ID tie-break. Pool selection is limited to 24 hours after `created_at`; every evidence timestamp must fall within the prior 30 days and cannot postdate the pool. Hostnames are normalized offline using lowercase IDNA and a deliberately bounded suffix rule so subdomains cannot inflate independence. It writes `research.json` for the existing intake and a replayable `discovery.json` receipt containing the policy, exact pool/research hashes and selected candidate. The command does not fetch sources, measure popularity, fact-check claims, write the script, or establish competitor quality; those remain separate agent/runtime and acceptance evidence. Use `--verify /absolute/selection` to replay the decision without writing files.
+
 ## Input and editorial scope
 
 Start with `examples/statement-balance-brief.json`. A brief contains HTTPS source links, retrieval timestamps, short supporting excerpts, explicitly typed reference observations, and original scene writing with claim-to-source IDs. `compile_editorial` validates structure and binds these inputs; it **does not fetch the URLs, invent research, or automatically write the scenes**. This example was researched and written with connected tools. The workflow reel is a transcript observation, while Oddsofmind is only an unobserved user preference. Neither is labeled an audiovisual comparison.
@@ -255,6 +257,16 @@ fields:
 
 - `research_json` and `draft_json`: exact UTF-8 text of the original inputs.
 - `receipt_json`: exact UTF-8 text of the generated `intake.json`.
+
+For research produced by `cycle_discovery`, also supply both
+`discovery_pool_json` and `discovery_receipt_json` as the exact UTF-8 pool and
+receipt bytes. A brief carrying `topic_discovery` is rejected by both direct
+production and the queue unless those bytes are supplied through verified
+intake. The queue replays the selection, requires an exact match to
+`research_json`, retains all five inputs in the private attempt, and carries the
+selected candidate, pool/research/receipt hashes, domain policy, freshness
+policy and complete recency score through the brief, intake proof, cycle receipt
+and durable delivery verification. Omitting either discovery field is rejected.
 
 Supply the generated `brief.json` as the decoded `brief` object and keep its
 canonical `brief_sha256`. Read the three text inputs with

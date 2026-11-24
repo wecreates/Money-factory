@@ -65,6 +65,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         intake = verify_intake(intake_dir=source.parent, **intake_inputs)
         if intake['brief_sha256'] != brief_hash:
             raise ValueError('Verified intake does not match the production brief')
+    if 'topic_discovery' in brief and (intake is None or 'topic_discovery' not in intake):
+        raise ValueError('Topic discovery requires replayable verified discovery intake')
     revision_source = safe_path(revision_path) if revision_path is not None else None
     lineage = read_revision(revision_source, brief_hash) if revision_source is not None else None
     output = safe_path(output)
@@ -92,6 +94,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
     if intake is not None:
         receipt['verified_intake'] = intake
         tool_names += ('cycle_intake.py', 'cycle_selection.py')
+        if 'topic_discovery' in intake:
+            tool_names += ('cycle_discovery.py',)
     receipt['tool_sha256'] = {name: digest(module_root/name) for name in tool_names}
     deadline = time.monotonic() + timeout
     stage = 'editorial'
@@ -173,6 +177,8 @@ def main():
     parser.add_argument('--intake-prior-cycle')
     parser.add_argument('--intake-selection')
     parser.add_argument('--intake-selection-receipt')
+    parser.add_argument('--intake-discovery-pool')
+    parser.add_argument('--intake-discovery-receipt')
     parser.add_argument('--timeout', type=int, default=900)
     parser.add_argument('--minimum-duration', type=int,
                         help='Require this many seconds of picture from measured narration and from the encoded video.')
@@ -181,12 +187,19 @@ def main():
     intake_inputs = None
     if any(value is not None for value in (args.intake_research, args.intake_draft,
                                            args.intake_prior_cycle, args.intake_selection,
-                                           args.intake_selection_receipt)):
+                                           args.intake_selection_receipt, args.intake_discovery_pool,
+                                           args.intake_discovery_receipt)):
         if args.intake_research is None or args.intake_draft is None:
             parser.error('Verified intake requires --intake-research and --intake-draft')
         intake_inputs = {'research_path': args.intake_research, 'draft_path': args.intake_draft,
                          'prior_cycle': args.intake_prior_cycle, 'selection_path': args.intake_selection,
                          'selection_receipt': args.intake_selection_receipt}
+        if args.intake_discovery_pool is not None or args.intake_discovery_receipt is not None:
+            if args.intake_discovery_pool is None or args.intake_discovery_receipt is None:
+                parser.error('Discovery intake requires --intake-discovery-pool and '
+                             '--intake-discovery-receipt')
+            intake_inputs.update(discovery_pool=args.intake_discovery_pool,
+                                 discovery_receipt=args.intake_discovery_receipt)
     result = run_cycle(args.brief, args.output, voice_python=args.voice_python,
                        voice_root=args.voice_root, timeout=args.timeout,
                        transcription_python=args.transcription_python, revision_path=args.revision,

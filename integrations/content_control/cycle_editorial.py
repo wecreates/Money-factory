@@ -105,6 +105,51 @@ def _learning(value):
             'application': _text(value['application'], 'idea_learning.application', 2000, minimum=12)}
 
 
+def _discovery(value):
+    identities = {'pool_sha256', 'research_sha256', 'discovery_receipt_sha256'}
+    fields = {'schema_version', 'status', 'selected_at', 'pool_created_at', 'selected_candidate_id',
+              'selection_basis', 'domain_normalization', 'freshness_policy', 'scope', *identities,
+              *FALSE_FLAGS}
+    if (not isinstance(value, dict) or set(value) != fields
+            or type(value.get('schema_version')) is not int or value['schema_version'] != 1
+            or value.get('status') != 'DISCOVERY_VERIFIED'
+            or any(value[key] is not False for key in FALSE_FLAGS)
+            or any(not isinstance(value[key], str) or not re.fullmatch('[0-9a-f]{64}', value[key])
+                   for key in identities)):
+        raise ValueError('topic_discovery: exact unapproved evidence handoff required')
+    basis = value['selection_basis']
+    if (not isinstance(basis, dict) or set(basis) != {
+            'distinct_source_registrable_domains', 'distinct_all_evidence_registrable_domains',
+            'evidence_timestamp_count', 'oldest_evidence_at', 'mean_evidence_at',
+            'newest_evidence_at'}
+            or any(type(basis[key]) is not int or not 2 <= basis[key] <= 60
+                   for key in ('distinct_source_registrable_domains',
+                               'distinct_all_evidence_registrable_domains'))
+            or basis['distinct_all_evidence_registrable_domains']
+            < basis['distinct_source_registrable_domains']):
+        raise ValueError('topic_discovery: invalid selection basis')
+    if (type(basis['evidence_timestamp_count']) is not int
+            or not 3 <= basis['evidence_timestamp_count'] <= 60
+            or value['freshness_policy'] != {
+                'pool_max_age_seconds': 86400, 'evidence_max_age_seconds': 2592000}):
+        raise ValueError('topic_discovery: invalid freshness evidence')
+    selected = _timestamp(value['selected_at'], 'topic_discovery.selected_at')
+    created = _timestamp(value['pool_created_at'], 'topic_discovery.pool_created_at')
+    oldest = _timestamp(basis['oldest_evidence_at'], 'topic_discovery.oldest_evidence_at')
+    mean = _timestamp(basis['mean_evidence_at'], 'topic_discovery.mean_evidence_at')
+    newest = _timestamp(basis['newest_evidence_at'], 'topic_discovery.newest_evidence_at')
+    if not oldest <= mean <= newest <= created <= selected:
+        raise ValueError('topic_discovery: evidence chronology mismatch')
+    return {**value, 'selected_at': selected, 'pool_created_at': created,
+            'selected_candidate_id': _identifier(value['selected_candidate_id'],
+                                                 'topic_discovery.selected_candidate_id'),
+            'domain_normalization': _text(value['domain_normalization'],
+                                          'topic_discovery.domain_normalization', 300),
+            'scope': _text(value['scope'], 'topic_discovery.scope', 1000),
+            'selection_basis': {**basis, 'oldest_evidence_at': oldest,
+                                'mean_evidence_at': mean, 'newest_evidence_at': newest}}
+
+
 def portrait_duration_limit(brief, editorial):
     """Check portable handoff structure without claiming access to the parent."""
     if 'portrait_handoff' not in brief:
@@ -253,6 +298,8 @@ def compile_editorial(brief, *, validate_visual_shapes=False):
         result['speaker_label_position'] = brief['speaker_label_position']
     if 'idea_learning' in brief:
         result['idea_learning'] = _learning(brief['idea_learning'])
+    if 'topic_discovery' in brief:
+        result['topic_discovery'] = _discovery(brief['topic_discovery'])
     result['editorial_sha256'] = hashlib.sha256(json.dumps(result, sort_keys=True, separators=(',', ':'),
                                                          allow_nan=False).encode()).hexdigest()
     return result
