@@ -19,6 +19,7 @@ VISUAL_KINDS = {'card', 'receipt', 'balance', 'checklist', 'comparison'}
 SPEAKERS = {'narrator', 'dave', 'points_monk'}
 LEARNING_IDENTITIES = ('selection_receipt_sha256', 'prior_candidate_sha256',
                        'prior_package_sha256', 'prior_thumbnail_sha256')
+AUDIENCE_LEARNING_IDENTITIES = ('audience_observation_sha256', 'audience_receipt_sha256')
 
 
 def _text(value, name, maximum, *, minimum=1):
@@ -89,18 +90,23 @@ def _flags(value):
 
 
 def _learning(value):
-    fields = {*LEARNING_IDENTITIES, 'hypothesis_index', 'hypothesis', 'application',
-              'prior_performance_status', 'audience_performance_verified'}
-    if not isinstance(value, dict) or set(value) != fields:
+    base_fields = {*LEARNING_IDENTITIES, 'hypothesis_index', 'hypothesis', 'application',
+                   'prior_performance_status', 'audience_performance_verified'}
+    audience_fields = base_fields | set(AUDIENCE_LEARNING_IDENTITIES)
+    if not isinstance(value, dict) or set(value) not in (base_fields, audience_fields):
         raise ValueError('idea_learning: exact handoff fields required')
+    identities = (*LEARNING_IDENTITIES,
+                  *(AUDIENCE_LEARNING_IDENTITIES if set(value) == audience_fields else ()))
     if not all(isinstance(value[key], str) and re.fullmatch('[0-9a-f]{64}', value[key])
-               for key in LEARNING_IDENTITIES):
+               for key in identities):
         raise ValueError('idea_learning: valid evidence identities required')
     if type(value['hypothesis_index']) is not int or not 1 <= value['hypothesis_index'] <= 10:
         raise ValueError('idea_learning: invalid hypothesis index')
     if value['prior_performance_status'] not in ('UNAVAILABLE', 'SUPPLIED_UNVERIFIED') \
             or value['audience_performance_verified'] is not False:
         raise ValueError('idea_learning: audience performance must remain unverified')
+    if set(value) == audience_fields and value['prior_performance_status'] != 'SUPPLIED_UNVERIFIED':
+        raise ValueError('idea_learning: audience receipt must remain supplied and unverified')
     return {**value, 'hypothesis': _text(value['hypothesis'], 'idea_learning.hypothesis', 1000, minimum=12),
             'application': _text(value['application'], 'idea_learning.application', 2000, minimum=12)}
 

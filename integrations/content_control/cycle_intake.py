@@ -36,13 +36,23 @@ def _object(raw, required, options):
     return value
 
 
-def _idea_learning(choice, prior_cycle, selection_path, selection_receipt, output):
+def _idea_learning(choice, prior_cycle, selection_path, selection_receipt, output,
+                   audience_observation=None, audience_receipt=None):
     paths = (prior_cycle, selection_path, selection_receipt)
+    audience_paths = (audience_observation, audience_receipt)
     if choice is None and all(path is None for path in paths):
+        require(all(path is None for path in audience_paths),
+                'Audience learning evidence requires a draft idea_learning choice')
         return None
-    require(isinstance(choice, dict) and set(choice) == {'selection_receipt_sha256', 'hypothesis_index', 'application'}
+    basic_fields = {'selection_receipt_sha256', 'hypothesis_index', 'application'}
+    audience_fields = basic_fields | {'audience_receipt_sha256'}
+    require(isinstance(choice, dict) and set(choice) in (basic_fields, audience_fields)
             and all(path is not None for path in paths),
             'Draft idea learning requires the prior cycle, original selection and receipt')
+    uses_audience = set(choice) == audience_fields
+    require((uses_audience and all(path is not None for path in audience_paths))
+            or (not uses_audience and all(path is None for path in audience_paths)),
+            'Audience-bound learning requires the original observation and receipt')
     require(not output.is_relative_to(Path(os.path.abspath(prior_cycle))),
             'Intake output must be separate from the prior cycle')
     selection, receipt_sha = verify_selection(*paths)
@@ -50,22 +60,45 @@ def _idea_learning(choice, prior_cycle, selection_path, selection_receipt, outpu
     index = choice['hypothesis_index']
     hypotheses = selection['next_idea_hypotheses']
     require(type(index) is int and 1 <= index <= len(hypotheses), 'Draft must select a recorded hypothesis')
-    return {'selection_receipt_sha256': receipt_sha,
-            'prior_candidate_sha256': selection['candidate_sha256'],
-            'prior_package_sha256': selection['package_sha256'],
-            'prior_thumbnail_sha256': selection['thumbnail_sha256'],
-            'hypothesis_index': index, 'hypothesis': hypotheses[index - 1],
-            'application': _text(choice['application'], 'idea_learning.application', 2000, minimum=12),
-            'prior_performance_status': selection['performance']['status'],
-            'audience_performance_verified': False}
+    learning = {'selection_receipt_sha256': receipt_sha,
+                'prior_candidate_sha256': selection['candidate_sha256'],
+                'prior_package_sha256': selection['package_sha256'],
+                'prior_thumbnail_sha256': selection['thumbnail_sha256'],
+                'hypothesis_index': index, 'hypothesis': hypotheses[index - 1],
+                'application': _text(choice['application'], 'idea_learning.application', 2000, minimum=12),
+                'prior_performance_status': selection['performance']['status'],
+                'audience_performance_verified': False}
+    if uses_audience:
+        from integrations.content_control.cycle_audience import verify_audience_observation
+        observation, audience_sha = verify_audience_observation(
+            prior_cycle, selection_path, selection_receipt, audience_observation, audience_receipt)
+        require(choice['audience_receipt_sha256'] == audience_sha,
+                'Draft does not bind this audience receipt')
+        require(observation['selection_receipt_sha256'] == receipt_sha
+                and observation['candidate_sha256'] == selection['candidate_sha256']
+                and observation['package_sha256'] == selection['package_sha256']
+                and observation['thumbnail_sha256'] == selection['thumbnail_sha256'],
+                'Audience observation differs from the selected package')
+        learning.update(audience_observation_sha256=observation['submitted_observation_sha256'],
+                        audience_receipt_sha256=audience_sha,
+                        prior_performance_status=observation['performance_status'])
+    return learning
 
 
 def _json_bytes(value):
     return (json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + '\n').encode()
 
 
+def _recheck_learning(draft_raw, output, prior_cycle, selection_path, selection_receipt,
+                      audience_observation, audience_receipt, expected):
+    draft_data = _object(draft_raw, DRAFT_FIELDS, DRAFT_OPTIONS)
+    observed = _idea_learning(draft_data.get('idea_learning'), prior_cycle, selection_path,
+                              selection_receipt, output, audience_observation, audience_receipt)
+    require(observed == expected, 'Idea learning evidence changed during intake')
+
+
 def _compile_intake(research_raw, draft_raw, output, recorded_at, prior_cycle, selection_path, selection_receipt,
-                    discovery=None):
+                    discovery=None, audience_observation=None, audience_receipt=None):
     research_data = _object(research_raw, RESEARCH_FIELDS, set())
     draft_data = _object(draft_raw, DRAFT_FIELDS, DRAFT_OPTIONS)
     research_sha = hashlib.sha256(research_raw).hexdigest()
@@ -73,7 +106,8 @@ def _compile_intake(research_raw, draft_raw, output, recorded_at, prior_cycle, s
     require(draft_data['research_sha256'] == research_sha, 'Draft does not bind these exact research bytes')
     require('idea_learning' not in draft_data or draft_data['idea_learning'] is not None,
             'Draft idea_learning must be an object when supplied')
-    learning = _idea_learning(draft_data.get('idea_learning'), prior_cycle, selection_path, selection_receipt, output)
+    learning = _idea_learning(draft_data.get('idea_learning'), prior_cycle, selection_path, selection_receipt, output,
+                              audience_observation, audience_receipt)
     flags = dict.fromkeys(FALSE_FLAGS, False)
     brief = {**research_data, **{k: v for k, v in draft_data.items()
                                if k not in ('schema_version', 'research_sha256', 'idea_learning')},
@@ -116,7 +150,7 @@ def _discovery_proof(research_raw, pool_path, receipt_path):
 
 
 def prepare_brief(research_path, draft_path, output, *, prior_cycle=None, selection_path=None, selection_receipt=None,
-                  discovery_pool=None, discovery_receipt=None):
+                  discovery_pool=None, discovery_receipt=None, audience_observation=None, audience_receipt=None):
     """Bind exact source bytes; the draft cannot add or replace research records."""
     require(all(os.environ.get(key, 'false').lower() == 'false' for key in
                 ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')), 'Publishing and paid generation must remain disabled')
@@ -130,8 +164,11 @@ def prepare_brief(research_path, draft_path, output, *, prior_cycle=None, select
         require(not output.is_relative_to(receipt_parent),
                 'Intake output must be separate from retained discovery evidence')
     brief_raw, receipt = _compile_intake(research_raw, draft_raw, output, None,
-                                         prior_cycle, selection_path, selection_receipt, discovery)
+                                         prior_cycle, selection_path, selection_receipt, discovery,
+                                         audience_observation, audience_receipt)
     require(_input(research) == research_raw and _input(draft) == draft_raw, 'Intake inputs changed')
+    _recheck_learning(draft_raw, output, prior_cycle, selection_path, selection_receipt,
+                      audience_observation, audience_receipt, receipt.get('idea_learning'))
     if discovery is not None:
         require(_discovery_proof(research_raw, discovery_pool, discovery_receipt) == discovery,
                 'Discovery evidence changed during intake')
@@ -148,7 +185,8 @@ def prepare_brief(research_path, draft_path, output, *, prior_cycle=None, select
 
 
 def verify_intake(research_path, draft_path, intake_dir, *, prior_cycle=None, selection_path=None,
-                  selection_receipt=None, discovery_pool=None, discovery_receipt=None):
+                  selection_receipt=None, discovery_pool=None, discovery_receipt=None,
+                  audience_observation=None, audience_receipt=None):
     """Rebuild the brief and receipt from retained inputs without writing files."""
     research, draft, root = (Path(os.path.abspath(path)) for path in (research_path, draft_path, intake_dir))
     brief, receipt = root / 'brief.json', root / 'intake.json'
@@ -157,10 +195,13 @@ def verify_intake(research_path, draft_path, intake_dir, *, prior_cycle=None, se
     brief_raw, receipt_raw = _input(brief, MAX_BRIEF), _input(receipt)
     proof = _verify_bytes(research_raw, draft_raw, brief_raw, receipt_raw, root=root,
                           prior_cycle=prior_cycle, selection_path=selection_path, selection_receipt=selection_receipt,
-                          discovery=discovery)
+                          discovery=discovery, audience_observation=audience_observation,
+                          audience_receipt=audience_receipt)
     require(_input(research) == research_raw and _input(draft) == draft_raw
             and _input(brief, MAX_BRIEF) == brief_raw and _input(receipt) == receipt_raw,
             'Intake files changed while verifying')
+    _recheck_learning(draft_raw, root, prior_cycle, selection_path, selection_receipt,
+                      audience_observation, audience_receipt, proof.get('idea_learning'))
     if discovery is not None:
         require(_discovery_proof(research_raw, discovery_pool, discovery_receipt) == discovery,
                 'Discovery evidence changed while verifying intake')
@@ -182,12 +223,14 @@ def verify_inline_intake(brief, research_raw, draft_raw, receipt_raw, *, discove
 
 
 def _verify_bytes(research_raw, draft_raw, brief_raw, receipt_raw, *, root=None, prior_cycle=None,
-                  selection_path=None, selection_receipt=None, discovery=None):
+                  selection_path=None, selection_receipt=None, discovery=None,
+                  audience_observation=None, audience_receipt=None):
     recorded = json.loads(receipt_raw.decode('utf-8'), object_pairs_hook=_pairs, parse_constant=_constant)
     require(isinstance(recorded, dict), 'Invalid intake receipt')
     recorded_at = _timestamp(recorded.get('recorded_at'), 'intake.recorded_at')
     expected_brief, expected_receipt = _compile_intake(research_raw, draft_raw, root, recorded_at,
-                                                      prior_cycle, selection_path, selection_receipt, discovery)
+                                                      prior_cycle, selection_path, selection_receipt, discovery,
+                                                      audience_observation, audience_receipt)
     require(brief_raw == expected_brief, 'Intake brief does not match the original research and draft')
     expected_receipt_raw = _json_bytes(expected_receipt)
     # Prior Windows intakes wrote the receipt in text mode, translating line endings.
@@ -200,6 +243,8 @@ def _verify_bytes(research_raw, draft_raw, brief_raw, receipt_raw, *, root=None,
              'scope': 'Retained source and draft byte verification. Retrieval, factual accuracy and authorship are separate evidence.'}
     if discovery is not None:
         proof['topic_discovery'] = discovery
+    if 'idea_learning' in expected_receipt:
+        proof['idea_learning'] = expected_receipt['idea_learning']
     return proof
 
 
@@ -213,6 +258,8 @@ def main():
     parser.add_argument('--prior-cycle')
     parser.add_argument('--selection')
     parser.add_argument('--selection-receipt')
+    parser.add_argument('--audience-observation')
+    parser.add_argument('--audience-receipt')
     parser.add_argument('--discovery-pool')
     parser.add_argument('--discovery-receipt')
     args = parser.parse_args()
@@ -221,7 +268,9 @@ def main():
                                prior_cycle=args.prior_cycle, selection_path=args.selection,
                                selection_receipt=args.selection_receipt,
                                discovery_pool=args.discovery_pool,
-                               discovery_receipt=args.discovery_receipt), indent=2))
+                               discovery_receipt=args.discovery_receipt,
+                               audience_observation=args.audience_observation,
+                               audience_receipt=args.audience_receipt), indent=2))
     return 0
 
 

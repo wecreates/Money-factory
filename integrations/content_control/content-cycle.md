@@ -46,7 +46,10 @@ To require this verification as part of standalone production, use the intake
 directory's original `brief.json` as `--brief` and add `--intake-research` and
 `--intake-draft` with the original inputs. If the intake used idea learning,
 also add `--intake-prior-cycle`, `--intake-selection`, and
-`--intake-selection-receipt` with the original paths. Production checks
+`--intake-selection-receipt` with the original paths. If that learning is
+bound to a later audience observation, also add
+`--intake-audience-observation` and `--intake-audience-receipt` with those
+original paths. Production checks
 the saved brief and receipt before rendering and rechecks the intake before
 success. The cycle receipt keeps `verified_intake`, including the original
 research, draft, brief and intake receipt hashes. Production from a supplied
@@ -74,6 +77,32 @@ editorial and delivery. A revision preserves this origin. Keep those three
 private selection inputs with the new intake for replay. The handoff records
 the rationale for an editorial experiment. It carries no counts or CTR and
 supplied audience data remains unverified.
+
+To bind a later, separately recorded audience observation to that experiment,
+add the exact `audience_receipt_sha256` to `idea_learning` and supply the
+original observation and audience receipt in addition to the three selection
+inputs:
+
+```sh
+python -m integrations.content_control.cycle_intake \
+  --research /absolute/research.json --draft /absolute/draft.json \
+  --prior-cycle /absolute/prior-cycle --selection /absolute/submitted-selection.json \
+  --selection-receipt /absolute/recorded-selection.json \
+  --audience-observation /absolute/audience-observation.json \
+  --audience-receipt /absolute/recorded-audience.json --output /absolute/new-intake
+```
+
+Intake replays both receipts and requires their selection, package, title and
+thumbnail identities to agree. It can carry forward only one hypothesis that
+was already written in the prior selection. The new handoff retains the exact
+selection, observation and audience-receipt hashes and the
+`SUPPLIED_UNVERIFIED` status. It deliberately omits counts, CTR, evidence and
+source fields, does not choose a winner, and does not promote the observation
+to verified performance. Standalone production rejects an audience-bound brief
+unless all original intake and audience paths are supplied for replay. Queue
+requests reject audience-bound learning until the queue has an equally bounded
+inline contract for the original selection and audience evidence; legacy
+selection-only learning remains supported.
 
 Receipt diagrams associate each supplied label with its corresponding value;
 comparison diagrams keep labels inside their respective cards, including when
@@ -465,7 +494,9 @@ window, observation timestamp, credential-free HTTPS evidence link and evidence
 note. Re-run the command with `--verify-receipt` instead of `--output` to
 reconstruct a retained receipt from all four original inputs. These receipts are
 always `SUPPLIED_UNVERIFIED`: the command does not log in to analytics, infer a
-winner, create a subsequent idea, or certify audience performance. Keep the
+winner, or certify audience performance. A later intake can bind the exact
+receipt to one already recorded reviewer hypothesis as described above, but it
+does not copy metrics or treat the hypothesis as a measured winner. Keep the
 original selection input, selection receipt and observation for replay.
 
 [The November 21 selection receipt](cycle-selection-proof-20261121.json) records

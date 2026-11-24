@@ -107,6 +107,32 @@ def packet(path, expected, media=b'candidate', source_brief=None):
 
 
 class CycleJobTests(unittest.TestCase):
+    @staticmethod
+    def idea_learning(*, audience=False):
+        value = {'selection_receipt_sha256': '1' * 64,
+                 'prior_candidate_sha256': '2' * 64,
+                 'prior_package_sha256': '3' * 64,
+                 'prior_thumbnail_sha256': '4' * 64,
+                 'hypothesis_index': 1,
+                 'hypothesis': 'Test simpler wording in the next unpublished candidate.',
+                 'application': 'Use a shorter question in the next unpublished candidate.',
+                 'prior_performance_status': 'UNAVAILABLE',
+                 'audience_performance_verified': False}
+        if audience:
+            value.update(audience_observation_sha256='5' * 64,
+                         audience_receipt_sha256='6' * 64,
+                         prior_performance_status='SUPPLIED_UNVERIFIED')
+        return value
+
+    def test_queue_rejects_audience_bound_learning_but_retains_legacy_form(self):
+        legacy = request(); legacy['brief']['idea_learning'] = self.idea_learning()
+        legacy['brief_sha256'] = brief_digest(legacy['brief'])
+        self.assertEqual(validate(legacy), legacy)
+        audience = request(); audience['brief']['idea_learning'] = self.idea_learning(audience=True)
+        audience['brief_sha256'] = brief_digest(audience['brief'])
+        with self.assertRaisesRegex(ValueError, 'exact inline evidence replay'):
+            validate(audience)
+
     def test_completion_validates_optional_revision_lineage(self):
         from integrations.content_control.cycle_lineage import read_revision
         from integrations.content_control.test_cycle_lineage import handoff
