@@ -239,6 +239,10 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
                 positions = [(x, y + index * line_height) for index in range(len(lines))]
                 bounds = [draw.textbbox(position, line, font=f, anchor=anchor)
                           for position, line in zip(positions, lines)]
+                if left_aligned and bounds:
+                    inset = max(0, left - min(a for a, _, _, _ in bounds))
+                    positions = [(px + inset, py) for px, py in positions]
+                    bounds = [(a + inset, b, c + inset, d) for a, b, c, d in bounds]
                 if any(a < left or b < top or c > right or d > bottom for a, b, c, d in bounds):
                     continue
                 for position, line in zip(positions, lines):

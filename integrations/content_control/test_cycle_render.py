@@ -355,7 +355,7 @@ class RenderValidationTests(unittest.TestCase):
     @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
     def test_long_checklist_label_wraps_inside_its_row_in_both_layouts(self):
         from PIL import Image, ImageChops
-        labels = ['First', 'Second', 'Third', 'VERIFY EVERY PAYMENT BEFORE THE NEXT BILLING CYCLE']
+        labels = ['First', 'Second', 'Third', 'JUST VERIFY EVERY PAYMENT BEFORE THE NEXT BILLING']
         with tempfile.TemporaryDirectory() as td:
             path, baseline = (Path(td) / name for name in ('wrapped.png', 'baseline.png'))
             scene = dict(brief()['scenes'][0], visual_spec={'kind': 'checklist', 'labels': labels})
