@@ -1,6 +1,8 @@
 import copy
 import json
 from pathlib import Path
+import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -36,16 +38,24 @@ def write(path, value):
     path.write_text(json.dumps(value))
 
 
-def packet(path, expected):
+def synthetic_picture_mp4(path, seconds):
+    subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i',
+                    f'color=c=black:s=90x160:r=24:d={seconds}',
+                    '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono:d=2',
+                    '-c:v', 'libx264', '-threads', '1', '-c:a', 'aac',
+                    str(path)], check=True, timeout=30)
+
+
+def packet(path, expected, media=b'candidate'):
     path.mkdir()
     (path/'render').mkdir(); (path/'delivery').mkdir()
-    (path/'render/video.mp4').write_bytes(b'candidate')
+    (path/'render/video.mp4').write_bytes(media)
     from integrations.content_control.cycle_editorial import compile_editorial
     from integrations.content_control.cycle_job import canonical
     editorial = compile_editorial(brief())
     (path/'brief.json').write_text(canonical(brief()))
     write(path/'editorial.json', editorial)
-    (path/'delivery/video.mp4').write_bytes(b'candidate')
+    (path/'delivery/video.mp4').write_bytes(media)
     (path/'delivery/index.html').write_text('<html></html>')
     candidate = digest(path/'render/video.mp4')
     write(path/'delivery/editorial.json', editorial)
@@ -289,11 +299,53 @@ class CycleJobTests(unittest.TestCase):
                     write(cycle/'cycle.json', receipt)
                 with patch('integrations.content_control.cycle_job.collect_snapshot', return_value={}), \
                      patch('integrations.content_control.cycle_job.recommend_capacity', return_value={'admitted_workers': 1}), \
-                     patch('integrations.content_control.cycle_job.guarded_runner', return_value=run):
+                     patch('integrations.content_control.cycle_job.guarded_runner', return_value=run), \
+                     patch('integrations.content_control.cycle_package.inspect_media',
+                           return_value={'picture_duration_seconds': 510}) as probe:
                     result = run_job(queued, attempt, voice_python=sys.executable, voice_root=root)
                 self.assertEqual(result['minimum_duration_seconds'], 510)
                 self.assertEqual(result['status'], 'PASS' if outcome == 'pass' else 'BLOCKED')
-                if outcome != 'pass': self.assertIn('minimum', result['blocker'])
+                if outcome == 'pass':
+                    self.assertEqual(probe.call_args.args, (attempt/'cycle/delivery/video.mp4',))
+                    self.assertIsInstance(probe.call_args.kwargs['deadline'], float)
+                    self.assertFalse(probe.call_args.kwargs['decode'])
+                    self.assertTrue(probe.call_args.kwargs['include_picture_duration'])
+                else:
+                    self.assertIn('minimum', result['blocker'])
+                    probe.assert_not_called()
+
+    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Media tools unavailable')
+    def test_minimum_is_measured_from_bound_picture_not_longer_audio_or_claims(self):
+        from integrations.content_control.cycle_package import inspect_media
+
+        expected = request()['brief_sha256']
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for picture_length in (0.5, 1, 1.5):
+                with self.subTest(picture_length=picture_length):
+                    media = root/f'{picture_length}.mp4'
+                    synthetic_picture_mp4(media, picture_length)
+                    self.assertGreater(inspect_media(media, decode=False)['duration_seconds'], 1)
+                    cycle = root/f'cycle-{picture_length}'
+                    receipt = packet(cycle, expected, media.read_bytes())
+                    rendered = json.loads((cycle/'render/render.json').read_text())
+                    rendered.update(minimum_duration_seconds=1, measured_narration_frame_budget=24,
+                                    encoded_picture_duration_seconds=1)
+                    write(cycle/'render/render.json', rendered)
+                    write(cycle/'delivery/render.json', rendered)
+                    package_path = cycle/'delivery/package.json'
+                    package = json.loads(package_path.read_text())
+                    renderer_hash = digest(cycle/'delivery/render.json')
+                    package['render_receipt_sha256'] = package['files_sha256']['render.json'] = renderer_hash
+                    write(package_path, package)
+                    receipt.update(minimum_duration_seconds=1, package_sha256=digest(package_path))
+                    write(cycle/'cycle.json', receipt)
+                    if picture_length == 1:
+                        result = check_completed(cycle, expected, minimum_duration=1)
+                        self.assertEqual(result['status'], 'AWAITING_REVIEW')
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'minimum picture duration'):
+                            check_completed(cycle, expected, minimum_duration=1)
 
 
 class QueuedRevisionTests(unittest.TestCase):

@@ -6,7 +6,6 @@ renderer never changes canonical Episode 1 inputs or calls a publishing API.
 import argparse
 from datetime import datetime, timezone
 from collections import Counter
-from fractions import Fraction
 import difflib
 import hashlib
 import html
@@ -506,13 +505,14 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
         if abs(container_duration-start)>.25:
             raise ValueError('Output duration differs from scene timeline')
         if minimum_duration is not None or maximum_duration is not None:
-            picture_duration = int(video['duration_ts']) * Fraction(video['time_base'])
-            receipt['encoded_picture_duration_seconds'] = float(picture_duration)
-            if minimum_duration is not None and picture_duration < minimum_duration:
-                raise ValueError(f'Encoded picture duration {float(picture_duration):.3f}s is below {minimum_duration}s minimum')
+            from integrations.content_control.cycle_package import picture_duration
+            duration = picture_duration(video)
+            receipt['encoded_picture_duration_seconds'] = float(duration)
+            if minimum_duration is not None and duration < minimum_duration:
+                raise ValueError(f'Encoded picture duration {float(duration):.3f}s is below {minimum_duration}s minimum')
             if maximum_duration is not None:
                 receipt['encoded_container_duration_seconds'] = container_duration
-                if not 0 < picture_duration <= maximum_duration or not 0 < container_duration <= maximum_duration:
+                if not 0 < duration <= maximum_duration or not 0 < container_duration <= maximum_duration:
                     raise ValueError(f'Encoded picture or container exceeds {maximum_duration}s maximum')
         write(output/'timeline.json',{'scenes':rows,'duration_seconds':start,'publication_enabled':False})
         asr=None

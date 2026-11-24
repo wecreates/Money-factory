@@ -90,7 +90,8 @@ def _json(path):
     return value
 
 
-def check_completed(directory, expected_brief_sha256, *, minimum_duration=None, require_portrait_duration=False):
+def check_completed(directory, expected_brief_sha256, *, minimum_duration=None, require_portrait_duration=False,
+                    deadline=None):
     """Independently bind queue success to delivered bytes; never approve them."""
     directory = Path(directory)
     if directory.is_symlink() or not directory.is_dir():
@@ -119,7 +120,7 @@ def check_completed(directory, expected_brief_sha256, *, minimum_duration=None, 
     source_brief = _json(directory/'brief.json')
     if editorial != compile_editorial(source_brief):
         raise ValueError('Editorial does not derive from the queued brief')
-    from integrations.content_control.cycle_package import declared_speaker_label, editorial_digest
+    from integrations.content_control.cycle_package import declared_speaker_label, editorial_digest, inspect_media
     canonical_editorial_sha = editorial_digest(editorial)
     if digest(directory/'delivery/package.json') != receipt.get('package_sha256'):
         raise ValueError('Cycle package identity mismatch')
@@ -161,6 +162,13 @@ def check_completed(directory, expected_brief_sha256, *, minimum_duration=None, 
                 or type(encoded_duration) not in (int, float)
                 or not minimum_duration <= encoded_duration <= 600.25):
             raise ValueError('Completed render does not verify the queued minimum picture duration')
+        try:
+            observed = inspect_media(directory/'delivery/video.mp4', deadline=deadline,
+                                     decode=False, include_picture_duration=True)['picture_duration_seconds']
+        except (ValueError, OSError, RuntimeError, KeyError, TypeError) as error:
+            raise ValueError('Cannot verify queued minimum picture duration from delivered media') from error
+        if not minimum_duration <= observed <= 600.25 or float(observed) != encoded_duration:
+            raise ValueError('Delivered video does not match the queued minimum picture duration evidence')
     field = 'maximum_duration_seconds'
     if field in receipt or field in rendered or require_portrait_duration and 'portrait_handoff' in source_brief:
         maximum = portrait_duration_limit(source_brief, editorial)
@@ -252,7 +260,7 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
                  str(revision_path) if revision_path else '', str(minimum) if minimum is not None else ''],
                 cwd=ROOT, log=attempt_dir/'cycle.log', deadline=deadline, env=os.environ)
             receipt = check_completed(attempt_dir/'cycle', production_hash, minimum_duration=minimum,
-                                      require_portrait_duration=True)
+                                      require_portrait_duration=True, deadline=deadline)
             if receipt.get('revision_lineage') != lineage:
                 raise ValueError('Completed revision lineage differs from queued handoff')
             for directory in sorted((p for p in (attempt_dir/'cycle').rglob('*') if p.is_dir()), reverse=True):

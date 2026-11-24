@@ -6,6 +6,7 @@ from zipfile import BadZipFile, ZipFile
 
 from integrations.content_control import test_cycle_review as fixtures
 from integrations.content_control.cycle_job import brief_digest, production_input
+from integrations.content_control.test_cycle_job import synthetic_picture_mp4
 from integrations.content_control.review_delivery import export_review, status
 from integrations.content_control.review_package import digest
 from integrations.local_agent_queue import Queue, canonical
@@ -15,7 +16,7 @@ class CycleDeliveryTests(unittest.TestCase):
     setUp = fixtures.ReviewTests.setUp
     tearDown = fixtures.ReviewTests.tearDown
 
-    def queue_review(self, minimum=None, picture_seconds=None):
+    def queue_review(self, minimum=None, picture_seconds=None, media=None):
         brief = json.loads((self.root / 'brief.json').read_text())
         request = {'operation': 'produce-content-cycle', 'brief': brief, 'brief_sha256': brief_digest(brief),
                    'timeout_seconds': 300, 'publication_enabled': False, 'paid_generation_enabled': False}
@@ -30,22 +31,30 @@ class CycleDeliveryTests(unittest.TestCase):
             directory = attempt / 'cycle'; shutil.copytree(self.root, directory)
             (directory / 'brief.json').write_bytes(production_input(request)[0])
             delivery = directory / 'delivery'
+            if media is not None:
+                for target in (delivery, directory / 'render'):
+                    shutil.copyfile(media, target / 'video.mp4')
+            candidate = digest(delivery / 'video.mp4')
             render = json.loads((delivery / 'render.json').read_text())
+            render['candidate_sha256'] = candidate
             if minimum is not None:
                 render.update(minimum_duration_seconds=minimum, measured_narration_frame_budget=minimum*24,
                               encoded_picture_duration_seconds=picture_seconds)
             for target in (delivery, directory / 'render'):
                 fixtures.write(target / 'render.json', dict(render, status='AWAITING_REVIEW'))
             package = json.loads((delivery / 'package.json').read_text())
-            package.update(production_ready=False, render_receipt_sha256=digest(delivery / 'render.json'))
+            package.update(production_ready=False, candidate_sha256=candidate,
+                           render_receipt_sha256=digest(delivery / 'render.json'))
             package['files_sha256']['render.json'] = package['render_receipt_sha256']
+            package['files_sha256']['video.mp4'] = candidate
             fixtures.write(delivery / 'package.json', package)
             with ZipFile(delivery / 'review-package.zip', 'w') as archive:
                 for name in (*package['files_sha256'], 'package.json'):
                     archive.write(delivery / name, name)
             cycle_path = directory / 'cycle.json'
             cycle = json.loads(cycle_path.read_text())
-            cycle.update(brief_sha256=digest(directory / 'brief.json'), package_sha256=digest(delivery / 'package.json'),
+            cycle.update(candidate_sha256=candidate, brief_sha256=digest(directory / 'brief.json'),
+                         package_sha256=digest(delivery / 'package.json'),
                          archive_sha256=digest(directory / 'delivery/review-package.zip'),
                          production_ready=False, factual_review=False, competitor_comparison=False)
             if minimum is not None:
@@ -53,7 +62,7 @@ class CycleDeliveryTests(unittest.TestCase):
             fixtures.write(cycle_path, cycle)
             receipt = {'status': 'PASS', 'review_status': 'AWAITING_REVIEW', 'operation': request['operation'],
                        'brief_sha256': request['brief_sha256'], 'production_brief_sha256': cycle['brief_sha256'],
-                       'candidate_sha256': self.candidate, 'pipeline_receipt_sha256': digest(cycle_path),
+                       'candidate_sha256': candidate, 'pipeline_receipt_sha256': digest(cycle_path),
                        'artifact_directory': 'cycle', **self.flags, 'production_ready': False}
             if minimum is not None:
                 receipt['minimum_duration_seconds'] = minimum
@@ -86,11 +95,26 @@ class CycleDeliveryTests(unittest.TestCase):
             export_review(queue.root, 'cycle-test', output)
         self.assertFalse(output.exists())
 
+    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Media tools unavailable')
     def test_verified_minimum_duration_is_retained_in_export_provenance(self):
-        queue, _, _ = self.queue_review(minimum=510, picture_seconds=510.0)
+        media = self.base / 'one-second-picture.mp4'
+        synthetic_picture_mp4(media, 1)
+        queue, _, _ = self.queue_review(minimum=1, picture_seconds=1, media=media)
         output = self.base / 'export'
         result = export_review(queue.root, 'cycle-test', output)
-        self.assertEqual(result['provenance']['minimum_duration_seconds'], 510)
+        self.assertEqual(result['candidate_sha256'], digest(media))
+        self.assertEqual(result['provenance']['minimum_duration_seconds'], 1)
+
+    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Media tools unavailable')
+    def test_export_rejects_digest_bound_short_picture_with_longer_audio(self):
+        media = self.base / 'short-picture.mp4'
+        synthetic_picture_mp4(media, 0.5)
+        queue, _, _ = self.queue_review(minimum=1, picture_seconds=1, media=media)
+        self.assertIn('minimum picture duration', status(queue.root, 'cycle-test')['delivery_error'])
+        output = self.base / 'export'
+        with self.assertRaisesRegex(ValueError, 'minimum picture duration'):
+            export_review(queue.root, 'cycle-test', output)
+        self.assertFalse(output.exists())
 
     def test_non_success_mismatched_disk_receipt_and_corrupt_archive_are_blocked(self):
         queue, directory, receipt = self.queue_review()
