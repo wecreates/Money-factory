@@ -2,6 +2,7 @@
 import copy
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -10,8 +11,9 @@ import zipfile
 from integrations.content_control.cycle_editorial import LEARNING_IDENTITIES, compile_editorial
 from integrations.content_control.cycle_package import editorial_digest
 from integrations.content_control.cycle_live_comparison import record_live_comparison
-from integrations.content_control.cycle_review import (CHECKS, LISTENER_CHECKS, WATCHER_CHECKS, inspect_cycle,
-                                                       lint_package, record_review, revision_brief)
+from integrations.content_control.cycle_review import (CHECKS, LISTENER_CHECKS, WATCHER_CHECKS,
+                                                       _complete_coverage, inspect_cycle, lint_package,
+                                                       record_review, revision_brief)
 from integrations.content_control.cycle_render import VOICE_ASSIGNMENTS
 from integrations.content_control.review_package import digest
 from integrations.content_control.test_cycle_editorial import brief
@@ -29,6 +31,25 @@ class ReviewTests(unittest.TestCase):
         self.root = self.base / 'cycle'; self.root.mkdir()
         self.delivery = self.root / 'delivery'; self.delivery.mkdir()
         self.render = self.root / 'render'; self.render.mkdir()
+        from integrations.content_control import cycle_package as package_module
+
+        real_inspect_media = package_module.inspect_media
+
+        def fixture_media(path, *args, **kwargs):
+            if kwargs.get('include_picture_duration'):
+                try:
+                    return real_inspect_media(path, *args, **kwargs)
+                except (ValueError, OSError, RuntimeError):
+                    return {'decode': 'PASS', 'duration_seconds': 10.0,
+                            'picture_duration_seconds': 10.0,
+                            'width': 720, 'height': 1280}
+            return {'decode': 'PASS', 'duration_seconds': 10.0,
+                    'width': 720, 'height': 1280}
+
+        self.media_probe = patch(
+            'integrations.content_control.cycle_package.inspect_media',
+            side_effect=fixture_media)
+        self.media_probe.start()
         self.flags = {'publication_enabled': False, 'paid_generation_enabled': False,
                       'production_approved': False, 'full_av_review': False}
         editorial = compile_editorial(brief())
@@ -60,6 +81,8 @@ class ReviewTests(unittest.TestCase):
                        candidate_sha256=self.candidate, caption_sha256=captions,
                        editorial_sha256=editorial_digest(editorial),
                        render_receipt_sha256=digest(self.delivery / 'render.json'),
+                       media={'decode': 'PASS', 'duration_seconds': 10.0,
+                              'width': 720, 'height': 1280},
                        files_sha256={p.name: digest(p) for p in self.delivery.iterdir()})
         write(self.delivery / 'package.json', package)
         with zipfile.ZipFile(self.delivery / 'review-package.zip', 'x') as archive:
@@ -111,6 +134,7 @@ class ReviewTests(unittest.TestCase):
         write(self.submitted, self.review)
 
     def tearDown(self):
+        self.media_probe.stop()
         self.temp.cleanup()
 
     def record(self, output=None, **kwargs):
@@ -208,6 +232,92 @@ class ReviewTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.record()
                 self.assertFalse(self.recorded.exists())
+
+    def test_direct_review_coverage_is_bound_to_decoded_package_duration(self):
+        self.assertEqual(
+            _complete_coverage(self.root, self.review['watcher_review'], 'watcher'),
+            [{'start_seconds': 0.0, 'end_seconds': 10.0}])
+
+        rendered = json.loads((self.delivery / 'render.json').read_text())
+        rendered['duration_seconds'] = 5.0
+        write(self.delivery / 'render.json', rendered)
+        with self.assertRaisesRegex(ValueError, 'duration disagrees'):
+            _complete_coverage(self.root, self.review['watcher_review'], 'watcher')
+
+        rendered['duration_seconds'] = 9.0
+        write(self.delivery / 'render.json', rendered)
+        package = json.loads((self.delivery / 'package.json').read_text())
+        package['media']['duration_seconds'] = 9.0
+        write(self.delivery / 'package.json', package)
+        with self.assertRaises(ValueError):
+            _complete_coverage(self.root, self.review['watcher_review'], 'watcher')
+
+    def test_direct_review_requires_valid_decoded_package_media(self):
+        package_path = self.delivery / 'package.json'
+        package = json.loads(package_path.read_text())
+        package['media']['decode'] = 'UNKNOWN'
+        write(package_path, package)
+        with self.assertRaisesRegex(ValueError, 'package receipt'):
+            _complete_coverage(self.root, self.review['listener_review'], 'listener')
+
+    def test_candidate_mutation_during_fresh_media_probe_is_rejected(self):
+        def mutate_candidate(*args, **kwargs):
+            (self.delivery / 'video.mp4').write_bytes(b'CHANGED_DURING_PROBE')
+            return {'decode': 'PASS', 'duration_seconds': 10.0,
+                    'width': 720, 'height': 1280}
+
+        self.media_probe.stop()
+        with patch('integrations.content_control.cycle_package.inspect_media',
+                   side_effect=mutate_candidate), self.assertRaisesRegex(
+                       ValueError, 'changed during media probe'):
+            _complete_coverage(self.root, self.review['watcher_review'], 'watcher')
+
+    def test_coherent_shorter_receipts_cannot_shorten_real_media_review_coverage(self):
+        self.media_probe.stop()
+        video = self.delivery / 'video.mp4'
+        subprocess.run([
+            'ffmpeg', '-v', 'error', '-nostdin', '-y',
+            '-f', 'lavfi', '-i', 'color=c=0x223344:s=720x1280:r=24:d=2',
+            '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=24000:duration=2',
+            '-map', '0:v:0', '-map', '1:a:0', '-shortest', '-c:v', 'libx264',
+            '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac',
+            '-ar', '24000', '-ac', '1', '-movflags', '+faststart', str(video),
+        ], check=True, timeout=30)
+        candidate = digest(video)
+        (self.render / 'video.mp4').write_bytes(video.read_bytes())
+
+        rendered = json.loads((self.delivery / 'render.json').read_text())
+        rendered.update(candidate_sha256=candidate, duration_seconds=1.0)
+        write(self.delivery / 'render.json', rendered)
+        (self.render / 'render.json').write_bytes((self.delivery / 'render.json').read_bytes())
+
+        package_path = self.delivery / 'package.json'
+        package = json.loads(package_path.read_text())
+        package.update(candidate_sha256=candidate,
+                       render_receipt_sha256=digest(self.delivery / 'render.json'),
+                       media={'decode': 'PASS', 'duration_seconds': 1.0,
+                              'width': 720, 'height': 1280})
+        package['files_sha256'] = {
+            name: digest(self.delivery / name) for name in package['files_sha256']}
+        write(package_path, package)
+        with zipfile.ZipFile(self.delivery / 'review-package.zip', 'w') as archive:
+            for path in self.delivery.iterdir():
+                if path.suffix != '.zip':
+                    archive.write(path, path.name)
+
+        cycle_path = self.root / 'cycle.json'
+        cycle = json.loads(cycle_path.read_text())
+        cycle.update(candidate_sha256=candidate, package_sha256=digest(package_path))
+        write(cycle_path, cycle)
+        self.review['candidate_sha256'] = candidate
+        for name in ('watcher_review', 'listener_review'):
+            self.review[name]['candidate_sha256'] = candidate
+            self.review[name]['coverage'] = [{'start_seconds': 0.0, 'end_seconds': 1.0}]
+        write(self.submitted, self.review)
+
+        with self.assertRaisesRegex(ValueError, 'Fresh media observation disagrees'):
+            self.record()
+        self.assertFalse(self.recorded.exists())
 
     def test_full_av_summary_must_match_all_granular_watcher_judgments(self):
         self.review['watcher_review']['checks']['audio_visual_sync'] = {

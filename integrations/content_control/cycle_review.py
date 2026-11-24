@@ -7,6 +7,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -77,11 +78,67 @@ def _verified_voice(root, editorial, render):
     return {'voice_receipt_sha256': voice_hash, 'voice_assignments_sha256': assignments_sha}
 
 
-def _complete_coverage(root, value, label):
+def _verified_program_duration(root):
+    """Freshly decode the exact candidate and reject divergent receipts.
+
+    Package and render receipts can be rewritten together, so neither is the
+    measurement authority at review time.  Hash the candidate on both sides of
+    a bounded FFprobe/full FFmpeg decode, then compare that fresh observation
+    with both receipts.  Human coverage must span the measured candidate, not
+    merely a renderer-declared timeline that can be shorter or stale.
+    """
+    from integrations.content_control.cycle_package import (declared_layout,
+                                                            declared_speaker_label,
+                                                            inspect_media)
+
+    package = _load(root / 'delivery/package.json')
     render = _load(root / 'delivery/render.json')
-    duration = render.get('duration_seconds')
-    require(type(duration) in (int, float) and not isinstance(duration, bool)
-            and 0 < duration <= 1800, 'Bounded rendered duration required for ' + label + ' coverage')
+    editorial = _load(root / 'editorial.json')
+    media = package.get('media')
+    require(isinstance(media, dict) and set(media) == {
+        'decode', 'duration_seconds', 'width', 'height'},
+        'Exact decoded package media fields required for direct review')
+    candidate = _regular(root / 'delivery/video.mp4', 256 * 1024 * 1024)
+    expected_candidate = package.get('candidate_sha256')
+    before = digest(candidate)
+    require(isinstance(expected_candidate, str) and SHA.fullmatch(expected_candidate)
+            and before == expected_candidate == render.get('candidate_sha256'),
+            'Direct review candidate identity mismatch before media probe')
+    layout = declared_layout(editorial, render)
+    speaker_label = declared_speaker_label(editorial, render)
+    observed = inspect_media(candidate, layout=layout, decode=True)
+    after = digest(candidate)
+    require(after == before == expected_candidate,
+            'Direct review candidate changed during media probe')
+    duration = observed.get('duration_seconds')
+    width, height = observed.get('width'), observed.get('height')
+    render_duration = render.get('duration_seconds')
+    require(observed.get('decode') == 'PASS'
+            and type(duration) in (int, float) and not isinstance(duration, bool)
+            and math.isfinite(duration) and 0 < duration <= 1800
+            and type(width) is int and type(height) is int
+            and 16 <= width <= 8192 and 16 <= height <= 8192,
+            'Valid freshly decoded media required for direct review')
+    expected_dimensions = (1280, 720) if layout == 'landscape' else (720, 1280)
+    require((width, height) == expected_dimensions
+            and (not speaker_label or expected_dimensions == (720, 1280)),
+            'Fresh media dimensions disagree with the render contract')
+    declared_duration = media.get('duration_seconds')
+    require(media.get('decode') == 'PASS'
+            and type(declared_duration) in (int, float) and not isinstance(declared_duration, bool)
+            and math.isfinite(declared_duration)
+            and media.get('width') == width and media.get('height') == height
+            and abs(declared_duration - duration) <= .001,
+            'Fresh media observation disagrees with the package receipt')
+    require(type(render_duration) in (int, float) and not isinstance(render_duration, bool)
+            and math.isfinite(render_duration)
+            and abs(render_duration - duration) <= .001,
+            'Fresh media duration disagrees with the render timeline')
+    return duration
+
+
+def _complete_coverage(root, value, label):
+    duration = _verified_program_duration(root)
     coverage = value.get('coverage')
     require(isinstance(coverage, list) and 1 <= len(coverage) <= 100,
             label.capitalize() + ' coverage intervals required')
