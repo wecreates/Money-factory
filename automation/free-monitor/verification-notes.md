@@ -29,6 +29,22 @@ response, while the state branch changes independently. This prevents the
 monitor from alerting on its own cadence writes. It does not make the monitor a
 deployed alert-delivery service or establish 24-hour acceptance.
 
+The manual/push diagnostic uses the same serialized branch. It restores the
+last completed pair before probing, then writes its diagnostic report there. A
+completed worker pair may advance state and events with that report; an
+execution failure advances only the diagnostic and retains the prior completed
+pair. Diagnostic evidence must never write to `main`. Commit `5b10b225` is the
+retained hosted observation that exposed this second direct-write path after the
+cadence fix. Moving it off `main` preserves the failure report without treating
+operational evidence as reviewed source or triggering repository changes. This
+branch design does not itself prove alert delivery, recovery, or a 24-hour soak.
+
+The two-cycle verifier follows the same rule: restore the branch pair, write its
+verification report there, and advance state/events only when the verifier
+completed a pair. A failed verifier records the failure while retaining the
+prior completed pair. Verification reports are operational evidence, not source
+changes, and must not bypass reviewed `main` history.
+
 ## November 21, 2026 investigation
 
 At repository base `c73ca61d239c7f8e2dde3da60087a2c164695635`, the verifier still
