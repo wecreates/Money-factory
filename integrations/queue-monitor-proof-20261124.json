@@ -1,0 +1,87 @@
+{
+  "acceptance_limits": {
+    "actual_host_recovery_verified": false,
+    "alert_delivery_configured": false,
+    "deployed_monitor_verified": false,
+    "full_av_review": false,
+    "production_ready": false,
+    "twenty_four_hour_soak_verified": false
+  },
+  "command": "python -m integrations.queue_monitor --queue integrations/local_queue/evidence/c12-real-admission-retry-20261124-v2/runtime",
+  "monitor_source_sha256": "7da1d876af356a8c60a5f8c04e21a392a6fa66a3fb0086fa69453d9031b01cfb",
+  "raw_output_sha256": "c7f6cad91ca582f9edf574c5e1dd9c28ed6e6be915bd92c2abe7b0d1581d02ad",
+  "result": {
+    "alert_delivery_configured": false,
+    "alerts": [
+      {
+        "attempts": 2,
+        "code": "attempt_limit_exhausted",
+        "job_id": "c12-real-admission-retry-20261124v2",
+        "max_attempts": 2,
+        "severity": "error"
+      },
+      {
+        "attempts": 2,
+        "code": "job_blocked",
+        "job_id": "c12-real-admission-retry-20261124v2",
+        "max_attempts": 2,
+        "severity": "error"
+      }
+    ],
+    "automatic_retry_events": 1,
+    "consumer_lock_held": false,
+    "deployed_monitor_verified": false,
+    "job_counts": {
+      "blocked": 1
+    },
+    "jobs": [
+      {
+        "adapter": "content-control-video",
+        "attempts": 2,
+        "id": "c12-real-admission-retry-20261124v2",
+        "resource_limits": {
+          "max_attempts": 2,
+          "timeout_seconds": 120
+        },
+        "state": "blocked"
+      }
+    ],
+    "observed_at": "2026-11-24T14:50:50.367989+00:00",
+    "paid_generation_enabled": false,
+    "production_ready": false,
+    "publication_enabled": false,
+    "queue_database_sha256": "a456a1ced8077828a1de942b7d379c9f4d1a78614852b8dac9f18d90195c3360",
+    "queue_storage_files": {
+      "queue.sqlite3": {
+        "sha256": "a456a1ced8077828a1de942b7d379c9f4d1a78614852b8dac9f18d90195c3360",
+        "size": 36864
+      }
+    },
+    "queue_storage_sha256": "d73a4d0f6a24d2923017cb9a13db32df04f48eefb5ad1516857c860596fbf7dc",
+    "schema_version": 1,
+    "scope": "Read-only local queue state, attempt ceilings, and foreground liveness only; no model quality, VPN, audiovisual, deployed alert delivery, or 24-hour acceptance.",
+    "status": "ATTENTION_REQUIRED",
+    "twenty_four_hour_soak_verified": false,
+    "worker_run": {
+      "active_job": null,
+      "exit_reason": "job_limit",
+      "finished": 1795522218.4495137,
+      "heartbeat": 1795522218.4495137,
+      "heartbeat_age_seconds": 9631.91847538948,
+      "heartbeat_fresh": false,
+      "id": "cf63b325d9b64afbb0854032cd496c93",
+      "processed": 1,
+      "resource_limits": {
+        "auto_retry": true,
+        "max_jobs": 1,
+        "poll_seconds": 1.0,
+        "watch_seconds": 0
+      },
+      "started": 1795522213.1826866,
+      "state": "finished",
+      "stop_requested": null
+    }
+  },
+  "schema_version": 1,
+  "scope": "A read-only monitor execution against the retained real bounded-retry queue. It exposes retained attention state; it is not deployed alert delivery, actual-host recovery, or a 24-hour soak."
+}
