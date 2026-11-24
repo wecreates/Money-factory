@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import re
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -60,6 +61,11 @@ class BrowserRuntimeProbeTests(unittest.TestCase):
         self.assertTrue({"OPENAI_API_KEY", "HTTP_PROXY", "NODE_OPTIONS", "PYTHONPATH"}.isdisjoint(environment))
         self.assertEqual(environment["PUBLICATION_ENABLED"], "false")
         self.assertEqual(environment["PAID_GENERATION_ENABLED"], "false")
+
+    def test_host_fingerprint_is_hashed_and_stable(self):
+        first = browser_probe.host_fingerprint_sha256()
+        self.assertEqual(first, browser_probe.host_fingerprint_sha256())
+        self.assertRegex(first, re.compile(r"^[0-9a-f]{64}$"))
 
     def test_configuration_failure_receipt_does_not_expose_input_path(self):
         with patch("builtins.print") as output:

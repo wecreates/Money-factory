@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import platform
 import re
 import stat
 import subprocess
@@ -26,6 +27,11 @@ else:  # Support the documented ``python integrations/<script>.py`` form.
 
 MAX_OUTPUT_BYTES = 1024 * 1024
 PROBE_MARKER = "CYZOR_BROWSER_RUNTIME_READY"
+BROWSER_SCOPE = (
+    "Current-host ordinary browser startup and local data-URL rendering only; "
+    "no network page, provider, media consumer, Remotion render, creative review, "
+    "publication, deployment, persistence, or 24-hour operation verified"
+)
 FORBIDDEN_ARGUMENTS = frozenset((
     "--no-sandbox",
     "--disable-setuid-sandbox",
@@ -41,6 +47,24 @@ def sha256_file(path):
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def host_fingerprint_sha256():
+    """Return a non-secret stable hash used only to join same-host receipts."""
+    components = [platform.node().encode("utf-8", errors="surrogateescape")]
+    for candidate in (Path("/etc/machine-id"), Path("/var/lib/dbus/machine-id")):
+        try:
+            metadata = candidate.lstat()
+            if stat.S_ISREG(metadata.st_mode) and metadata.st_size <= 4096:
+                value = candidate.read_bytes().strip()
+                if value:
+                    components.append(value)
+                    break
+        except OSError:
+            continue
+    if not any(components):
+        raise ValueError("host_fingerprint_unavailable")
+    return hashlib.sha256(b"\0".join(components)).hexdigest()
 
 
 def resolve_browser(browser):
@@ -138,6 +162,7 @@ def probe(browser, *, timeout_seconds=30):
         "status": status,
         "browser_binary_name": executable.name,
         "browser_binary_sha256": sha256_file(executable),
+        "host_fingerprint_sha256": host_fingerprint_sha256(),
         # owned_process returns its guardian status; signal exits may be shell-normalized.
         "guardian_exit_code": exit_code,
         "stdout_sha256": hashlib.sha256(stdout_bytes).hexdigest(),
@@ -151,11 +176,7 @@ def probe(browser, *, timeout_seconds=30):
         "publication_enabled": False,
         "paid_generation_enabled": False,
         "sandbox_weakening_used": False,
-        "scope": (
-            "Current-host ordinary browser startup and local data-URL rendering only; "
-            "no network page, provider, media consumer, Remotion render, creative review, "
-            "publication, deployment, persistence, or 24-hour operation verified"
-        ),
+        "scope": BROWSER_SCOPE,
     }
 
 
