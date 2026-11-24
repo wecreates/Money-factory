@@ -38,6 +38,14 @@ def write(path, value):
     path.write_text(json.dumps(value))
 
 
+def synthetic_picture_mp4(path, seconds):
+    subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i',
+                    f'color=c=black:s=90x160:r=24:d={seconds}',
+                    '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono:d=2',
+                    '-c:v', 'libx264', '-threads', '1', '-c:a', 'aac',
+                    str(path)], check=True, timeout=30)
+
+
 def packet(path, expected, media=b'candidate'):
     path.mkdir()
     (path/'render').mkdir(); (path/'delivery').mkdir()
@@ -316,11 +324,7 @@ class CycleJobTests(unittest.TestCase):
             for picture_length in (0.5, 1, 1.5):
                 with self.subTest(picture_length=picture_length):
                     media = root/f'{picture_length}.mp4'
-                    subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i',
-                                    f'color=c=black:s=90x160:r=24:d={picture_length}',
-                                    '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono:d=2',
-                                    '-c:v', 'libx264', '-threads', '1', '-c:a', 'aac',
-                                    str(media)], check=True, timeout=30)
+                    synthetic_picture_mp4(media, picture_length)
                     self.assertGreater(inspect_media(media, decode=False)['duration_seconds'], 1)
                     cycle = root/f'cycle-{picture_length}'
                     receipt = packet(cycle, expected, media.read_bytes())
