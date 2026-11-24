@@ -60,6 +60,18 @@ def clip_captions(text, start_ms, end_ms):
     return 'WEBVTT\n\n' + '\n\n'.join(cues) + ('\n' if cues else ''), truncated
 
 
+def _compact_caption_input(captions):
+    require(captions != 'WEBVTT\n\n', 'Compact captions require timed cues')
+    # The picture renderer uses html.escape() with quoting enabled. Restore
+    # only its quote escapes in the burn input, preserving the bound sidecar
+    # and continuing to reject markup, ASS syntax and all other entities.
+    plain = captions.replace('&#x27;', "'").replace('&quot;', '"')
+    cue_text = [line for block in plain.strip().split('\n\n')[1:] for line in block.splitlines()[1:]]
+    require(all(not re.search(r'[<>{}\\&]', line) for line in cue_text),
+            'Compact captions require unmarked cue text')
+    return plain
+
+
 def _run(command, deadline, *, cwd=None):
     remaining = deadline - time.monotonic()
     require(remaining > 0, 'Short deadline exhausted')
@@ -189,9 +201,7 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
     require(captions.stat().st_size <= 1024*1024, 'Caption input oversized')
     clipped,boundary=clip_captions(captions.read_text(),start_ms,end_ms)
     if compact_captions:
-        require(clipped != 'WEBVTT\n\n', 'Compact captions require timed cues')
-        cue_text = [line for block in clipped.strip().split('\n\n')[1:] for line in block.splitlines()[1:]]
-        require(all(not re.search(r'[<>{}\\&]', line) for line in cue_text), 'Compact captions require unmarked cue text')
+        _compact_caption_input(clipped)
     output.mkdir(parents=True,exist_ok=False)
     receipt={'schema_version':1,'status':'BLOCKED','technical_status':'PENDING',**FLAGS,
              'source_counter':counter_action,'tool_sha256':digest(Path(__file__)),
@@ -227,7 +237,7 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
             clipped, boundary = clip_captions(captions.read_text(), start_ms, caption_end_ms)
             if compact_captions:
                 require(clipped != 'WEBVTT\n\n', 'No captions remain within the encoded excerpt')
-                (stage/'captions.vtt').write_text(clipped)
+                (stage/'captions.vtt').write_text(_compact_caption_input(clipped))
                 _run(['ffmpeg','-v','error','-xerror','-nostdin','-n','-protocol_whitelist','file,pipe','-threads','2',
                       '-f','mov','-i','clean.mp4','-map','0:v:0','-map','0:a:0','-map_metadata','-1',
                       '-vf',f"subtitles=filename=captions.vtt:force_style='{COMPACT_STYLE}'",'-filter_threads','1',

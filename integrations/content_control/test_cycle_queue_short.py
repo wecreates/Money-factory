@@ -6,7 +6,9 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-from integrations.content_control.cycle_queue_short import consume_short, main, verify_consumed_short
+from integrations.content_control.cycle_queue_short import (
+    PRE_COMPACT_QUOTE_TOOL_PAIR, consume_short, main, verify_consumed_short,
+)
 from integrations.content_control.test_cycle_job import synthetic_picture_mp4
 from integrations.content_control.test_cycle_queue_delivery import CycleDeliveryTests
 from integrations.content_control.review_package import digest
@@ -161,6 +163,23 @@ class QueueShortTests(unittest.TestCase):
                 receipt_path.write_text(json.dumps(changed) + '\n')
                 with self.assertRaises(ValueError):
                     verify_consumed_short(queue.root, 'cycle-test', output)
+        receipt_path.write_text(json.dumps(original) + '\n')
+
+        prior_consumer, prior_exporter = PRE_COMPACT_QUOTE_TOOL_PAIR
+        for changes in ({'consumer_tool_sha256': prior_consumer},
+                        {'exporter_tool_sha256': prior_exporter},
+                        {'consumer_tool_sha256': '0' * 64},
+                        {'exporter_tool_sha256': []}):
+            with self.subTest(tool_identities=changes):
+                receipt_path.write_text(json.dumps(dict(original, **changes)) + '\n')
+                with self.assertRaisesRegex(ValueError, 'not an unpublished PASS'):
+                    verify_consumed_short(queue.root, 'cycle-test', output)
+        # A historical consumer pair still has to match the exporter receipt.
+        changed = dict(original, consumer_tool_sha256=prior_consumer,
+                       exporter_tool_sha256=prior_exporter)
+        receipt_path.write_text(json.dumps(changed) + '\n')
+        with self.assertRaisesRegex(ValueError, 'does not bind'):
+            verify_consumed_short(queue.root, 'cycle-test', output)
         receipt_path.write_text(json.dumps(original) + '\n')
 
         # Even a matching rewritten artifact map cannot turn an invalid

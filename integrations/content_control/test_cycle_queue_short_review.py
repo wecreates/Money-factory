@@ -108,12 +108,17 @@ class QueueShortReviewTests(unittest.TestCase):
 
     def test_review_and_caption_revision_bind_exact_durable_derivative(self):
         queue, short, receipt = self.prepare()
+        recorded, review, output, revision = self.review_and_revise(queue, short, receipt)
+        self.assertEqual(review, verify_recorded_short_review(
+            queue.root, 'cycle-test', short, recorded))
+        self.assertEqual(revision, verify_caption_revision(
+            queue.root, 'cycle-test', short, recorded, output))
+
+    def review_and_revise(self, queue, short, receipt):
         recorded, review = self.record(queue, short, receipt)
         self.assertEqual(review['status'], 'REVISION_REQUIRED')
         self.assertFalse(review['human_av_acceptance_recorded'])
         self.assertFalse(review['phone_playback_verified'])
-        self.assertEqual(review, verify_recorded_short_review(
-            queue.root, 'cycle-test', short, recorded))
 
         submitted_revision = self.base / 'revision.json'
         submitted_revision.write_text(json.dumps(
@@ -129,6 +134,33 @@ class QueueShortReviewTests(unittest.TestCase):
         self.assertFalse(revision['listening_verified'])
         self.assertNotEqual(revision['revised_caption_sha256'],
                             receipt['caption_sha256'])
+        return recorded, review, output, revision
+
+    def test_retained_pre_upgrade_short_review_and_revision_replay(self):
+        prior_consumer = '7d1273737a50aff80b49494df857e3866a2c40bc4fa7e5f1a6c6c4691374f592'
+        prior_exporter = 'd2c21d9f9e1cefc2b9f153697372e9e30c6fea086e445e32274b172e2a0bc436'
+
+        def historical_digest(module_name, identity):
+            def calculate(path, *args, **kwargs):
+                if path.name == module_name:
+                    return identity
+                return digest(path, *args, **kwargs)
+            return calculate
+
+        # Only the module self-identities are simulated. Queue verification,
+        # encoding, receipt construction and both repair stages still run.
+        with patch('integrations.content_control.cycle_queue_short.digest',
+                   side_effect=historical_digest('cycle_queue_short.py', prior_consumer)), \
+             patch('integrations.content_control.cycle_short.digest',
+                   side_effect=historical_digest('cycle_short.py', prior_exporter)):
+            queue, short, receipt = self.prepare()
+            recorded, review, output, revision = self.review_and_revise(
+                queue, short, receipt)
+        self.assertEqual(receipt['consumer_tool_sha256'], prior_consumer)
+        self.assertEqual(receipt['exporter_tool_sha256'], prior_exporter)
+        self.assertEqual(receipt, verify_consumed_short(queue.root, 'cycle-test', short))
+        self.assertEqual(review, verify_recorded_short_review(
+            queue.root, 'cycle-test', short, recorded))
         self.assertEqual(revision, verify_caption_revision(
             queue.root, 'cycle-test', short, recorded, output))
 
