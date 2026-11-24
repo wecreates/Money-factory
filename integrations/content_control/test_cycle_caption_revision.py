@@ -186,6 +186,24 @@ class CaptionRevisionTests(unittest.TestCase):
         self.assertEqual(m.correct_vtt(multiline, [dict(edit, line=2)]),
                          multiline.replace(b'purchase posts.', b'purchase appears.'))
 
+    def test_renderer_quote_entities_remain_exact_during_retiming_and_correction(self):
+        before = (b"WEBVTT\n\n00:00:00.000 --> 00:00:00.500\nThat&#x27;s the due\n\n"
+                  b"00:00:00.500 --> 00:00:01.300\ndate in &quot;Review&quot;.\n\n")
+        after = ("WEBVTT\n\n00:00:00.000 --> 00:00:00.700\nThat&#x27;s the due date\n\n"
+                 "00:00:00.700 --> 00:00:01.300\nin &quot;Review&quot;.\n\n")
+        self.assertEqual(m.retime_vtt(before, after), after.encode())
+        self.assertEqual(m.correct_vtt(before, [
+            {'cue': 1, 'before': 'That&#x27;s the due', 'after': 'It&#x27;s the due'}]),
+            before.replace(b'That&#x27;s', b'It&#x27;s'))
+        with self.assertRaisesRegex(ValueError, 'preserve wording'):
+            m.retime_vtt(before, after.replace('&#x27;', "'"))
+        for unsafe in ('&lt;b&gt;', '&amp;#x27;', '&#60;', '&other;', '<b>', 'a & b'):
+            with self.subTest(unsafe=unsafe), self.assertRaises(ValueError):
+                m.retime_vtt(before, after.replace('&#x27;', unsafe))
+            with self.subTest(unsafe=unsafe), self.assertRaises(ValueError):
+                m.correct_vtt(before, [
+                    {'cue': 1, 'before': 'That&#x27;s the due', 'after': unsafe}])
+
     def test_duplicate_json_and_unsafe_paths_rejected(self):
         self.source.write_text('{"candidate_sha256":"a","candidate_sha256":"b"}')
         with self.assertRaises(ValueError):m.revise_captions(self.root,self.source,self.out)

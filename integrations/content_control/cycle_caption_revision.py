@@ -17,12 +17,18 @@ from integrations.content_control.review_package import digest, no_symlinks, req
 FLAGS = {k: False for k in ('publication_enabled', 'paid_generation_enabled', 'production_approved',
                            'full_av_review', 'production_ready', 'factual_review', 'competitor_comparison')}
 TIMING = re.compile(r'\d{2,}:[0-5]\d:[0-5]\d\.\d{3} --> \d{2,}:[0-5]\d:[0-5]\d\.\d{3}')
+RENDERED_QUOTE_ENTITIES = re.compile(r'&#x27;|&quot;')
 
 
-def _text(value, maximum):
+def _text(value, maximum, *, allow_caption_quotes=False):
     require(isinstance(value, str) and 0 < len(value.strip()) <= maximum and
-            not any(ord(c) < 32 or ord(c) == 127 for c in value) and
-            not any(c in value for c in '<>&'), 'Bounded plain single-line text required')
+            not any(ord(c) < 32 or ord(c) == 127 for c in value),
+            'Bounded plain single-line text required')
+    # The renderer uses html.escape with quote escaping. Strip only those
+    # two entities for validation, and keep the original cue bytes for replay.
+    validation_text = RENDERED_QUOTE_ENTITIES.sub('', value) if allow_caption_quotes else value
+    require(not any(c in validation_text for c in '<>&'),
+            'Bounded plain single-line text required')
     return value
 
 
@@ -41,7 +47,7 @@ def _plain_cues(raw):
         index += 1
         first = index
         while index < len(lines) and lines[index] != '\n':
-            value = _text(lines[index].rstrip('\n'), 2000)
+            value = _text(lines[index].rstrip('\n'), 2000, allow_caption_quotes=True)
             require('-->' not in value, 'Invalid caption text')
             index += 1
         require(first < index, 'Missing caption text')
@@ -68,7 +74,8 @@ def correct_vtt(raw, edits):
         pos = positions[line - 1]
         require(pos not in seen, 'Duplicate cue line')
         seen.add(pos)
-        before, after = _text(edit['before'], 2000), _text(edit['after'], 2000)
+        before = _text(edit['before'], 2000, allow_caption_quotes=True)
+        after = _text(edit['after'], 2000, allow_caption_quotes=True)
         require(before != after, 'Caption edit must change text')
         require(lines[pos].rstrip('\n') == before, 'Caption before text does not match')
         lines[pos] = after + ('\n' if lines[pos].endswith('\n') else '')
