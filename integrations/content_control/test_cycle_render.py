@@ -308,7 +308,7 @@ class RenderValidationTests(unittest.TestCase):
             self.assertEqual(sorted(rejected),['rewards-card-brief.json','rewards-card-revision.json'])
 
     @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
-    def test_gesture_moves_only_arms_and_loops_without_changing_layout(self):
+    def test_gesture_moves_character_and_loops_without_changing_information_layer(self):
         try:
             from PIL import Image, ImageChops
         except ImportError:
@@ -322,22 +322,24 @@ class RenderValidationTests(unittest.TestCase):
                 self.assertIsNone(ImageChops.difference(start,end).getbbox())
                 bounds=ImageChops.difference(start,peak).getbbox()
                 self.assertIsNotNone(bounds)
-                self.assertGreaterEqual(bounds[0],280); self.assertLessEqual(bounds[2],440)
-                self.assertGreaterEqual(bounds[1],910); self.assertLessEqual(bounds[3],1040)
+                self.assertGreaterEqual(bounds[0],280); self.assertLessEqual(bounds[2],460)
+                self.assertGreaterEqual(bounds[1],850); self.assertLessEqual(bounds[3],1120)
                 self.assertIsNotNone(ImageChops.difference(peak,opposite).getbbox())
-                # Diagrams/headlines, face, feet and speaker label stay identical.
-                self.assertEqual(start.crop((0,0,720,910)).tobytes(),peak.crop((0,0,720,910)).tobytes())
-                self.assertEqual(start.crop((0,1040,720,1280)).tobytes(),peak.crop((0,1040,720,1280)).tobytes())
+                # Diagrams/headlines and the anchored speaker label stay identical.
+                self.assertEqual(start.crop((0,0,720,850)).tobytes(),peak.crop((0,0,720,850)).tobytes())
+                self.assertEqual(start.crop((0,1120,720,1280)).tobytes(),peak.crop((0,1120,720,1280)).tobytes())
+                changed = ImageChops.difference(start, peak).convert('L').histogram()
+                self.assertGreater(sum(changed[1:]), 1500)
             for phase in (True,float('nan'),float('inf'),'0'):
                 with self.assertRaises(ValueError):render.draw_panel(scene,paths[0],0,1,phase=phase)
 
     @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
-    def test_authored_point_changes_only_the_selected_side_during_motion(self):
+    def test_authored_point_keeps_selected_direction_during_character_motion(self):
         from PIL import Image, ImageChops
         with tempfile.TemporaryDirectory() as td:
             paths = [Path(td)/f'point-{index}.png' for index in range(3)]
             scene = brief()['scenes'][0]
-            for layout, x, top, bottom in ((None, 360, 890, 1030), ('landscape', 265, 270, 410)):
+            for layout, x, top, bottom in ((None, 360, 850, 1030), ('landscape', 265, 230, 410)):
                 for direction in ('point_left', 'point_right'):
                     scene['visual_spec'] = {'kind': 'comparison', 'gesture': direction}
                     for phase, path in zip((0, .25, 1), paths):
@@ -346,11 +348,25 @@ class RenderValidationTests(unittest.TestCase):
                         self.assertIsNone(ImageChops.difference(start, end).getbbox())
                         left, upper, right, lower = ImageChops.difference(start, peak).getbbox()
                         self.assertGreaterEqual(upper, top)
-                        self.assertLessEqual(lower, bottom)
-                        if direction == 'point_left':
-                            self.assertLess(right, x)
-                        else:
-                            self.assertGreater(left, x)
+                        self.assertLessEqual(lower, bottom + 90)
+                        # Information and speaker-label layers do not move.
+                        fixed_bottom = 220 if layout == 'landscape' else 850
+                        self.assertIsNone(ImageChops.difference(start, peak).crop(
+                            (0, 0, start.width, fixed_bottom)).getbbox())
+                        label_top = 540 if layout == 'landscape' else 1120
+                        self.assertIsNone(ImageChops.difference(start, peak).crop(
+                            (0, label_top, start.width, start.height)).getbbox())
+                        # The authored pointing hand remains on the requested side
+                        # of the moving torso at both representative phases.
+                        for frame, body_x in ((start, x), (peak, x + 18)):
+                            ink = frame.convert('RGB')
+                            if direction == 'point_left':
+                                region = (body_x - 100, top, body_x - 39, bottom)
+                            else:
+                                region = (body_x + 39, top, body_x + 100, bottom)
+                            histogram = ink.crop(region).convert('L').histogram()
+                            dark = sum(histogram[:120])
+                            self.assertGreater(dark, 20)
 
     @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
     def test_long_checklist_label_wraps_inside_its_row_in_both_layouts(self):
@@ -476,6 +492,9 @@ class RenderValidationTests(unittest.TestCase):
             self.assertEqual(result['timestamp_normalization']['audio_start_seconds'], 0)
             self.assertEqual(result['motion']['loop_seconds'],3)
             self.assertEqual(result['motion']['output_fps'],24)
+            self.assertEqual(result['motion']['kind'],'periodic_whole_character_sway_bob_v1')
+            self.assertEqual(result['motion']['kind'],render.MOTION_KIND)
+            self.assertIn('whole-character sway and bob',result['motion']['scope'])
             row=result['scenes'][0]
             self.assertEqual(len(row['motion_frames_sha256']),24)
             self.assertEqual(row['motion_frames_sha256']['frame-00.png'],row['panel_sha256'])
