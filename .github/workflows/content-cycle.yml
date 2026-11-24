@@ -10,7 +10,7 @@ permissions:
   contents: read
 jobs:
   offline-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -19,8 +19,19 @@ jobs:
           python-version: '3.12'
       - name: Install media test prerequisites
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+          media_tools_ready() {
+            timeout 10s ffmpeg -version >/dev/null 2>&1 &&
+            timeout 10s ffprobe -version >/dev/null 2>&1 &&
+            test -s /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+          }
+          if ! media_tools_ready; then
+            apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=30)
+            timeout --kill-after=10s 180s sudo apt-get "${apt_options[@]}" update -qq
+            timeout --kill-after=10s 180s sudo apt-get "${apt_options[@]}" install -y --no-install-recommends ffmpeg fonts-dejavu-core
+          fi
+          media_tools_ready || { echo 'FFmpeg, FFprobe or DejaVu Sans Bold is unavailable' >&2; exit 2; }
+          timeout 10s ffmpeg -version
+          timeout 10s ffprobe -version
       - run: python -m pip install -r integrations/content_control/requirements-cycle.txt
       - run: python -m unittest discover -s integrations/content_control -p 'test_cycle_*.py' -v
       - run: python -m unittest integrations.content_control.test_complete_cycle -v
