@@ -25,9 +25,11 @@ CUE_END_MARGIN_SECONDS = .04
 MIN_POST_NARRATION_TAIL_SECONDS = .24
 CUE_PEAK = .03
 ENCODED_PEAK_CEILING = .98
-# FFmpeg 6's AAC decode exposes exactly two 1024-sample priming/padding frames
-# in the hosted fixture. Keep this an exact frame ceiling, not a time-derived
-# tolerance that could hide a longer content mismatch.
+# FFmpeg exposes at most two 1024-sample priming/padding frames per AAC segment.
+# The renderer concatenates one independently encoded segment per authored scene,
+# so the source-to-timeline ceiling must scale with that exact bounded scene count.
+# The newly encoded mix is still required to remain within one fixed ceiling of
+# the source so this cannot hide a longer content mismatch.
 MAX_CODEC_TIMELINE_PADDING_FRAMES = 2048
 MAX_DURATION_SECONDS = 600
 MAX_SCENES = 64
@@ -229,17 +231,20 @@ def _window_rms(samples, start, end):
     return math.sqrt(sum(value * value for value in values) / len(values)) / 32767
 
 
-def validate_decoded_lengths(source_frames, mixed_frames, duration_seconds):
-    """Allow only bounded AAC priming/padding drift across FFmpeg versions."""
+def validate_decoded_lengths(source_frames, mixed_frames, duration_seconds,
+                             scene_count=1):
+    """Allow only scene-bounded AAC priming/padding drift across FFmpeg versions."""
     if (type(source_frames) is not int or type(mixed_frames) is not int
             or source_frames <= 0 or mixed_frames <= 0
-            or not _finite(duration_seconds) or duration_seconds <= 0):
+            or not _finite(duration_seconds) or duration_seconds <= 0
+            or type(scene_count) is not int or not 1 <= scene_count <= MAX_SCENES):
         raise ValueError('Decoded timeline lengths must be positive and finite')
-    maximum_drift_frames = MAX_CODEC_TIMELINE_PADDING_FRAMES
+    timeline_drift_frames = MAX_CODEC_TIMELINE_PADDING_FRAMES * scene_count
     expected_frames = round(duration_seconds * RATE)
-    if (abs(source_frames - expected_frames) > maximum_drift_frames
-            or abs(mixed_frames - expected_frames) > maximum_drift_frames
-            or abs(source_frames - mixed_frames) > maximum_drift_frames):
+    if (abs(source_frames - expected_frames) > timeline_drift_frames
+            or abs(mixed_frames - expected_frames) > timeline_drift_frames
+            or abs(source_frames - mixed_frames)
+            > MAX_CODEC_TIMELINE_PADDING_FRAMES):
         raise ValueError('Mixed audio does not retain source timeline length')
 
 
@@ -331,7 +336,8 @@ def create_transition_mix(render_root, output):
         source_pcm = decode_audio(source['video_path'])
         mixed_pcm = decode_audio(video_path)
         validate_decoded_lengths(len(source_pcm), len(mixed_pcm),
-                                 source['duration_seconds'])
+                                 source['duration_seconds'],
+                                 len(source['voice_assets']))
         source_stats = pcm_stats(source_pcm)
         mixed_stats = pcm_stats(mixed_pcm)
         if mixed_stats['peak'] > ENCODED_PEAK_CEILING:
