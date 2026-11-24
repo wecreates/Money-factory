@@ -29,6 +29,17 @@ two inputs with `intake.json` to verify the byte hashes. The `research_handoff`
 in the brief binds both inputs. Intake validates structure and renderer shape.
 Source discovery, factual review and authorship are evidenced separately.
 
+Rebuild and verify the exact saved brief and receipt without modifying them:
+
+```sh
+python -m integrations.content_control.cycle_intake \
+  --research /absolute/research.json --draft /absolute/draft.json \
+  --verify /absolute/existing-intake
+```
+
+The verification result identifies the four retained byte sets. Supply the
+same prior selection paths described below if the intake used idea learning.
+
 To carry a prior thumbnail review into the next draft, add an `idea_learning`
 object to the draft with `selection_receipt_sha256`, a one-based
 `hypothesis_index`, and an `application` describing the change to test.
