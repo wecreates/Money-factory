@@ -154,7 +154,7 @@ def revise_captions(cycle_dir, edits_path, output, timeout=180):
               'editorial_sha256':snapshot['cycle']['editorial_sha256'],
               'scope':'New review package for unchanged media with explicit caption correction; no fresh synthesis or creative approval.',
               'steps':[], 'tool_sha256':{'cycle_caption_revision.py':digest(Path(__file__))}}
-    for field in ('revision_lineage', 'maximum_duration_seconds'):
+    for field in ('revision_lineage', 'minimum_duration_seconds', 'maximum_duration_seconds'):
         if field in snapshot['cycle']:
             result[field] = snapshot['cycle'][field]
     try:
