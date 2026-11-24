@@ -2022,5 +2022,13 @@
     "type": "change",
     "label": "Money Factory GitHub repository",
     "target_url": "https://github.com/wecreates/Money-factory"
+  },
+  {
+    "id": "eed34978-da26-438a-8dcd-9f33f1ad6b13",
+    "watch_id": "money-factory-repository",
+    "at": 1795539490302,
+    "type": "change",
+    "label": "Money Factory GitHub repository",
+    "target_url": "https://api.github.com/repos/wecreates/Money-factory/commits/main"
   }
 ]
