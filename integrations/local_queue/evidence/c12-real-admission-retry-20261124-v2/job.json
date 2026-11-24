@@ -1,0 +1,15 @@
+{
+  "adapter": "content-control-video",
+  "id": "c12-real-admission-retry-20261124v2",
+  "max_attempts": 2,
+  "paid_generation_enabled": false,
+  "publication_enabled": false,
+  "request": {
+    "operation": "produce-episode1-review",
+    "paid_generation_enabled": false,
+    "publication_enabled": false,
+    "source_commit": "3edefe86a6342c6a2792ef71138a3a694c64855a",
+    "source_manifest_sha256": "142340d184b9aa295dc239a8fa2f330a5b653ac313b00ae69991b209fd527432",
+    "timeout_seconds": 120
+  }
+}

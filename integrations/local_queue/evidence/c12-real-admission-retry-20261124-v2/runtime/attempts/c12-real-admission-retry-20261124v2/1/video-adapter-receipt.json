@@ -1,0 +1,15 @@
+{
+  "blocker": "AdmissionBusy",
+  "full_av_review": false,
+  "operation": "produce-episode1-review",
+  "paid_generation_enabled": false,
+  "production_approved": false,
+  "production_ready": false,
+  "publication_enabled": false,
+  "retryable": true,
+  "schema_version": 1,
+  "scope": "Local queue execution and technical review packet only; no audiovisual or publishing approval",
+  "source_commit": "3edefe86a6342c6a2792ef71138a3a694c64855a",
+  "source_manifest_sha256": "142340d184b9aa295dc239a8fa2f330a5b653ac313b00ae69991b209fd527432",
+  "status": "BLOCKED"
+}

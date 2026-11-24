@@ -417,6 +417,11 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
                 result['verified_revision_discovery'] = intake
     except (ValueError, OSError, RuntimeError, KeyError, TypeError, AdmissionBusy) as error:
         result['blocker'] = str(error) if isinstance(error, ValueError) else type(error).__name__
+        # Admission is acquired before the cycle subprocess is started.  A
+        # contended lease therefore has no ambiguous production side effect
+        # and is the only adapter blocker eligible for automatic replay.
+        if isinstance(error, AdmissionBusy):
+            result['retryable'] = True
     with (attempt_dir/'cycle-adapter-receipt.json').open('x') as stream:
         json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False)
         stream.write('\n'); stream.flush(); os.fsync(stream.fileno())

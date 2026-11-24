@@ -11,6 +11,7 @@ from unittest.mock import patch
 from integrations.content_control.cycle_job import (
     brief_digest, validate, check_completed, run_job, digest, production_handoff,
 )
+from integrations.agent_capacity import AdmissionBusy
 from integrations.local_agent_queue import Queue, work
 
 
@@ -334,6 +335,22 @@ class CycleJobTests(unittest.TestCase):
             result = run_job(request(), td)
             self.assertEqual(result['status'], 'BLOCKED')
             self.assertIn('Host must provide', result['blocker'])
+
+    def test_only_pre_execution_admission_contention_is_retryable(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td); source = root/'source'; (source/'scripts').mkdir(parents=True)
+            (source/'scripts/v2_free_voice.py').write_text('')
+            attempt = root/'attempt'; attempt.mkdir()
+            import sys
+            with patch('integrations.content_control.cycle_job.shared_admission_lock',
+                       side_effect=AdmissionBusy('busy')):
+                result = run_job(request(), attempt, voice_python=sys.executable, voice_root=source)
+            self.assertTrue(result['retryable'])
+            self.assertEqual(result['blocker'], 'AdmissionBusy')
+
+            other = root/'other'; other.mkdir()
+            blocked = run_job(request(), other)
+            self.assertNotIn('retryable', blocked)
 
     def test_real_sqlite_attempt_records_missing_runtime_as_blocked(self):
         with tempfile.TemporaryDirectory() as td:

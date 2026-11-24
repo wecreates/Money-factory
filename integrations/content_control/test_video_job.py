@@ -61,6 +61,21 @@ class VideoJobTests(unittest.TestCase):
         self.assertEqual(result['status'], 'BLOCKED')
         self.assertIn('Python 3.11', result['blocker'])
 
+    def test_only_pre_execution_admission_contention_is_retryable(self):
+        source = self.root / 'source'; (source / 'scripts').mkdir(parents=True)
+        with patch('integrations.content_control.video_job.shared_admission_lock',
+                   side_effect=AdmissionBusy('busy')):
+            result = run_job(self.request, self.root,
+                             content_control_root=source,
+                             video_python=sys.executable,
+                             picture_python=sys.executable)
+        self.assertTrue(result['retryable'])
+        self.assertEqual(result['blocker'], 'AdmissionBusy')
+
+        other = self.root / 'other'; other.mkdir()
+        blocked = run_job(self.request, other)
+        self.assertNotIn('retryable', blocked)
+
     def packet(self):
         for name in ('video.mp4', 'captions.vtt', 'encoded-verification.json', 'audio-verification.json'):
             (self.root / name).write_text('synthetic '+name)

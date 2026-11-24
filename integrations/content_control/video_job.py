@@ -209,6 +209,12 @@ def run_job(request, attempt_dir, *, content_control_root=None, video_python=Non
                           artifact_directory='review', source_inputs_unchanged=True)
     except (ValueError, OSError, RuntimeError, KeyError, TypeError, subprocess.SubprocessError, AdmissionBusy) as error:
         result['blocker'] = str(error) if isinstance(error, ValueError) else type(error).__name__
+        # Shared-admission contention happens before this adapter can launch a
+        # production stage, so replay is safe and may succeed once the other
+        # bounded batch releases the host.  All other blockers stay opt-in
+        # non-retryable: their external outcome or operator fix may be unknown.
+        if isinstance(error, AdmissionBusy):
+            result['retryable'] = True
     # A killed consumer never reaches this write or queue.finish; recovery leaves
     # INTERRUPTED and preserves partial files without replaying the job.
     with (attempt_dir / 'video-adapter-receipt.json').open('x') as output:

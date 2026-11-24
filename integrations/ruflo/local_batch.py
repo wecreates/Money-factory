@@ -112,13 +112,21 @@ def run_batch(batch, runtime, node=None):
     try:
         with interruptible_processes(), shared_admission_lock() as lease_fd:
             return admitted_batch(batch, runtime, node, lease_fd)
-    except (AdmissionBusy, OSError):
+    except AdmissionBusy:
+        # No model request or task subprocess starts before shared admission.
+        # This is therefore safe for the durable queue to replay once, subject
+        # to the job's immutable max_attempts value.
+        return blocked('Another local batch holds admission', retryable=True)
+    except OSError:
         return blocked('Another local batch holds admission or the host lock is unavailable')
 
 
-def blocked(reason):
-    return {'status': 'BLOCKED', 'reason': reason, 'executed_tasks': 0,
-            'publication_enabled': False, 'production_ready': False}
+def blocked(reason, *, retryable=False):
+    result = {'status': 'BLOCKED', 'reason': reason, 'executed_tasks': 0,
+              'publication_enabled': False, 'production_ready': False}
+    if retryable:
+        result['retryable'] = True
+    return result
 
 
 class NoRedirect(HTTPRedirectHandler):

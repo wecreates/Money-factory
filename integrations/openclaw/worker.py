@@ -207,7 +207,11 @@ def dispatch(job, runtime):
                     code = str(exc) if str(exc).startswith('OPENCLAW_') else 'OPENCLAW_EXECUTION_FAILED'
                     report.update(status='BLOCKED', blockers=[code], model_execution_verified=False)
     except AdmissionBusy:
-        report.update(status='BLOCKED', blockers=['OPENCLAW_SHARED_BUDGET_BUSY'], model_execution_verified=False)
+        # The lease is acquired before model metadata or CLI execution, so this
+        # is a side-effect-free transient blocker that the durable queue may
+        # replay within its immutable attempt bound.
+        report.update(status='BLOCKED', blockers=['OPENCLAW_SHARED_BUDGET_BUSY'],
+                      model_execution_verified=False, retryable=True)
     report['verified_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open('x') as handle:
