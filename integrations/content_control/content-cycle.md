@@ -16,6 +16,26 @@ not measured media duration, and `long_form_production_verified`, authorship,
 originality, factual, creative, listening, competitor, phone, deployment and
 publication acceptance all remain false until separately evidenced.
 
+Long-form authoring version 2 recognizes the exact retained utilization source
+set (`fico_utilization`, `experian_reporting`, and `cfpb_grace_period`) only
+when all three sources are in canonical order, carry their canonical HTTPS
+hosts and paths without credentials, ports, query strings, or fragments, and
+retain the normalized bounded claim/excerpt text specific to the formula,
+reporting timeline, and grace-period definition. IDs alone, reordered or
+duplicate sources, wrong hosts/paths, and unrelated prose fall back to generic
+source-bound authoring or fail at the existing discovery boundary; they cannot
+activate the hard-coded utilization facts. The verified source set then
+builds a topic-specific closing-date story instead of the generic two-source
+shell. It includes a complete hook/title, visible utilization arithmetic, a
+statement-close/reporting timeline, source-name cards, a no-score-promise
+boundary, and varied authored gestures while retaining the same narrator,
+Dave, and Points Monk voices. The reporting-source narration deliberately uses
+its role while the on-screen card displays `EXPERIAN`; raw independent ASR
+captions therefore are not rewritten from expected text to correct a guessed
+proper noun. Retained version-1 long-form drafts continue to replay under their
+original algorithm. This is still deterministic first-draft production, not
+factual, originality, listening, creative, or audiovisual acceptance.
+
 To assemble those three prerequisites and the exact durable-queue envelope in
 one fail-closed step, without manually supplying a script, run:
 

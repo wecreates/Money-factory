@@ -146,7 +146,10 @@ def _authoring(value, title, scenes, discovery):
             if isinstance(scenes, list) else 0
         if (value['schema_version'] != 2
                 or value.get('status') != 'OFFLINE_LONGFORM_DRAFT_AUTHORED'
-                or value.get('algorithm') != 'source-claim-longform-scenes-v1'
+                or value.get('algorithm') not in {
+                    'source-claim-longform-scenes-v1',
+                    'source-claim-longform-scenes-v2',
+                }
                 or value.get('content_format') != 'long-form'
                 or value.get('long_form_production_verified') is not False
                 or type(value.get('planned_duration_seconds')) not in (int, float)

@@ -8,7 +8,8 @@ import tempfile
 import unittest
 
 from integrations.content_control.cycle_authoring import (
-    ALGORITHM, LONG_FORM_ALGORITHM, LONG_FORM_FORMAT, LONG_FORM_MIN_SECONDS,
+    ALGORITHM, LONG_FORM_ALGORITHM, LONG_FORM_ALGORITHM_V1, LONG_FORM_FORMAT,
+    LONG_FORM_MIN_SECONDS,
     author_draft,
 )
 from integrations.content_control.cycle_discovery import select_topic
@@ -54,6 +55,54 @@ class AuthoringTests(unittest.TestCase):
     def intake(self):
         return prepare_brief(self.research, self.draft, self.ready,
                              discovery_pool=self.pool, discovery_receipt=self.discovery)
+
+    def install_utilization_sources(self, sources=None):
+        research = json.loads(self.research.read_text())
+        topic = ('Why a credit card statement closing date can affect reported utilization '
+                 'even when the balance is paid in full by the due date')
+        canonical = [
+            {'id': 'fico_utilization',
+             'url': ('https://www.myfico.com/credit-education/credit-scores/'
+                     'fico-scores-credit-limit'),
+             'retrieved_at': research['sources'][0]['retrieved_at'],
+             'claim': ('FICO describes revolving utilization as the outstanding balance '
+                       'divided by the credit limit and says lower utilization generally '
+                       'indicates lower repayment risk.'),
+             'excerpt': ("Credit utilization rate is calculated by dividing an account's "
+                         'outstanding balance by its credit limit.')},
+            {'id': 'experian_reporting',
+             'url': ('https://www.experian.com/blogs/ask-experian/credit-education/'
+                     'score-basics/credit-utilization-rate/'),
+             'retrieved_at': research['sources'][1]['retrieved_at'],
+             'claim': ('Experian says issuers generally report balances around the end of a '
+                       'statement period, so an earlier payment can reduce the reported balance '
+                       'used in utilization calculations.'),
+             'excerpt': ("Credit card issuers generally report your account's balance to the "
+                         'credit bureaus at the end of each statement period.')},
+            {'id': 'cfpb_grace_period',
+             'url': ('https://www.consumerfinance.gov/ask-cfpb/'
+                     'what-is-a-grace-period-for-a-credit-card-en-47/'),
+             'retrieved_at': research['sources'][0]['retrieved_at'],
+             'claim': ('CFPB distinguishes the billing-cycle end from the payment due date and '
+                       'explains that paying the full balance by the due date can preserve a '
+                       'purchase grace period when one applies.'),
+             'excerpt': ('A grace period is the period between the end of a billing cycle and '
+                         'the date your payment is due.')},
+        ]
+        sources = copy.deepcopy(canonical if sources is None else sources)
+        pool = json.loads(self.pool.read_text())
+        pool['candidates'][0].update(id='a_utilization', topic=topic, sources=sources)
+        pool['candidates'][1]['id'] = 'z_fallback'
+        pool['candidates'][1]['sources'] = pool['candidates'][1]['sources'][:2]
+        pool['candidates'][1]['reference_observations'][0]['url'] = \
+            pool['candidates'][1]['sources'][0]['url']
+        self.pool.write_text(json.dumps(pool))
+        import shutil
+        shutil.rmtree(self.selected)
+        select_topic(self.pool, self.selected)
+        self.research = self.selected / 'research.json'
+        self.discovery = self.selected / 'discovery.json'
+        return canonical
 
     def test_authors_replayable_script_storyboard_with_existing_voices(self):
         proof = self.author()
@@ -178,6 +227,84 @@ class AuthoringTests(unittest.TestCase):
         self.assertEqual(queued['original_authoring'], proof)
         self.assertEqual(set(files), {'research.json', 'draft.json', 'intake.json',
                                       'discovery-pool.json', 'discovery.json'})
+
+    def test_utilization_long_form_has_complete_hook_math_timeline_and_source_labels(self):
+        self.install_utilization_sources()
+
+        proof = self.author(LONG_FORM_FORMAT)
+        draft = json.loads(self.draft.read_text())
+        self.assertEqual(proof['algorithm'], LONG_FORM_ALGORITHM)
+        self.assertEqual(draft['title'], 'Paid in Full. Why Did 50% Report?')
+        self.assertEqual(draft['thumbnail_copy'], 'Paid in Full. Why Did 50% Report?')
+        self.assertNotRegex(draft['title'], r'(\u2026|\b(?:the|even|when|by|in)$)')
+        self.assertNotRegex(draft['thumbnail_copy'],
+                            r'(\u2026|\b(?:the|even|when|by|in)$)')
+        by_id = {scene['id']: scene for scene in draft['scenes']}
+        self.assertEqual(by_id['utilization_formula']['visual_spec']['values'],
+                         ['$500', '$1,000', '50%'])
+        self.assertEqual(by_id['worked_example']['visual_spec']['values'],
+                         ['50%', '10%'])
+        self.assertEqual(by_id['reporting_timeline']['visual_spec']['headline'],
+                         'EXPERIAN: REPORTING TIMELINE')
+        self.assertEqual(by_id['source_map']['visual_spec']['labels'],
+                         ['FICO', 'EXPERIAN', 'CFPB'])
+        self.assertEqual(set(scene['visual_spec']['gesture'] for scene in draft['scenes']),
+                         {'point_left', 'point_right', 'open_hands'})
+        self.assertNotIn('Experian', by_id['reporting_timeline']['narration'])
+        self.assertTrue(all(proof[key] is False for key in FALSE_FLAGS))
+
+    def test_utilization_specialization_rejects_source_identity_and_semantic_spoofs(self):
+        canonical = self.install_utilization_sources()
+        mutations = {
+            'wrong-domain': lambda value: value[0].__setitem__(
+                'url', value[0]['url'].replace('www.myfico.com', 'myfico.example')),
+            'host-suffix-spoof': lambda value: value[0].__setitem__(
+                'url', value[0]['url'].replace('www.myfico.com', 'www.myfico.com.evil.example')),
+            'port-spoof': lambda value: value[0].__setitem__(
+                'url', value[0]['url'].replace('www.myfico.com', 'www.myfico.com:443')),
+            'wrong-path': lambda value: value[1].__setitem__(
+                'url', value[1]['url'] + 'penguins/'),
+            'query-spoof': lambda value: value[1].__setitem__(
+                'url', value[1]['url'] + '?canonical=false'),
+            'unrelated-claim': lambda value: value[2].update(
+                claim='Penguins migrate in colonies across Antarctic sea ice every winter.',
+                excerpt='Penguins gather in colonies and take turns protecting their eggs.'),
+            'keyword-stuffed-claim': lambda value: value[2].update(
+                claim=(value[2]['claim'] + ' Penguins migrate across Antarctic sea ice.'),
+                excerpt=(value[2]['excerpt'] + ' Penguins gather in colonies.')),
+            'id-spoof': lambda value: (
+                value[0].__setitem__('id', 'experian_reporting'),
+                value[1].__setitem__('id', 'fico_utilization')),
+            'source-order': lambda value: value.reverse(),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                forged = copy.deepcopy(canonical)
+                mutate(forged)
+                self.install_utilization_sources(forged)
+                proof = self.author(LONG_FORM_FORMAT)
+                draft = json.loads(self.draft.read_text())
+                self.assertNotEqual(draft['title'], 'Paid in Full. Why Did 50% Report?')
+                self.assertNotIn('utilization_formula',
+                                 {scene['id'] for scene in draft['scenes']})
+                self.assertTrue(all(proof[key] is False for key in FALSE_FLAGS))
+                self.draft.unlink()
+
+        duplicate = copy.deepcopy(canonical)
+        duplicate[2] = copy.deepcopy(duplicate[1])
+        with self.assertRaisesRegex(ValueError, 'source.id: duplicate'):
+            self.install_utilization_sources(duplicate)
+
+    def test_retained_long_form_v1_replays_after_v2_upgrade(self):
+        from integrations.content_control.cycle_authoring import _build, verify_authored_draft
+        from integrations.content_control.cycle_discovery import verify_inline_selection
+        research_raw = self.research.read_bytes()
+        discovery = verify_inline_selection(self.pool.read_bytes(), research_raw,
+                                            self.discovery.read_bytes())
+        legacy, proof = _build(research_raw, discovery, LONG_FORM_FORMAT,
+                               algorithm=LONG_FORM_ALGORITHM_V1)
+        self.assertEqual(proof['algorithm'], LONG_FORM_ALGORITHM_V1)
+        self.assertEqual(verify_authored_draft(research_raw, legacy, discovery), proof)
 
     def test_long_form_replay_rejects_format_duration_and_voice_forgery(self):
         self.author(LONG_FORM_FORMAT)
