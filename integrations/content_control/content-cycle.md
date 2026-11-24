@@ -124,6 +124,13 @@ choice with performance unavailable, not completion of audiovisual acceptance.
 
 Use Python 3.11+, FFmpeg/FFprobe, DejaVu Sans Bold, and `requirements-cycle.txt`. Reuse the isolated pinned Kokoro runtime and verified model cache described by Content Control's voice runtime. Voice assignments stay Dave `am_fenrir`, Points Monk `am_michael`, narrator `am_adam`. The trusted `--voice-root` points to the reviewed Content Control checkout containing `scripts/v2_free_voice.py`; job data cannot supply executables or runtime paths. Models and packages are provisioned separately; production is offline and free of paid provider calls.
 
+Each isolated generated narration clip receives deterministic level matching to
+0.075 RMS, capped at 1.8× gain and 0.95 peak. `voice.json` retains the source
+level, applied gain, resulting level and an explicit false listening flag. This
+reduces voice-to-voice level jumps; it is not loudness, naturalness,
+pronunciation or full-mix acceptance. The exact finished candidate must still
+pass the direct full-mix listener review below.
+
 For verified captions, supply the existing isolated faster-whisper runtime. Base.en must already be cached under `~/.cache/huggingface`, or set `CYZOR_ASR_HF_HOME` to its cache. Set `HF_HOME` to the separate Kokoro cache. Omitting ASR produces explicitly approximate captions and cannot establish spoken-word verification.
 
 ```sh
