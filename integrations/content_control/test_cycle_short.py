@@ -1,4 +1,5 @@
 """Synthetic fixture tests establish transport/encoding, not creative acceptance."""
+from html import escape
 import json
 import re
 from fractions import Fraction
@@ -153,11 +154,37 @@ class ShortTests(unittest.TestCase):
     def test_compact_burn_rejects_empty_or_marked_up_cues(self):
         self.media('720x1280'); self.known_layout()
         with patch.object(m,'inspect_cycle',return_value=self.snapshot):
-            for captions, reason in [('WEBVTT\n\n','timed cues'),(VTT.replace('First','<b>First</b>'),'unmarked')]:
-                (self.source/'captions.vtt').write_text(captions)
-                with self.assertRaisesRegex(ValueError,reason):
-                    m.make_short(self.root,self.base/'unused',start=0,end=1,compact_captions=True)
-                self.assertFalse((self.base/'unused').exists())
+            rejected = [('WEBVTT\n\n','timed cues')]
+            for cue in ('<b>First</b>', '&lt;b&gt;First&lt;/b&gt;', r'{\pos(1,1)}First',
+                        '&amp;#x27;', '&#60;First', 'First & second'):
+                rejected.append((VTT.replace('First words.', cue), 'unmarked'))
+            for captions, reason in rejected:
+                with self.subTest(captions=captions):
+                    (self.source/'captions.vtt').write_text(captions)
+                    with self.assertRaisesRegex(ValueError,reason):
+                        m.make_short(self.root,self.base/'unused',start=0,end=1,compact_captions=True)
+                    self.assertFalse((self.base/'unused').exists())
+
+    def test_compact_burn_accepts_renderer_quote_escapes_and_keeps_sidecar_bytes(self):
+        self.media('720x1280'); self.known_layout()
+        cue = """It's "ready"."""
+        escaped = VTT.replace('First words.', escape(cue))
+        literal = VTT.replace('First words.', cue)
+        source = self.source/'captions.vtt'
+        with patch.object(m,'inspect_cycle',return_value=self.snapshot):
+            source.write_text(escaped)
+            bound_source = m.digest(source)
+            result = m.make_short(self.root,self.base/'escaped',start=0,end=1,compact_captions=True)
+            self.assertEqual(m.digest(source), bound_source)
+            source.write_text(literal)
+            control = m.make_short(self.root,self.base/'literal',start=0,end=1,compact_captions=True)
+        self.assertEqual(result['status'], 'AWAITING_REVIEW', result)
+        self.assertEqual(control['status'], 'AWAITING_REVIEW', control)
+        self.assertEqual(result['decoded_picture_sha256'], control['decoded_picture_sha256'])
+        self.assertEqual(result['source_caption_sha256'], bound_source)
+        escaped_sidecar = self.base/'escaped/captions.vtt'
+        self.assertEqual(escaped_sidecar.read_text(), m.clip_captions(escaped, 0, 1000)[0])
+        self.assertEqual(result['caption_sha256'], m.digest(escaped_sidecar))
 
     def test_counter_rectangle_contains_maximum_renderer_counter_without_headline(self):
         from PIL import Image, ImageDraw, ImageFont

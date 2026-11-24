@@ -25,10 +25,23 @@ ARTIFACTS = ('video.mp4', 'captions.vtt', 'automated-review.json',
              'index.html', 'short.json')
 SHA = re.compile(r'[0-9a-f]{64}')
 
+# Exact schema-1 pair from main before compact quote support (0b42130).
+# These receipts already carry the current selection and artifact fields.
+PRE_COMPACT_QUOTE_TOOL_PAIR = (
+    '7d1273737a50aff80b49494df857e3866a2c40bc4fa7e5f1a6c6c4691374f592',
+    'd2c21d9f9e1cefc2b9f153697372e9e30c6fea086e445e32274b172e2a0bc436',
+)
+
 
 def _write(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True,
                                allow_nan=False) + '\n')
+
+
+def _verified_tool_pair(receipt):
+    retained = (receipt.get('consumer_tool_sha256'), receipt.get('exporter_tool_sha256'))
+    current = (digest(Path(__file__)), digest(Path(make_short.__code__.co_filename)))
+    return retained in (current, PRE_COMPACT_QUOTE_TOOL_PAIR)
 
 
 def _source(queue_root, job_id):
@@ -274,8 +287,7 @@ def verify_consumed_short(queue_root, job_id, output):
             or receipt.get('technical_status') != 'PASS'
             or any(receipt.get(key) is not False for key in FLAGS)
             or receipt.get('job_id') != job_id
-            or receipt.get('consumer_tool_sha256') != digest(Path(__file__))
-            or receipt.get('exporter_tool_sha256') != digest(Path(make_short.__code__.co_filename))):
+            or not _verified_tool_pair(receipt)):
         raise ValueError('Short consumer receipt is not an unpublished PASS')
     cycle, source = _source(queue_root, job_id)
     if source != receipt.get('source_provenance'):
