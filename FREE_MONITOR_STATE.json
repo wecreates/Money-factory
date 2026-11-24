@@ -6,7 +6,7 @@
     "label": "CYZOR Creations website",
     "status": "active",
     "last_value": "1b6a246850033b95a20fb0169f5b2e4ffb697a70340e3a15a8651b962acf8086",
-    "last_checked_at": 1795547817874,
+    "last_checked_at": 1795551251633,
     "last_change_at": 1793731264853,
     "last_status": null,
     "last_error": "TimeoutError: The operation was aborted due to timeout",
@@ -15,8 +15,8 @@
     "last_attempts": [
       {
         "attempt": 1,
-        "started_at": 1795547777619,
-        "completed_at": 1795547797622,
+        "started_at": 1795551211379,
+        "completed_at": 1795551231382,
         "outcome": "error",
         "http_status": null,
         "error": "TimeoutError: The operation was aborted due to timeout",
@@ -25,8 +25,8 @@
       },
       {
         "attempt": 2,
-        "started_at": 1795547797873,
-        "completed_at": 1795547817874,
+        "started_at": 1795551231632,
+        "completed_at": 1795551251633,
         "outcome": "error",
         "http_status": null,
         "error": "TimeoutError: The operation was aborted due to timeout",
@@ -42,9 +42,9 @@
     "targetUrl": "https://api.github.com/repos/wecreates/Money-factory/commits/main",
     "label": "Money Factory GitHub repository",
     "status": "active",
-    "last_value": "c3f2d2e4bbe9adb9ab9ab38795a90820e2174b39f411b59f8c3ab3c9a5fb092e",
-    "last_checked_at": 1795547818171,
-    "last_change_at": 1795547818171,
+    "last_value": "c23e4590c0d75506342692429c97806ad0de6bd6e465c0900121b5f95a7b824e",
+    "last_checked_at": 1795551251997,
+    "last_change_at": 1795551251997,
     "last_status": 200,
     "last_error": null,
     "unavailable_since": null,
@@ -52,11 +52,11 @@
     "last_attempts": [
       {
         "attempt": 1,
-        "started_at": 1795547817875,
-        "completed_at": 1795547818171,
+        "started_at": 1795551251634,
+        "completed_at": 1795551251997,
         "outcome": "success",
         "http_status": 200,
-        "response_bytes": 34381,
+        "response_bytes": 46206,
         "response_limit_bytes": 2097152
       }
     ],
@@ -65,9 +65,9 @@
   "_monitor_runtime": {
     "schema_version": 1,
     "type": "monitor_runtime_resources",
-    "observed_at": "2026-11-24T19:17:12.058Z",
-    "started_at": "2026-11-24T19:17:12.058Z",
-    "elapsed_ms": 0,
+    "observed_at": "2026-11-24T20:14:11.998Z",
+    "started_at": "2026-11-24T20:13:31.379Z",
+    "elapsed_ms": 40619,
     "scope": "current_monitor_process_and_execution_host_only",
     "cpu": {
       "available_cores": 4,
@@ -75,25 +75,25 @@
       "effective_ceiling_cores": 4
     },
     "memory": {
-      "host_total_bytes": 16759431168,
-      "host_available_bytes": 15681904640,
+      "host_total_bytes": 16758394880,
+      "host_available_bytes": 15781957632,
       "cgroup_limit_bytes": null,
       "cgroup_current_bytes": null,
-      "effective_ceiling_bytes": 16759431168,
+      "effective_ceiling_bytes": 16758394880,
       "cgroup_available_bytes": null,
-      "effective_available_bytes": 15681904640
+      "effective_available_bytes": 15781957632
     },
     "disk": {
       "filesystem_total_bytes": 154993672192,
-      "filesystem_available_bytes": 93470920704,
+      "filesystem_available_bytes": 93487808512,
       "per_process_quota_bytes": null
     },
     "process": {
-      "rss_bytes": 49512448,
-      "heap_used_bytes": 5076400,
-      "max_rss_kib": 48352,
-      "user_cpu_microseconds": 19570,
-      "system_cpu_microseconds": 5871
+      "rss_bytes": 71331840,
+      "heap_used_bytes": 8227720,
+      "max_rss_kib": 71568,
+      "user_cpu_microseconds": 152992,
+      "system_cpu_microseconds": 25998
     },
     "request_budget": {
       "active_watches": 2,
@@ -118,6 +118,39 @@
       "per_process_disk_quota_unverified"
     ],
     "publication_enabled": false,
-    "external_delivery_performed": false
+    "external_delivery_performed": false,
+    "cadence": {
+      "schema_version": 2,
+      "type": "monitor_cadence_evidence",
+      "observed_at": "2026-11-24T20:13:31.379Z",
+      "invocation_source": "push",
+      "invocation_id": "45478500089",
+      "invocation_attempt": 1,
+      "scheduled_invocation_qualified": false,
+      "target_interval_ms": 300000,
+      "allowed_start_drift_ms": 60000,
+      "required_continuity_window_ms": 86400000,
+      "previous_durable_observed_at": "2026-11-24T19:17:12.058Z",
+      "durable_observed_gap_ms": 3379321,
+      "durable_overdue_by_ms": 3079321,
+      "durable_missed_intervals": 11,
+      "durable_status": "missed_intervals",
+      "last_scheduled_observed_at": null,
+      "last_scheduled_slot_at": null,
+      "last_scheduled_invocation_id": null,
+      "scheduled_start_drift_ms": null,
+      "scheduled_observed_gap_ms": null,
+      "scheduled_deadline_gap_ms": null,
+      "scheduled_missed_intervals": null,
+      "scheduled_chain_status": "insufficient_scheduled_history",
+      "consecutive_scheduled_intervals": 0,
+      "continuity_started_slot_at": null,
+      "scheduled_continuity_window_ms": 0,
+      "acceptance_window_verified": false,
+      "prerequisite_passed": false,
+      "status": "non_scheduled_invocation_no_history",
+      "publication_enabled": false,
+      "external_delivery_performed": false
+    }
   }
 }
