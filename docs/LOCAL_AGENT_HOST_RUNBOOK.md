@@ -217,6 +217,41 @@ share only sanitized receipts, not home/config files, prompts containing private
 data, or credentials. On a second host, repeat all gates independently. A VPN
 provides connectivity, not capacity or uptime.
 
+After the real run, close its sanitized files into one evidence directory and
+verify its structure and identities read-only:
+
+```bash
+python3 -m integrations.verify_actual_host_soak /path/to/closed-evidence \
+  --expected-source-commit "$(git rev-parse HEAD)"
+```
+
+The root `soak.json` must enumerate and hash every other file. It records one
+opaque host fingerprint, the exact source commit, at least 25 ordered observations
+covering at least 24 hours with no gap above one hour, and false publication/paid
+flags throughout. Each observation must retain authoritative effective CPU/RAM,
+at least one live agent process, at least one admitted worker, the shared worker
+ceiling, zero orphans/unexplained failures and a `WITHIN_BUDGET` capacity result.
+An observation with no active job is valid only when it explicitly verifies a
+healthy idle worker; an all-zero worker day is not liveness evidence. Include at
+least four exact useful-output-reviewed run receipts for **each** framework, with
+early and late runs, plus separate
+receipts for controlled stop, no-orphans, restart, shared-contention, durable
+queue recovery and delivered alert/stop drills. The durable queue block must also
+retain duplicate protection, retry recovery and an enforced resource ceiling.
+Every framework receipt must have a unique run identity, point to the authoritative
+hourly capacity observation that admitted it, match that observation's admitted
+and shared worker ceilings, and retain its reviewed UTF-8 text output as a separate
+hashed artifact. Run receipts, output artifacts and drill receipts are all required
+in the exact complete inventory; missing, extra, copied or tampered evidence fails
+closed. Run intervals are checked as one cross-framework timeline: overlapping
+receipts fail the shared worker ceiling and admission-serialization gate.
+
+A verifier PASS proves that this closed packet is complete, internally bound and
+meets those structural gates. It deliberately returns
+`actual_host_acceptance_verified=false`: an independent reviewer must still
+confirm host ownership and inspect the useful outputs. Synthetic unit fixtures,
+CI, a workspace run or a hand-written manifest are not actual-host acceptance.
+
 ## Minimum missing access decision
 
 Choose **one existing host for the first run: the PC's Linux/WSL2 environment or
