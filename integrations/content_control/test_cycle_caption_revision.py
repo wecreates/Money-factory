@@ -61,20 +61,26 @@ class CaptionRevisionTests(unittest.TestCase):
         render_path = self.root/'render/render.json'
         rendered = json.loads(render_path.read_text())
         container = json.loads((self.root/'delivery/package.json').read_text())['media']['duration_seconds']
-        rendered.update(maximum_duration_seconds=60, measured_narration_frame_budget=24,
+        rendered.update(minimum_duration_seconds=1, maximum_duration_seconds=60,
+                        measured_narration_frame_budget=24,
                         encoded_picture_duration_seconds=1, encoded_container_duration_seconds=container)
         m._write(render_path, rendered)
         (self.root/'delivery').rename(self.base/'initial-delivery')
         packaged = package_cycle(compile_editorial(source_brief), self.root/'render', self.root/'delivery')
         cycle_path = self.root/'cycle.json'
         cycle = json.loads(cycle_path.read_text())
-        cycle.update(maximum_duration_seconds=60, brief_sha256=m.digest(self.root/'brief.json'),
+        cycle.update(minimum_duration_seconds=1, maximum_duration_seconds=60,
+                     brief_sha256=m.digest(self.root/'brief.json'),
                      package_sha256=m.digest(self.root/'delivery/package.json'), archive_sha256=packaged['archive_sha256'])
         m._write(cycle_path, cycle)
+        check_completed(self.root, cycle['brief_sha256'], minimum_duration=1, require_portrait_duration=True)
         result = m.revise_captions(self.root, self.source, self.out)
         self.assertEqual(result['status'], 'AWAITING_REVIEW', result)
-        self.assertEqual(check_completed(self.out, cycle['brief_sha256'], require_portrait_duration=True)
-                         ['maximum_duration_seconds'], 60)
+        revised = check_completed(self.out, cycle['brief_sha256'], minimum_duration=1,
+                                  require_portrait_duration=True)
+        self.assertEqual(revised['minimum_duration_seconds'], 1)
+        self.assertEqual(revised['maximum_duration_seconds'], 60)
+        self.assertEqual(revised['candidate_sha256'], self.candidate)
 
     def test_actual_package_and_checkpoint_keep_source_unchanged(self):
         before=m.inspect_cycle(self.root);result=m.revise_captions(self.root,self.source,self.out)
