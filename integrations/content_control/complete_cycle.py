@@ -89,6 +89,11 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
     if (isinstance(audience_learning, dict) and 'audience_receipt_sha256' in audience_learning
             and (intake is None or intake.get('idea_learning') != audience_learning)):
         raise ValueError('Audience-bound idea learning requires exact replayable verified intake')
+    original_authoring = editorial.get('original_authoring')
+    if ((original_authoring is not None
+         or (isinstance(intake, dict) and 'original_authoring' in intake))
+            and (intake is None or intake.get('original_authoring') != original_authoring)):
+        raise ValueError('Offline authored draft requires matching exact verified intake')
     revision_source = safe_path(revision_path) if revision_path is not None else None
     lineage = read_revision(revision_source, brief_hash) if revision_source is not None else None
     lineage_receipt = validate_lineage(lineage, brief_hash) if lineage is not None else None
@@ -145,6 +150,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         tool_names += ('cycle_intake.py', 'cycle_selection.py')
         if 'audience_receipt_sha256' in intake.get('idea_learning', {}):
             tool_names += ('cycle_audience.py',)
+        if 'original_authoring' in intake:
+            tool_names += ('cycle_authoring.py',)
         if 'topic_discovery' in intake:
             tool_names += ('cycle_discovery.py',)
     if revision_discovery is not None:

@@ -65,10 +65,15 @@ def production_input(request):
 
 def production_handoff(request):
     """Resolve input bytes, revision lineage, retained intake files and verified proof."""
-    claimed_discovery = isinstance(request.get('brief'), dict) and 'topic_discovery' in request['brief']
-    learning = request.get('brief', {}).get('idea_learning') if isinstance(request.get('brief'), dict) else None
+    request_brief = request.get('brief')
+    claimed_discovery = isinstance(request_brief, dict) and 'topic_discovery' in request_brief
+    has_authoring = isinstance(request_brief, dict) and 'original_authoring' in request_brief
+    learning = request_brief.get('idea_learning') if isinstance(request_brief, dict) else None
+    authoring = request_brief.get('original_authoring') if has_authoring else None
     if isinstance(learning, dict) and 'audience_receipt_sha256' in learning:
         raise ValueError('Queued audience-bound idea learning requires exact inline evidence replay')
+    if has_authoring and 'intake_input' not in request:
+        raise ValueError('Offline authored draft requires exact verified intake replay')
     if 'intake_input' in request:
         from integrations.content_control.cycle_intake import MAX_INPUT, verify_inline_intake
         from integrations.content_control.cycle_discovery import MAX_POOL, MAX_RECEIPT
@@ -97,6 +102,9 @@ def production_handoff(request):
                                               discovery_receipt_raw=files.get('discovery.json'))
         if claimed_discovery != ('topic_discovery' in proof):
             raise ValueError('Topic discovery requires replayable verified discovery intake')
+        if (has_authoring != ('original_authoring' in proof)
+                or (has_authoring and authoring != proof['original_authoring'])):
+            raise ValueError('Offline authoring differs from exact verified intake')
         return encoded, None, files, proof
     if 'revision_input' not in request:
         if claimed_discovery:

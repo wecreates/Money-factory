@@ -16,7 +16,8 @@ from integrations.content_control.review_package import no_symlinks, require
 
 RESEARCH_FIELDS = {'schema_version', 'topic', 'sources', 'reference_observations'}
 DRAFT_FIELDS = {'schema_version', 'research_sha256', 'title', 'scenes'}
-DRAFT_OPTIONS = {'thumbnail_copy', 'layout', 'idea_learning', 'speaker_label_position'}
+DRAFT_OPTIONS = {'thumbnail_copy', 'layout', 'idea_learning', 'speaker_label_position',
+                 'original_authoring'}
 MAX_INPUT = 128 * 1024
 MAX_BRIEF = 256 * 1024
 
@@ -97,6 +98,18 @@ def _recheck_learning(draft_raw, output, prior_cycle, selection_path, selection_
     require(observed == expected, 'Idea learning evidence changed during intake')
 
 
+def _original_authoring(research_raw, draft_raw, draft_data, discovery):
+    if 'original_authoring' not in draft_data:
+        return None
+    require(discovery is not None,
+            'Offline authored draft requires exact replayable discovery evidence')
+    from integrations.content_control.cycle_authoring import verify_authored_draft
+    proof = verify_authored_draft(research_raw, draft_raw, discovery)
+    require(draft_data['original_authoring'] == proof,
+            'Authored draft proof differs from the replayed authoring result')
+    return proof
+
+
 def _compile_intake(research_raw, draft_raw, output, recorded_at, prior_cycle, selection_path, selection_receipt,
                     discovery=None, audience_observation=None, audience_receipt=None):
     research_data = _object(research_raw, RESEARCH_FIELDS, set())
@@ -108,9 +121,11 @@ def _compile_intake(research_raw, draft_raw, output, recorded_at, prior_cycle, s
             'Draft idea_learning must be an object when supplied')
     learning = _idea_learning(draft_data.get('idea_learning'), prior_cycle, selection_path, selection_receipt, output,
                               audience_observation, audience_receipt)
+    authoring = _original_authoring(research_raw, draft_raw, draft_data, discovery)
     flags = dict.fromkeys(FALSE_FLAGS, False)
     brief = {**research_data, **{k: v for k, v in draft_data.items()
-                               if k not in ('schema_version', 'research_sha256', 'idea_learning')},
+                               if k not in ('schema_version', 'research_sha256', 'idea_learning',
+                                            'original_authoring')},
              **flags, 'research_handoff': {'research_sha256': research_sha, 'draft_sha256': draft_sha}}
     if discovery is not None:
         require(discovery['research_sha256'] == research_sha,
@@ -118,6 +133,8 @@ def _compile_intake(research_raw, draft_raw, output, recorded_at, prior_cycle, s
         brief['topic_discovery'] = discovery
     if learning is not None:
         brief['idea_learning'] = learning
+    if authoring is not None:
+        brief['original_authoring'] = authoring
     require(len(canonical(brief).encode()) <= 120000, 'Compiled brief exceeds queue input limit')
     compile_editorial(brief, validate_visual_shapes=True)
     brief_raw = _json_bytes(brief)
@@ -130,6 +147,8 @@ def _compile_intake(research_raw, draft_raw, output, recorded_at, prior_cycle, s
                'scope': 'Supplied-source and draft handoff. Source retrieval, factual review and authorship are separate evidence.'}
     if learning is not None:
         receipt['idea_learning'] = learning
+    if authoring is not None:
+        receipt['original_authoring'] = authoring
     if discovery is not None:
         receipt['topic_discovery'] = discovery
     return brief_raw, receipt
@@ -245,6 +264,8 @@ def _verify_bytes(research_raw, draft_raw, brief_raw, receipt_raw, *, root=None,
         proof['topic_discovery'] = discovery
     if 'idea_learning' in expected_receipt:
         proof['idea_learning'] = expected_receipt['idea_learning']
+    if 'original_authoring' in expected_receipt:
+        proof['original_authoring'] = expected_receipt['original_authoring']
     return proof
 
 
