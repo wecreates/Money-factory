@@ -65,9 +65,9 @@
   "_monitor_runtime": {
     "schema_version": 1,
     "type": "monitor_runtime_resources",
-    "observed_at": "2026-11-24T20:14:11.998Z",
-    "started_at": "2026-11-24T20:13:31.379Z",
-    "elapsed_ms": 40619,
+    "observed_at": "2026-11-24T20:14:25.330Z",
+    "started_at": "2026-11-24T20:14:25.330Z",
+    "elapsed_ms": 0,
     "scope": "current_monitor_process_and_execution_host_only",
     "cpu": {
       "available_cores": 4,
@@ -75,25 +75,25 @@
       "effective_ceiling_cores": 4
     },
     "memory": {
-      "host_total_bytes": 16758394880,
-      "host_available_bytes": 15781957632,
+      "host_total_bytes": 16759431168,
+      "host_available_bytes": 15704969216,
       "cgroup_limit_bytes": null,
       "cgroup_current_bytes": null,
-      "effective_ceiling_bytes": 16758394880,
+      "effective_ceiling_bytes": 16759431168,
       "cgroup_available_bytes": null,
-      "effective_available_bytes": 15781957632
+      "effective_available_bytes": 15704969216
     },
     "disk": {
       "filesystem_total_bytes": 154993672192,
-      "filesystem_available_bytes": 93487808512,
+      "filesystem_available_bytes": 93487865856,
       "per_process_quota_bytes": null
     },
     "process": {
-      "rss_bytes": 71331840,
-      "heap_used_bytes": 8227720,
-      "max_rss_kib": 71568,
-      "user_cpu_microseconds": 152992,
-      "system_cpu_microseconds": 25998
+      "rss_bytes": 49606656,
+      "heap_used_bytes": 5164648,
+      "max_rss_kib": 48444,
+      "user_cpu_microseconds": 18868,
+      "system_cpu_microseconds": 10923
     },
     "request_budget": {
       "active_watches": 2,
@@ -122,19 +122,19 @@
     "cadence": {
       "schema_version": 2,
       "type": "monitor_cadence_evidence",
-      "observed_at": "2026-11-24T20:13:31.379Z",
+      "observed_at": "2026-11-24T20:14:25.330Z",
       "invocation_source": "push",
-      "invocation_id": "45478500089",
+      "invocation_id": "45478500400",
       "invocation_attempt": 1,
       "scheduled_invocation_qualified": false,
       "target_interval_ms": 300000,
       "allowed_start_drift_ms": 60000,
       "required_continuity_window_ms": 86400000,
-      "previous_durable_observed_at": "2026-11-24T19:17:12.058Z",
-      "durable_observed_gap_ms": 3379321,
-      "durable_overdue_by_ms": 3079321,
-      "durable_missed_intervals": 11,
-      "durable_status": "missed_intervals",
+      "previous_durable_observed_at": "2026-11-24T20:13:31.379Z",
+      "durable_observed_gap_ms": 53951,
+      "durable_overdue_by_ms": 0,
+      "durable_missed_intervals": 0,
+      "durable_status": "within_allowed_gap",
       "last_scheduled_observed_at": null,
       "last_scheduled_slot_at": null,
       "last_scheduled_invocation_id": null,
@@ -148,7 +148,7 @@
       "scheduled_continuity_window_ms": 0,
       "acceptance_window_verified": false,
       "prerequisite_passed": false,
-      "status": "non_scheduled_invocation_no_history",
+      "status": "non_scheduled_invocation",
       "publication_enabled": false,
       "external_delivery_performed": false
     }
