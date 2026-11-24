@@ -3,6 +3,7 @@
 Mocks exercise orchestration only; media behavior has independent integration
 tests and is never inferred from these synthetic render/package fixtures.
 """
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -10,6 +11,7 @@ import unittest
 from unittest.mock import patch
 
 from integrations.content_control import complete_cycle as m
+from integrations.content_control.cycle_intake import prepare_brief
 from integrations.content_control.test_cycle_editorial import brief
 
 
@@ -47,6 +49,57 @@ class CompleteCycleTest(unittest.TestCase):
         path = self.root / 'revision.json'
         path.write_text(json.dumps(handoff(m.digest(self.source)), indent=2) + '\n')
         return path
+
+    def intake(self):
+        sample = brief()
+        research, draft = self.root / 'research.json', self.root / 'draft.json'
+        research.write_text(json.dumps({key: sample[key] for key in
+                                        ('schema_version', 'topic', 'sources', 'reference_observations')}))
+        draft.write_text(json.dumps({key: sample[key] for key in ('schema_version', 'title', 'scenes')} |
+                                    {'research_sha256': m.digest(research)}))
+        directory = self.root / 'intake'
+        prepare_brief(research, draft, directory)
+        self.source = directory / 'brief.json'
+        return {'research_path': research, 'draft_path': draft}, directory / 'intake.json'
+
+    def test_explicit_verified_intake_is_bound_to_completed_brief(self):
+        inputs, receipt = self.intake()
+        result = self.execute(intake_inputs=inputs)
+        self.assertEqual(result['status'], 'AWAITING_REVIEW')
+        proof = result['verified_intake']
+        self.assertEqual(proof['status'], 'INTAKE_VERIFIED')
+        self.assertEqual(proof['brief_sha256'], m.digest(self.output / 'brief.json'))
+        self.assertEqual(proof['intake_receipt_sha256'], m.digest(receipt))
+        self.assertFalse(proof['factual_review'])
+        self.assertFalse(proof['publication_enabled'])
+        self.assertFalse(result['production_approved'])
+        self.assertIn('cycle_intake.py', result['tool_sha256'])
+        self.assertEqual(result['steps'][-1], {'name': 'intake', 'status': 'PASS'})
+
+    def test_legacy_brief_does_not_claim_neighboring_intake(self):
+        self.intake()
+        self.assertNotIn('verified_intake', self.execute())
+
+    def test_changed_intake_rejected_before_render(self):
+        inputs, _ = self.intake()
+        with inputs['research_path'].open('ab') as stream:
+            stream.write(b'\n')
+        with self.assertRaisesRegex(ValueError, 'exact research bytes'):
+            self.execute(intake_inputs=inputs, render=lambda *a, **k: self.fail('Rendered changed intake'))
+        self.assertFalse(self.output.exists())
+
+    def test_intake_mutation_during_package_blocks_success(self):
+        inputs, receipt = self.intake()
+        original = receipt.read_bytes()
+        def mutate(editorial, render, output, **kwargs):
+            result = self.package(editorial, render, output, **kwargs)
+            # Valid legacy CRLF serialization, but no longer the verified identity.
+            receipt.write_bytes(original.replace(b'\n', b'\r\n'))
+            return result
+        result = self.execute(intake_inputs=inputs, package=mutate)
+        self.assertEqual(result['status'], 'BLOCKED')
+        self.assertEqual(result['failed_step'], 'intake')
+        self.assertEqual(result['verified_intake']['intake_receipt_sha256'], hashlib.sha256(original).hexdigest())
 
     def test_explicit_revision_retained_but_neighbor_not_autodetected(self):
         revision = self.revision()
@@ -206,6 +259,31 @@ class CheckpointCLITests(unittest.TestCase):
         self.assertEqual(output['status'], 'AWAITING_REVIEW')
         self.assertEqual(output['checkpoint']['status'], 'BLOCKED')
         self.assertNotIn('checkpoint', original)
+
+    def test_cli_rejects_partial_verified_intake_path_options(self):
+        import contextlib
+        import io
+        args = ['complete_cycle', '--brief', '/brief', '--output', '/cycle',
+                '--voice-python', '/python', '--voice-root', '/voice', '--intake-prior-cycle', '/prior']
+        with patch('sys.argv', args), patch.object(m, 'run_cycle') as run, \
+                contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            m.main()
+        run.assert_not_called()
+
+    def test_cli_hands_original_intake_paths_to_production(self):
+        import contextlib
+        import io
+        args = ['complete_cycle', '--brief', '/intake/brief.json', '--output', '/cycle',
+                '--voice-python', '/python', '--voice-root', '/voice',
+                '--intake-research', '/research', '--intake-draft', '/draft',
+                '--intake-prior-cycle', '/prior', '--intake-selection', '/selection',
+                '--intake-selection-receipt', '/receipt']
+        with patch('sys.argv', args), patch.object(m, 'run_cycle', return_value={'status': 'AWAITING_REVIEW'}) as run, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(m.main(), 0)
+        self.assertEqual(run.call_args.kwargs['intake_inputs'],
+                         {'research_path': '/research', 'draft_path': '/draft',
+                          'prior_cycle': '/prior', 'selection_path': '/selection', 'selection_receipt': '/receipt'})
 
 
 if __name__ == '__main__': unittest.main()

@@ -12,6 +12,7 @@ from pathlib import Path
 import time
 
 from integrations.content_control.cycle_editorial import compile_editorial, portrait_duration_limit
+from integrations.content_control.cycle_intake import verify_intake
 from integrations.content_control.cycle_render import render_cycle
 from integrations.content_control.cycle_package import package_cycle
 from integrations.content_control.cycle_lineage import read_revision
@@ -38,7 +39,7 @@ def safe_path(path):
 
 
 def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, transcription_python=None,
-              revision_path=None, minimum_duration=None):
+              revision_path=None, minimum_duration=None, intake_inputs=None):
     """Create one immutable attempt; a failed attempt is never resumed as PASS."""
     if type(timeout) is not int or not 30 <= timeout <= 1800:
         raise ValueError('Timeout must be 30..1800 seconds')
@@ -57,6 +58,13 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
     if maximum_duration is not None and minimum_duration is not None and minimum_duration > maximum_duration:
         raise ValueError('Requested minimum exceeds the portrait handoff maximum')
     brief_hash = hashlib.sha256(raw).hexdigest()
+    intake = None
+    if intake_inputs is not None:
+        if source.name != 'brief.json':
+            raise ValueError('Verified intake requires its original brief.json')
+        intake = verify_intake(intake_dir=source.parent, **intake_inputs)
+        if intake['brief_sha256'] != brief_hash:
+            raise ValueError('Verified intake does not match the production brief')
     revision_source = safe_path(revision_path) if revision_path is not None else None
     lineage = read_revision(revision_source, brief_hash) if revision_source is not None else None
     output = safe_path(output)
@@ -81,6 +89,9 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         receipt['maximum_duration_seconds'] = maximum_duration
     tool_names = ('complete_cycle.py', 'cycle_editorial.py', 'cycle_render.py', 'cycle_package.py', 'cycle_lineage.py',
                   'cycle_av_review.py', 'cycle_av_benchmarks.py')
+    if intake is not None:
+        receipt['verified_intake'] = intake
+        tool_names += ('cycle_intake.py', 'cycle_selection.py')
     receipt['tool_sha256'] = {name: digest(module_root/name) for name in tool_names}
     deadline = time.monotonic() + timeout
     stage = 'editorial'
@@ -130,6 +141,13 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
             raise ValueError('Input brief changed during the cycle')
         if revision_source is not None and read_revision(revision_source, brief_hash) != lineage:
             raise ValueError('Revision handoff changed during the cycle')
+        if intake is not None:
+            stage = 'intake'
+            if verify_intake(intake_dir=source.parent, **intake_inputs) != intake:
+                raise ValueError('Verified intake changed during the cycle')
+            if time.monotonic() >= deadline:
+                raise TimeoutError('Cycle budget exhausted while rechecking intake')
+            receipt['steps'].append({'name': stage, 'status': 'PASS'})
         if receipt['tool_sha256'] != {name: digest(module_root/name) for name in tool_names}:
             raise ValueError('Cycle implementation changed during execution')
         receipt.update(status='AWAITING_REVIEW', technical_status='PASS')
@@ -150,15 +168,29 @@ def main():
     parser.add_argument('--voice-root', required=True)
     parser.add_argument('--transcription-python')
     parser.add_argument('--revision', help='Explicit revision.json handoff bound to the supplied brief; no approval transfer.')
+    parser.add_argument('--intake-research', help='Original research JSON for the supplied intake brief.json.')
+    parser.add_argument('--intake-draft', help='Original draft JSON for the supplied intake brief.json.')
+    parser.add_argument('--intake-prior-cycle')
+    parser.add_argument('--intake-selection')
+    parser.add_argument('--intake-selection-receipt')
     parser.add_argument('--timeout', type=int, default=900)
     parser.add_argument('--minimum-duration', type=int,
                         help='Require this many seconds of picture from measured narration and from the encoded video.')
     parser.add_argument('--checkpoint', help='Optional new ZIP outside the cycle for exact-state recovery.')
     args = parser.parse_args()
+    intake_inputs = None
+    if any(value is not None for value in (args.intake_research, args.intake_draft,
+                                           args.intake_prior_cycle, args.intake_selection,
+                                           args.intake_selection_receipt)):
+        if args.intake_research is None or args.intake_draft is None:
+            parser.error('Verified intake requires --intake-research and --intake-draft')
+        intake_inputs = {'research_path': args.intake_research, 'draft_path': args.intake_draft,
+                         'prior_cycle': args.intake_prior_cycle, 'selection_path': args.intake_selection,
+                         'selection_receipt': args.intake_selection_receipt}
     result = run_cycle(args.brief, args.output, voice_python=args.voice_python,
                        voice_root=args.voice_root, timeout=args.timeout,
                        transcription_python=args.transcription_python, revision_path=args.revision,
-                       minimum_duration=args.minimum_duration)
+                       minimum_duration=args.minimum_duration, intake_inputs=intake_inputs)
     if args.checkpoint and result['status'] == 'AWAITING_REVIEW':
         from integrations.content_control.cycle_checkpoint import create_checkpoint
         try:
