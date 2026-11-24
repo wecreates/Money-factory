@@ -166,6 +166,11 @@ def revise_captions(cycle_dir, edits_path, output, timeout=180):
         require(hashlib.sha256(render_raw).hexdigest() == snapshot['files_sha256']['render/render.json'],
                 'Source render receipt changed before repair')
         rendered = json.loads(render_raw)
+        if rendered.get('voice_receipt_sha256') is not None:
+            voice_source = root/'render/voice.json'
+            require(snapshot['files_sha256'].get('render/voice.json') == digest(voice_source,deadline),
+                    'Source voice receipt changed before repair')
+            copy_file(voice_source,render/'voice.json',deadline)
         # Keep the origin renderer's geometry/scope for identical thumbnail framing.
         # Caption-specific claims are superseded; the prior ASR hash is provenance only.
         prior_asr = rendered.pop('transcription_receipt_sha256',None)
