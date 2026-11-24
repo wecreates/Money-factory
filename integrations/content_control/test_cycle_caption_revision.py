@@ -101,6 +101,35 @@ class CaptionRevisionTests(unittest.TestCase):
         self.assertEqual(review['candidate_sha256'], self.candidate)
         self.assertEqual(review['caption_sha256'], m.digest(self.out/'render/captions.vtt'))
 
+    def test_bound_voice_receipt_survives_caption_only_revision(self):
+        from integrations.content_control.cycle_render import VOICE_ASSIGNMENTS
+        editorial=json.loads((self.root/'editorial.json').read_text())
+        voice={'status':'GENERATED_PENDING_LISTENING_REVIEW',
+               'voice_assignments':VOICE_ASSIGNMENTS,
+               'clips':[{'scene_id':scene['id'],
+                         'speaker':scene.get('speaker','narrator'),
+                         'voice_id':VOICE_ASSIGNMENTS[scene.get('speaker','narrator')]}
+                        for scene in editorial['scenes']],
+               'publication_enabled':False,'production_approved':False,'full_av_review':False}
+        m._write(self.root/'render/voice.json',voice)
+        render_path=self.root/'render/render.json'
+        rendered=json.loads(render_path.read_text())
+        rendered['voice_receipt_sha256']=m.digest(self.root/'render/voice.json')
+        m._write(render_path,rendered)
+        shutil.rmtree(self.root/'delivery')
+        packaged=package_cycle(editorial,self.root/'render',self.root/'delivery')
+        cycle_path=self.root/'cycle.json';cycle=json.loads(cycle_path.read_text())
+        cycle.update(package_sha256=m.digest(self.root/'delivery/package.json'),
+                     archive_sha256=packaged['archive_sha256'])
+        m._write(cycle_path,cycle)
+        result=m.revise_captions(self.root,self.source,self.out)
+        self.assertEqual(result['status'],'AWAITING_REVIEW',result)
+        self.assertEqual((self.out/'render/voice.json').read_bytes(),
+                         (self.root/'render/voice.json').read_bytes())
+        revised=m.inspect_cycle(self.out)
+        self.assertEqual(revised['files_sha256']['render/voice.json'],
+                         m.digest(self.root/'render/voice.json'))
+
     def test_bad_bindings_and_text_fail_before_output(self):
         cases=[]
         for key in ('candidate_sha256','caption_sha256'):
