@@ -15,6 +15,7 @@ import tempfile
 import time
 
 from integrations.content_control.cycle_review import inspect_cycle
+from integrations.content_control.cycle_render import encoded_stream_sha256
 from integrations.content_control.cycle_package import diagram_thumbnail_crop, picture_duration
 from integrations.content_control.review_package import digest, no_symlinks, require
 from integrations.owned_process import owned_process
@@ -91,6 +92,28 @@ def _probe(path, deadline, *, include_picture_duration=False):
     if include_picture_duration:
         media['picture_duration_seconds'] = picture_duration(v)
     return media
+
+
+def decoded_picture_sha256(media, deadline):
+    """Hash the ordered decoded RGB frames, not only the MP4 container bytes."""
+    output = _run(['ffmpeg', '-v', 'error', '-xerror', '-nostdin', '-threads', '2',
+                   '-i', str(media), '-map', '0:v:0', '-an', '-c:v', 'rawvideo',
+                   '-pix_fmt', 'rgb24', '-f', 'hash', '-hash', 'sha256', '-'], deadline)
+    match = re.fullmatch(rb'SHA256=([0-9a-f]{64})\s*', output)
+    require(match is not None, 'Decoded picture hash evidence is invalid')
+    return match.group(1).decode()
+
+
+def media_identities(media, output, deadline):
+    """Bind encoded video/audio packets and ordered decoded picture frames."""
+    with tempfile.TemporaryDirectory(prefix='.identity-', dir=output) as identity_directory:
+        identity = Path(identity_directory)
+        streams = {
+            'video': encoded_stream_sha256(media, 'v:0', identity/'video.log', deadline),
+            'audio': encoded_stream_sha256(media, 'a:0', identity/'audio.log', deadline),
+        }
+        picture = decoded_picture_sha256(media, deadline)
+    return streams, picture
 
 
 def _preview_html(bindings, *, burned_captions):
@@ -220,6 +243,7 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
         require(inspect_cycle(root)==snapshot,'Source cycle changed while clipping')
         candidate = digest(output/'video.mp4', deadline)
         caption_sha = digest(output/'captions.vtt', deadline)
+        stream_hashes, picture_sha = media_identities(output/'video.mp4', output, deadline)
         from integrations.content_control.cycle_av_review import read_automated_review, write_automated_review
         actual.pop('picture_duration_seconds')
         write_automated_review(output, candidate, caption_sha, deadline=deadline, media=actual)
@@ -233,6 +257,8 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
         preview_sha = digest(preview, deadline)
         receipt.update(status='AWAITING_REVIEW',technical_status='PASS',media=actual,
                        **bindings, preview_sha256=preview_sha,
+                       encoded_streams_sha256=stream_hashes,
+                       decoded_picture_sha256=picture_sha,
                        preview_caption_mode='burned' if compact_captions else 'sidecar')
     except (OSError,ValueError,RuntimeError,TimeoutError,subprocess.SubprocessError,KeyError,TypeError) as error:
         preview.unlink(missing_ok=True)
