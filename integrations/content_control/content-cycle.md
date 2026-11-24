@@ -979,8 +979,10 @@ render/package receipts and ZIP receive new identities. Supply a JSON object wit
 exact `candidate_sha256`, `caption_sha256`, `reviewer`, `rationale`, and `edits`.
 Each edit has a one-based `cue`, exact full-line `before`, and replacement `after`.
 Include a one-based `line` when editing a multiline cue. The source VTT must
-use LF line endings and plain cues. Cue settings, tags and entities (including
-ampersands) are unsupported. Edits must be bounded, with no controls or duplicates.
+use LF line endings and plain cues. Caption text admits the renderer's
+`&#x27;` and `&quot;` escapes without changing their bytes. Cue settings,
+tags, other entities and bare ampersands are unsupported. Edits must be
+bounded, with no controls or duplicates.
 
 ```sh
 python -m integrations.content_control.cycle_caption_revision \
