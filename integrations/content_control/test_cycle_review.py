@@ -9,7 +9,9 @@ import zipfile
 
 from integrations.content_control.cycle_editorial import LEARNING_IDENTITIES, compile_editorial
 from integrations.content_control.cycle_package import editorial_digest
-from integrations.content_control.cycle_review import CHECKS, inspect_cycle, lint_package, record_review, revision_brief
+from integrations.content_control.cycle_review import (CHECKS, LISTENER_CHECKS, inspect_cycle,
+                                                       lint_package, record_review, revision_brief)
+from integrations.content_control.cycle_render import VOICE_ASSIGNMENTS
 from integrations.content_control.review_package import digest
 from integrations.content_control.test_cycle_editorial import brief
 
@@ -35,8 +37,17 @@ class ReviewTests(unittest.TestCase):
         (self.delivery / 'captions.vtt').write_text('WEBVTT\n')
         self.candidate = digest(self.delivery / 'video.mp4')
         captions = digest(self.delivery / 'captions.vtt')
+        voice = dict(status='GENERATED_PENDING_LISTENING_REVIEW',
+                     clips=[{'scene_id': scene['id'],
+                             'speaker': scene.get('speaker', 'narrator'),
+                             'voice_id': VOICE_ASSIGNMENTS[scene.get('speaker', 'narrator')]}
+                            for scene in editorial['scenes']],
+                     voice_assignments=VOICE_ASSIGNMENTS, publication_enabled=False,
+                     production_approved=False, full_av_review=False)
+        write(self.render / 'voice.json', voice)
         rendered = dict(self.flags, technical_status='PASS', candidate_sha256=self.candidate,
-                        caption_sha256=captions, editorial_sha256=editorial_digest(editorial))
+                        caption_sha256=captions, editorial_sha256=editorial_digest(editorial),
+                        duration_seconds=10.0, voice_receipt_sha256=digest(self.render / 'voice.json'))
         write(self.delivery / 'render.json', rendered)
         for name in ('video.mp4', 'captions.vtt', 'render.json'):
             (self.render / name).write_bytes((self.delivery / name).read_bytes())
@@ -63,7 +74,15 @@ class ReviewTests(unittest.TestCase):
         self.review = {'candidate_sha256': self.candidate, 'reviewer': 'Fixture reviewer',
                        'reviewed_at': '2026-01-04T00:00:00Z',
                        'checks': {name: {'passed': True, 'evidence': 'Synthetic fixture statement for ' + name}
-                                  for name in CHECKS}}
+                                  for name in CHECKS},
+                       'listener_review': {
+                           'schema_version': 1, 'candidate_sha256': self.candidate,
+                           'listener': 'Fixture direct listener', 'listened_at': '2026-01-04T00:00:00Z',
+                           'basis': 'direct_full_mix_listening',
+                           'coverage': [{'start_seconds': 0.0, 'end_seconds': 10.0}],
+                           'checks': {name: {'passed': True,
+                                            'evidence': 'Direct fixture listening statement for ' + name}
+                                      for name in LISTENER_CHECKS}}}
         write(self.submitted, self.review)
 
     def tearDown(self):
@@ -77,16 +96,108 @@ class ReviewTests(unittest.TestCase):
         self.assertFalse(result['production_approved'])
         self.assertFalse(result['full_av_review'])
         self.assertFalse(result['publication_enabled'])
+        listener = result['listener_review']
+        self.assertTrue(listener['listener_attestation_recorded'])
+        self.assertFalse(listener['independent_listening_verification'])
+        self.assertEqual(listener['candidate_sha256'], self.candidate)
+        self.assertEqual(set(listener['checks']), set(LISTENER_CHECKS))
         self.assertEqual(inspect_cycle(self.root), before)
+
+    def test_voice_check_requires_direct_complete_granular_listening(self):
+        cases = []
+        missing = copy.deepcopy(self.review); del missing['listener_review']; cases.append(missing)
+        asr = copy.deepcopy(self.review); asr['listener_review']['basis'] = 'asr_transcript'; cases.append(asr)
+        wrong = copy.deepcopy(self.review); wrong['listener_review']['candidate_sha256'] = '0' * 64; cases.append(wrong)
+        gap = copy.deepcopy(self.review); gap['listener_review']['coverage'] = [
+            {'start_seconds': 0.0, 'end_seconds': 4.0},
+            {'start_seconds': 5.0, 'end_seconds': 10.0}]; cases.append(gap)
+        incomplete = copy.deepcopy(self.review)
+        del incomplete['listener_review']['checks']['pronunciation']; cases.append(incomplete)
+        for index, review in enumerate(cases):
+            with self.subTest(index=index):
+                write(self.submitted, review)
+                with self.assertRaises(ValueError):
+                    record_review(self.root, self.submitted, self.recorded)
+                self.assertFalse(self.recorded.exists())
+
+    def test_listener_summary_must_match_all_granular_judgments(self):
+        self.review['listener_review']['checks']['mix_balance'] = {
+            'passed': False, 'evidence': 'Music masks narration from seconds 6 to 8.',
+            'feedback': 'Reduce music beneath the narration in that interval.'}
+        write(self.submitted, self.review)
+        with self.assertRaisesRegex(ValueError, 'summary disagrees'):
+            record_review(self.root, self.submitted, self.recorded)
+
+    def test_listener_rejects_reassigned_or_changed_voice_receipt(self):
+        voice_path = self.render / 'voice.json'
+        voice = json.loads(voice_path.read_text())
+        voice['clips'][0]['voice_id'] = 'am_changed'
+        write(voice_path, voice)
+        rendered = json.loads((self.delivery / 'render.json').read_text())
+        rendered['voice_receipt_sha256'] = digest(voice_path)
+        write(self.delivery / 'render.json', rendered)
+        (self.render / 'render.json').write_bytes((self.delivery / 'render.json').read_bytes())
+        package = json.loads((self.delivery / 'package.json').read_text())
+        package['files_sha256']['render.json'] = digest(self.delivery / 'render.json')
+        package['render_receipt_sha256'] = digest(self.delivery / 'render.json')
+        write(self.delivery / 'package.json', package)
+        with zipfile.ZipFile(self.delivery / 'review-package.zip', 'w') as archive:
+            for path in self.delivery.iterdir():
+                if path.suffix != '.zip': archive.write(path, path.name)
+        cycle = json.loads((self.root / 'cycle.json').read_text())
+        cycle['package_sha256'] = digest(self.delivery / 'package.json')
+        write(self.root / 'cycle.json', cycle)
+        with self.assertRaisesRegex(ValueError, 'voice assignment changed'):
+            record_review(self.root, self.submitted, self.recorded)
+
+    def test_concurrent_voice_change_blocks_final_review_record(self):
+        from integrations.content_control import cycle_review as module
+        original = module._listener_attestation
+
+        def change_after_check(*args, **kwargs):
+            result = original(*args, **kwargs)
+            voice_path = self.render / 'voice.json'
+            voice = json.loads(voice_path.read_text())
+            voice['clips'][0]['voice_id'] = 'am_changed_after_check'
+            write(voice_path, voice)
+            return result
+
+        with patch('integrations.content_control.cycle_review._listener_attestation',
+                   side_effect=change_after_check), self.assertRaises(ValueError):
+            record_review(self.root, self.submitted, self.recorded)
+        self.assertFalse(self.recorded.exists())
+
+    def test_revision_revalidates_recorded_listener_and_current_voice_identity(self):
+        record_review(self.root, self.submitted, self.recorded)
+        updated = brief(); updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
+
+        changed_review = json.loads(self.recorded.read_text())
+        changed_review['listener_review']['voice_receipt_sha256'] = '0' * 64
+        write(self.recorded, changed_review)
+        with self.assertRaisesRegex(ValueError, 'listener review identity'):
+            revision_brief(self.root, self.recorded, updated, self.base / 'bad-listener')
+
+        self.recorded.unlink()
+        record_review(self.root, self.submitted, self.recorded)
+        voice_path = self.render / 'voice.json'
+        voice = json.loads(voice_path.read_text())
+        voice['clips'][0]['voice_id'] = 'am_changed_after_review'
+        write(voice_path, voice)
+        with self.assertRaisesRegex(ValueError, 'voice receipt identity'):
+            revision_brief(self.root, self.recorded, updated, self.base / 'bad-voice')
 
     def test_incomplete_and_failed_checks_produce_actionable_revision(self):
         del self.review['checks']['originality']
         self.review['checks']['voice_naturalness'] = {'passed': False, 'evidence': 'Narration sounds rushed from seconds 3 to 8.',
                                                     'feedback': 'Slow the middle sentence and rerender narration.'}
+        self.review['listener_review']['checks']['naturalness'] = {
+            'passed': False, 'evidence': 'Narration sounds rushed from seconds 3 to 8.',
+            'feedback': 'Slow the middle sentence and rerender narration.'}
         write(self.submitted, self.review)
         result = record_review(self.root, self.submitted, self.recorded)
         self.assertEqual(result['status'], 'REVISION_REQUIRED')
-        self.assertEqual({item['check'] for item in result['feedback']}, {'originality', 'voice_naturalness'})
+        self.assertEqual({item['check'] for item in result['feedback']},
+                         {'originality', 'voice_naturalness', 'listener.naturalness'})
 
     def test_candidate_mismatch_and_predated_review_rejected(self):
         for field, value in [('candidate_sha256', '0' * 64), ('reviewed_at', '2026-01-01T00:00:00Z')]:
