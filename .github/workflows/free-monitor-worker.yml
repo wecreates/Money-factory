@@ -14,6 +14,9 @@ on:
 permissions:
   contents: write
 
+env:
+  MONITOR_STATE_BRANCH: cyzor-free-monitor-state
+
 concurrency:
   group: cyzor-free-monitor-worker
   cancel-in-progress: false
@@ -32,6 +35,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Restore durable monitor state
+        shell: bash
+        run: |
+          if git fetch --no-tags origin "$MONITOR_STATE_BRANCH:refs/remotes/origin/$MONITOR_STATE_BRANCH"; then
+            git show "origin/$MONITOR_STATE_BRANCH:FREE_MONITOR_STATE.json" > FREE_MONITOR_STATE.json
+            git show "origin/$MONITOR_STATE_BRANCH:FREE_MONITOR_EVENTS.json" > FREE_MONITOR_EVENTS.json
+          fi
       - name: Unit tests
         working-directory: automation/free-monitor
         run: npm test
@@ -50,15 +60,39 @@ jobs:
         if: steps.check.outputs.pair_ready == 'true'
         shell: bash
         run: |
+          set -euo pipefail
+          state_file=$(mktemp)
+          events_file=$(mktemp)
+          state_worktree=$(mktemp -d)
+          cp FREE_MONITOR_STATE.json "$state_file"
+          cp FREE_MONITOR_EVENTS.json "$events_file"
+          cleanup() {
+            cd "$GITHUB_WORKSPACE"
+            git worktree remove --force "$state_worktree" >/dev/null 2>&1 || true
+            rm -f "$state_file" "$events_file"
+          }
+          trap cleanup EXIT
+          state_branch_exists=false
+          if git show-ref --verify --quiet "refs/remotes/origin/$MONITOR_STATE_BRANCH"; then
+            state_branch_exists=true
+            git worktree add -B "$MONITOR_STATE_BRANCH" "$state_worktree" "origin/$MONITOR_STATE_BRANCH"
+          else
+            git worktree add -B "$MONITOR_STATE_BRANCH" "$state_worktree" HEAD
+          fi
+          cp "$state_file" "$state_worktree/FREE_MONITOR_STATE.json"
+          cp "$events_file" "$state_worktree/FREE_MONITOR_EVENTS.json"
+          cd "$state_worktree"
           git config user.name "cyzor-monitor-bot"
           git config user.email "actions@users.noreply.github.com"
           git add FREE_MONITOR_STATE.json FREE_MONITOR_EVENTS.json
           if git diff --cached --quiet; then
+            if [[ "$state_branch_exists" == false ]]; then
+              git push origin "HEAD:refs/heads/$MONITOR_STATE_BRANCH"
+            fi
             exit 0
           fi
-          git commit -m "free monitor cadence tick"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git commit -m "free monitor cadence tick [skip ci]"
+          git push origin "HEAD:refs/heads/$MONITOR_STATE_BRANCH"
       - name: Fail on unhealthy targets
         if: steps.check.outcome == 'failure'
         run: exit 2
