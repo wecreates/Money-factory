@@ -353,6 +353,31 @@ class RenderValidationTests(unittest.TestCase):
                             self.assertGreater(left, x)
 
     @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
+    def test_long_checklist_label_wraps_inside_its_row_in_both_layouts(self):
+        from PIL import Image, ImageChops
+        labels = ['First', 'Second', 'Third', 'VERIFY EVERY PAYMENT BEFORE THE NEXT BILLING CYCLE']
+        with tempfile.TemporaryDirectory() as td:
+            path, baseline = (Path(td) / name for name in ('wrapped.png', 'baseline.png'))
+            scene = dict(brief()['scenes'][0], visual_spec={'kind': 'checklist', 'labels': labels})
+            prior = dict(scene, visual_spec={'kind': 'checklist', 'labels': labels[:3] + ['']})
+            for layout, dx, dy in ((None, 0, 0), ('landscape', 515, -181)):
+                with self.subTest(layout=layout):
+                    render.draw_panel(prior, baseline, 0, 1, layout=layout)
+                    render.draw_panel(scene, path, 0, 1, layout=layout)
+                    with Image.open(baseline) as before, Image.open(path) as after:
+                        delta = ImageChops.difference(before, after)
+                        left, top, right, bottom = delta.getbbox()
+                        self.assertGreaterEqual(left, 175 + dx)
+                        self.assertLessEqual(right, 605 + dx)
+                        self.assertGreaterEqual(top, 642 + dy)
+                        self.assertLessEqual(bottom, 706 + dy)
+                        rows = delta.crop((left, top, right, bottom)).convert('L')
+                        ink = [rows.crop((0, y, rows.width, y+1)).getbbox() is not None
+                               for y in range(rows.height)]
+                        self.assertEqual(sum(value and (i == 0 or not ink[i-1])
+                                             for i, value in enumerate(ink)), 2)
+
+    @unittest.skipUnless(Path(render.FONT).is_file(),'Font unavailable')
     def test_above_speaker_label_changes_only_the_two_label_regions(self):
         from PIL import Image, ImageChops
         with tempfile.TemporaryDirectory() as td:

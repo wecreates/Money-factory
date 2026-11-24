@@ -218,7 +218,7 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
             draw.text((center, y), line, font=f, fill=color, anchor='mt')
             y += size + 12
         return y
-    def bounded_text(text, box, *, sizes=(30, 28, 24, 22, 20), color=ink):
+    def bounded_text(text, box, *, sizes=(30, 28, 24, 22, 20), color=ink, left_aligned=False):
         """Wrap one semantic field inside its own region; never clip or omit it."""
         left, top, right, bottom = box
         for size in sizes:
@@ -235,13 +235,14 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
             if (len(lines)*line_height <= bottom-top and
                     all(draw.textlength(line, font=f) <= right-left for line in lines)):
                 y = top + (bottom-top-len(lines)*line_height)/2
-                for line in lines:
-                    position = ((left+right)/2, y)
-                    bounds = draw.textbbox(position, line, font=f, anchor='mt')
-                    if bounds[0] < left or bounds[1] < top or bounds[2] > right or bounds[3] > bottom:
-                        raise ValueError('Visual text exceeds readable panel bounds')
-                    draw.text(position, line, font=f, fill=color, anchor='mt')
-                    y += line_height
+                x, anchor = (left, 'lt') if left_aligned else ((left+right)/2, 'mt')
+                positions = [(x, y + index * line_height) for index in range(len(lines))]
+                bounds = [draw.textbbox(position, line, font=f, anchor=anchor)
+                          for position, line in zip(positions, lines)]
+                if any(a < left or b < top or c > right or d > bottom for a, b, c, d in bounds):
+                    continue
+                for position, line in zip(positions, lines):
+                    draw.text(position, line, font=f, fill=color, anchor=anchor)
                 return
         raise ValueError('Visual text exceeds readable panel bounds')
     spec = scene.get('visual_spec', {})
@@ -279,8 +280,10 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
             draw.line((110,y+15,125,y+30,150,y-5),fill=accent,width=7)
             f=font(24)
             if draw.textlength(label,font=f)>430: f=font(19)
-            if draw.textlength(label,font=f)>430: raise ValueError('Checklist label too wide')
-            draw.text((175,y),label,font=f,fill=ink)
+            if draw.textlength(label,font=f)<=430:
+                draw.text((175,y),label,font=f,fill=ink)
+            else:
+                bounded_text(label, (175, y-8, 605, y+56), sizes=(24, 22, 19), left_aligned=True)
     else:
         draw.rounded_rectangle((85, 335, 635, 760), radius=18 if kind=='receipt' else 38, outline=ink, width=7)
         if kind == 'card':
