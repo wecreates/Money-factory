@@ -173,6 +173,22 @@ class TransitionMixTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'positive and finite'):
             mix.validate_decoded_lengths(0, expected, 4.0)
 
+    def test_decoded_length_scales_timeline_padding_by_bounded_scene_count(self):
+        expected = round(4 * mix.RATE)
+        bounded = mix.MAX_CODEC_TIMELINE_PADDING_FRAMES
+        mix.validate_decoded_lengths(expected + bounded * 3,
+                                     expected + bounded * 3, 4.0, 3)
+        with self.assertRaisesRegex(ValueError, 'source timeline length'):
+            mix.validate_decoded_lengths(expected + bounded * 3 + 1,
+                                         expected + bounded * 3, 4.0, 3)
+        with self.assertRaisesRegex(ValueError, 'source timeline length'):
+            mix.validate_decoded_lengths(expected + bounded * 3,
+                                         expected + bounded * 2 - 1, 4.0, 3)
+        for invalid in (0, mix.MAX_SCENES + 1, True, 1.5):
+            with self.subTest(scene_count=invalid), \
+                    self.assertRaisesRegex(ValueError, 'positive and finite'):
+                mix.validate_decoded_lengths(expected, expected, 4.0, invalid)
+
 
 if __name__ == '__main__':
     unittest.main()
