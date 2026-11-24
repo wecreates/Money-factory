@@ -1,0 +1,20 @@
+{
+  "browser_binary_name": "chromium",
+  "browser_binary_sha256": "2c8d32d29dc6781c35ae196ea83299d507ac88fc339301abe74672feda299779",
+  "browser_media_consumer_verified": false,
+  "guardian_exit_code": 250,
+  "observed_at": "2026-11-24T15:32:24.366520+00:00",
+  "openmontage_render_verified": false,
+  "ordinary_browser_runtime_verified": false,
+  "paid_generation_enabled": false,
+  "probe_target": "local_data_url",
+  "production_ready": false,
+  "publication_enabled": false,
+  "sandbox_weakening_used": false,
+  "schema_version": 1,
+  "scope": "Current-host ordinary browser startup and local data-URL rendering only; no network page, provider, media consumer, Remotion render, creative review, publication, deployment, persistence, or 24-hour operation verified",
+  "status": "BLOCKED_PROCESS_SINGLETON_SOCKET_POLICY",
+  "stderr_sha256": "116aa9daf1efed2596ce5d6af6f6b28bb5dd8d6751b99c3ba48cb9fedb4991e8",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "timeout_seconds": 30
+}
