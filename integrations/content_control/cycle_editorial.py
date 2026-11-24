@@ -120,20 +120,44 @@ def _learning(value):
 def _authoring(value, title, scenes, discovery):
     identities = {'research_sha256', 'pool_sha256', 'discovery_receipt_sha256',
                   'script_storyboard_sha256'}
-    fields = {'schema_version', 'status', 'algorithm', 'selected_candidate_id',
-              'speaker_sequence', 'authorship_verified', 'originality_review_complete',
-              'scope', *identities, *FALSE_FLAGS}
-    if (not isinstance(value, dict) or set(value) != fields
-            or type(value.get('schema_version')) is not int or value['schema_version'] != 1
-            or value.get('status') != 'OFFLINE_DRAFT_AUTHORED'
-            or value.get('algorithm') != 'source-claim-scenes-v1'
-            or value.get('speaker_sequence') != ['narrator', 'dave', 'points_monk', 'narrator']
+    base_fields = {'schema_version', 'status', 'algorithm', 'selected_candidate_id',
+                   'speaker_sequence', 'authorship_verified', 'originality_review_complete',
+                   'scope', *identities, *FALSE_FLAGS}
+    long_fields = base_fields | {'content_format', 'planned_duration_seconds',
+                                 'long_form_production_verified'}
+    legacy = isinstance(value, dict) and set(value) == base_fields
+    long_form = isinstance(value, dict) and set(value) == long_fields
+    if (not (legacy or long_form)
+            or type(value.get('schema_version')) is not int
             or value.get('authorship_verified') is not False
             or value.get('originality_review_complete') is not False
             or any(value[key] is not False for key in FALSE_FLAGS)
             or any(not isinstance(value[key], str) or not re.fullmatch('[0-9a-f]{64}', value[key])
                    for key in identities)):
         raise ValueError('original_authoring: exact unapproved offline handoff required')
+    speakers = [scene.get('speaker', 'narrator') for scene in scenes] if isinstance(scenes, list) else []
+    if legacy:
+        if (value['schema_version'] != 1 or value.get('status') != 'OFFLINE_DRAFT_AUTHORED'
+                or value.get('algorithm') != 'source-claim-scenes-v1'
+                or value.get('speaker_sequence') != ['narrator', 'dave', 'points_monk', 'narrator']):
+            raise ValueError('original_authoring: exact unapproved offline handoff required')
+    else:
+        planned = sum(scene.get('duration_seconds', 0) for scene in scenes) \
+            if isinstance(scenes, list) else 0
+        if (value['schema_version'] != 2
+                or value.get('status') != 'OFFLINE_LONGFORM_DRAFT_AUTHORED'
+                or value.get('algorithm') != 'source-claim-longform-scenes-v1'
+                or value.get('content_format') != 'long-form'
+                or value.get('long_form_production_verified') is not False
+                or type(value.get('planned_duration_seconds')) not in (int, float)
+                or not math.isfinite(value['planned_duration_seconds'])
+                or value['planned_duration_seconds'] != planned
+                or not 120 <= planned <= 600
+                or not 8 <= len(speakers) <= 30
+                or speakers[0] != 'narrator' or speakers[-1] != 'narrator'
+                or not {'narrator', 'dave', 'points_monk'} <= set(speakers)
+                or value.get('speaker_sequence') != speakers):
+            raise ValueError('original_authoring: exact unapproved long-form handoff required')
     if (not isinstance(discovery, dict)
             or value['research_sha256'] != discovery.get('research_sha256')
             or value['pool_sha256'] != discovery.get('pool_sha256')
