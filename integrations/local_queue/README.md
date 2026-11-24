@@ -81,6 +81,16 @@ review packet; `review_status: AWAITING_REVIEW`, `full_av_review: false`, and
 `production_ready: false` remain intact. Queue success never grants creative,
 audiovisual, canonical promotion, or publishing approval.
 
+## Offline external-media review admission
+
+`adapter: "content-control-external-media"` is a verification-and-packaging
+consumer for one pre-existing, free/offline OpenMontage safe-reframe packet. It
+never launches the tool or a provider. Its request pins the source, transformed
+source, candidate, tool commit and three receipts; the trusted local root is an
+operator-only worker argument. See
+[`external-media-queue.md`](../content_control/external-media-queue.md) for the
+exact schema and the deliberately limited evidence scope.
+
 ## Foreground health and graceful stop
 
 ```sh
