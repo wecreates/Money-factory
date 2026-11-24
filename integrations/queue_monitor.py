@@ -79,7 +79,8 @@ def _safe_spec(row):
                              'publication_enabled', 'paid_generation_enabled'}
             or spec.get('id') != row['id']
             or spec.get('adapter') not in {
-                'openclaw', 'ruflo', 'content-control-cycle', 'content-control-video'
+                'openclaw', 'ruflo', 'content-control-cycle', 'content-control-video',
+                'content-control-external-media',
             }
             or not isinstance(spec.get('request'), dict)
             or spec.get('max_attempts') != row['max_attempts']

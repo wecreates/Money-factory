@@ -122,6 +122,14 @@ class QueueMonitorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'envelope is inconsistent'):
             inspect_queue(self.root)
 
+    def test_unsupported_stored_adapter_fails_closed(self):
+        spec = job()
+        self.queue.enqueue(spec)
+        spec['adapter'] = 'unknown-external-media'
+        self.queue.db.execute('UPDATE jobs SET spec=?', (json.dumps(spec),))
+        with self.assertRaisesRegex(ValueError, 'envelope is inconsistent'):
+            inspect_queue(self.root)
+
     def test_job_and_run_identifiers_are_validated_without_echoing_them(self):
         self.queue.enqueue(job())
         malicious = 'secret/job?token=value'
@@ -226,15 +234,14 @@ class QueueMonitorTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'changed while monitoring'):
                 inspect_queue(self.root)
 
-    def test_retained_real_queue_snapshot_binds_monitor_and_database(self):
+    def test_current_monitor_replays_historical_real_queue_snapshot(self):
         proof = json.loads((ROOT / 'integrations/queue-monitor-proof-20261124.json').read_text())
-        source = ROOT / 'integrations/queue_monitor.py'
         database = (ROOT / 'integrations/local_queue/evidence/'
                     'c12-real-admission-retry-20261124-v2/runtime/queue.sqlite3')
-        self.assertEqual(proof['monitor_source_sha256'],
-                         hashlib.sha256(source.read_bytes()).hexdigest())
         self.assertEqual(proof['result']['queue_database_sha256'],
                          hashlib.sha256(database.read_bytes()).hexdigest())
+        observed = datetime.fromisoformat(proof['result']['observed_at'])
+        self.assertEqual(inspect_queue(database.parent, now=observed), proof['result'])
         raw = json.dumps(proof['result'], indent=2, sort_keys=True, allow_nan=False) + '\n'
         self.assertEqual(proof['raw_output_sha256'], hashlib.sha256(raw.encode()).hexdigest())
         self.assertEqual(proof['result']['status'], 'ATTENTION_REQUIRED')
