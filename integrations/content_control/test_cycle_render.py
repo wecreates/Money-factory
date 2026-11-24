@@ -470,6 +470,10 @@ class RenderValidationTests(unittest.TestCase):
             self.assertFalse(result['independent_transcription_verified'])
             self.assertFalse(result['full_av_review']);self.assertFalse(result['production_approved'])
             self.assertFalse(result['publication_enabled']);self.assertEqual(len(result['scenes']),1)
+            self.assertEqual(result['timestamp_normalization']['mode'],
+                             'measured_video_offset_stream_copy')
+            self.assertEqual(result['timestamp_normalization']['video_start_seconds'], 0)
+            self.assertEqual(result['timestamp_normalization']['audio_start_seconds'], 0)
             self.assertEqual(result['motion']['loop_seconds'],3)
             self.assertEqual(result['motion']['output_fps'],24)
             row=result['scenes'][0]
@@ -522,6 +526,39 @@ class RenderValidationTests(unittest.TestCase):
             dark=[sum(channel<120 for channel in region[i:i+stride:3]) for i in range(0,len(region),stride)]
             self.assertEqual(dark[:2],[0,0])
             self.assertTrue(all(count>500 for count in dark[2:]))
+
+    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Media tools unavailable')
+    def test_mux_start_normalization_shifts_only_video_timestamps(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            base, staged, final = (root/name for name in ('base.mp4', 'staged.mp4', 'final.mp4'))
+            subprocess.run(['ffmpeg', '-v', 'error', '-nostdin', '-y',
+                '-f', 'lavfi', '-i', 'color=c=blue:s=90x160:r=24:d=1',
+                '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=24000:duration=1',
+                '-c:v', 'libx264', '-threads', '1', '-pix_fmt', 'yuv420p',
+                '-c:a', 'aac', '-ar', '24000', '-ac', '1', '-shortest', str(base)], check=True)
+            # Reproduce concat's video-only lead-in while retaining audio at zero.
+            subprocess.run(['ffmpeg', '-v', 'error', '-nostdin', '-y',
+                '-itsoffset', '0.041992', '-i', str(base), '-i', str(base),
+                '-map', '0:v:0', '-map', '1:a:0', '-c', 'copy', str(staged)], check=True)
+
+            def starts(path):
+                raw = subprocess.check_output(['ffprobe', '-v', 'error', '-show_streams',
+                    '-of', 'json', str(path)])
+                streams = json.loads(raw)['streams']
+                return {stream['codec_type']: float(stream['start_time']) for stream in streams}
+
+            before = starts(staged)
+            self.assertGreater(before['video'], .04)
+            self.assertEqual(before['audio'], 0)
+            evidence = render.normalize_mux_video_start(staged, final, time.monotonic()+30)
+            self.assertEqual(evidence['staged_video_start_seconds'], before['video'])
+            self.assertEqual(starts(final), {'video': 0, 'audio': 0})
+
+            def audio_framehash(path):
+                return subprocess.check_output(['ffmpeg', '-v', 'error', '-i', str(path),
+                    '-map', '0:a:0', '-c', 'copy', '-f', 'framehash', '-'])
+            self.assertEqual(audio_framehash(staged), audio_framehash(final))
 
 
 class PinnedASRTests(unittest.TestCase):

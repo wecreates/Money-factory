@@ -139,6 +139,39 @@ def run(command, log, deadline, env=None):
         raise RuntimeError(f'{Path(command[0]).name} failed; see {Path(log).name}')
 
 
+def normalize_mux_video_start(staged, output, deadline):
+    """Remove concat's video-only lead-in without decoding either stream.
+
+    The concat demuxer can retain the first AAC packet at zero while assigning
+    the first H.264 presentation timestamp roughly one picture frame later.
+    Timeline-bound excerpts would then begin on the preceding scene.  Offset a
+    video-only input by the measured amount and take audio from an unshifted
+    input so both encoded packet streams remain otherwise unchanged.
+    """
+    staged, output = Path(staged), Path(output)
+    probe_path = output.parent / 'concat-probe.json'
+    run(['ffprobe', '-v', 'error', '-show_streams', '-show_format', '-of', 'json', staged],
+        probe_path, deadline)
+    probe = json.loads(probe_path.read_text())
+    streams = probe.get('streams', [])
+    video = next((stream for stream in streams if stream.get('codec_type') == 'video'), None)
+    audio = next((stream for stream in streams if stream.get('codec_type') == 'audio'), None)
+    if video is None or audio is None:
+        raise ValueError('Concatenated media must contain video and audio')
+    video_start = float(video.get('start_time', 'nan'))
+    audio_start = float(audio.get('start_time', 'nan'))
+    if (not math.isfinite(video_start) or not math.isfinite(audio_start)
+            or not 0 <= video_start <= .1 or not 0 <= audio_start <= .1):
+        raise ValueError('Concatenated stream start time is invalid')
+    run(['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-n', '-threads', '2',
+         '-itsoffset', f'{-video_start:.9f}', '-i', staged, '-i', staged,
+         '-map', '0:v:0', '-map', '1:a:0', '-c', 'copy', '-movflags', '+faststart', output],
+        output.parent / 'normalize-start.log', deadline)
+    return {'staged_video_start_seconds': video_start,
+            'staged_audio_start_seconds': audio_start,
+            'mode': 'measured_video_offset_stream_copy'}
+
+
 def synthesize(editorial, output, voice_root):
     """Runs in the isolated, pinned Kokoro runtime, with network denied."""
     scenes = validate(editorial)
@@ -499,8 +532,11 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                                              'No lip sync or automatic speech alignment.')
             segments.append(segment.name);start+=duration
         (output/'segments.txt').write_text(''.join("file '"+name+"'\n" for name in segments))
+        staged_video = output/'concatenated.mp4'
         run(['ffmpeg','-nostdin','-hide_banner','-loglevel','error','-n','-f','concat','-safe','1',
-             '-i',output/'segments.txt','-c','copy','-movflags','+faststart',output/'video.mp4'],output/'concat.log',deadline)
+             '-i',output/'segments.txt','-c','copy','-movflags','+faststart',staged_video],output/'concat.log',deadline)
+        timestamp_normalization = normalize_mux_video_start(staged_video, output/'video.mp4', deadline)
+        staged_video.unlink()
         (output/'captions.vtt').write_text('\n'.join(captions)+'\n')
         run(['ffmpeg','-nostdin','-v','error','-i',output/'video.mp4','-f','null','-'],output/'decode.log',deadline)
         run(['ffprobe','-v','error','-show_streams','-show_format','-of','json',output/'video.mp4'],output/'probe.json',deadline)
@@ -508,6 +544,14 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
         video=next(s for s in streams if s['codec_type']=='video');audio=next(s for s in streams if s['codec_type']=='audio')
         if (video['width'],video['height'],video['codec_name'],audio['codec_name'])!=(*panel_size(layout),'h264','aac'):
             raise ValueError('Output media contract mismatch')
+        normalized_video_start = float(video.get('start_time', 'nan'))
+        normalized_audio_start = float(audio.get('start_time', 'nan'))
+        if (not math.isfinite(normalized_video_start) or not math.isfinite(normalized_audio_start)
+                or abs(normalized_video_start) > .001 or abs(normalized_audio_start) > .001):
+            raise ValueError('Output stream timestamps were not normalized to zero')
+        timestamp_normalization.update(video_start_seconds=normalized_video_start,
+                                       audio_start_seconds=normalized_audio_start)
+        receipt['timestamp_normalization'] = timestamp_normalization
         container_duration = float(probe['format']['duration'])
         if abs(container_duration-start)>.25:
             raise ValueError('Output duration differs from scene timeline')
