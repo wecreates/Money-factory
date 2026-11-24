@@ -555,10 +555,36 @@ class RenderValidationTests(unittest.TestCase):
             self.assertEqual(evidence['staged_video_start_seconds'], before['video'])
             self.assertEqual(starts(final), {'video': 0, 'audio': 0})
 
+            self.assertEqual(evidence['encoded_streams_sha256'], {
+                'video': render.encoded_stream_sha256(final, 'v:0', root/'final-video-check.log',
+                                                      time.monotonic()+30),
+                'audio': render.encoded_stream_sha256(final, 'a:0', root/'final-audio-check.log',
+                                                      time.monotonic()+30),
+            })
+
             def audio_framehash(path):
                 return subprocess.check_output(['ffmpeg', '-v', 'error', '-i', str(path),
                     '-map', '0:a:0', '-c', 'copy', '-f', 'framehash', '-'])
             self.assertEqual(audio_framehash(staged), audio_framehash(final))
+
+    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Media tools unavailable')
+    def test_mux_start_normalization_removes_changed_stream_output(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            base, staged, final = (root/name for name in ('base.mp4', 'staged.mp4', 'final.mp4'))
+            subprocess.run(['ffmpeg', '-v', 'error', '-nostdin', '-y',
+                '-f', 'lavfi', '-i', 'color=c=blue:s=90x160:r=24:d=0.5',
+                '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=24000:duration=0.5',
+                '-c:v', 'libx264', '-threads', '1', '-pix_fmt', 'yuv420p',
+                '-c:a', 'aac', '-ar', '24000', '-ac', '1', '-shortest', str(base)], check=True)
+            subprocess.run(['ffmpeg', '-v', 'error', '-nostdin', '-y',
+                '-itsoffset', '0.041992', '-i', str(base), '-i', str(base),
+                '-map', '0:v:0', '-map', '1:a:0', '-c', 'copy', str(staged)], check=True)
+            with patch.object(render, 'encoded_stream_sha256',
+                              side_effect=['video-a', 'audio-a', 'video-b', 'audio-a']):
+                with self.assertRaisesRegex(ValueError, 'encoded stream payloads'):
+                    render.normalize_mux_video_start(staged, final, time.monotonic()+30)
+            self.assertFalse(final.exists())
 
 
 class PinnedASRTests(unittest.TestCase):
