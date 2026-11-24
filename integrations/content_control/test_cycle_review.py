@@ -9,11 +9,13 @@ import zipfile
 
 from integrations.content_control.cycle_editorial import LEARNING_IDENTITIES, compile_editorial
 from integrations.content_control.cycle_package import editorial_digest
+from integrations.content_control.cycle_live_comparison import record_live_comparison
 from integrations.content_control.cycle_review import (CHECKS, LISTENER_CHECKS, WATCHER_CHECKS, inspect_cycle,
                                                        lint_package, record_review, revision_brief)
 from integrations.content_control.cycle_render import VOICE_ASSIGNMENTS
 from integrations.content_control.review_package import digest
 from integrations.content_control.test_cycle_editorial import brief
+from integrations.content_control.test_cycle_live_comparison import packet as comparison_packet
 
 
 def write(path, value):
@@ -69,10 +71,24 @@ class ReviewTests(unittest.TestCase):
                      editorial_sha256=digest(self.root / 'editorial.json'),
                      brief_sha256=digest(self.root / 'brief.json'))
         write(self.root / 'cycle.json', cycle)
+        comparison = comparison_packet()
+        comparison['candidate_sha256'] = self.candidate
+        comparison['reviewed_at'] = '2026-01-04T03:00:00Z'
+        expected_format = 'landscape' if editorial.get('layout') == 'landscape' else 'portrait'
+        for index, reference in enumerate(comparison['references']):
+            reference['topic'] = editorial['topic']
+            reference['format'] = expected_format
+            reference['selected_at'] = f'2026-01-04T0{index}:00:00Z'
+            reference['observed_at'] = f'2026-01-04T0{index + 1}:00:00Z'
+        self.comparison_source = self.base / 'comparison-source.json'
+        self.comparison_receipt = self.base / 'comparison-receipt.json'
+        write(self.comparison_source, comparison)
+        record_live_comparison(self.root, self.comparison_source,
+                               self.comparison_receipt)
         self.submitted = self.base / 'submitted.json'
         self.recorded = self.base / 'recorded.json'
         self.review = {'candidate_sha256': self.candidate, 'reviewer': 'Fixture reviewer',
-                       'reviewed_at': '2026-01-04T00:00:00Z',
+                       'reviewed_at': '2026-01-04T04:00:00Z',
                        'checks': {name: {'passed': True, 'evidence': 'Synthetic fixture statement for ' + name}
                                   for name in CHECKS},
                        'watcher_review': {
@@ -97,9 +113,15 @@ class ReviewTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def record(self, output=None, **kwargs):
+        return record_review(
+            self.root, self.submitted, output or self.recorded,
+            live_comparison_source=self.comparison_source,
+            live_comparison_receipt=self.comparison_receipt, **kwargs)
+
     def test_all_checks_record_statement_without_promoting_approval(self):
         before = inspect_cycle(self.root)
-        result = record_review(self.root, self.submitted, self.recorded)
+        result = self.record()
         self.assertEqual(result['status'], 'EDITORIAL_REVIEW_RECORDED')
         self.assertFalse(result['independent_verification'])
         self.assertFalse(result['production_approved'])
@@ -115,7 +137,59 @@ class ReviewTests(unittest.TestCase):
         self.assertFalse(listener['independent_listening_verification'])
         self.assertEqual(listener['candidate_sha256'], self.candidate)
         self.assertEqual(set(listener['checks']), set(LISTENER_CHECKS))
+        self.assertEqual(result['live_comparison_receipt'],
+                         json.loads(self.comparison_receipt.read_text()))
         self.assertEqual(inspect_cycle(self.root), before)
+
+    def test_reference_comparison_requires_replayable_exact_receipt(self):
+        with self.assertRaisesRegex(ValueError, 'source and receipt required'):
+            record_review(self.root, self.submitted, self.recorded)
+
+        changed = json.loads(self.comparison_receipt.read_text())
+        changed['references'][0][
+            'candidate_differences']['audio'] = (
+                'Changed comparator evidence must not inherit the retained receipt identity.')
+        changed_receipt = self.base / 'changed-comparison-receipt.json'
+        write(changed_receipt, changed)
+        with self.assertRaisesRegex(ValueError, 'identity, evidence or scope changed'):
+            record_review(
+                self.root, self.submitted, self.recorded,
+                live_comparison_source=self.comparison_source,
+                live_comparison_receipt=changed_receipt)
+
+        forged = json.loads(self.comparison_receipt.read_text())
+        forged['submitted_observations_sha256'] = '0' * 64
+        forged_receipt = self.base / 'forged-source-hash-receipt.json'
+        write(forged_receipt, forged)
+        with self.assertRaisesRegex(ValueError, 'observations changed'):
+            record_review(
+                self.root, self.submitted, self.recorded,
+                live_comparison_source=self.comparison_source,
+                live_comparison_receipt=forged_receipt)
+
+        predates = copy.deepcopy(self.review)
+        predates['reviewed_at'] = '2026-01-04T02:30:00Z'
+        write(self.submitted, predates)
+        with self.assertRaisesRegex(ValueError, 'predates the live comparison'):
+            self.record()
+
+    def test_revision_replays_comparison_and_retains_its_identities(self):
+        recorded = self.record()
+        updated = brief()
+        updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
+        output = self.base / 'comparison-revision'
+        revision = revision_brief(self.root, self.recorded, updated, output)
+        self.assertEqual(revision['live_comparison_observations_sha256'],
+                         recorded['live_comparison_receipt'][
+                             'submitted_observations_sha256'])
+        self.assertRegex(revision['live_comparison_receipt_sha256'], r'^[a-f0-9]{64}$')
+
+        changed = json.loads(self.recorded.read_text())
+        changed['live_comparison_receipt']['normalized_observations_sha256'] = '0' * 64
+        write(self.recorded, changed)
+        with self.assertRaisesRegex(ValueError, 'identity, evidence or scope changed'):
+            revision_brief(self.root, self.recorded, updated,
+                           self.base / 'bad-comparison-revision')
 
     def test_full_av_requires_direct_complete_granular_watching_and_listening(self):
         cases = []
@@ -132,7 +206,7 @@ class ReviewTests(unittest.TestCase):
             with self.subTest(index=index):
                 write(self.submitted, review)
                 with self.assertRaises(ValueError):
-                    record_review(self.root, self.submitted, self.recorded)
+                    self.record()
                 self.assertFalse(self.recorded.exists())
 
     def test_full_av_summary_must_match_all_granular_watcher_judgments(self):
@@ -141,7 +215,7 @@ class ReviewTests(unittest.TestCase):
             'feedback': 'Align the scene change to the spoken transition at second 6.'}
         write(self.submitted, self.review)
         with self.assertRaisesRegex(ValueError, 'audiovisual summary disagrees'):
-            record_review(self.root, self.submitted, self.recorded)
+            self.record()
 
     def test_voice_check_requires_direct_complete_granular_listening(self):
         cases = []
@@ -157,7 +231,7 @@ class ReviewTests(unittest.TestCase):
             with self.subTest(index=index):
                 write(self.submitted, review)
                 with self.assertRaises(ValueError):
-                    record_review(self.root, self.submitted, self.recorded)
+                    self.record()
                 self.assertFalse(self.recorded.exists())
 
     def test_listener_summary_must_match_all_granular_judgments(self):
@@ -166,7 +240,7 @@ class ReviewTests(unittest.TestCase):
             'feedback': 'Reduce music beneath the narration in that interval.'}
         write(self.submitted, self.review)
         with self.assertRaisesRegex(ValueError, 'summary disagrees'):
-            record_review(self.root, self.submitted, self.recorded)
+            self.record()
 
     def test_listener_rejects_reassigned_or_changed_voice_receipt(self):
         voice_path = self.render / 'voice.json'
@@ -188,7 +262,7 @@ class ReviewTests(unittest.TestCase):
         cycle['package_sha256'] = digest(self.delivery / 'package.json')
         write(self.root / 'cycle.json', cycle)
         with self.assertRaisesRegex(ValueError, 'voice assignment changed'):
-            record_review(self.root, self.submitted, self.recorded)
+            self.record()
 
     def test_concurrent_voice_change_blocks_final_review_record(self):
         from integrations.content_control import cycle_review as module
@@ -204,11 +278,11 @@ class ReviewTests(unittest.TestCase):
 
         with patch('integrations.content_control.cycle_review._listener_attestation',
                    side_effect=change_after_check), self.assertRaises(ValueError):
-            record_review(self.root, self.submitted, self.recorded)
+            self.record()
         self.assertFalse(self.recorded.exists())
 
     def test_revision_revalidates_recorded_listener_and_current_voice_identity(self):
-        record_review(self.root, self.submitted, self.recorded)
+        self.record()
         updated = brief(); updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
 
         changed_review = json.loads(self.recorded.read_text())
@@ -218,7 +292,7 @@ class ReviewTests(unittest.TestCase):
             revision_brief(self.root, self.recorded, updated, self.base / 'bad-listener')
 
         self.recorded.unlink()
-        record_review(self.root, self.submitted, self.recorded)
+        self.record()
         voice_path = self.render / 'voice.json'
         voice = json.loads(voice_path.read_text())
         voice['clips'][0]['voice_id'] = 'am_changed_after_review'
@@ -227,7 +301,7 @@ class ReviewTests(unittest.TestCase):
             revision_brief(self.root, self.recorded, updated, self.base / 'bad-voice')
 
     def test_revision_revalidates_recorded_watcher_identity(self):
-        record_review(self.root, self.submitted, self.recorded)
+        self.record()
         updated = brief(); updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
         changed_review = json.loads(self.recorded.read_text())
         changed_review['watcher_review']['caption_sha256'] = '0' * 64
@@ -243,7 +317,7 @@ class ReviewTests(unittest.TestCase):
             'passed': False, 'evidence': 'Narration sounds rushed from seconds 3 to 8.',
             'feedback': 'Slow the middle sentence and rerender narration.'}
         write(self.submitted, self.review)
-        result = record_review(self.root, self.submitted, self.recorded)
+        result = self.record()
         self.assertEqual(result['status'], 'REVISION_REQUIRED')
         self.assertEqual({item['check'] for item in result['feedback']},
                          {'originality', 'voice_naturalness', 'listener.naturalness'})
@@ -252,12 +326,12 @@ class ReviewTests(unittest.TestCase):
         for field, value in [('candidate_sha256', '0' * 64), ('reviewed_at', '2026-01-01T00:00:00Z')]:
             review = copy.deepcopy(self.review); review[field] = value
             write(self.submitted, review)
-            with self.assertRaises(ValueError): record_review(self.root, self.submitted, self.recorded)
+            with self.assertRaises(ValueError): self.record()
             self.assertFalse(self.recorded.exists())
 
     def test_current_package_artifacts_are_verified_before_decisions(self):
         (self.delivery / 'thumbnail-1.png').write_bytes(b'tampered')
-        with self.assertRaisesRegex(ValueError, 'artifact changed'): record_review(self.root, self.submitted, self.recorded)
+        with self.assertRaisesRegex(ValueError, 'artifact changed'): self.record()
 
     def test_lint_binds_copy_candidate_and_package_without_approving_or_mutating(self):
         before = inspect_cycle(self.root)
@@ -325,16 +399,17 @@ class ReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Archive members'): inspect_cycle(self.root)
 
     def test_record_cannot_overwrite_or_mutate_cycle(self):
-        record_review(self.root, self.submitted, self.recorded)
+        self.record()
         original = self.recorded.read_bytes()
-        with self.assertRaisesRegex(ValueError, 'already exists'): record_review(self.root, self.submitted, self.recorded)
+        with self.assertRaisesRegex(ValueError, 'already exists'): self.record()
         self.assertEqual(original, self.recorded.read_bytes())
-        with self.assertRaisesRegex(ValueError, 'separate'): record_review(self.root, self.submitted, self.root / 'review.json')
         with self.assertRaisesRegex(ValueError, 'separate'):
-            record_review(self.root, self.submitted, self.base / 'elsewhere' / '..' / 'cycle' / 'review.json')
+            self.record(self.root / 'review.json')
+        with self.assertRaisesRegex(ValueError, 'separate'):
+            self.record(self.base / 'elsewhere' / '..' / 'cycle' / 'review.json')
 
     def test_revision_preserves_provenance_and_remains_runnable_input(self):
-        record_review(self.root, self.submitted, self.recorded)
+        self.record()
         updated = brief(); updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
         output = self.base / 'revision'
         result = revision_brief(self.root, self.recorded, updated, output)
@@ -345,7 +420,7 @@ class ReviewTests(unittest.TestCase):
         self.assertFalse(result['feedback_resolution_verified'])
 
     def test_unchanged_revision_or_rewritten_source_provenance_rejected(self):
-        record_review(self.root, self.submitted, self.recorded)
+        self.record()
         with self.assertRaisesRegex(ValueError, 'must change'):
             revision_brief(self.root, self.recorded, brief(), self.base / 'same')
         updated = brief(); updated['sources'][0]['excerpt'] = 'Rewritten source history.'
@@ -365,14 +440,14 @@ class ReviewTests(unittest.TestCase):
         updated = copy.deepcopy(parent)
         updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
         with patch('integrations.content_control.cycle_review.inspect_cycle', return_value=snapshot):
-            record_review(self.root, self.submitted, self.recorded)
+            self.record()
             revision_brief(self.root, self.recorded, updated, self.base / 'valid')
             del updated['idea_learning']
             with self.assertRaisesRegex(ValueError, 'idea learning provenance'):
                 revision_brief(self.root, self.recorded, updated, self.base / 'bad')
 
     def test_review_from_other_cycle_cannot_certify_revision(self):
-        record_review(self.root, self.submitted, self.recorded)
+        self.record()
         review = json.loads(self.recorded.read_text()); review['source_files_sha256']['cycle.json'] = '0' * 64
         write(self.recorded, review)
         with self.assertRaisesRegex(ValueError, 'bind current cycle'):
