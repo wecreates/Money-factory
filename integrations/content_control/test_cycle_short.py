@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from integrations.content_control import cycle_av_review
 from integrations.content_control import cycle_short as m
 
 VTT='WEBVTT\n\n1\n00:00:00.000 --> 00:00:01.000\nFirst words.\n\n2\n00:00:01.200 --> 00:00:02.500\nSecond words.\n\n3\n00:00:02.500 --> 00:00:03.000\nLast words.\n'
@@ -59,6 +60,18 @@ class ShortTests(unittest.TestCase):
         self.assertEqual(r['source_counter'],{'action':'preserve'})
         for flag in m.FLAGS:self.assertFalse(r[flag])
         self.assertIn('Second words.',(self.base/'short/captions.vtt').read_text())
+        preview = self.base/'short/index.html'
+        page = preview.read_text(encoding='utf-8')
+        self.assertEqual(r['preview_sha256'], m.digest(preview))
+        self.assertEqual(r['preview_caption_mode'], 'sidecar')
+        self.assertEqual(r, json.loads((self.base/'short/short.json').read_text()))
+        self.assertIn('<video controls playsinline preload="metadata" src="video.mp4">', page)
+        self.assertIn('<track kind="captions" src="captions.vtt"', page)
+        self.assertIn('href="captions.vtt" download', page)
+        self.assertNotRegex(page, r'(?:src|href)="(?:[a-z]+:|/)')
+        for key in ('candidate_sha256', 'caption_sha256', 'automated_review_sha256',
+                    'parent_candidate_sha256', 'parent_cycle_sha256', 'source_caption_sha256'):
+            self.assertIn(r[key], page)
 
     def known_layout(self):
         self.snapshot['editorial']={'scenes':[{'visual_spec':{'kind':'card'}}]}
@@ -109,6 +122,16 @@ class ShortTests(unittest.TestCase):
         self.assertEqual(b['caption_overlay']['style'],m.COMPACT_STYLE)
         self.assertEqual(b['caption_sha256'],a['caption_sha256'])
         self.assertEqual(b['boundary_cue_numbers'],[1,2])
+        preview = burned/'index.html'
+        page = preview.read_text(encoding='utf-8')
+        self.assertEqual(b['preview_caption_mode'], 'burned')
+        self.assertEqual(b['preview_sha256'], m.digest(preview))
+        self.assertIn('playsinline', page)
+        self.assertIn('href="captions.vtt" download', page)
+        self.assertNotIn('<track', page)
+        self.assertIn(b['candidate_sha256'], page)
+        self.assertNotIn(a['candidate_sha256'], page)
+
         def audio_hash(path):
             return subprocess.check_output(['ffmpeg','-v','error','-i',str(path/'video.mp4'),
                                             '-map','0:a:0','-c:a','copy','-f','framehash','-'])
@@ -177,6 +200,7 @@ class ShortTests(unittest.TestCase):
         self.assertIn('60-second Short limit', overshoot['reason'])
         self.assertEqual(json.loads((self.base/'overshoot/short.json').read_text()), overshoot)
         self.assertNotIn('candidate_sha256', overshoot)
+        self.assertFalse((self.base/'overshoot/index.html').exists())
         self.assertGreater(overshoot['encoded_picture_duration_seconds'], 60)
         self.assertEqual(exact['status'], 'AWAITING_REVIEW', exact)
         self.assertEqual(exact['media']['duration_seconds'], 60)
@@ -202,6 +226,37 @@ class ShortTests(unittest.TestCase):
         with patch.object(m,'inspect_cycle',side_effect=[self.snapshot,dict(self.snapshot,changed=True)]):
             r=m.make_short(self.root,self.base/'changed',start=0,end=2,timeout=30)
         self.assertEqual(r['status'],'BLOCKED');self.assertIn('changed',r['reason'])
+
+
+    def test_preview_is_blocked_when_a_bound_output_changes_after_diagnostics(self):
+        self.media()
+        write_review = cycle_av_review.write_automated_review
+        for filename, reason in (
+                ('video.mp4', 'changed before preview'),
+                ('captions.vtt', 'changed before preview'),
+                ('automated-review.json', 'does not match the unpublished candidate and captions')):
+            with self.subTest(filename=filename):
+                output = self.base/filename
+
+                def change_after_write(*args, **kwargs):
+                    write_review(*args, **kwargs)
+                    path = output/filename
+                    if filename == 'automated-review.json':
+                        report = json.loads(path.read_text())
+                        report['caption_sha256'] = 'f'*64
+                        path.write_text(json.dumps(report))
+                    else:
+                        with path.open('ab') as stream:
+                            stream.write(b'changed')
+
+                with patch.object(m, 'inspect_cycle', return_value=self.snapshot), \
+                     patch.object(cycle_av_review, 'write_automated_review', side_effect=change_after_write):
+                    receipt = m.make_short(self.root, output, start=0, end=2, timeout=30)
+                self.assertEqual(receipt['status'], 'BLOCKED', receipt)
+                self.assertIn(reason, receipt['reason'])
+                self.assertNotIn('preview_sha256', receipt)
+                self.assertFalse((output/'index.html').exists())
+                self.assertEqual(receipt, json.loads((output/'short.json').read_text()))
 
 
 if __name__=='__main__':unittest.main()

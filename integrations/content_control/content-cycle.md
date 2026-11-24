@@ -620,10 +620,18 @@ The consumer re-encodes H.264/AAC, checks decode and dimensions, and independent
 limits the encoded picture and container to 60 seconds. If frame rounding
 pushes a cut over 60 seconds, the attempt records the measured lengths and stops.
 A shorter input interval may fit the source frame cadence. Successful exports
-write `video.mp4`, rebased `captions.vtt`, and candidate-bound `short.json`.
-It validates the source cycle before and after encoding. Fresh output directories,
-owned processes, a bounded deadline, two encoder threads and diagnostic size
-limits remain mandatory. A failed attempt retains a BLOCKED receipt.
+write `video.mp4`, rebased `captions.vtt`, candidate-bound diagnostics and
+`short.json`. Open the sibling `index.html` for private review. Its relative
+links stay within the excerpt directory, and the receipt records the preview
+SHA-256 alongside the exact video, captions, diagnostics and parent identities.
+Use the WebVTT track on the sidecar preview and the visible captions on the
+burned preview. Both link to the WebVTT text. Keep the files together.
+For browsers that restrict a local file's text track, use an existing private
+same-origin preview. Physical-device playback still requires verification.
+The exporter validates the source cycle before and after encoding. Fresh output
+directories, owned processes, a bounded deadline, two encoder threads and
+diagnostic size limits remain mandatory. A failed attempt retains a BLOCKED
+receipt without a preview entry point.
 
 For the known 720×1280 picture renderer only, explicitly add
 `--hide-source-counter` to cover its source scene counter in the exported Short.
