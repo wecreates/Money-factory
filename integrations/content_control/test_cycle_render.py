@@ -80,10 +80,16 @@ class RenderValidationTests(unittest.TestCase):
         self.assertIn('direct full-mix listening', evidence['scope'])
 
     def test_voice_level_normalization_bounds_boost_and_peak(self):
-        quiet, quiet_evidence = render.normalize_voice_samples([.04, -.04])
+        monk_level, monk_evidence = render.normalize_voice_samples([.04, -.04])
+        self.assertTrue(math.isclose(monk_evidence['applied_gain'], 1.875))
+        self.assertTrue(math.isclose(monk_evidence['output_rms'], render.VOICE_TARGET_RMS))
+        self.assertTrue(all(math.isclose(abs(value), render.VOICE_TARGET_RMS)
+                            for value in monk_level))
+
+        quiet, quiet_evidence = render.normalize_voice_samples([.03, -.03])
         self.assertTrue(math.isclose(quiet_evidence['applied_gain'], render.VOICE_MAX_GAIN))
-        self.assertTrue(math.isclose(quiet_evidence['output_rms'], .072))
-        self.assertTrue(all(math.isclose(abs(value), .072) for value in quiet))
+        self.assertTrue(math.isclose(quiet_evidence['output_rms'], .057))
+        self.assertTrue(all(math.isclose(abs(value), .057) for value in quiet))
 
         peaked, peak_evidence = render.normalize_voice_samples([.9] + [0] * 323)
         self.assertTrue(math.isclose(peak_evidence['source_rms'], .05))
@@ -126,9 +132,11 @@ class RenderValidationTests(unittest.TestCase):
             clip = receipt['clips'][0]
             self.assertEqual(clip['speaker'], 'dave')
             self.assertEqual(clip['voice_id'], render.VOICE_ASSIGNMENTS['dave'])
-            self.assertTrue(math.isclose(clip['rms'], .072,
+            self.assertTrue(math.isclose(clip['rms'], render.VOICE_TARGET_RMS,
                                          abs_tol=render.PCM_QUANTIZATION_TOLERANCE))
-            self.assertTrue(math.isclose(clip['level_normalization']['applied_gain'], 1.8))
+            self.assertTrue(math.isclose(clip['level_normalization']['applied_gain'], 1.875))
+            self.assertEqual(clip['level_normalization']['algorithm'],
+                             render.VOICE_LEVEL_ALGORITHM)
             self.assertFalse(clip['level_normalization']['listening_verified'])
             self.assertEqual(clip['audio_sha256'], render.digest(output / clip['file']))
             stats = render.wave_pcm_stats(output / clip['file'])
@@ -175,6 +183,36 @@ class RenderValidationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'gain is inconsistent'):
                 render.measured_clip_frames(
                     brief()['scenes'], voice_receipt([forged]), root)
+
+    def test_parent_replays_legacy_gain_receipt_but_rejects_mixed_versions(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source = [.04, -.04] * 240
+            normalized, evidence = render.normalize_voice_samples(
+                source, max_gain=render.VOICE_LEGACY_MAX_GAIN)
+            evidence['algorithm'] = render.VOICE_LEGACY_LEVEL_ALGORITHM
+            wav = root / 'voice-00.wav'
+            with wave.open(str(wav), 'wb') as stream:
+                stream.setparams((1, 2, 24000, 0, 'NONE', 'not compressed'))
+                stream.writeframes(struct.pack(
+                    '<' + 'h' * len(normalized),
+                    *[round(value * 32767) for value in normalized]))
+            actual = render.wave_pcm_stats(wav)
+            evidence.update(output_rms=actual['rms'], output_peak=actual['peak'])
+            scene = brief()['scenes'][0]
+            clip = {'scene_id': scene['id'], 'speaker': 'dave',
+                    'voice_id': render.VOICE_ASSIGNMENTS['dave'], 'file': wav.name,
+                    'audio_sha256': render.digest(wav),
+                    'text_sha256': hashlib.sha256(scene['narration'].encode()).hexdigest(),
+                    'duration_seconds': actual['duration_seconds'], 'rms': actual['rms'],
+                    'level_normalization': evidence}
+            self.assertEqual(render.measured_clip_frames(
+                [scene], voice_receipt([clip]), root), [8])
+
+            forged = copy.deepcopy(clip)
+            forged['level_normalization']['maximum_gain'] = render.VOICE_MAX_GAIN
+            with self.assertRaisesRegex(ValueError, 'algorithm or scope changed'):
+                render.measured_clip_frames([scene], voice_receipt([forged]), root)
 
     def test_parent_rejects_internally_consistent_subthreshold_source(self):
         with tempfile.TemporaryDirectory() as td:

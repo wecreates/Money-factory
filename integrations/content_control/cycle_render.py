@@ -26,8 +26,10 @@ import wave
 VOICE_ASSIGNMENTS = {'dave': 'am_fenrir', 'points_monk': 'am_michael', 'narrator': 'am_adam'}
 VOICE_TARGET_RMS = .075
 VOICE_MAX_PEAK = .95
-VOICE_MAX_GAIN = 1.8
-VOICE_LEVEL_ALGORITHM = 'bounded_isolated_narration_rms_v1'
+VOICE_LEGACY_MAX_GAIN = 1.8
+VOICE_MAX_GAIN = 1.9
+VOICE_LEGACY_LEVEL_ALGORITHM = 'bounded_isolated_narration_rms_v1'
+VOICE_LEVEL_ALGORITHM = 'bounded_isolated_narration_rms_v2'
 VOICE_LEVEL_SCOPE = ('Deterministic isolated-narration level matching only; direct full-mix listening '
                      'is still required for voice and sound acceptance.')
 PCM_QUANTIZATION_TOLERANCE = 1 / 32767 + 1e-12
@@ -155,10 +157,15 @@ def validate_voice_normalization(clip, wav_stats):
               'output_peak', 'listening_verified', 'scope'}
     if not isinstance(value, dict) or set(value) != fields:
         raise ValueError('Exact voice normalization receipt required')
-    if (value.get('algorithm') != VOICE_LEVEL_ALGORITHM
+    algorithm = value.get('algorithm')
+    maximum_gain = {
+        VOICE_LEGACY_LEVEL_ALGORITHM: VOICE_LEGACY_MAX_GAIN,
+        VOICE_LEVEL_ALGORITHM: VOICE_MAX_GAIN,
+    }.get(algorithm)
+    if (maximum_gain is None
             or value.get('target_rms') != VOICE_TARGET_RMS
             or value.get('peak_ceiling') != VOICE_MAX_PEAK
-            or value.get('maximum_gain') != VOICE_MAX_GAIN
+            or value.get('maximum_gain') != maximum_gain
             or value.get('listening_verified') is not False
             or value.get('scope') != VOICE_LEVEL_SCOPE):
         raise ValueError('Voice normalization algorithm or scope changed')
@@ -169,7 +176,7 @@ def validate_voice_normalization(clip, wav_stats):
     if (not .001 <= value['source_rms'] <= value['source_peak'] <= 1):
         raise ValueError('Voice normalization source measurements are outside the accepted domain')
     expected_gain = min(VOICE_TARGET_RMS / value['source_rms'],
-                        VOICE_MAX_PEAK / value['source_peak'], VOICE_MAX_GAIN)
+                        VOICE_MAX_PEAK / value['source_peak'], maximum_gain)
     if not math.isclose(value['applied_gain'], expected_gain, rel_tol=0, abs_tol=1e-12):
         raise ValueError('Voice normalization gain is inconsistent')
     for source, output in (('source_rms', 'output_rms'), ('source_peak', 'output_peak')):
