@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from integrations.content_control.cycle_intake import prepare_brief
+from integrations.content_control.cycle_intake import prepare_brief, verify_intake
 from integrations.content_control.cycle_editorial import compile_editorial
 from integrations.content_control.cycle_job import brief_digest
 from integrations.content_control.test_cycle_editorial import brief as sample_brief
@@ -55,6 +55,50 @@ class IntakeTests(unittest.TestCase):
             prepare_brief(self.research, self.draft, self.output)
         self.assertFalse(self.output.exists())
 
+    def test_verify_rebuilds_existing_intake_without_writes(self):
+        self.write_draft()
+        created = prepare_brief(self.research, self.draft, self.output)
+        paths = [self.research, self.draft, self.output / 'brief.json', self.output / 'intake.json']
+        before = [(path.read_bytes(), path.stat().st_mtime_ns) for path in paths]
+        proof = verify_intake(self.research, self.draft, self.output)
+        self.assertEqual(proof['status'], 'INTAKE_VERIFIED')
+        self.assertEqual(proof['intake_receipt_sha256'], hashlib.sha256(before[-1][0]).hexdigest())
+        for key in ('research_sha256', 'draft_sha256', 'brief_sha256', 'queue_brief_sha256'):
+            self.assertEqual(proof[key], created[key])
+        for key in ('factual_review', 'full_av_review', 'production_approved', 'publication_enabled'):
+            self.assertIs(proof[key], False)
+        self.assertEqual([(path.read_bytes(), path.stat().st_mtime_ns) for path in paths], before)
+
+    def test_verify_rejects_changed_sources_draft_brief_or_receipt(self):
+        self.write_draft()
+        prepare_brief(self.research, self.draft, self.output)
+        brief = self.output / 'brief.json'
+        receipt = self.output / 'intake.json'
+        bad_receipt = {**json.loads(receipt.read_bytes()), 'draft_sha256': 'not-a-digest'}
+        for path, changed, error in (
+            (self.research, self.research.read_bytes() + b'\n', 'exact research bytes'),
+            (self.draft, self.draft.read_bytes() + b'\n', 'brief does not match'),
+            (brief, brief.read_bytes() + b'\n', 'brief does not match'),
+            (receipt, json.dumps(bad_receipt).encode(), 'receipt does not match'),
+        ):
+            with self.subTest(path=path.name):
+                before = path.read_bytes()
+                path.write_bytes(changed)
+                with self.assertRaisesRegex(ValueError, error):
+                    verify_intake(self.research, self.draft, self.output)
+                self.assertEqual(path.read_bytes(), changed)
+                path.write_bytes(before)
+
+    def test_verify_accepts_legacy_windows_receipt_bytes(self):
+        self.write_draft()
+        prepare_brief(self.research, self.draft, self.output)
+        receipt = self.output / 'intake.json'
+        windows_receipt = receipt.read_bytes().replace(b'\n', b'\r\n')
+        receipt.write_bytes(windows_receipt)
+        proof = verify_intake(self.research, self.draft, self.output)
+        self.assertEqual(proof['intake_receipt_sha256'], hashlib.sha256(windows_receipt).hexdigest())
+        self.assertEqual(receipt.read_bytes(), windows_receipt)
+
     def test_draft_rejects_even_whitespace_changes_to_research(self):
         self.write_draft()
         self.research.write_bytes(self.research.read_bytes() + b'\n')
@@ -101,6 +145,17 @@ class IntakeTests(unittest.TestCase):
         brief['idea_learning']['audience_performance_verified'] = True
         with self.assertRaisesRegex(ValueError, 'must remain unverified'):
             compile_editorial(brief)
+
+    def test_verify_revalidates_required_prior_selection(self):
+        _, _, paths = self.learning_inputs()
+        prepare_brief(self.research, self.draft, self.output, **paths)
+        with self.assertRaisesRegex(ValueError, 'requires the prior cycle'):
+            verify_intake(self.research, self.draft, self.output)
+        proof = verify_intake(self.research, self.draft, self.output, **paths)
+        self.assertEqual(proof['status'], 'INTAKE_VERIFIED')
+        paths['selection_receipt'].write_bytes(paths['selection_receipt'].read_bytes() + b'\n')
+        with self.assertRaisesRegex(ValueError, 'does not bind this selection receipt'):
+            verify_intake(self.research, self.draft, self.output, **paths)
 
     def test_rejects_a_changed_receipt_even_if_the_draft_rebinds_it(self):
         prior, recorded, paths = self.learning_inputs()
