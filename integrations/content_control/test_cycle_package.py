@@ -74,7 +74,9 @@ class CyclePackageTest(unittest.TestCase):
         diagnostics = json.loads((self.root / 'package/automated-review.json').read_text())
         self.assertEqual(diagnostics['candidate_sha256'], result['candidate_sha256'])
         self.assertEqual(diagnostics['caption_sha256'], result['caption_sha256'])
-        self.assertEqual(diagnostics['watcher']['status'], 'SIGNALS_MEASURED')
+        self.assertEqual(diagnostics['watcher']['status'], 'SIGNALS_MEASURED',
+                         diagnostics['analysis'].get('scan_failure_code'))
+        self.assertNotIn('scan_failure_code', diagnostics['analysis'])
         self.assertGreaterEqual(diagnostics['listener']['silence_seconds'], .9)
         self.assertEqual(diagnostics['reviewer']['status'], 'FULL_REVIEW_REQUIRED')
         self.assertFalse(diagnostics['competitor_audiovisual_comparison_verified'])
@@ -83,6 +85,52 @@ class CyclePackageTest(unittest.TestCase):
             self.assertIn('package.json', archive.namelist())
             self.assertIn('automated-review.json', archive.namelist())
             self.assertNotIn('review-package.zip', archive.namelist())
+
+    def test_blocked_scan_retains_sanitized_failure_code(self):
+        from integrations.content_control.cycle_av_review import write_automated_review
+
+        for index, (failure, code) in enumerate((
+                (TimeoutError, 'CANDIDATE_SCAN_TIMED_OUT'),
+                (FileNotFoundError, 'CANDIDATE_SCAN_INPUT_OR_TOOL_MISSING'),
+                (OSError, 'CANDIDATE_SCAN_IO_FAILED'),
+                (ValueError, 'CANDIDATE_SCAN_INPUT_OR_SIGNALS_INVALID'),
+                (RuntimeError, 'CANDIDATE_SCAN_PROCESS_FAILED'))):
+            with self.subTest(failure=failure.__name__):
+                output = self.root / f'blocked-{index}.json'
+                with patch('integrations.content_control.cycle_av_review.scan_media',
+                           side_effect=failure('private path or stderr')):
+                    write_automated_review(self.render, self.receipt['candidate_sha256'],
+                                           self.receipt['caption_sha256'], deadline=None, output=output)
+                text = output.read_text()
+                report = json.loads(text)
+                self.assertNotIn('private path or stderr', text)
+                self.assertEqual(report['analysis']['scan_failure_code'], code)
+                self.assertTrue(all(report[role]['status'] == 'BLOCKED'
+                                    for role in ('analysis', 'watcher', 'listener', 'competitor_comparison')))
+                self.assertFalse(report['full_audiovisual_review_verified'])
+
+    def test_av_scan_uses_separate_streams_and_shared_deadline(self):
+        from integrations.content_control.cycle_av_review import scan_media
+
+        picture_log = b'[blackdetect @ 0x123] black_start: 0.2 black_end: 0.5\n'
+        audio_log = (b'[silencedetect @ 0x456] silence_start: 0\n'
+                     b'metadata mean_volume: -1.0 dB\n'
+                     b'[Parsed_volumedetect_1 @ 0x789] mean_volume: -91.0 dB\n'
+                     b'[Parsed_volumedetect_1 @ 0x789] max_volume: -90.0 dB\n')
+        deadline = time.monotonic() + 10
+        with patch('integrations.content_control.cycle_av_review.run',
+                   side_effect=[picture_log, audio_log]) as scanner:
+            result = scan_media(self.render / 'video.mp4', deadline=deadline,
+                                media={'width': 160, 'height': 240, 'duration_seconds': 1.0})
+        self.assertEqual(scanner.call_count, 2)
+        for call, stream, muted in zip(scanner.call_args_list, ('0:v:0', '0:a:0'), ('-an', '-vn')):
+            command = call.args[0]
+            self.assertEqual(command[command.index('-map') + 1], stream)
+            self.assertIn(muted, command)
+            self.assertEqual(call.kwargs['deadline'], deadline)
+        self.assertEqual(result['watcher']['black_intervals'], [[.2, .5]])
+        self.assertEqual(result['listener']['mean_dbfs'], -91.0)
+        self.assertEqual(result['listener']['silence_seconds'], 1.0)
 
     def test_native_landscape_binds_layout_and_uses_uncropped_frames(self):
         target = self.render / 'video.mp4'

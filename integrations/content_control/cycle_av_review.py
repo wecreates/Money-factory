@@ -50,17 +50,22 @@ def scan_media(path, *, deadline, media=None):
     """Scan the complete picture and primary audio tracks without network or inference."""
     media = inspect_media(path, deadline=deadline, decode=False) if media is None else media
     duration = media['duration_seconds']
-    log = run(['ffmpeg', '-hide_banner', '-nostdin', '-nostats', '-loglevel', 'info', '-xerror',
+    command = ['ffmpeg', '-hide_banner', '-nostdin', '-nostats', '-loglevel', 'info', '-xerror',
                '-protocol_whitelist', 'file,pipe', '-f', 'mov', '-enable_drefs', '0',
-               '-use_absolute_path', '0', '-threads', '2', '-i', str(path), '-map', '0:v:0', '-map', '0:a:0',
-               '-filter_threads', '1', '-threads', '2',
-               '-vf', 'blackdetect=d=0.25:pix_th=0.10,freezedetect=n=-50dB:d=1.5',
-               '-af', 'silencedetect=n=-45dB:d=0.6,volumedetect', '-f', 'null', '-'],
-              deadline=deadline, stderr=True).decode('utf-8', 'replace')
-    black = _intervals(_filter_log(log, 'blackdetect'), 'black_start', 'black_end', duration)
-    frozen = _intervals(_filter_log(log, 'freezedetect'), 'freeze_start', 'freeze_end', duration)
-    silence = _intervals(_filter_log(log, 'silencedetect'), 'silence_start', 'silence_end', duration)
-    levels = _filter_log(log, 'volumedetect')
+               '-use_absolute_path', '0', '-threads', '2', '-i', str(path),
+               '-filter_threads', '1', '-threads', '2', '-map_metadata', '-1']
+    # Separate the streams so video output metadata cannot interleave with
+    # audio level records and hide the detector's message prefix.
+    picture_log = run(command + ['-map', '0:v:0', '-an',
+                      '-vf', 'blackdetect=d=0.25:pix_th=0.10,freezedetect=n=-50dB:d=1.5', '-f', 'null', '-'],
+                      deadline=deadline, stderr=True).decode('utf-8', 'replace')
+    audio_log = run(command + ['-map', '0:a:0', '-vn',
+                    '-af', 'silencedetect=n=-45dB:d=0.6,volumedetect', '-f', 'null', '-'],
+                    deadline=deadline, stderr=True).decode('utf-8', 'replace')
+    black = _intervals(_filter_log(picture_log, 'blackdetect'), 'black_start', 'black_end', duration)
+    frozen = _intervals(_filter_log(picture_log, 'freezedetect'), 'freeze_start', 'freeze_end', duration)
+    silence = _intervals(_filter_log(audio_log, 'silencedetect'), 'silence_start', 'silence_end', duration)
+    levels = _filter_log(audio_log, 'volumedetect')
     return {'media': {key: media[key] for key in ('width', 'height', 'duration_seconds')},
             'watcher': {'status': 'SIGNALS_MEASURED', 'black_intervals': black, 'frozen_intervals': frozen,
                         'black_seconds': _seconds(black), 'frozen_seconds': _seconds(frozen)},
@@ -78,9 +83,21 @@ def write_automated_review(directory, candidate, captions, *, deadline, media=No
     # Keep room on the parent budget for thumbnails, the receipt and the review ZIP.
     now = time.monotonic()
     review_deadline = now + (120 if deadline is None else min(120, (deadline - now) / 2))
+    scan_failure = None
     try:
         signals = scan_media(video, deadline=review_deadline, media=media)
-    except (OSError, ValueError, RuntimeError, TimeoutError):
+    except (OSError, ValueError, RuntimeError) as error:
+        # Retain an actionable failure class without exposing paths or stderr.
+        if isinstance(error, TimeoutError):
+            scan_failure = 'CANDIDATE_SCAN_TIMED_OUT'
+        elif isinstance(error, FileNotFoundError):
+            scan_failure = 'CANDIDATE_SCAN_INPUT_OR_TOOL_MISSING'
+        elif isinstance(error, OSError):
+            scan_failure = 'CANDIDATE_SCAN_IO_FAILED'
+        elif isinstance(error, ValueError):
+            scan_failure = 'CANDIDATE_SCAN_INPUT_OR_SIGNALS_INVALID'
+        else:
+            scan_failure = 'CANDIDATE_SCAN_PROCESS_FAILED'
         signals = {'watcher': {'status': 'BLOCKED'}, 'listener': {'status': 'BLOCKED'}}
         comparison = {'status': 'BLOCKED', 'reason': 'Candidate signal scan unavailable'}
     else:
@@ -102,6 +119,8 @@ def write_automated_review(directory, candidate, captions, *, deadline, media=No
                             'comparison_checks': ['hook', 'storytelling', 'visual pacing', 'voice and mix', 'originality']},
                'full_audiovisual_review_verified': False, 'competitor_audiovisual_comparison_verified': False,
                'publication_enabled': False, 'paid_generation_enabled': False, 'production_approved': False}
+    if scan_failure is not None:
+        receipt['analysis']['scan_failure_code'] = scan_failure
     with output.open('x') as out:
         json.dump(receipt, out, indent=2, sort_keys=True, allow_nan=False)
         out.write('\n')
