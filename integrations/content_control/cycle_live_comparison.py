@@ -38,6 +38,9 @@ FORMATS = {'portrait', 'landscape', 'square'}
 DIFFERENCE_FIELDS = {'audio', 'visual', 'pacing', 'story'}
 FLAGS = ('publication_enabled', 'paid_generation_enabled', 'production_approved',
          'full_av_review', 'production_ready', 'competitor_comparison_verified')
+SCOPE = ('Exact-candidate live-view comparison attestation with two supplied ranking-evidence links, '
+         'explicit candidate differences and actionable findings. Playback observations, rank, '
+         'relevance and creative judgments are not independently verified.')
 
 
 def _canonical_url_identity(value):
@@ -225,17 +228,12 @@ def validate_observations(value, candidate_sha256):
             'candidate_observation': candidate_result, 'references': normalized}
 
 
-def record_live_comparison(cycle_dir, observations_path, output):
-    require(all(os.environ.get(name, 'false').lower() == 'false' for name in
-                ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')),
-            'Publishing and paid generation must remain disabled')
-    root = Path(os.path.abspath(cycle_dir))
-    snapshot = inspect_cycle(root)
-    source = Path(os.path.abspath(observations_path))
-    raw = _read_source(source)
-    submitted_sha = hashlib.sha256(raw).hexdigest()
-    value = json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant)
-    comparison = validate_observations(value, snapshot['candidate_sha256'])
+def _canonical_sha(value):
+    return hashlib.sha256(json.dumps(
+        value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
+def _bind_cycle(root, snapshot, comparison):
     render = json.loads((root / 'delivery/render.json').read_text(),
                         object_pairs_hook=_pairs, parse_constant=_constant)
     encoded_duration = _duration(render.get('duration_seconds'), 'render.duration_seconds')
@@ -251,19 +249,64 @@ def record_live_comparison(cycle_dir, observations_path, output):
     require(datetime.fromisoformat(comparison['reviewed_at']) >=
             datetime.fromisoformat(snapshot['cycle']['finished_at']),
             'Live comparison predates the completed candidate')
-    result = {
+
+
+def _recorded_result(snapshot, comparison, submitted_sha, recorded_at):
+    require(isinstance(submitted_sha, str) and SHA.fullmatch(submitted_sha),
+            'Submitted live comparison identity required')
+    recorded_at = _timestamp(recorded_at, 'recorded_at')
+    recorded = datetime.fromisoformat(recorded_at)
+    require(recorded >= datetime.fromisoformat(comparison['reviewed_at']),
+            'Live comparison receipt predates its review')
+    require(recorded <= datetime.now(timezone.utc),
+            'Live comparison receipt cannot be future dated')
+    return {
         **comparison,
         'status': 'COMPARISON_ATTESTATION_RECORDED',
-        'recorded_at': datetime.now(timezone.utc).isoformat(),
+        'recorded_at': recorded_at,
         'submitted_observations_sha256': submitted_sha,
+        'normalized_observations_sha256': _canonical_sha(comparison),
         'source_files_sha256': snapshot['files_sha256'],
         'full_interval_schema_validated': True,
         'independent_verification': False,
         **dict.fromkeys(FLAGS, False),
-        'scope': ('Exact-candidate live-view comparison attestation with two supplied ranking-evidence links, '
-                  'explicit candidate differences and actionable findings. Playback observations, rank, '
-                  'relevance and creative judgments are not independently verified.'),
+        'scope': SCOPE,
     }
+
+
+def validate_recorded_comparison(cycle_dir, value):
+    """Replay an embedded comparison receipt against the exact current candidate."""
+    root = Path(os.path.abspath(cycle_dir))
+    snapshot = inspect_cycle(root)
+    require(isinstance(value, dict) and ROOT_FIELDS <= set(value),
+            'Recorded live comparison receipt required')
+    submitted = {name: value[name] for name in ROOT_FIELDS}
+    comparison = validate_observations(submitted, snapshot['candidate_sha256'])
+    _bind_cycle(root, snapshot, comparison)
+    expected = _recorded_result(
+        snapshot, comparison, value.get('submitted_observations_sha256'),
+        value.get('recorded_at'))
+    require(value == expected,
+            'Recorded live comparison identity, evidence or scope changed')
+    require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'],
+            'Cycle changed while replaying live comparison evidence')
+    return expected
+
+
+def record_live_comparison(cycle_dir, observations_path, output):
+    require(all(os.environ.get(name, 'false').lower() == 'false' for name in
+                ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')),
+            'Publishing and paid generation must remain disabled')
+    root = Path(os.path.abspath(cycle_dir))
+    snapshot = inspect_cycle(root)
+    source = Path(os.path.abspath(observations_path))
+    raw = _read_source(source)
+    submitted_sha = hashlib.sha256(raw).hexdigest()
+    value = json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant)
+    comparison = validate_observations(value, snapshot['candidate_sha256'])
+    _bind_cycle(root, snapshot, comparison)
+    result = _recorded_result(
+        snapshot, comparison, submitted_sha, datetime.now(timezone.utc).isoformat())
     require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256']
             and _read_source(source) == raw,
             'Comparison inputs changed while recording')
@@ -278,13 +321,39 @@ def record_live_comparison(cycle_dir, observations_path, output):
     return result
 
 
+def verify_live_comparison(cycle_dir, observations_path, receipt_path):
+    """Replay both the submitted observations and retained receipt without writes."""
+    source = Path(os.path.abspath(observations_path))
+    receipt_path = Path(os.path.abspath(receipt_path))
+    require(source != receipt_path, 'Comparison observations and receipt must be separate')
+    source_raw = _read_source(source)
+    receipt_raw = _read_source(receipt_path)
+    receipt = json.loads(receipt_raw, object_pairs_hook=_pairs, parse_constant=_constant)
+    expected = validate_recorded_comparison(cycle_dir, receipt)
+    require(expected['submitted_observations_sha256'] == hashlib.sha256(source_raw).hexdigest(),
+            'Submitted live comparison observations changed')
+    submitted = json.loads(source_raw, object_pairs_hook=_pairs, parse_constant=_constant)
+    normalized = validate_observations(submitted, expected['candidate_sha256'])
+    require(_canonical_sha(normalized) == expected['normalized_observations_sha256'],
+            'Submitted live comparison no longer matches the receipt')
+    require(_read_source(source) == source_raw and _read_source(receipt_path) == receipt_raw,
+            'Comparison verification inputs changed')
+    return expected, hashlib.sha256(receipt_raw).hexdigest()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cycle-dir', required=True)
     parser.add_argument('--observations', required=True)
-    parser.add_argument('--output', required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--output')
+    mode.add_argument('--verify-receipt')
     args = parser.parse_args()
-    result = record_live_comparison(args.cycle_dir, args.observations, args.output)
+    if args.verify_receipt:
+        result = verify_live_comparison(
+            args.cycle_dir, args.observations, args.verify_receipt)[0]
+    else:
+        result = record_live_comparison(args.cycle_dir, args.observations, args.output)
     print(json.dumps(result, indent=2))
     return 0
 
