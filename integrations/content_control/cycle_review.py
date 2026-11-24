@@ -170,7 +170,7 @@ def lint_package(cycle_dir, output):
     return result
 
 
-def record_review(cycle_dir, review_path, output):
+def record_review(cycle_dir, review_path, output, *, rea_analysis=None):
     root, review_path = Path(os.path.abspath(cycle_dir)), Path(os.path.abspath(review_path))
     snapshot = inspect_cycle(root)
     review = _load(review_path)
@@ -203,9 +203,18 @@ def record_review(cycle_dir, review_path, output):
               'scope': 'Candidate-bound reviewer attestation only; supplied judgments are not independently verified.',
               'publication_enabled': False, 'paid_generation_enabled': False, 'production_approved': False,
               'full_av_review': False, 'production_ready': False}
+    recheck_rea = None
+    if rea_analysis is not None:
+        from integrations.rea_video.analyze_cycle import review_evidence
+
+        require(not Path(os.path.abspath(output)).is_relative_to(Path(os.path.abspath(rea_analysis)).parent),
+                'Review output must be separate from the REA analysis directory')
+        result['rea_diagnostics'], recheck_rea = review_evidence(rea_analysis, root, snapshot, reviewed_at)
     require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash,
             'Review inputs changed while recording')
     output = _new_output(output, root, review_path)
+    if recheck_rea is not None:
+        recheck_rea()
     with output.open('x') as stream:
         json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False); stream.write('\n')
     return result
@@ -268,27 +277,29 @@ def main():
     diagnostics.add_argument('--analyze', action='store_true', help='Collect offline REA Video diagnostics before recording a review.')
     diagnostics.add_argument('--package-lint', action='store_true', help='Collect pinned YouTube title and thumbnail copy diagnostics.')
     parser.add_argument('--rea-runtime', help='Absolute Python interpreter from the installed REA Video environment.')
+    parser.add_argument('--rea-analysis', help='Link a retained REA analysis.json to a submitted review.')
     parser.add_argument('--timeout', type=int, default=300)
     args = parser.parse_args()
     if args.package_lint:
-        if args.review or args.revision_brief or args.rea_runtime:
+        if args.review or args.revision_brief or args.rea_runtime or args.rea_analysis:
             parser.error('--package-lint cannot be combined with review, revision, or REA runtime options')
         result = lint_package(args.cycle_dir, args.output)
         print(json.dumps(result, indent=2))
         return 0 if result.get('status') == 'DIAGNOSTIC_COMPLETE' else 2
     if args.analyze:
-        if not args.rea_runtime or args.review or args.revision_brief:
+        if not args.rea_runtime or args.review or args.revision_brief or args.rea_analysis:
             parser.error('--analyze requires --rea-runtime and cannot be combined with --review or --revision-brief')
         from integrations.rea_video.analyze_cycle import analyze_cycle
         result = analyze_cycle(args.cycle_dir, args.output, runtime=args.rea_runtime, timeout=args.timeout)
         print(json.dumps(result, indent=2))
         return 0 if result.get('status') == 'DIAGNOSTIC_COMPLETE' else 2
-    if not args.review or args.rea_runtime:
-        parser.error('Review/revision requires --review; --rea-runtime is only for --analyze')
+    if not args.review or args.rea_runtime or (args.revision_brief and args.rea_analysis):
+        parser.error('Review/revision requires --review; --rea-analysis is only for recording a review')
     if args.revision_brief:
         result = revision_brief(args.cycle_dir, args.review, _load(Path(args.revision_brief)), args.output)
     else:
-        result = record_review(args.cycle_dir, args.review, args.output)
+        options = {'rea_analysis': args.rea_analysis} if args.rea_analysis is not None else {}
+        result = record_review(args.cycle_dir, args.review, args.output, **options)
     print(json.dumps(result, indent=2))
     return 0
 

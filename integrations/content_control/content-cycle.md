@@ -325,6 +325,16 @@ disabled. Scene/OCR diagnostics are neither full audiovisual observation nor a
 review attestation. Inspect the generated evidence before recording judgments.
 See [the analyzer adapter](../rea_video/README.md) for runtime and evidence scope.
 
+To attach the retained detector evidence to a submitted review, add
+`--rea-analysis /absolute/new-analysis/analysis.json` when recording it.
+The review command rehashes the accompanying `diagnostics/` directory, compares
+the detector summary to the exact bound render, and requires the diagnostics to
+finish between the completed cycle and the review date. It retains the receipt
+identity, detector status, and authored-cut coverage in the recorded review.
+Altered or fully blocked results cannot be attached. Existing review calls
+remain valid without this option. The separate authored stills, runtime execution,
+creative judgments and publication approvals require their own evidence.
+
 Use `--package-lint` for a separate advisory check of the completed cycle's
 title and thumbnail copy. It runs the registered, pinned YouTube Agent Skill
 locally. The exact candidate, package, tool input and findings are recorded in

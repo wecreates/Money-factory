@@ -10,8 +10,10 @@ import subprocess
 import threading
 import time
 
-from integrations.content_control.cycle_review import inspect_cycle
-from integrations.content_control.review_package import digest, no_symlinks, require
+from integrations.content_control.cycle_editorial import _timestamp
+from integrations.content_control.cycle_lineage import _constant, _pairs
+from integrations.content_control.cycle_review import _regular, inspect_cycle
+from integrations.content_control.review_package import check_deadline, digest, no_symlinks, require
 from integrations.owned_process import owned_process
 
 PIN = '86486c6e104b917fb4b6a2d6501134686c05b219'
@@ -106,15 +108,16 @@ def _run(command, *, log, deadline, env, cwd):
         log.write_bytes(bytes(tail))
 
 
-def _manifest(directory):
+def _manifest(directory, deadline=None):
     files = {}; total = 0
-    for path in sorted(directory.rglob('*')):
+    for path in directory.rglob('*'):
+        check_deadline(deadline)
         no_symlinks(path)
         if path.is_dir(): continue
         require(path.is_file(), 'Nonregular diagnostic artifact')
         size = path.stat().st_size; total += size
         require(size <= 64 * 1024 * 1024 and total <= 256 * 1024 * 1024, 'Diagnostic output size limit exceeded')
-        files[str(path.relative_to(directory))] = digest(path)
+        files[str(path.relative_to(directory))] = digest(path, deadline)
     require({'breakdown.json', 'VIDEO.md', 'storyboard.jpg'} <= set(files), 'Required diagnostics missing')
     return files
 
@@ -180,6 +183,52 @@ def _cut_coverage(render, editorial_scenes, summary):
         status = 'ALL_AUTHORED_CUTS_MATCHED' if matched else 'NO_AUTHORED_CUTS'
     return {'status': status, 'tolerance_seconds': CUT_TOLERANCE_SECONDS,
             'matched_cuts': matched, 'missing_cuts': missing, 'unmatched_detected_seconds': unmatched}
+
+
+def review_evidence(receipt_path, cycle_dir, snapshot, reviewed_at):
+    """Return diagnostic evidence and a bounded final check for the review writer."""
+    path = _regular(Path(receipt_path).absolute())
+    with path.open('rb') as stream:
+        raw = stream.read(1024 * 1024 + 1)
+    require(len(raw) <= 1024 * 1024, 'REA analysis receipt exceeds review limit')
+    receipt = json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant)
+    require(isinstance(receipt, dict) and type(receipt.get('schema_version')) is int
+            and receipt['schema_version'] == 1
+            and receipt.get('status') in ('DIAGNOSTIC_COMPLETE', 'PARTIAL_DIAGNOSTIC')
+            and receipt.get('source_commit') == PIN, 'Usable pinned REA diagnostics required')
+    require(all(receipt.get(key) is False for key in ('publication_enabled', 'paid_generation_enabled',
+                'production_approved', 'full_av_review', 'production_ready', 'independent_creative_verification')),
+            'REA diagnostic scope mismatch')
+    require(receipt.get('candidate_sha256') == snapshot['candidate_sha256']
+            and receipt.get('cycle_files_sha256') == snapshot['files_sha256'],
+            'REA diagnostics do not bind the reviewed cycle')
+    finished = _timestamp(receipt.get('finished_at'), 'analysis.finished_at')
+    require(datetime.fromisoformat(snapshot['cycle']['finished_at']) <= datetime.fromisoformat(finished)
+            <= datetime.fromisoformat(reviewed_at), 'REA diagnostics must follow the cycle and precede the review')
+    deadline = time.monotonic() + 60
+    diagnostics = path.parent / 'diagnostics'
+    manifest = _manifest(diagnostics, deadline)
+    require(manifest == receipt.get('diagnostics_files_sha256'), 'REA diagnostic artifact identity mismatch')
+    summary = _summarize(diagnostics)
+    with _regular(cycle_dir/'delivery/render.json').open('rb') as stream:
+        render_raw = stream.read(1024 * 1024 + 1)
+    require(hashlib.sha256(render_raw).hexdigest() == snapshot['files_sha256']['delivery/render.json'],
+            'Render receipt changed before linking REA diagnostics')
+    summary['authored_cut_coverage'] = _cut_coverage(json.loads(render_raw), snapshot['editorial']['scenes'], summary)
+    require(summary == receipt.get('summary'), 'REA detector summary does not match retained diagnostics')
+    receipt_sha = hashlib.sha256(raw).hexdigest()
+    evidence = {'receipt_sha256': receipt_sha, 'source_commit': PIN, 'status': receipt['status'],
+                'finished_at': finished, 'diagnostic_artifact_count': len(manifest),
+                'detected_segments': summary['detected_segments'],
+                'authored_cut_coverage': summary['authored_cut_coverage'],
+                'runtime_execution_independently_verified': False,
+                'scope': 'Detector artifact identity only. Authored gallery and runtime execution are separate evidence.'}
+
+    def recheck():
+        require(_manifest(diagnostics, deadline) == manifest, 'REA diagnostic artifacts changed while recording review')
+        require(digest(path, deadline) == receipt_sha, 'REA analysis receipt changed')
+
+    return evidence, recheck
 
 
 def _authored_samples(root, output, before, coverage, deadline):
@@ -262,7 +311,7 @@ def analyze_cycle(cycle_dir, output, *, runtime, timeout=300):
         after_identity = json.loads((output/'analyzer-after.json').read_text())
         require(after_identity.pop('ocr_runtime_initialized', False) is True and after_identity == identity,
                 'Analyzer installation changed or OCR unavailable')
-        manifest = _manifest(diagnostics); summary = _summarize(diagnostics)
+        manifest = _manifest(diagnostics, deadline); summary = _summarize(diagnostics)
         coverage = _cut_coverage(render, before['editorial']['scenes'], summary)
         summary['authored_cut_coverage'] = coverage
         samples = _authored_samples(root, output, before, coverage, deadline)

@@ -8,6 +8,8 @@ from unittest.mock import patch
 import zipfile
 
 from integrations.content_control import test_cycle_review as review_fixture
+from integrations.content_control import cycle_review
+from integrations.content_control.cycle_review import record_review
 from integrations.content_control.review_package import digest
 from integrations.rea_video import analyze_cycle as analyzer
 
@@ -47,6 +49,97 @@ class AnalyzerTests(unittest.TestCase):
         self.assertFalse(result['full_av_review']);self.assertFalse(result['production_approved'])
         self.assertFalse(result['publication_enabled']);self.assertIn('VIDEO.md',result['diagnostics_files_sha256'])
         self.assertEqual(result['summary']['authored_cut_coverage']['status'], 'UNAVAILABLE')
+
+    def test_review_consumes_exact_diagnostics_without_approving_the_candidate(self):
+        with patch.object(analyzer, '_run', side_effect=self.fake_run):
+            result = self.call()
+        output = self.base/'analysis'
+        submission = self.packet.submitted
+        review_fixture.write(submission, dict(self.packet.review, reviewed_at=result['finished_at']))
+        record = record_review(self.root, submission, self.packet.recorded,
+                               rea_analysis=output/'analysis.json')
+        evidence = record['rea_diagnostics']
+        self.assertEqual(evidence['receipt_sha256'], digest(output/'analysis.json'))
+        self.assertEqual(evidence['detected_segments'], 1)
+        self.assertEqual(evidence['diagnostic_artifact_count'], 3)
+        self.assertEqual(evidence['authored_cut_coverage']['status'], 'UNAVAILABLE')
+        self.assertFalse(evidence['runtime_execution_independently_verified'])
+        for name in ('independent_verification', 'full_av_review', 'production_approved', 'publication_enabled'):
+            self.assertIs(record[name], False)
+
+    def test_review_rejects_stale_altered_or_blocked_diagnostics(self):
+        with patch.object(analyzer, '_run', side_effect=self.fake_run):
+            result = self.call()
+        output = self.base/'analysis'
+        receipt = output/'analysis.json'
+        original = receipt.read_bytes()
+        submission = self.packet.submitted
+        record = self.packet.recorded
+        review_fixture.write(submission, dict(self.packet.review, reviewed_at=result['finished_at']))
+        for changed, error in (
+            ({'candidate_sha256': '0' * 64}, 'do not bind the reviewed cycle'),
+            ({'status': 'BLOCKED'}, 'Usable pinned'),
+            ({'finished_at': '2026-01-02T00:00:00Z'}, 'must follow the cycle'),
+            ({'finished_at': '2099-01-02T00:00:00Z'}, 'future evidence forbidden'),
+            ({'summary': dict(result['summary'], detected_segments=999)}, 'summary does not match'),
+        ):
+            with self.subTest(changed=changed):
+                review_fixture.write(receipt, dict(result, **changed))
+                with self.assertRaisesRegex(ValueError, error):
+                    record_review(self.root, submission, record, rea_analysis=receipt)
+                self.assertFalse(record.exists())
+        receipt.write_bytes(original)
+        review_fixture.write(submission, self.packet.review)
+        with self.assertRaisesRegex(ValueError, 'precede the review'):
+            record_review(self.root, submission, record, rea_analysis=receipt)
+        review_fixture.write(submission, dict(self.packet.review, reviewed_at=result['finished_at']))
+        with self.assertRaisesRegex(ValueError, 'separate from the REA'):
+            record_review(self.root, submission, output/'diagnostics/new.json', rea_analysis=receipt)
+        (output/'diagnostics/VIDEO.md').write_text('Altered')
+        with self.assertRaisesRegex(ValueError, 'artifact identity mismatch'):
+            record_review(self.root, submission, record, rea_analysis=receipt)
+        self.assertFalse(record.exists())
+
+    def test_review_rejects_diagnostics_changed_while_summarizing(self):
+        with patch.object(analyzer, '_run', side_effect=self.fake_run):
+            result = self.call()
+        submission = self.packet.submitted
+        review_fixture.write(submission, dict(self.packet.review, reviewed_at=result['finished_at']))
+        summarize = analyzer._summarize
+
+        def summarize_then_change(directory):
+            summary = summarize(directory)
+            (directory/'VIDEO.md').write_text('Changed after first manifest check')
+            return summary
+
+        with patch.object(analyzer, '_summarize', side_effect=summarize_then_change), \
+             self.assertRaisesRegex(ValueError, 'artifacts changed while recording'):
+            record_review(self.root, submission, self.packet.recorded,
+                          rea_analysis=self.base/'analysis/analysis.json')
+        self.assertFalse(self.packet.recorded.exists())
+
+    def test_review_rejects_diagnostics_changed_during_final_cycle_check(self):
+        with patch.object(analyzer, '_run', side_effect=self.fake_run):
+            result = self.call()
+        submission = self.packet.submitted
+        review_fixture.write(submission, dict(self.packet.review, reviewed_at=result['finished_at']))
+        inspect = cycle_review.inspect_cycle
+        checks = 0
+
+        def inspect_then_change(root):
+            nonlocal checks
+            checks += 1
+            snapshot = inspect(root)
+            if checks == 2:
+                (self.base/'analysis/diagnostics/VIDEO.md').write_text('Changed during final cycle check')
+            return snapshot
+
+        with patch.object(cycle_review, 'inspect_cycle', side_effect=inspect_then_change), \
+             self.assertRaisesRegex(ValueError, 'artifacts changed while recording'):
+            record_review(self.root, submission, self.packet.recorded,
+                          rea_analysis=self.base/'analysis/analysis.json')
+        self.assertEqual(checks, 2)
+        self.assertFalse(self.packet.recorded.exists())
 
     def add_render_scene_starts(self):
         delivery = self.root/'delivery'
@@ -103,6 +196,13 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(result['summary']['authored_cut_coverage']['status'], 'MISSING_AUTHORED_CUTS')
         self.assertIn('breakdown.json', result['diagnostics_files_sha256'])
         self.assertEqual(result['authored_scene_samples'], {'status': 'BLOCKED', 'reason': 'Frame unavailable'})
+        submission = self.packet.submitted
+        review_fixture.write(submission, dict(self.packet.review, reviewed_at=result['finished_at']))
+        review = record_review(self.root, submission, self.packet.recorded,
+                               rea_analysis=self.base/'analysis/analysis.json')
+        self.assertEqual(review['rea_diagnostics']['status'], 'PARTIAL_DIAGNOSTIC')
+        self.assertEqual(review['rea_diagnostics']['authored_cut_coverage']['status'], 'MISSING_AUTHORED_CUTS')
+        self.assertFalse(review['full_av_review'])
 
     def test_sampler_cannot_run_with_insufficient_time(self):
         with patch('integrations.content_control.cycle_scene_review.make_scene_review') as sampler:
