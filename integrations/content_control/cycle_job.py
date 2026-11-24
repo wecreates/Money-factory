@@ -65,26 +65,38 @@ def production_input(request):
 
 def production_handoff(request):
     """Resolve input bytes, revision lineage, retained intake files and verified proof."""
+    claimed_discovery = isinstance(request.get('brief'), dict) and 'topic_discovery' in request['brief']
     if 'intake_input' in request:
         from integrations.content_control.cycle_intake import MAX_INPUT, verify_inline_intake
+        from integrations.content_control.cycle_discovery import MAX_POOL, MAX_RECEIPT
         if 'revision_input' in request:
             raise ValueError('Choose either the fresh intake or the revision handoff')
         supplied = request['intake_input']
-        names = {'research_json': 'research.json', 'draft_json': 'draft.json', 'receipt_json': 'intake.json'}
-        if not isinstance(supplied, dict) or supplied.keys() != names.keys():
+        names = {'research_json': ('research.json', MAX_INPUT),
+                 'draft_json': ('draft.json', MAX_INPUT), 'receipt_json': ('intake.json', MAX_INPUT)}
+        discovery = {'discovery_pool_json': ('discovery-pool.json', MAX_POOL),
+                     'discovery_receipt_json': ('discovery.json', MAX_RECEIPT)}
+        if (not isinstance(supplied, dict)
+                or set(supplied) not in (set(names), set(names) | set(discovery))):
             raise ValueError('Require exact inline intake_input fields')
         files = {}
-        for field, name in names.items():
+        for field, (name, limit) in ({**names, **discovery} if set(discovery) <= set(supplied) else names).items():
             try:
                 raw = supplied[field].encode('utf-8') if isinstance(supplied[field], str) else b''
             except UnicodeError as error:
                 raise ValueError('Intake inputs must be bounded UTF-8 text') from error
-            if not 0 < len(raw) <= MAX_INPUT:
+            if not 0 < len(raw) <= limit:
                 raise ValueError('Intake inputs must be bounded UTF-8 text')
             files[name] = raw
         encoded, proof = verify_inline_intake(request['brief'], files['research.json'],
-                                              files['draft.json'], files['intake.json'])
+                                              files['draft.json'], files['intake.json'],
+                                              discovery_pool_raw=files.get('discovery-pool.json'),
+                                              discovery_receipt_raw=files.get('discovery.json'))
+        if claimed_discovery != ('topic_discovery' in proof):
+            raise ValueError('Topic discovery requires replayable verified discovery intake')
         return encoded, None, files, proof
+    if claimed_discovery:
+        raise ValueError('Topic discovery requires replayable verified discovery intake')
     if 'revision_input' not in request:
         return canonical(request['brief']).encode('utf-8'), None, {}, None
     revision = request['revision_input']
@@ -113,7 +125,10 @@ def verify_attempt_intake(attempt, intake, cycle_receipt):
         raise ValueError('Completed verified intake differs from queued handoff')
     if intake is not None:
         from integrations.content_control.cycle_intake import verify_intake
-        if verify_intake(attempt/'research.json', attempt/'draft.json', attempt) != intake:
+        discovered = 'topic_discovery' in intake
+        if verify_intake(attempt/'research.json', attempt/'draft.json', attempt,
+                         discovery_pool=attempt/'discovery-pool.json' if discovered else None,
+                         discovery_receipt=attempt/'discovery.json' if discovered else None) != intake:
             raise ValueError('Retained intake differs from queued handoff')
 
 
@@ -292,13 +307,20 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
                 raise ValueError('Two CPU affinity slots are required')
             result['cpu_affinity'] = cpus
             # Fixed trusted bootstrap; user input is only JSON data and arguments.
+            discovered = 'discovery-pool.json' in intake_files
+            intake_expression = 'intake_inputs=dict(research_path=sys.argv[9],draft_path=sys.argv[10])'
+            intake_paths = ([str(attempt_dir/name) for name in ('research.json', 'draft.json')]
+                            if intake_files else [])
+            if discovered:
+                intake_expression = ('intake_inputs=dict(research_path=sys.argv[9],draft_path=sys.argv[10],'
+                                     'discovery_pool=sys.argv[11],discovery_receipt=sys.argv[12])')
+                intake_paths += [str(attempt_dir/'discovery-pool.json'), str(attempt_dir/'discovery.json')]
             bootstrap = ('import sys;from integrations.content_control.complete_cycle import run_cycle;'
                          'r=run_cycle(sys.argv[1],sys.argv[2],voice_python=sys.argv[3],'
                          'voice_root=sys.argv[4],timeout=int(sys.argv[5]),transcription_python=sys.argv[6] or None,'
                          'revision_path=sys.argv[7] or None,minimum_duration=int(sys.argv[8]) if sys.argv[8] else None,'
-                         'intake_inputs=dict(research_path=sys.argv[9],draft_path=sys.argv[10]) if len(sys.argv)>9 else None);'
+                         + (intake_expression if intake_files else 'intake_inputs=None') + ');'
                          'sys.exit(0 if r.get("status")=="AWAITING_REVIEW" else 2)')
-            intake_paths = [str(attempt_dir/name) for name in ('research.json', 'draft.json')] if intake_files else []
             guarded_runner(lease, cpus)(
                 [sys.executable, '-c', bootstrap, str(attempt_dir/'brief.json'),
                  str(attempt_dir/'cycle'), str(runtime), str(root), str(request['timeout_seconds']),
