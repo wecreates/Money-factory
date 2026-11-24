@@ -25,7 +25,214 @@ def brief():
                                                      'values':['$80 - $20','$60']}}]}
 
 
+def normalized_voice_fixture(root, scene=None, *, channels=1, sample_width=2):
+    """Write a normalized fixture plus its child receipt for parent validation."""
+    root = Path(root)
+    scene = scene or brief()['scenes'][0]
+    source = [.04, -.04] * 240
+    normalized, evidence = render.normalize_voice_samples(source)
+    wav = root / 'voice-00.wav'
+    with wave.open(str(wav), 'wb') as stream:
+        stream.setparams((channels, sample_width, 24000, 0, 'NONE', 'not compressed'))
+        if sample_width == 2:
+            payload = [round(value * 32767) for value in normalized]
+            if channels == 2:
+                payload = [value for sample in payload for value in (sample, sample)]
+            stream.writeframes(struct.pack('<' + 'h' * len(payload), *payload))
+        else:
+            payload = [max(0, min(255, round(value * 127 + 128))) for value in normalized]
+            if channels == 2:
+                payload = [value for sample in payload for value in (sample, sample)]
+            stream.writeframes(bytes(payload))
+    if channels == 1 and sample_width == 2:
+        actual = render.wave_pcm_stats(wav)
+        evidence.update(output_rms=actual['rms'], output_peak=actual['peak'])
+        rms = actual['rms']
+    else:
+        rms = evidence['output_rms']
+    speaker = scene.get('speaker', 'narrator')
+    clip = {'scene_id': scene['id'], 'speaker': speaker,
+            'voice_id': render.VOICE_ASSIGNMENTS[speaker], 'file': wav.name,
+            'audio_sha256': render.digest(wav),
+            'text_sha256': hashlib.sha256(scene['narration'].encode()).hexdigest(),
+            'duration_seconds': len(normalized) / 24000,
+            'rms': rms, 'level_normalization': evidence}
+    return wav, clip
+
+
+def voice_receipt(clips):
+    return {'status': 'GENERATED_PENDING_LISTENING_REVIEW',
+            'voice_assignments': render.VOICE_ASSIGNMENTS,
+            'publication_enabled': False, 'paid_generation_enabled': False,
+            'production_approved': False, 'full_av_review': False,
+            'clips': clips}
+
+
 class RenderValidationTests(unittest.TestCase):
+    def test_voice_level_normalization_matches_target_and_retains_listening_gate(self):
+        normalized, evidence = render.normalize_voice_samples([.1, -.1, .1, -.1])
+        self.assertTrue(all(math.isclose(abs(value), .075) for value in normalized))
+        self.assertTrue(math.isclose(evidence['source_rms'], .1))
+        self.assertTrue(math.isclose(evidence['output_rms'], render.VOICE_TARGET_RMS))
+        self.assertTrue(math.isclose(evidence['applied_gain'], .75))
+        self.assertLessEqual(evidence['output_peak'], render.VOICE_MAX_PEAK)
+        self.assertFalse(evidence['listening_verified'])
+        self.assertIn('direct full-mix listening', evidence['scope'])
+
+    def test_voice_level_normalization_bounds_boost_and_peak(self):
+        quiet, quiet_evidence = render.normalize_voice_samples([.04, -.04])
+        self.assertTrue(math.isclose(quiet_evidence['applied_gain'], render.VOICE_MAX_GAIN))
+        self.assertTrue(math.isclose(quiet_evidence['output_rms'], .072))
+        self.assertTrue(all(math.isclose(abs(value), .072) for value in quiet))
+
+        peaked, peak_evidence = render.normalize_voice_samples([.9] + [0] * 323)
+        self.assertTrue(math.isclose(peak_evidence['source_rms'], .05))
+        self.assertTrue(math.isclose(peak_evidence['applied_gain'], render.VOICE_MAX_PEAK / .9))
+        self.assertTrue(math.isclose(peak_evidence['output_peak'], render.VOICE_MAX_PEAK))
+        self.assertLess(peak_evidence['output_rms'], render.VOICE_TARGET_RMS)
+
+    def test_voice_level_normalization_rejects_invalid_or_silent_samples(self):
+        for samples in ([], [0, 0], [float('nan')], [1.01]):
+            with self.assertRaises(ValueError):
+                render.normalize_voice_samples(samples)
+        for kwargs in ({'target_rms': 0}, {'peak_ceiling': 1.01}, {'max_gain': .9}):
+            with self.assertRaises(ValueError):
+                render.normalize_voice_samples([.1], **kwargs)
+
+    def test_synthesis_receipt_binds_bounded_level_normalization(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            voice_root = root / 'voice-root'
+            generator = voice_root / 'scripts' / 'v2_free_voice.py'
+            generator.parent.mkdir(parents=True)
+            generator.write_text('# immutable fixture\n')
+            output = root / 'out'
+            output.mkdir()
+
+            fake_torch = SimpleNamespace(set_num_threads=lambda value: None,
+                                         set_num_interop_threads=lambda value: None)
+            fake_module = SimpleNamespace(
+                VOICE_ASSIGNMENTS=render.VOICE_ASSIGNMENTS,
+                local_synthesizer=lambda: (lambda text, voice, speed: ([.04, -.04] * 240, 24000)),
+                model_identity=lambda: {'model_revision': 'fixture-model'},
+            )
+            fake_spec = SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module: None))
+            with patch.dict(sys.modules, {'torch': fake_torch}), \
+                    patch.object(render.importlib.util, 'spec_from_file_location', return_value=fake_spec), \
+                    patch.object(render.importlib.util, 'module_from_spec', return_value=fake_module):
+                render.synthesize(brief(), output, voice_root)
+
+            receipt = json.loads((output / 'voice.json').read_text())
+            clip = receipt['clips'][0]
+            self.assertEqual(clip['speaker'], 'dave')
+            self.assertEqual(clip['voice_id'], render.VOICE_ASSIGNMENTS['dave'])
+            self.assertTrue(math.isclose(clip['rms'], .072,
+                                         abs_tol=render.PCM_QUANTIZATION_TOLERANCE))
+            self.assertTrue(math.isclose(clip['level_normalization']['applied_gain'], 1.8))
+            self.assertFalse(clip['level_normalization']['listening_verified'])
+            self.assertEqual(clip['audio_sha256'], render.digest(output / clip['file']))
+            stats = render.wave_pcm_stats(output / clip['file'])
+            self.assertEqual(clip['rms'], stats['rms'])
+            self.assertEqual(clip['level_normalization']['output_peak'], stats['peak'])
+
+    def test_parent_rejects_forged_voice_normalization_receipt(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, clip = normalized_voice_fixture(root)
+            self.assertEqual(render.measured_clip_frames(
+                brief()['scenes'], voice_receipt([clip]), root), [8])
+            for field, value in (('algorithm', 'forged'), ('output_rms', .2),
+                                 ('listening_verified', True), ('target_rms', .1)):
+                forged = copy.deepcopy(clip)
+                forged['level_normalization'][field] = value
+                with self.assertRaisesRegex(ValueError, 'normalization'):
+                    render.measured_clip_frames(
+                        brief()['scenes'], voice_receipt([forged]), root)
+            forged = copy.deepcopy(clip)
+            forged['rms'] = .2
+            with self.assertRaisesRegex(ValueError, 'bound WAV'):
+                render.measured_clip_frames(
+                    brief()['scenes'], voice_receipt([forged]), root)
+
+    def test_parent_rejects_invalid_voice_wav_format(self):
+        for channels, sample_width in ((2, 2), (1, 1)):
+            with self.subTest(channels=channels, sample_width=sample_width), \
+                    tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                _, clip = normalized_voice_fixture(root, channels=channels,
+                                                   sample_width=sample_width)
+                with self.assertRaisesRegex(ValueError, 'mono 16-bit 24kHz'):
+                    render.measured_clip_frames(
+                        brief()['scenes'], voice_receipt([clip]), root)
+
+    def test_parent_rejects_inconsistent_voice_gain_math(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, clip = normalized_voice_fixture(root)
+            forged = copy.deepcopy(clip)
+            forged['level_normalization']['source_rms'] = .05
+            forged['level_normalization']['source_peak'] = .06
+            with self.assertRaisesRegex(ValueError, 'gain is inconsistent'):
+                render.measured_clip_frames(
+                    brief()['scenes'], voice_receipt([forged]), root)
+
+    def test_parent_rejects_internally_consistent_subthreshold_source(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            wav = root / 'voice-00.wav'
+            samples = [29, -29] * 240
+            with wave.open(str(wav), 'wb') as stream:
+                stream.setparams((1, 2, 24000, 0, 'NONE', 'not compressed'))
+                stream.writeframes(struct.pack('<' + 'h' * len(samples), *samples))
+            actual = render.wave_pcm_stats(wav)
+            source = actual['rms'] / render.VOICE_MAX_GAIN
+            scene = brief()['scenes'][0]
+            normalization = {'algorithm': render.VOICE_LEVEL_ALGORITHM,
+                'target_rms': render.VOICE_TARGET_RMS,
+                'peak_ceiling': render.VOICE_MAX_PEAK,
+                'maximum_gain': render.VOICE_MAX_GAIN,
+                'source_rms': source, 'source_peak': source,
+                'applied_gain': render.VOICE_MAX_GAIN,
+                'output_rms': actual['rms'], 'output_peak': actual['peak'],
+                'listening_verified': False, 'scope': render.VOICE_LEVEL_SCOPE}
+            clip = {'scene_id': scene['id'], 'speaker': 'dave',
+                    'voice_id': render.VOICE_ASSIGNMENTS['dave'], 'file': wav.name,
+                    'audio_sha256': render.digest(wav),
+                    'text_sha256': hashlib.sha256(scene['narration'].encode()).hexdigest(),
+                    'duration_seconds': actual['duration_seconds'], 'rms': actual['rms'],
+                    'level_normalization': normalization}
+            with self.assertRaisesRegex(ValueError, 'accepted domain'):
+                render.measured_clip_frames(
+                    [scene], voice_receipt([clip]), root)
+
+    def test_parent_binds_scene_speaker_voice_and_indexed_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, clip = normalized_voice_fixture(root)
+            for field, value in (('scene_id', 'wrong'), ('speaker', 'narrator'),
+                                 ('voice_id', 'am_adam'), ('file', 'wrong.wav')):
+                forged = copy.deepcopy(clip)
+                forged[field] = value
+                with self.subTest(field=field), self.assertRaisesRegex(
+                        ValueError, 'Narration binding mismatch'):
+                    render.measured_clip_frames(
+                        brief()['scenes'], voice_receipt([forged]), root)
+
+    def test_parent_requires_pending_listening_top_level_voice_contract(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            _, clip = normalized_voice_fixture(root)
+            valid = voice_receipt([clip])
+            cases = [('status', 'PASS'), ('voice_assignments', {'dave': 'wrong'}),
+                     ('publication_enabled', True), ('paid_generation_enabled', True),
+                     ('production_approved', True), ('full_av_review', True)]
+            for field, value in cases:
+                forged = copy.deepcopy(valid)
+                forged[field] = value
+                with self.subTest(field=field), self.assertRaisesRegex(
+                        ValueError, 'pending-listening voice receipt'):
+                    render.measured_clip_frames(brief()['scenes'], forged, root)
+
     def test_no_publication_or_paid_modes(self):
         for key in ['publication_enabled','paid_generation_enabled']:
             data=brief();data[key]=True
@@ -532,13 +739,25 @@ class RenderValidationTests(unittest.TestCase):
             length=4 if 'reveal_after_seconds' in data['scenes'][0].get('visual_spec', {}) else 1
             if out.name == 'container-long':
                 length=1.72
-            samples=[int(1000*math.sin(i*2*math.pi*220/rate)) for i in range(round(rate*length))]
+            source=[1000*math.sin(i*2*math.pi*220/rate)/32767 for i in range(round(rate*length))]
+            normalized, normalization = render.normalize_voice_samples(source)
+            samples=[round(value*32767) for value in normalized]
             with wave.open(str(wav),'wb') as stream:
                 stream.setparams((1,2,rate,0,'NONE','not compressed'))
                 stream.writeframes(struct.pack('<'+'h'*len(samples),*samples))
-            render.write(out/'voice.json',{'model_revision':'synthetic-test-fixture','clips':[{
-                'audio_sha256':render.digest(wav),'text_sha256':hashlib.sha256(text.encode()).hexdigest(),
-                'duration_seconds':float(length)}]})
+            actual = render.wave_pcm_stats(wav)
+            normalization.update(output_rms=actual['rms'], output_peak=actual['peak'])
+            render.write(out/'voice.json',{'model_revision':'synthetic-test-fixture',
+                'status':'GENERATED_PENDING_LISTENING_REVIEW',
+                'voice_assignments':render.VOICE_ASSIGNMENTS,
+                'publication_enabled':False,'paid_generation_enabled':False,
+                'production_approved':False,'full_av_review':False,'clips':[{
+                'scene_id':data['scenes'][0]['id'],'speaker':data['scenes'][0].get('speaker','narrator'),
+                'voice_id':render.VOICE_ASSIGNMENTS[data['scenes'][0].get('speaker','narrator')],
+                'file':wav.name,'audio_sha256':render.digest(wav),
+                'text_sha256':hashlib.sha256(text.encode()).hexdigest(),
+                'duration_seconds':float(length),'rms':actual['rms'],
+                'level_normalization':normalization}]})
         with tempfile.TemporaryDirectory() as td,patch.object(render,'run',side_effect=voice_fixture):
             shortfall=Path(td)/'shortfall'
             blocked=render.render_cycle(brief(),shortfall,voice_python=sys.executable,voice_root=td,
