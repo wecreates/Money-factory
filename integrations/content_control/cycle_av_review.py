@@ -78,9 +78,21 @@ def write_automated_review(directory, candidate, captions, *, deadline, media=No
     # Keep room on the parent budget for thumbnails, the receipt and the review ZIP.
     now = time.monotonic()
     review_deadline = now + (120 if deadline is None else min(120, (deadline - now) / 2))
+    scan_failure = None
     try:
         signals = scan_media(video, deadline=review_deadline, media=media)
-    except (OSError, ValueError, RuntimeError, TimeoutError):
+    except (OSError, ValueError, RuntimeError) as error:
+        # Retain an actionable failure class without exposing paths or stderr.
+        if isinstance(error, TimeoutError):
+            scan_failure = 'CANDIDATE_SCAN_TIMED_OUT'
+        elif isinstance(error, FileNotFoundError):
+            scan_failure = 'CANDIDATE_SCAN_INPUT_OR_TOOL_MISSING'
+        elif isinstance(error, OSError):
+            scan_failure = 'CANDIDATE_SCAN_IO_FAILED'
+        elif isinstance(error, ValueError):
+            scan_failure = 'CANDIDATE_SCAN_INPUT_OR_SIGNALS_INVALID'
+        else:
+            scan_failure = 'CANDIDATE_SCAN_PROCESS_FAILED'
         signals = {'watcher': {'status': 'BLOCKED'}, 'listener': {'status': 'BLOCKED'}}
         comparison = {'status': 'BLOCKED', 'reason': 'Candidate signal scan unavailable'}
     else:
@@ -102,6 +114,8 @@ def write_automated_review(directory, candidate, captions, *, deadline, media=No
                             'comparison_checks': ['hook', 'storytelling', 'visual pacing', 'voice and mix', 'originality']},
                'full_audiovisual_review_verified': False, 'competitor_audiovisual_comparison_verified': False,
                'publication_enabled': False, 'paid_generation_enabled': False, 'production_approved': False}
+    if scan_failure is not None:
+        receipt['analysis']['scan_failure_code'] = scan_failure
     with output.open('x') as out:
         json.dump(receipt, out, indent=2, sort_keys=True, allow_nan=False)
         out.write('\n')

@@ -74,7 +74,9 @@ class CyclePackageTest(unittest.TestCase):
         diagnostics = json.loads((self.root / 'package/automated-review.json').read_text())
         self.assertEqual(diagnostics['candidate_sha256'], result['candidate_sha256'])
         self.assertEqual(diagnostics['caption_sha256'], result['caption_sha256'])
-        self.assertEqual(diagnostics['watcher']['status'], 'SIGNALS_MEASURED')
+        self.assertEqual(diagnostics['watcher']['status'], 'SIGNALS_MEASURED',
+                         diagnostics['analysis'].get('scan_failure_code'))
+        self.assertNotIn('scan_failure_code', diagnostics['analysis'])
         self.assertGreaterEqual(diagnostics['listener']['silence_seconds'], .9)
         self.assertEqual(diagnostics['reviewer']['status'], 'FULL_REVIEW_REQUIRED')
         self.assertFalse(diagnostics['competitor_audiovisual_comparison_verified'])
@@ -83,6 +85,29 @@ class CyclePackageTest(unittest.TestCase):
             self.assertIn('package.json', archive.namelist())
             self.assertIn('automated-review.json', archive.namelist())
             self.assertNotIn('review-package.zip', archive.namelist())
+
+    def test_blocked_scan_retains_sanitized_failure_code(self):
+        from integrations.content_control.cycle_av_review import write_automated_review
+
+        for index, (failure, code) in enumerate((
+                (TimeoutError, 'CANDIDATE_SCAN_TIMED_OUT'),
+                (FileNotFoundError, 'CANDIDATE_SCAN_INPUT_OR_TOOL_MISSING'),
+                (OSError, 'CANDIDATE_SCAN_IO_FAILED'),
+                (ValueError, 'CANDIDATE_SCAN_INPUT_OR_SIGNALS_INVALID'),
+                (RuntimeError, 'CANDIDATE_SCAN_PROCESS_FAILED'))):
+            with self.subTest(failure=failure.__name__):
+                output = self.root / f'blocked-{index}.json'
+                with patch('integrations.content_control.cycle_av_review.scan_media',
+                           side_effect=failure('private path or stderr')):
+                    write_automated_review(self.render, self.receipt['candidate_sha256'],
+                                           self.receipt['caption_sha256'], deadline=None, output=output)
+                text = output.read_text()
+                report = json.loads(text)
+                self.assertNotIn('private path or stderr', text)
+                self.assertEqual(report['analysis']['scan_failure_code'], code)
+                self.assertTrue(all(report[role]['status'] == 'BLOCKED'
+                                    for role in ('analysis', 'watcher', 'listener', 'competitor_comparison')))
+                self.assertFalse(report['full_audiovisual_review_verified'])
 
     def test_native_landscape_binds_layout_and_uses_uncropped_frames(self):
         target = self.render / 'video.mp4'
