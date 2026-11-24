@@ -79,7 +79,7 @@ class TransitionMixTests(unittest.TestCase):
     def test_creates_bound_unpublished_mix_without_mutating_source(self):
         source_before = sha(self.render / 'video.mp4')
         result = self.run_mix()
-        self.assertEqual(result['technical_status'], 'PASS')
+        self.assertEqual(result['technical_status'], 'PASS', result)
         self.assertEqual(result['status'], 'AWAITING_LISTENING_REVIEW')
         for field in ('publication_enabled', 'paid_generation_enabled',
                       'production_approved', 'full_av_review',
@@ -152,6 +152,8 @@ class TransitionMixTests(unittest.TestCase):
     def test_output_is_deterministic_for_same_bound_source(self):
         first = self.run_mix('first')
         second = self.run_mix('second')
+        self.assertEqual(first['technical_status'], 'PASS', first)
+        self.assertEqual(second['technical_status'], 'PASS', second)
         self.assertEqual(first['cue_asset']['sha256'], second['cue_asset']['sha256'])
         self.assertEqual(first['stem_asset']['sha256'], second['stem_asset']['sha256'])
         self.assertEqual(first['cue_placements'], second['cue_placements'])
