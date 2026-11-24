@@ -1,5 +1,6 @@
 """Real process-death/SQLite tests; adapter invocations are explicitly fake."""
 import json
+import io
 import os
 from pathlib import Path
 import subprocess
@@ -9,7 +10,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from integrations.local_agent_queue import Queue, work
+from integrations.local_agent_queue import Queue, main, work
 from integrations.content_control.cycle_job import brief_digest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -87,6 +88,19 @@ class QueueTests(unittest.TestCase):
             self.assertEqual(row['state'], 'succeeded' if row['id'] == claimed_id else 'queued')
             self.assertNotIn('receipts', row)
         self.assertEqual(len(self.queue.get(claimed_id)['receipts']), 1)
+
+    def test_work_cli_forwards_explicit_host_capacity_ceiling(self):
+        completed = {'processed': [], 'recovered_interrupted_ids': [],
+                     'worker': {}, 'publication_enabled': False,
+                     'paid_generation_enabled': False, 'production_ready': False}
+        with patch('integrations.local_agent_queue.work', return_value=completed) as worker, \
+             patch('sys.stdout', new_callable=io.StringIO):
+            self.assertEqual(main([
+                '--queue', str(self.root), 'work',
+                '--cycle-capacity-cpu-cores', '4',
+                '--cycle-capacity-memory-mb', '6144']), 0)
+        self.assertEqual(worker.call_args.kwargs['cycle_capacity_cpu_cores'], 4)
+        self.assertEqual(worker.call_args.kwargs['cycle_capacity_memory_mb'], 6144)
 
     def test_batch_rejects_conflicts_and_rolls_back_new_inserts(self):
         self.queue.enqueue(job())
