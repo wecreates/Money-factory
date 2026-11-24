@@ -25,7 +25,10 @@ CUE_END_MARGIN_SECONDS = .04
 MIN_POST_NARRATION_TAIL_SECONDS = .24
 CUE_PEAK = .03
 ENCODED_PEAK_CEILING = .98
-MAX_CODEC_TIMELINE_DRIFT_SECONDS = .25
+# FFmpeg 6's AAC decode exposes exactly two 1024-sample priming/padding frames
+# in the hosted fixture. Keep this an exact frame ceiling, not a time-derived
+# tolerance that could hide a longer content mismatch.
+MAX_CODEC_TIMELINE_PADDING_FRAMES = 2048
 MAX_DURATION_SECONDS = 600
 MAX_SCENES = 64
 VOICE_ASSIGNMENTS = {'dave': 'am_fenrir', 'points_monk': 'am_michael',
@@ -232,7 +235,7 @@ def validate_decoded_lengths(source_frames, mixed_frames, duration_seconds):
             or source_frames <= 0 or mixed_frames <= 0
             or not _finite(duration_seconds) or duration_seconds <= 0):
         raise ValueError('Decoded timeline lengths must be positive and finite')
-    maximum_drift_frames = round(MAX_CODEC_TIMELINE_DRIFT_SECONDS * RATE)
+    maximum_drift_frames = MAX_CODEC_TIMELINE_PADDING_FRAMES
     expected_frames = round(duration_seconds * RATE)
     if (abs(source_frames - expected_frames) > maximum_drift_frames
             or abs(mixed_frames - expected_frames) > maximum_drift_frames

@@ -160,10 +160,16 @@ class TransitionMixTests(unittest.TestCase):
 
     def test_decoded_length_accepts_bounded_codec_padding_only(self):
         expected = round(4 * mix.RATE)
-        bounded = round(mix.MAX_CODEC_TIMELINE_DRIFT_SECONDS * mix.RATE)
-        mix.validate_decoded_lengths(expected + 2048, expected, 4.0)
-        with self.assertRaisesRegex(ValueError, 'source timeline length'):
-            mix.validate_decoded_lengths(expected + bounded + 1, expected, 4.0)
+        bounded = mix.MAX_CODEC_TIMELINE_PADDING_FRAMES
+        mix.validate_decoded_lengths(expected + bounded, expected, 4.0)
+        mix.validate_decoded_lengths(expected, expected - bounded, 4.0)
+        for source_frames, mixed_frames in (
+                (expected + bounded + 1, expected),
+                (expected, expected - bounded - 1),
+                (expected + bounded, expected - 1)):
+            with self.subTest(source_frames=source_frames, mixed_frames=mixed_frames), \
+                    self.assertRaisesRegex(ValueError, 'source timeline length'):
+                mix.validate_decoded_lengths(source_frames, mixed_frames, 4.0)
         with self.assertRaisesRegex(ValueError, 'positive and finite'):
             mix.validate_decoded_lengths(0, expected, 4.0)
 
