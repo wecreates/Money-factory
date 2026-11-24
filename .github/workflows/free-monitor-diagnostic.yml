@@ -11,6 +11,9 @@ on:
 permissions:
   contents: write
 
+env:
+  MONITOR_STATE_BRANCH: cyzor-free-monitor-state
+
 concurrency:
   group: cyzor-free-monitor-worker
   cancel-in-progress: false
@@ -29,6 +32,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Restore durable monitor state
+        shell: bash
+        run: |
+          if git fetch --no-tags origin "$MONITOR_STATE_BRANCH:refs/remotes/origin/$MONITOR_STATE_BRANCH"; then
+            git show "origin/$MONITOR_STATE_BRANCH:FREE_MONITOR_STATE.json" > FREE_MONITOR_STATE.json
+            git show "origin/$MONITOR_STATE_BRANCH:FREE_MONITOR_EVENTS.json" > FREE_MONITOR_EVENTS.json
+          fi
       - name: Run diagnostic
         id: diag
         continue-on-error: true
@@ -68,17 +78,45 @@ jobs:
           PAIR_READY: ${{ steps.diag.outputs.pair_ready }}
         shell: bash
         run: |
+          set -euo pipefail
+          diagnostic_file=$(mktemp)
+          state_worktree=$(mktemp -d)
+          cp FREE_MONITOR_DIAGNOSTIC.json "$diagnostic_file"
+          state_file=''
+          events_file=''
+          if [[ "$PAIR_READY" == true ]]; then
+            state_file=$(mktemp)
+            events_file=$(mktemp)
+            cp FREE_MONITOR_STATE.json "$state_file"
+            cp FREE_MONITOR_EVENTS.json "$events_file"
+          fi
+          cleanup() {
+            cd "$GITHUB_WORKSPACE"
+            git worktree remove --force "$state_worktree" >/dev/null 2>&1 || true
+            rm -f "$diagnostic_file"
+            [[ -z "$state_file" ]] || rm -f "$state_file"
+            [[ -z "$events_file" ]] || rm -f "$events_file"
+          }
+          trap cleanup EXIT
+          if git show-ref --verify --quiet "refs/remotes/origin/$MONITOR_STATE_BRANCH"; then
+            git worktree add -B "$MONITOR_STATE_BRANCH" "$state_worktree" "origin/$MONITOR_STATE_BRANCH"
+          else
+            git worktree add -B "$MONITOR_STATE_BRANCH" "$state_worktree" HEAD
+          fi
+          cp "$diagnostic_file" "$state_worktree/FREE_MONITOR_DIAGNOSTIC.json"
+          if [[ "$PAIR_READY" == true ]]; then
+            cp "$state_file" "$state_worktree/FREE_MONITOR_STATE.json"
+            cp "$events_file" "$state_worktree/FREE_MONITOR_EVENTS.json"
+          fi
+          cd "$state_worktree"
           git config user.name "cyzor-monitor-bot"
           git config user.email "actions@users.noreply.github.com"
           git add FREE_MONITOR_DIAGNOSTIC.json
           if [[ "$PAIR_READY" == true ]]; then
             git add FREE_MONITOR_STATE.json FREE_MONITOR_EVENTS.json
-          else
-            git restore --worktree -- FREE_MONITOR_STATE.json FREE_MONITOR_EVENTS.json
           fi
-          git diff --cached --quiet || git commit -m "record free monitor diagnostic"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git diff --cached --quiet || git commit -m "record free monitor diagnostic [skip ci]"
+          git push origin "HEAD:refs/heads/$MONITOR_STATE_BRANCH"
       - name: Fail on unsuccessful diagnostic
         if: steps.diag.outcome == 'failure'
         run: exit 1
