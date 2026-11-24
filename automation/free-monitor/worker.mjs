@@ -3,6 +3,8 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readMonitorPair,writeMonitorPair} from './persistence.mjs';
+import {collectResourceObservation,declaredWorkflowWallLimit,requestEnvelopeMs,
+  validateWallEnvelope,RUNTIME_STATE_KEY} from './resources.mjs';
 
 export function isMainEntry(importMetaUrl,argv1){
   if(!argv1) return false;
@@ -245,7 +247,8 @@ export async function runWorker({
   intervalMs=300000,
   maxAttempts=DEFAULT_MAX_ATTEMPTS,
   requestTimeoutMs=DEFAULT_REQUEST_TIMEOUT_MS,
-  retryBackoffMs=DEFAULT_RETRY_BACKOFF_MS
+  retryBackoffMs=DEFAULT_RETRY_BACKOFF_MS,
+  workflowWallLimitMs=declaredWorkflowWallLimit(process.env.MONITOR_WORKFLOW_WALL_LIMIT_MS)
 }={}){
   validateRetryPolicy({maxAttempts,requestTimeoutMs,retryBackoffMs});
   const rawWatches=JSON.parse(await fs.readFile(watchesPath,'utf8'));
@@ -255,6 +258,12 @@ export async function runWorker({
   if(new Set(configuredWatches.map(w=>w.id)).size!==configuredWatches.length){
     throw new Error('duplicate watch id');
   }
+  if(configuredWatches.some(w=>w.id===RUNTIME_STATE_KEY)){
+    throw new Error('reserved monitor runtime state id');
+  }
+  const activeWatches=configuredWatches.filter(w=>w.status==='active').length;
+  const requestEnvelope=requestEnvelopeMs(activeWatches,{maxAttempts,requestTimeoutMs,retryBackoffMs});
+  validateWallEnvelope(workflowWallLimitMs,requestEnvelope);
   const storage={statePath,eventsPath};
   const {state:priorState,events:priorEvents}=await readMonitorPair(storage);
   const now=Date.now();
@@ -301,11 +310,15 @@ export async function runWorker({
     recordAlertIntents(events,base,nextState[base.id]);
   }
 
+  const resources=await collectResourceObservation({startedAt:new Date(now).toISOString(),activeWatches,
+    policy:{maxAttempts,requestTimeoutMs,retryBackoffMs},workflowWallLimitMs});
+  nextState[RUNTIME_STATE_KEY]=resources;
+
   const retainedEvents=retainEvents(events);
   await writeMonitorPair(storage,nextState,retainedEvents);
   return {ran_at:new Date(now).toISOString(),
     ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>availability(w)==='healthy'),
-    alert_outbox_pending:pendingAlertIntents(retainedEvents).length,results};
+    alert_outbox_pending:pendingAlertIntents(retainedEvents).length,resources,results};
 }
 
 if(isMainEntry(import.meta.url,process.argv[1])){
