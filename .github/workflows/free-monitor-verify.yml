@@ -13,6 +13,7 @@ permissions:
 
 env:
   MONITOR_STATE_BRANCH: cyzor-free-monitor-state
+  MONITOR_WORKFLOW_WALL_LIMIT_MS: 300000
 
 concurrency:
   group: cyzor-free-monitor-worker

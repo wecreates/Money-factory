@@ -175,3 +175,25 @@ contact an alert destination, send an external message, acknowledge delivery,
 retry a delivery consumer, prove the hosted workflow is on cadence, prove
 website recovery, or establish 24-hour acceptance. Those remain open C12
 integration and runtime-evidence gaps. Publishing remains disabled.
+
+## Runtime resource observations and request envelope
+
+Every completed worker pair now retains a fresh `_monitor_runtime` record beside
+the watched targets. The record captures the current process CPU/RSS/heap
+measurements; effective CPU and memory capacity from the host and cgroup-v2 when
+available; filesystem total/free bytes; the exact active-watch count and retry
+policy; and the bounded worst-case HTTP request envelope. Configuration is
+rejected before any request when it exceeds four active watches or a 240-second
+request envelope. The hosted job retains its separate five-minute wall timeout.
+That wall value is recorded only when the three reviewed monitor workflows
+explicitly declare the matching 300,000-millisecond context; direct/local runs
+retain `null` rather than claiming a workflow limit they cannot establish.
+
+The record deliberately separates observed finite host capacity from hard
+per-process enforcement. Missing cgroup CPU or memory limits remain warnings.
+Filesystem capacity is not represented as a process disk quota, so
+`total_resource_ceiling_verified` remains false. This closes a hidden-evidence
+gap and bounds the network portion of a run; it does not claim total CPU/RAM/disk
+enforcement, restored cadence, alert delivery, website recovery, or a 24-hour
+soak. Those remain C12 acceptance blockers. Publishing and external delivery
+remain false.
