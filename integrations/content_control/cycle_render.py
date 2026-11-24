@@ -14,6 +14,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import signal
 import socket
 import struct
@@ -139,6 +140,19 @@ def run(command, log, deadline, env=None):
         raise RuntimeError(f'{Path(command[0]).name} failed; see {Path(log).name}')
 
 
+def encoded_stream_sha256(media, stream, log, deadline):
+    """Hash exact encoded packet payloads without decoding or remuxing them."""
+    if stream not in ('v:0', 'a:0'):
+        raise ValueError('Video or audio stream selector required')
+    run(['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-i', Path(media),
+         '-map', f'0:{stream}', '-c', 'copy', '-f', 'hash', '-hash', 'sha256', '-'],
+        Path(log), deadline)
+    match = re.fullmatch(r'SHA256=([0-9a-f]{64})\s*', Path(log).read_text())
+    if match is None:
+        raise ValueError('Encoded stream hash evidence is invalid')
+    return match.group(1)
+
+
 def normalize_mux_video_start(staged, output, deadline):
     """Remove concat's video-only lead-in without decoding either stream.
 
@@ -163,12 +177,25 @@ def normalize_mux_video_start(staged, output, deadline):
     if (not math.isfinite(video_start) or not math.isfinite(audio_start)
             or not 0 <= video_start <= .1 or not 0 <= audio_start <= .1):
         raise ValueError('Concatenated stream start time is invalid')
+    staged_file_sha256 = digest(staged)
+    staged_streams = {
+        'video': encoded_stream_sha256(staged, 'v:0', output.parent / 'streamhash-staged-video.log', deadline),
+        'audio': encoded_stream_sha256(staged, 'a:0', output.parent / 'streamhash-staged-audio.log', deadline),
+    }
     run(['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-n', '-threads', '2',
          '-itsoffset', f'{-video_start:.9f}', '-i', staged, '-i', staged,
          '-map', '0:v:0', '-map', '1:a:0', '-c', 'copy', '-movflags', '+faststart', output],
         output.parent / 'normalize-start.log', deadline)
+    normalized_streams = {
+        'video': encoded_stream_sha256(output, 'v:0', output.parent / 'streamhash-normalized-video.log', deadline),
+        'audio': encoded_stream_sha256(output, 'a:0', output.parent / 'streamhash-normalized-audio.log', deadline),
+    }
+    if digest(staged) != staged_file_sha256 or normalized_streams != staged_streams:
+        output.unlink(missing_ok=True)
+        raise ValueError('Timestamp normalization changed source bytes or encoded stream payloads')
     return {'staged_video_start_seconds': video_start,
             'staged_audio_start_seconds': audio_start,
+            'encoded_streams_sha256': staged_streams,
             'mode': 'measured_video_offset_stream_copy'}
 
 
