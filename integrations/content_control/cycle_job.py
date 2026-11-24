@@ -29,7 +29,7 @@ def brief_digest(value):
 def validate(request):
     fields = {'operation', 'brief', 'brief_sha256', 'timeout_seconds',
               'publication_enabled', 'paid_generation_enabled'}
-    optional = {'revision_input', 'minimum_duration_seconds'}
+    optional = {'intake_input', 'revision_input', 'minimum_duration_seconds'}
     if not isinstance(request, dict) or not fields <= request.keys() <= (fields | optional):
         raise ValueError('Require the exact documented content-cycle request')
     if request['operation'] != 'produce-content-cycle':
@@ -59,8 +59,34 @@ def validate(request):
 
 def production_input(request):
     """Return exact production bytes and optional lineage; paths remain host-owned."""
+    encoded, lineage, _, _ = production_handoff(request)
+    return encoded, lineage
+
+
+def production_handoff(request):
+    """Resolve input bytes, revision lineage, retained intake files and verified proof."""
+    if 'intake_input' in request:
+        from integrations.content_control.cycle_intake import MAX_INPUT, verify_inline_intake
+        if 'revision_input' in request:
+            raise ValueError('Choose either the fresh intake or the revision handoff')
+        supplied = request['intake_input']
+        names = {'research_json': 'research.json', 'draft_json': 'draft.json', 'receipt_json': 'intake.json'}
+        if not isinstance(supplied, dict) or supplied.keys() != names.keys():
+            raise ValueError('Require exact inline intake_input fields')
+        files = {}
+        for field, name in names.items():
+            try:
+                raw = supplied[field].encode('utf-8') if isinstance(supplied[field], str) else b''
+            except UnicodeError as error:
+                raise ValueError('Intake inputs must be bounded UTF-8 text') from error
+            if not 0 < len(raw) <= MAX_INPUT:
+                raise ValueError('Intake inputs must be bounded UTF-8 text')
+            files[name] = raw
+        encoded, proof = verify_inline_intake(request['brief'], files['research.json'],
+                                              files['draft.json'], files['intake.json'])
+        return encoded, None, files, proof
     if 'revision_input' not in request:
-        return canonical(request['brief']).encode('utf-8'), None
+        return canonical(request['brief']).encode('utf-8'), None, {}, None
     revision = request['revision_input']
     if not isinstance(revision, dict) or set(revision) != {'brief_json', 'revision_lineage'}:
         raise ValueError('Require exact inline revision_input fields')
@@ -78,7 +104,17 @@ def production_input(request):
     if canonical(parsed) != canonical(request['brief']):
         raise ValueError('Revision brief differs from queued brief')
     validate_lineage(revision['revision_lineage'], hashlib.sha256(encoded).hexdigest())
-    return encoded, revision['revision_lineage']
+    return encoded, revision['revision_lineage'], {}, None
+
+
+def verify_attempt_intake(attempt, intake, cycle_receipt):
+    """Recheck the owned attempt against the immutable request and cycle receipt."""
+    if cycle_receipt.get('verified_intake') != intake:
+        raise ValueError('Completed verified intake differs from queued handoff')
+    if intake is not None:
+        from integrations.content_control.cycle_intake import verify_intake
+        if verify_intake(attempt/'research.json', attempt/'draft.json', attempt) != intake:
+            raise ValueError('Retained intake differs from queued handoff')
 
 
 def _json(path):
@@ -209,7 +245,7 @@ def check_completed(directory, expected_brief_sha256, *, minimum_duration=None, 
 
 def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcription_python=None):
     validate(request)
-    brief_bytes, lineage = production_input(request)
+    brief_bytes, lineage, intake_files, intake = production_handoff(request)
     minimum = request.get('minimum_duration_seconds')
     production_hash = hashlib.sha256(brief_bytes).hexdigest()
     attempt_dir = Path(attempt_dir).absolute()
@@ -235,14 +271,14 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
             transcription_python = Path(transcription_python).absolute()
             if not transcription_python.is_file() or not os.access(transcription_python, os.X_OK):
                 raise ValueError('Host transcription runtime must be an executable file')
-        with (attempt_dir/'brief.json').open('xb') as stream:
-            stream.write(brief_bytes)
-            stream.flush(); os.fsync(stream.fileno())
+        input_files = {'brief.json': brief_bytes, **intake_files}
         revision_path = None
         if lineage is not None:
             revision_path = attempt_dir/'revision.json'
-            with revision_path.open('xb') as stream:
-                stream.write(lineage['revision_json'].encode('utf-8'))
+            input_files[revision_path.name] = lineage['revision_json'].encode('utf-8')
+        for name, raw in input_files.items():
+            with (attempt_dir/name).open('xb') as stream:
+                stream.write(raw)
                 stream.flush(); os.fsync(stream.fileno())
         deadline = time.monotonic() + request['timeout_seconds']
         with interruptible_processes(), shared_admission_lock() as lease:
@@ -259,24 +295,30 @@ def run_job(request, attempt_dir, *, voice_python=None, voice_root=None, transcr
             bootstrap = ('import sys;from integrations.content_control.complete_cycle import run_cycle;'
                          'r=run_cycle(sys.argv[1],sys.argv[2],voice_python=sys.argv[3],'
                          'voice_root=sys.argv[4],timeout=int(sys.argv[5]),transcription_python=sys.argv[6] or None,'
-                         'revision_path=sys.argv[7] or None,minimum_duration=int(sys.argv[8]) if sys.argv[8] else None);'
+                         'revision_path=sys.argv[7] or None,minimum_duration=int(sys.argv[8]) if sys.argv[8] else None,'
+                         'intake_inputs=dict(research_path=sys.argv[9],draft_path=sys.argv[10]) if len(sys.argv)>9 else None);'
                          'sys.exit(0 if r.get("status")=="AWAITING_REVIEW" else 2)')
+            intake_paths = [str(attempt_dir/name) for name in ('research.json', 'draft.json')] if intake_files else []
             guarded_runner(lease, cpus)(
                 [sys.executable, '-c', bootstrap, str(attempt_dir/'brief.json'),
                  str(attempt_dir/'cycle'), str(runtime), str(root), str(request['timeout_seconds']),
                  str(transcription_python) if transcription_python else '',
-                 str(revision_path) if revision_path else '', str(minimum) if minimum is not None else ''],
+                 str(revision_path) if revision_path else '', str(minimum) if minimum is not None else '',
+                 *intake_paths],
                 cwd=ROOT, log=attempt_dir/'cycle.log', deadline=deadline, env=os.environ)
             receipt = check_completed(attempt_dir/'cycle', production_hash, minimum_duration=minimum,
                                       require_portrait_duration=True, deadline=deadline)
             if receipt.get('revision_lineage') != lineage:
                 raise ValueError('Completed revision lineage differs from queued handoff')
+            verify_attempt_intake(attempt_dir, intake, receipt)
             for directory in sorted((p for p in (attempt_dir/'cycle').rglob('*') if p.is_dir()), reverse=True):
                 sync_packet(directory)
             sync_packet(attempt_dir/'cycle')
             result.update(status='PASS', review_status='AWAITING_REVIEW',
                           candidate_sha256=receipt['candidate_sha256'], artifact_directory='cycle',
                           pipeline_receipt_sha256=digest(attempt_dir/'cycle/cycle.json'))
+            if intake is not None:
+                result['verified_intake'] = intake
     except (ValueError, OSError, RuntimeError, KeyError, TypeError, AdmissionBusy) as error:
         result['blocker'] = str(error) if isinstance(error, ValueError) else type(error).__name__
     with (attempt_dir/'cycle-adapter-receipt.json').open('x') as stream:

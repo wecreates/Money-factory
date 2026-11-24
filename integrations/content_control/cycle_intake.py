@@ -124,6 +124,23 @@ def verify_intake(research_path, draft_path, intake_dir, *, prior_cycle=None, se
     brief, receipt = root / 'brief.json', root / 'intake.json'
     research_raw, draft_raw = _input(research), _input(draft)
     brief_raw, receipt_raw = _input(brief, MAX_BRIEF), _input(receipt)
+    proof = _verify_bytes(research_raw, draft_raw, brief_raw, receipt_raw, root=root,
+                          prior_cycle=prior_cycle, selection_path=selection_path, selection_receipt=selection_receipt)
+    require(_input(research) == research_raw and _input(draft) == draft_raw
+            and _input(brief, MAX_BRIEF) == brief_raw and _input(receipt) == receipt_raw,
+            'Intake files changed while verifying')
+    return proof
+
+
+def verify_inline_intake(brief, research_raw, draft_raw, receipt_raw):
+    """Rebuild a self-contained intake without needing caller-supplied paths."""
+    brief_raw = _json_bytes(brief)
+    proof = _verify_bytes(research_raw, draft_raw, brief_raw, receipt_raw)
+    return brief_raw, proof
+
+
+def _verify_bytes(research_raw, draft_raw, brief_raw, receipt_raw, *, root=None, prior_cycle=None,
+                  selection_path=None, selection_receipt=None):
     recorded = json.loads(receipt_raw.decode('utf-8'), object_pairs_hook=_pairs, parse_constant=_constant)
     require(isinstance(recorded, dict), 'Invalid intake receipt')
     recorded_at = _timestamp(recorded.get('recorded_at'), 'intake.recorded_at')
@@ -134,9 +151,6 @@ def verify_intake(research_path, draft_path, intake_dir, *, prior_cycle=None, se
     # Prior Windows intakes wrote the receipt in text mode, translating line endings.
     require(receipt_raw in (expected_receipt_raw, expected_receipt_raw.replace(b'\n', b'\r\n')),
             'Intake receipt does not match the original research and draft')
-    require(_input(research) == research_raw and _input(draft) == draft_raw
-            and _input(brief, MAX_BRIEF) == brief_raw and _input(receipt) == receipt_raw,
-            'Intake files changed while verifying')
     return {'schema_version': 1, 'status': 'INTAKE_VERIFIED', **dict.fromkeys(FALSE_FLAGS, False),
             'intake_receipt_sha256': hashlib.sha256(receipt_raw).hexdigest(),
             **{key: expected_receipt[key] for key in ('research_sha256', 'draft_sha256', 'brief_sha256',

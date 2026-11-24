@@ -250,6 +250,25 @@ queue binds it to the immutable request. The worker and private export verify
 the matching render and cycle receipts before accepting delivery. Omit it for
 the existing duration behavior. It can be combined with `revision_input`.
 
+For a fresh research intake, add optional `intake_input` with exactly these
+fields:
+
+- `research_json` and `draft_json`: exact UTF-8 text of the original inputs.
+- `receipt_json`: exact UTF-8 text of the generated `intake.json`.
+
+Supply the generated `brief.json` as the decoded `brief` object and keep its
+canonical `brief_sha256`. Read the three text inputs with
+`Path.read_bytes().decode('utf-8')` to preserve their original line endings.
+The queue rebuilds the original brief bytes, verifies the receipt, and retains
+the inputs inside the private attempt. Completion and private export recheck
+the same inputs and expose their identities in `verified_intake`. Each text
+input is limited to 128 KiB. The existing 150,000-byte serialized queue job
+limit still applies to the entire envelope. Intakes requiring a prior selection
+and its original review package use the standalone path. Use `revision_input`
+separately for a revision. The intake receipt verifies retained bytes.
+Source retrieval, factual accuracy, authorship, and creative review remain
+separate evidence.
+
 Inspect or export a durable successful attempt from an existing queue:
 
 ```sh
