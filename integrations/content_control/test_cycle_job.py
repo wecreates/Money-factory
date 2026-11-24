@@ -38,10 +38,10 @@ def write(path, value):
     path.write_text(json.dumps(value))
 
 
-def synthetic_picture_mp4(path, seconds):
+def synthetic_picture_mp4(path, seconds, *, audio_seconds=2):
     subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i',
                     f'color=c=black:s=90x160:r=24:d={seconds}',
-                    '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono:d=2',
+                    '-f', 'lavfi', '-i', f'anullsrc=r=24000:cl=mono:d={audio_seconds}',
                     '-c:v', 'libx264', '-threads', '1', '-c:a', 'aac',
                     str(path)], check=True, timeout=30)
 
@@ -182,10 +182,58 @@ class CycleJobTests(unittest.TestCase):
                     receipt['package_sha256'] = digest(package_path)
                     write(root/'cycle.json', receipt)
                     if success:
-                        check_completed(root, expected, require_portrait_duration=True)
+                        with patch('integrations.content_control.cycle_package.inspect_media',
+                                   return_value={'picture_duration_seconds': 60, 'duration_seconds': 60}) as probe:
+                            check_completed(root, expected, require_portrait_duration=True)
+                        probe.assert_called_once_with(root/'delivery/video.mp4', deadline=None,
+                                                      decode=False, include_picture_duration=True)
                     else:
                         with self.assertRaisesRegex(ValueError, 'maximum duration'):
                             check_completed(root, expected)
+
+    @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Media tools unavailable')
+    def test_maximum_is_measured_from_delivered_picture_and_container(self):
+        from integrations.content_control.cycle_job import canonical
+        from integrations.content_control.cycle_package import inspect_media
+
+        source = brief()
+        source['portrait_handoff'] = {
+            **dict.fromkeys(('candidate_sha256', 'cycle_sha256', 'brief_sha256', 'package_sha256', 'render_sha256'),
+                            'a' * 64),
+            'scenes': [{'scene_id': 'one', 'start_seconds': 10, 'end_seconds': 13}],
+        }
+        expected = brief_digest(source)
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for picture, audio, measured in ((1, 2, True), (61, 2, False), (1, 61, False), (1.5, 2, False)):
+                with self.subTest(picture=picture, audio=audio):
+                    video = root/f'{picture}-{audio}.mp4'
+                    synthetic_picture_mp4(video, picture, audio_seconds=audio)
+                    actual = inspect_media(video, decode=False, include_picture_duration=True)
+                    self.assertEqual(actual['picture_duration_seconds'], picture)
+                    if audio == 61:
+                        self.assertGreater(actual['duration_seconds'], 60)
+                    cycle = root/f'cycle-{picture}-{audio}'
+                    receipt = packet(cycle, expected, video.read_bytes())
+                    (cycle/'brief.json').write_text(canonical(source))
+                    renderer_path = cycle/'render/render.json'
+                    rendered = json.loads(renderer_path.read_text())
+                    rendered.update(maximum_duration_seconds=60, measured_narration_frame_budget=24,
+                                    encoded_picture_duration_seconds=1, encoded_container_duration_seconds=2)
+                    write(renderer_path, rendered)
+                    write(cycle/'delivery/render.json', rendered)
+                    package_path = cycle/'delivery/package.json'
+                    package = json.loads(package_path.read_text())
+                    package['media'] = {'duration_seconds': 2}
+                    package['render_receipt_sha256'] = package['files_sha256']['render.json'] = digest(renderer_path)
+                    write(package_path, package)
+                    receipt.update(maximum_duration_seconds=60, package_sha256=digest(package_path))
+                    write(cycle/'cycle.json', receipt)
+                    if measured:
+                        self.assertEqual(check_completed(cycle, expected)['status'], 'AWAITING_REVIEW')
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'portrait maximum duration evidence'):
+                            check_completed(cycle, expected)
 
     def test_source_hash_mismatch_and_symlink_rejected(self):
         with tempfile.TemporaryDirectory() as td:
