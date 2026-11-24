@@ -435,6 +435,27 @@ integer impressions/clicks, `window_start`, `window_end`, `observed_at`,
 observation. The performance remains explicitly unverified, even when CTR can
 be calculated. A selection never grants creative or publishing approval.
 
+When counts become available only after the editorial selection was recorded,
+retain them as a separate exact-selection observation:
+
+```bash
+python -m integrations.content_control.cycle_audience \
+  --cycle-dir /absolute/path/to/completed-cycle \
+  --selection /absolute/path/to/submitted-selection.json \
+  --selection-receipt /absolute/path/to/recorded-selection.json \
+  --observation /absolute/path/to/audience-observation.json \
+  --output /absolute/path/to/new-audience-receipt.json
+```
+
+The observation supplies the exact selection-receipt, candidate, package,
+thumbnail and title identities plus integer impressions/clicks, a chronological
+window, observation timestamp, credential-free HTTPS evidence link and evidence
+note. Re-run the command with `--verify-receipt` instead of `--output` to
+reconstruct a retained receipt from all four original inputs. These receipts are
+always `SUPPLIED_UNVERIFIED`: the command does not log in to analytics, infer a
+winner, create a subsequent idea, or certify audience performance. Keep the
+original selection input, selection receipt and observation for replay.
+
 [The November 21 selection receipt](cycle-selection-proof-20261121.json) records
 visual inspection of the actual unpublished candidate's three PNGs and selection
 of variant 1. No audience metrics, full audiovisual approval or phone playback
