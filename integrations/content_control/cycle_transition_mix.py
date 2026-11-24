@@ -25,6 +25,7 @@ CUE_END_MARGIN_SECONDS = .04
 MIN_POST_NARRATION_TAIL_SECONDS = .24
 CUE_PEAK = .03
 ENCODED_PEAK_CEILING = .98
+MAX_CODEC_TIMELINE_DRIFT_SECONDS = .25
 MAX_DURATION_SECONDS = 600
 MAX_SCENES = 64
 VOICE_ASSIGNMENTS = {'dave': 'am_fenrir', 'points_monk': 'am_michael',
@@ -225,6 +226,20 @@ def _window_rms(samples, start, end):
     return math.sqrt(sum(value * value for value in values) / len(values)) / 32767
 
 
+def validate_decoded_lengths(source_frames, mixed_frames, duration_seconds):
+    """Allow only bounded AAC priming/padding drift across FFmpeg versions."""
+    if (type(source_frames) is not int or type(mixed_frames) is not int
+            or source_frames <= 0 or mixed_frames <= 0
+            or not _finite(duration_seconds) or duration_seconds <= 0):
+        raise ValueError('Decoded timeline lengths must be positive and finite')
+    maximum_drift_frames = round(MAX_CODEC_TIMELINE_DRIFT_SECONDS * RATE)
+    expected_frames = round(duration_seconds * RATE)
+    if (abs(source_frames - expected_frames) > maximum_drift_frames
+            or abs(mixed_frames - expected_frames) > maximum_drift_frames
+            or abs(source_frames - mixed_frames) > maximum_drift_frames):
+        raise ValueError('Mixed audio does not retain source timeline length')
+
+
 def encoded_stream_sha256(path, selector):
     result = subprocess.run([
         'ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-i', str(path),
@@ -312,8 +327,8 @@ def create_transition_mix(render_root, output):
             raise ValueError('Mixed output does not retain the bounded media contract')
         source_pcm = decode_audio(source['video_path'])
         mixed_pcm = decode_audio(video_path)
-        if abs(len(source_pcm) - len(mixed_pcm)) > 1024:
-            raise ValueError('Mixed audio does not retain source timeline length')
+        validate_decoded_lengths(len(source_pcm), len(mixed_pcm),
+                                 source['duration_seconds'])
         source_stats = pcm_stats(source_pcm)
         mixed_stats = pcm_stats(mixed_pcm)
         if mixed_stats['peak'] > ENCODED_PEAK_CEILING:

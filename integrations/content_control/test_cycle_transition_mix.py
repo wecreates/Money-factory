@@ -158,6 +158,15 @@ class TransitionMixTests(unittest.TestCase):
         self.assertEqual(first['stem_asset']['sha256'], second['stem_asset']['sha256'])
         self.assertEqual(first['cue_placements'], second['cue_placements'])
 
+    def test_decoded_length_accepts_bounded_codec_padding_only(self):
+        expected = round(4 * mix.RATE)
+        bounded = round(mix.MAX_CODEC_TIMELINE_DRIFT_SECONDS * mix.RATE)
+        mix.validate_decoded_lengths(expected + 2048, expected, 4.0)
+        with self.assertRaisesRegex(ValueError, 'source timeline length'):
+            mix.validate_decoded_lengths(expected + bounded + 1, expected, 4.0)
+        with self.assertRaisesRegex(ValueError, 'positive and finite'):
+            mix.validate_decoded_lengths(0, expected, 4.0)
+
 
 if __name__ == '__main__':
     unittest.main()
