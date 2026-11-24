@@ -59,6 +59,10 @@ class AuthoringTests(unittest.TestCase):
         self.assertEqual(proof['speaker_sequence'], ['narrator', 'dave', 'points_monk', 'narrator'])
         self.assertEqual([scene['speaker'] for scene in draft['scenes']], proof['speaker_sequence'])
         self.assertEqual(draft['layout'], 'landscape')
+        monk = draft['scenes'][2]
+        self.assertEqual(monk['visual_spec']['gesture'], 'point_right')
+        self.assertEqual(monk['visual_spec']['reveal_on_phrase'],
+                         json.loads(self.research.read_text())['sources'][1]['claim'])
         self.assertEqual(draft['research_sha256'], hashlib.sha256(self.research.read_bytes()).hexdigest())
         self.assertTrue(all(proof[key] is False for key in FALSE_FLAGS))
         self.assertIs(proof['authorship_verified'], False)
@@ -72,6 +76,9 @@ class AuthoringTests(unittest.TestCase):
         self.assertEqual(receipt['original_authoring'], proof)
         self.assertEqual(verified['original_authoring'], proof)
         self.assertEqual(editorial['original_authoring'], proof)
+        self.assertEqual(editorial['scenes'][2]['visual_spec']['reveal_on_phrase'],
+                         monk['visual_spec']['reveal_on_phrase'])
+        self.assertEqual(editorial['scenes'][2]['visual_spec']['gesture'], 'point_right')
         self.assertIn('authorship and originality review remain unverified', editorial['script_scope'])
         self.assertEqual(brief['topic_discovery'], verified['topic_discovery'])
 
