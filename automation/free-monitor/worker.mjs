@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {readMonitorPair,writeMonitorPair} from './persistence.mjs';
 import {collectResourceObservation,declaredWorkflowWallLimit,requestEnvelopeMs,
   validateWallEnvelope,RUNTIME_STATE_KEY} from './resources.mjs';
+import {buildCadenceEvidence} from './cadence.mjs';
 
 export function isMainEntry(importMetaUrl,argv1){
   if(!argv1) return false;
@@ -164,6 +165,7 @@ function retainEvents(events){
 }
 
 export const MAX_RESPONSE_BYTES=2*1024*1024;
+export const DEFAULT_INTERVAL_MS=300000;
 export const DEFAULT_MAX_ATTEMPTS=2;
 export const DEFAULT_REQUEST_TIMEOUT_MS=20000;
 export const DEFAULT_RETRY_BACKOFF_MS=250;
@@ -244,7 +246,8 @@ export async function runWorker({
   watchesPath='FREE_MONITOR_WATCHES.json',
   statePath='FREE_MONITOR_STATE.json',
   eventsPath='FREE_MONITOR_EVENTS.json',
-  intervalMs=300000,
+  intervalMs=DEFAULT_INTERVAL_MS,
+  cadenceIntervalMs=DEFAULT_INTERVAL_MS,
   maxAttempts=DEFAULT_MAX_ATTEMPTS,
   requestTimeoutMs=DEFAULT_REQUEST_TIMEOUT_MS,
   retryBackoffMs=DEFAULT_RETRY_BACKOFF_MS,
@@ -310,8 +313,14 @@ export async function runWorker({
     recordAlertIntents(events,base,nextState[base.id]);
   }
 
-  const resources=await collectResourceObservation({startedAt:new Date(now).toISOString(),activeWatches,
+  const startedAt=new Date(now).toISOString();
+  const resources=await collectResourceObservation({startedAt,activeWatches,
     policy:{maxAttempts,requestTimeoutMs,retryBackoffMs},workflowWallLimitMs});
+  resources.cadence=buildCadenceEvidence({startedAt,priorRuntime:priorState[RUNTIME_STATE_KEY],
+    targetIntervalMs:cadenceIntervalMs,
+    invocationSource:process.env.GITHUB_EVENT_NAME||'local',
+    invocationId:process.env.GITHUB_RUN_ID||null,
+    invocationAttempt:process.env.GITHUB_RUN_ATTEMPT||null});
   nextState[RUNTIME_STATE_KEY]=resources;
 
   const retainedEvents=retainEvents(events);

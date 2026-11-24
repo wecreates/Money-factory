@@ -139,10 +139,14 @@ test('worker retains current resource evidence in the atomic state pair without 
     const retained=JSON.parse(await fs.readFile(options.statePath,'utf8'));
     assert.deepEqual(first.resources,retained[RUNTIME_STATE_KEY]);
     assert.equal(retained[RUNTIME_STATE_KEY].type,'monitor_runtime_resources');
+    assert.equal(retained[RUNTIME_STATE_KEY].cadence.status,'non_scheduled_invocation_no_history');
+    assert.equal(retained[RUNTIME_STATE_KEY].cadence.prerequisite_passed,false);
     assert.equal(retained.fixture.last_status,200);
     const second=await runWorker(options);
     assert.equal(second.ok,true);
     assert.equal(second.results.length,1);
+    assert.equal(second.resources.cadence.status,'non_scheduled_invocation');
+    assert.equal(second.resources.cadence.prerequisite_passed,false);
   }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
 

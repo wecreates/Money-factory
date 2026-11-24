@@ -45,6 +45,53 @@ completed a pair. A failed verifier records the failure while retaining the
 prior completed pair. Verification reports are operational evidence, not source
 changes, and must not bypass reviewed `main` history.
 
+## Durable invocation cadence evidence
+
+The workflow declares `*/5`, but that declaration is not proof that GitHub
+created an invocation every five minutes. The Actions run collection inspected
+on November 24 shows scheduled run `45435294008` created and started at
+2026-11-24T16:16:59Z. Its unit tests, worker and state-persistence steps all
+succeeded; only the deliberate unhealthy-target gate failed. The previous
+scheduled run was `45334172856` at 2026-11-24T05:33:41Z. Later worker runs at
+16:43, 17:45, 18:42 and 19:15 UTC were push events, not scheduled events. The
+18--57 minute durable-state gaps observed around those changes therefore do not
+prove scheduled five-minute operation.
+
+No scheduled-run records exist for the intervening expected ticks, and the
+recorded scheduled runs started when they were created. That localizes the gap
+before worker execution and state persistence; it does not identify why the
+GitHub scheduler did not create each expected run. Platform scheduler telemetry
+is unavailable, so the upstream reason remains unverified. Code cannot repair a
+missing hosted scheduler invocation.
+
+Each completed worker pair now retains a cadence receipt inside
+`_monitor_runtime`. It records the built-in Actions invocation source and keeps
+all-invocation liveness separate from scheduled continuity. Push, manual,
+diagnostic and local runs can expose a durable gap but cannot advance scheduled
+acceptance. Non-scheduled runs also fail the scheduled chain when the next
+scheduled deadline is already overdue.
+
+The operational worker reads the Actions event, run ID and attempt directly
+from the process environment; callers cannot override worker options to relabel
+a local invocation as scheduled. A qualifying run ID must be a positive decimal
+GitHub ID and must increase strictly across every retained scheduled interval.
+
+Scheduled receipts bind process starts to fixed five-minute UTC cron slots and
+allow at most one minute of start drift from each slot. Continuity requires
+adjacent slots, a new nonempty Actions run ID and attempt 1 for every retained
+interval. Manual reruns and duplicate run IDs cannot advance unattended
+acceptance, and per-run grace cannot accumulate into a slower false pass. Exact
+gaps, overdue time and missed slots remain explicit. Missing, malformed, future,
+internally inconsistent or discontinuous evidence resets continuity and keeps
+the prerequisite false. A first scheduled observation is explicitly
+insufficient. Only 288 consecutive scheduled intervals spanning 24 hours can
+set `acceptance_window_verified` and `prerequisite_passed`; a single run, cron
+declaration, successful HTTP response or local test cannot.
+
+This receipt is detection evidence, not an alert consumer, a scheduler repair,
+proof of a 24-hour soak, or proof that the monitored website recovered. It does
+not change the workflow schedule or send or publish anything.
+
 ## November 21, 2026 investigation
 
 At repository base `c73ca61d239c7f8e2dde3da60087a2c164695635`, the verifier still
