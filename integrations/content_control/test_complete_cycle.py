@@ -11,7 +11,9 @@ import unittest
 from unittest.mock import patch
 
 from integrations.content_control import complete_cycle as m
+from integrations.content_control.cycle_audience import record_audience_observation
 from integrations.content_control.cycle_intake import prepare_brief
+from integrations.content_control import test_cycle_selection as selection_fixtures
 from integrations.content_control.test_cycle_editorial import brief
 
 
@@ -62,6 +64,64 @@ class CompleteCycleTest(unittest.TestCase):
         self.source = directory / 'brief.json'
         return {'research_path': research, 'draft_path': draft}, directory / 'intake.json'
 
+    @staticmethod
+    def audience_learning():
+        return {
+            'selection_receipt_sha256': '1' * 64,
+            'prior_candidate_sha256': '2' * 64,
+            'prior_package_sha256': '3' * 64,
+            'prior_thumbnail_sha256': '4' * 64,
+            'audience_observation_sha256': '5' * 64,
+            'audience_receipt_sha256': '6' * 64,
+            'hypothesis_index': 1,
+            'hypothesis': 'Test simpler wording in the next unpublished candidate.',
+            'application': 'Use a shorter question in the next unpublished candidate.',
+            'prior_performance_status': 'SUPPLIED_UNVERIFIED',
+            'audience_performance_verified': False,
+        }
+
+    def audience_intake(self):
+        prior = selection_fixtures.SelectionTests()
+        prior.setUp(); self.addCleanup(prior.tearDown)
+        selection = prior.selection()
+        recorded = prior.record(selection)
+        observation = prior.base / 'audience.json'
+        audience_receipt = prior.base / 'audience-receipt.json'
+        selection_fixtures.write(observation, {
+            'schema_version': 1,
+            'selection_receipt_sha256': m.digest(prior.recorded),
+            'candidate_sha256': recorded['candidate_sha256'],
+            'package_sha256': recorded['package_sha256'],
+            'thumbnail_sha256': recorded['thumbnail_sha256'],
+            'title': recorded['title'],
+            'impressions': 100, 'clicks': 5,
+            'window_start': '2026-01-04T00:00:00Z',
+            'window_end': '2026-01-05T00:00:00Z',
+            'observed_at': '2026-01-06T00:00:00Z',
+            'source_url': 'https://example.com/analytics',
+            'evidence': 'Synthetic analytics fixture; not actual audience evidence.',
+        })
+        record_audience_observation(prior.root, prior.submitted, prior.recorded,
+                                    observation, audience_receipt)
+        sample = brief()
+        research, draft = self.root / 'audience-research.json', self.root / 'audience-draft.json'
+        research.write_text(json.dumps({key: sample[key] for key in
+                                        ('schema_version', 'topic', 'sources', 'reference_observations')}))
+        draft.write_text(json.dumps({key: sample[key] for key in ('schema_version', 'title', 'scenes')} | {
+            'research_sha256': m.digest(research),
+            'idea_learning': {'selection_receipt_sha256': m.digest(prior.recorded),
+                              'audience_receipt_sha256': m.digest(audience_receipt),
+                              'hypothesis_index': 1,
+                              'application': 'Use a shorter question in the next unpublished candidate.'}}))
+        directory = self.root / 'audience-intake'
+        inputs = {'research_path': research, 'draft_path': draft, 'prior_cycle': prior.root,
+                  'selection_path': prior.submitted, 'selection_receipt': prior.recorded,
+                  'audience_observation': observation, 'audience_receipt': audience_receipt}
+        prepare_brief(research, draft, directory, **{key: value for key, value in inputs.items()
+                                                     if key not in ('research_path', 'draft_path')})
+        self.source = directory / 'brief.json'
+        return inputs
+
     def test_explicit_verified_intake_is_bound_to_completed_brief(self):
         inputs, receipt = self.intake()
         result = self.execute(intake_inputs=inputs)
@@ -75,6 +135,21 @@ class CompleteCycleTest(unittest.TestCase):
         self.assertFalse(result['production_approved'])
         self.assertIn('cycle_intake.py', result['tool_sha256'])
         self.assertEqual(result['steps'][-1], {'name': 'intake', 'status': 'PASS'})
+
+    def test_audience_learning_requires_matching_verified_intake(self):
+        value = brief(); value['idea_learning'] = self.audience_learning()
+        self.source.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError, 'exact replayable verified intake'):
+            self.execute(render=lambda *a, **k: self.fail('Rendered forged learning'))
+        self.assertFalse(self.output.exists())
+
+    def test_verified_audience_learning_binds_audience_tool(self):
+        result = self.execute(intake_inputs=self.audience_intake())
+        self.assertEqual(result['status'], 'AWAITING_REVIEW')
+        self.assertIn('audience_receipt_sha256', result['verified_intake']['idea_learning'])
+        self.assertIn('cycle_audience.py', result['tool_sha256'])
+        self.assertEqual(result['tool_sha256']['cycle_audience.py'],
+                         m.digest(Path(m.__file__).parent / 'cycle_audience.py'))
 
     def test_legacy_brief_does_not_claim_neighboring_intake(self):
         self.intake()
@@ -277,13 +352,29 @@ class CheckpointCLITests(unittest.TestCase):
                 '--voice-python', '/python', '--voice-root', '/voice',
                 '--intake-research', '/research', '--intake-draft', '/draft',
                 '--intake-prior-cycle', '/prior', '--intake-selection', '/selection',
-                '--intake-selection-receipt', '/receipt']
+                '--intake-selection-receipt', '/receipt',
+                '--intake-audience-observation', '/audience-observation',
+                '--intake-audience-receipt', '/audience-receipt']
         with patch('sys.argv', args), patch.object(m, 'run_cycle', return_value={'status': 'AWAITING_REVIEW'}) as run, \
                 contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(m.main(), 0)
         self.assertEqual(run.call_args.kwargs['intake_inputs'],
                          {'research_path': '/research', 'draft_path': '/draft',
-                          'prior_cycle': '/prior', 'selection_path': '/selection', 'selection_receipt': '/receipt'})
+                          'prior_cycle': '/prior', 'selection_path': '/selection', 'selection_receipt': '/receipt',
+                          'audience_observation': '/audience-observation',
+                          'audience_receipt': '/audience-receipt'})
+
+    def test_cli_rejects_partial_audience_learning_evidence(self):
+        import contextlib
+        import io
+        args = ['complete_cycle', '--brief', '/brief', '--output', '/cycle',
+                '--voice-python', '/python', '--voice-root', '/voice',
+                '--intake-research', '/research', '--intake-draft', '/draft',
+                '--intake-audience-observation', '/audience-observation']
+        with patch('sys.argv', args), patch.object(m, 'run_cycle') as run, \
+                contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            m.main()
+        run.assert_not_called()
 
 
 if __name__ == '__main__': unittest.main()

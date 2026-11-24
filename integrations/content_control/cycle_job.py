@@ -66,6 +66,9 @@ def production_input(request):
 def production_handoff(request):
     """Resolve input bytes, revision lineage, retained intake files and verified proof."""
     claimed_discovery = isinstance(request.get('brief'), dict) and 'topic_discovery' in request['brief']
+    learning = request.get('brief', {}).get('idea_learning') if isinstance(request.get('brief'), dict) else None
+    if isinstance(learning, dict) and 'audience_receipt_sha256' in learning:
+        raise ValueError('Queued audience-bound idea learning requires exact inline evidence replay')
     if 'intake_input' in request:
         from integrations.content_control.cycle_intake import MAX_INPUT, verify_inline_intake
         from integrations.content_control.cycle_discovery import MAX_POOL, MAX_RECEIPT

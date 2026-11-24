@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from integrations.content_control.cycle_intake import prepare_brief, verify_intake
+from integrations.content_control.cycle_audience import record_audience_observation
 from integrations.content_control.cycle_editorial import compile_editorial
 from integrations.content_control.cycle_job import brief_digest
 from integrations.content_control.test_cycle_editorial import brief as sample_brief
@@ -178,3 +179,99 @@ class IntakeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'select a recorded hypothesis'):
             prepare_brief(self.research, self.draft, self.output, **paths)
         self.assertFalse(self.output.exists())
+
+    def audience_learning_inputs(self):
+        prior = selection_fixtures.SelectionTests()
+        prior.setUp()
+        self.addCleanup(prior.tearDown)
+        selection = prior.selection()
+        recorded = prior.record(selection)
+        observation_path = prior.base / 'audience-observation.json'
+        audience_receipt = prior.base / 'audience-receipt.json'
+        observation = {
+            'schema_version': 1,
+            'selection_receipt_sha256': hashlib.sha256(prior.recorded.read_bytes()).hexdigest(),
+            'candidate_sha256': recorded['candidate_sha256'],
+            'package_sha256': recorded['package_sha256'],
+            'thumbnail_sha256': recorded['thumbnail_sha256'],
+            'title': recorded['title'],
+            'impressions': 100,
+            'clicks': 5,
+            'window_start': '2026-01-04T00:00:00Z',
+            'window_end': '2026-01-05T00:00:00Z',
+            'observed_at': '2026-01-06T00:00:00Z',
+            'source_url': 'https://example.com/analytics',
+            'evidence': 'Synthetic analytics fixture; not actual audience evidence.',
+        }
+        selection_fixtures.write(observation_path, observation)
+        record_audience_observation(prior.root, prior.submitted, prior.recorded,
+                                    observation_path, audience_receipt)
+        self.draft_data['idea_learning'] = {
+            'selection_receipt_sha256': hashlib.sha256(prior.recorded.read_bytes()).hexdigest(),
+            'audience_receipt_sha256': hashlib.sha256(audience_receipt.read_bytes()).hexdigest(),
+            'hypothesis_index': 1,
+            'application': 'Use a shorter question and compare the two amounts side by side.',
+        }
+        self.write_draft()
+        paths = {'prior_cycle': prior.root, 'selection_path': prior.submitted,
+                 'selection_receipt': prior.recorded, 'audience_observation': observation_path,
+                 'audience_receipt': audience_receipt}
+        return prior, recorded, observation_path, audience_receipt, paths
+
+    def test_audience_receipt_feeds_one_hypothesis_without_promoting_metrics(self):
+        prior, recorded, observation_path, audience_receipt, paths = self.audience_learning_inputs()
+        receipt = prepare_brief(self.research, self.draft, self.output, **paths)
+        brief = json.loads((self.output / 'brief.json').read_text())
+        learning = receipt['idea_learning']
+        self.assertEqual(learning, compile_editorial(brief)['idea_learning'])
+        self.assertEqual(learning['selection_receipt_sha256'],
+                         hashlib.sha256(prior.recorded.read_bytes()).hexdigest())
+        self.assertEqual(learning['audience_observation_sha256'],
+                         hashlib.sha256(observation_path.read_bytes()).hexdigest())
+        self.assertEqual(learning['audience_receipt_sha256'],
+                         hashlib.sha256(audience_receipt.read_bytes()).hexdigest())
+        self.assertEqual(learning['prior_candidate_sha256'], prior.candidate)
+        self.assertEqual(learning['prior_thumbnail_sha256'], recorded['thumbnail_sha256'])
+        self.assertEqual(learning['hypothesis'], recorded['next_idea_hypotheses'][0])
+        self.assertEqual(learning['prior_performance_status'], 'SUPPLIED_UNVERIFIED')
+        self.assertIs(learning['audience_performance_verified'], False)
+        self.assertTrue({'impressions', 'clicks', 'ctr', 'source_url', 'evidence'}.isdisjoint(learning))
+        proof = verify_intake(self.research, self.draft, self.output, **paths)
+        self.assertEqual(proof['idea_learning'], learning)
+
+    def test_audience_learning_requires_exact_original_evidence(self):
+        _, _, observation_path, audience_receipt, paths = self.audience_learning_inputs()
+        for missing in ('audience_observation', 'audience_receipt'):
+            with self.subTest(missing=missing), self.assertRaisesRegex(
+                    ValueError, 'Audience-bound learning requires'):
+                prepare_brief(self.research, self.draft, self.output,
+                              **{key: value for key, value in paths.items() if key != missing})
+            self.assertFalse(self.output.exists())
+        wrong = dict(self.draft_data['idea_learning'], audience_receipt_sha256='0' * 64)
+        self.draft_data['idea_learning'] = wrong
+        self.write_draft()
+        with self.assertRaisesRegex(ValueError, 'does not bind this audience receipt'):
+            prepare_brief(self.research, self.draft, self.output, **paths)
+        self.assertFalse(self.output.exists())
+        self.draft_data['idea_learning']['audience_receipt_sha256'] = hashlib.sha256(
+            audience_receipt.read_bytes()).hexdigest()
+        self.write_draft()
+        observation_path.write_bytes(observation_path.read_bytes() + b' ')
+        with self.assertRaisesRegex(ValueError, 'does not match'):
+            prepare_brief(self.research, self.draft, self.output, **paths)
+        self.assertFalse(self.output.exists())
+
+    def test_audience_learning_schema_rejects_missing_identity_or_promoted_status(self):
+        _, _, _, _, paths = self.audience_learning_inputs()
+        prepare_brief(self.research, self.draft, self.output, **paths)
+        brief = json.loads((self.output / 'brief.json').read_text())
+        for mutate, error in (
+            (lambda value: value.pop('audience_observation_sha256'), 'exact handoff fields'),
+            (lambda value: value.update(prior_performance_status='UNAVAILABLE'),
+             'audience receipt must remain supplied'),
+            (lambda value: value.update(audience_performance_verified=True), 'must remain unverified'),
+        ):
+            changed = json.loads(json.dumps(brief))
+            mutate(changed['idea_learning'])
+            with self.subTest(error=error), self.assertRaisesRegex(ValueError, error):
+                compile_editorial(changed)

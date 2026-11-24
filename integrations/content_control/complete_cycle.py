@@ -85,6 +85,10 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
         intake = verify_intake(intake_dir=source.parent, **intake_inputs)
         if intake['brief_sha256'] != brief_hash:
             raise ValueError('Verified intake does not match the production brief')
+    audience_learning = editorial.get('idea_learning')
+    if (isinstance(audience_learning, dict) and 'audience_receipt_sha256' in audience_learning
+            and (intake is None or intake.get('idea_learning') != audience_learning)):
+        raise ValueError('Audience-bound idea learning requires exact replayable verified intake')
     revision_source = safe_path(revision_path) if revision_path is not None else None
     lineage = read_revision(revision_source, brief_hash) if revision_source is not None else None
     lineage_receipt = validate_lineage(lineage, brief_hash) if lineage is not None else None
@@ -139,6 +143,8 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
     if intake is not None:
         receipt['verified_intake'] = intake
         tool_names += ('cycle_intake.py', 'cycle_selection.py')
+        if 'audience_receipt_sha256' in intake.get('idea_learning', {}):
+            tool_names += ('cycle_audience.py',)
         if 'topic_discovery' in intake:
             tool_names += ('cycle_discovery.py',)
     if revision_discovery is not None:
@@ -231,6 +237,8 @@ def main():
     parser.add_argument('--intake-prior-cycle')
     parser.add_argument('--intake-selection')
     parser.add_argument('--intake-selection-receipt')
+    parser.add_argument('--intake-audience-observation')
+    parser.add_argument('--intake-audience-receipt')
     parser.add_argument('--intake-discovery-pool')
     parser.add_argument('--intake-discovery-receipt')
     parser.add_argument('--revision-discovery-pool')
@@ -244,13 +252,20 @@ def main():
     intake_inputs = None
     if any(value is not None for value in (args.intake_research, args.intake_draft,
                                            args.intake_prior_cycle, args.intake_selection,
-                                           args.intake_selection_receipt, args.intake_discovery_pool,
+                                           args.intake_selection_receipt, args.intake_audience_observation,
+                                           args.intake_audience_receipt, args.intake_discovery_pool,
                                            args.intake_discovery_receipt)):
         if args.intake_research is None or args.intake_draft is None:
             parser.error('Verified intake requires --intake-research and --intake-draft')
         intake_inputs = {'research_path': args.intake_research, 'draft_path': args.intake_draft,
                          'prior_cycle': args.intake_prior_cycle, 'selection_path': args.intake_selection,
                          'selection_receipt': args.intake_selection_receipt}
+        if args.intake_audience_observation is not None or args.intake_audience_receipt is not None:
+            if args.intake_audience_observation is None or args.intake_audience_receipt is None:
+                parser.error('Audience learning intake requires --intake-audience-observation and '
+                             '--intake-audience-receipt')
+            intake_inputs.update(audience_observation=args.intake_audience_observation,
+                                 audience_receipt=args.intake_audience_receipt)
         if args.intake_discovery_pool is not None or args.intake_discovery_receipt is not None:
             if args.intake_discovery_pool is None or args.intake_discovery_receipt is None:
                 parser.error('Discovery intake requires --intake-discovery-pool and '
