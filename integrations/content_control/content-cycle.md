@@ -587,8 +587,11 @@ python -m integrations.content_control.cycle_short \
 The source must already have 9:16 portrait framing and exactly one audio stream;
 landscape, rotated or anamorphic inputs fail instead of receiving an invented
 crop. The interval must be finite, within source duration and at most 60 seconds.
-The consumer re-encodes H.264/AAC, checks decode, dimensions and actual duration,
-and writes `video.mp4`, rebased `captions.vtt`, and candidate-bound `short.json`.
+The consumer re-encodes H.264/AAC, checks decode and dimensions, and independently
+limits the encoded picture and container to 60 seconds. If frame rounding
+pushes a cut over 60 seconds, the attempt records the measured lengths and stops.
+A shorter input interval may fit the source frame cadence. Successful exports
+write `video.mp4`, rebased `captions.vtt`, and candidate-bound `short.json`.
 It validates the source cycle before and after encoding. Fresh output directories,
 owned processes, a bounded deadline, two encoder threads and diagnostic size
 limits remain mandatory. A failed attempt retains a BLOCKED receipt.
@@ -616,7 +619,8 @@ file. Visual overlap and timing near cue edges depend on the exact source and
 renderer. The receipt covers local technical verification.
 
 Only the pipeline's plain WebVTT is supported. Intersecting cues retain their
-whole text while timestamps are clipped to the requested and actual media bounds.
+whole text while timestamps are clipped to the earliest of the requested,
+encoded picture and encoded container ends.
 `boundary_cue_numbers` identifies potentially incomplete spoken sentences/words;
 review them against the resulting audio. This is not new ASR verification or
 automatic editorial selection. Full watch/listen, factual context, caption

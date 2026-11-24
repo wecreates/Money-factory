@@ -1,5 +1,6 @@
 """Synthetic fixture tests establish transport/encoding, not creative acceptance."""
 import json
+from fractions import Fraction
 from pathlib import Path
 import subprocess
 import tempfile
@@ -38,9 +39,9 @@ class ShortTests(unittest.TestCase):
         self.source.mkdir(parents=True);(self.source/'captions.vtt').write_text(VTT)
         self.snapshot={'candidate_sha256':'a'*64,'files_sha256':{'cycle.json':'b'*64}}
 
-    def media(self, size='90x160'):
-        subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i',f'color=c=blue:s={size}:r=24:d=3',
-                        '-f','lavfi','-i','sine=frequency=440:duration=3','-c:v','libx264','-threads','1',
+    def media(self, size='90x160', *, rate='24', duration=3):
+        subprocess.run(['ffmpeg','-y','-v','error','-f','lavfi','-i',f'color=c=blue:s={size}:r={rate}:d={duration}',
+                        '-f','lavfi','-i',f'sine=frequency=440:duration={duration}','-c:v','libx264','-threads','1',
                         '-c:a','aac','-shortest',str(self.source/'video.mp4')],check=True)
 
     def test_real_synthetic_cut_preserves_framing_and_bound_captions(self):
@@ -140,19 +141,22 @@ class ShortTests(unittest.TestCase):
             self.assertLessEqual(c,680);self.assertLessEqual(d,85)
         self.assertLess(85,105)  # Existing headline begins at y105.
 
-    def test_captions_end_at_actual_encoded_duration(self):
+    def test_captions_end_at_shorter_encoded_picture_or_container_duration(self):
         def fake_run(command, deadline):
             if command[0] == 'ffmpeg' and '-c:v' in command:
                 Path(command[-1]).write_bytes(b'synthetic media')
             return b''
-        with patch.object(m,'inspect_cycle',return_value=self.snapshot), \
-             patch.object(m,'_probe',side_effect=[{'width':90,'height':160,'duration_seconds':3},
-                                                 {'width':90,'height':160,'duration_seconds':1.45}]), \
-             patch.object(m,'_run',side_effect=fake_run):
-            r=m.make_short(self.root,self.base/'shorter',start=.5,end=2)
-        self.assertEqual(r['status'],'AWAITING_REVIEW',r)
-        self.assertIn('00:00:01.450',(self.base/'shorter/captions.vtt').read_text())
-        self.assertNotIn('00:00:01.500',(self.base/'shorter/captions.vtt').read_text())
+        for label, picture, container in [('picture', Fraction(145, 100), 1.5),
+                                          ('container', Fraction(15, 10), 1.45)]:
+            output = self.base / label
+            source = {'width': 90, 'height': 160, 'duration_seconds': 3}
+            actual = {**source, 'duration_seconds': container, 'picture_duration_seconds': picture}
+            with self.subTest(shorter=label), patch.object(m, 'inspect_cycle', return_value=self.snapshot), \
+                 patch.object(m, '_probe', side_effect=[source, actual]), patch.object(m, '_run', side_effect=fake_run):
+                result = m.make_short(self.root, output, start=.5, end=2)
+                self.assertEqual(result['status'], 'AWAITING_REVIEW', result)
+                self.assertIn('00:00:01.450', (output/'captions.vtt').read_text())
+                self.assertNotIn('00:00:01.500', (output/'captions.vtt').read_text())
 
     def test_bounds_existing_paths_and_symlinks_rejected(self):
         for a,b in [(0,61),(float('nan'),2),(-1,1),(1,1),(False,2)]:
@@ -161,6 +165,22 @@ class ShortTests(unittest.TestCase):
         with self.assertRaises(ValueError):m.make_short(self.root,out,start=0,end=1)
         link=self.base/'link';link.symlink_to(self.root)
         with self.assertRaises(ValueError):m.make_short(link,self.base/'unused',start=0,end=1)
+
+    def test_real_fractional_frame_tail_cannot_exceed_short_limit(self):
+        with patch.object(m, 'inspect_cycle', return_value=self.snapshot):
+            self.media(rate='24000/1001', duration=60.2)
+            overshoot = m.make_short(self.root, self.base/'overshoot', start=0, end=60, timeout=30)
+            self.media(duration=60.2)
+            exact = m.make_short(self.root, self.base/'exact', start=0, end=60, timeout=30)
+
+        self.assertEqual(overshoot['status'], 'BLOCKED', overshoot)
+        self.assertIn('60-second Short limit', overshoot['reason'])
+        self.assertEqual(json.loads((self.base/'overshoot/short.json').read_text()), overshoot)
+        self.assertNotIn('candidate_sha256', overshoot)
+        self.assertGreater(overshoot['encoded_picture_duration_seconds'], 60)
+        self.assertEqual(exact['status'], 'AWAITING_REVIEW', exact)
+        self.assertEqual(exact['media']['duration_seconds'], 60)
+        self.assertEqual(exact['encoded_picture_duration_seconds'], 60)
 
     def test_wrong_framing_and_source_duration_rejected(self):
         self.media()
