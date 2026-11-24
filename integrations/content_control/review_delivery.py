@@ -157,10 +157,12 @@ def verify_delivery(queue_root, job_id):
 
 
 def verify_cycle_delivery(attempt, request, stored, provenance):
-    from integrations.content_control.cycle_job import check_completed as check_cycle, production_input
+    from integrations.content_control.cycle_job import (
+        check_completed as check_cycle, production_handoff, verify_attempt_intake,
+    )
     from integrations.content_control.cycle_review import inspect_cycle
 
-    raw, lineage = production_input(request)
+    raw, lineage, _, intake = production_handoff(request)
     brief_sha = hashlib.sha256(raw).hexdigest()
     minimum = request.get('minimum_duration_seconds')
     if (stored.get('artifact_directory') != 'cycle' or stored.get('brief_sha256') != request['brief_sha256']
@@ -169,6 +171,8 @@ def verify_cycle_delivery(attempt, request, stored, provenance):
     stored_minimum = stored.get('minimum_duration_seconds')
     if stored_minimum != minimum or type(stored_minimum) is not type(minimum):
         raise ValueError('Cycle completion does not bind the queued minimum duration')
+    if stored.get('verified_intake') != intake:
+        raise ValueError('Cycle completion does not bind the queued verified intake')
     cycle_dir = regular(attempt / 'cycle', directory=True)
     snapshot = inspect_cycle(cycle_dir)
     if (snapshot['candidate_sha256'] != stored['candidate_sha256']
@@ -176,6 +180,7 @@ def verify_cycle_delivery(attempt, request, stored, provenance):
             or snapshot['cycle'].get('revision_lineage') != lineage):
         raise ValueError('Candidate, cycle receipt or revision changed after completion')
     cycle = check_cycle(cycle_dir, brief_sha, minimum_duration=minimum)
+    verify_attempt_intake(attempt, intake, cycle)
     archive_sha = snapshot['files_sha256']['delivery/review-package.zip']
     if cycle != snapshot['cycle'] or archive_sha != cycle.get('archive_sha256'):
         raise ValueError('Review archive or cycle changed after completion')
@@ -184,6 +189,8 @@ def verify_cycle_delivery(attempt, request, stored, provenance):
                       review_archive_sha256=archive_sha)
     if minimum is not None:
         provenance['minimum_duration_seconds'] = minimum
+    if intake is not None:
+        provenance['verified_intake'] = intake
     return cycle_dir / 'delivery', provenance
 
 

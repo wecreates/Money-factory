@@ -5,8 +5,8 @@ import unittest
 from zipfile import BadZipFile, ZipFile
 
 from integrations.content_control import test_cycle_review as fixtures
-from integrations.content_control.cycle_job import brief_digest, production_input
-from integrations.content_control.test_cycle_job import synthetic_picture_mp4
+from integrations.content_control.cycle_job import brief_digest, production_handoff
+from integrations.content_control.test_cycle_job import intake_request, synthetic_picture_mp4
 from integrations.content_control.review_delivery import export_review, status
 from integrations.content_control.review_package import digest
 from integrations.local_agent_queue import Queue, canonical
@@ -16,10 +16,12 @@ class CycleDeliveryTests(unittest.TestCase):
     setUp = fixtures.ReviewTests.setUp
     tearDown = fixtures.ReviewTests.tearDown
 
-    def queue_review(self, minimum=None, picture_seconds=None, media=None):
+    def queue_review(self, minimum=None, picture_seconds=None, media=None, with_intake=False):
         brief = json.loads((self.root / 'brief.json').read_text())
         request = {'operation': 'produce-content-cycle', 'brief': brief, 'brief_sha256': brief_digest(brief),
                    'timeout_seconds': 300, 'publication_enabled': False, 'paid_generation_enabled': False}
+        if with_intake:
+            request, _ = intake_request(self.base, brief)
         if minimum is not None:
             request['minimum_duration_seconds'] = minimum
         queue = Queue(self.base / 'queue'); self.addCleanup(queue.close)
@@ -29,7 +31,12 @@ class CycleDeliveryTests(unittest.TestCase):
             claim = queue.claim()
             attempt = queue.root / 'attempts/cycle-test/1'
             directory = attempt / 'cycle'; shutil.copytree(self.root, directory)
-            (directory / 'brief.json').write_bytes(production_input(request)[0])
+            raw, _, files, proof = production_handoff(request)
+            (directory / 'brief.json').write_bytes(raw)
+            if proof is not None:
+                (attempt / 'brief.json').write_bytes(raw)
+                for name, data in files.items():
+                    (attempt / name).write_bytes(data)
             delivery = directory / 'delivery'
             if media is not None:
                 for target in (delivery, directory / 'render'):
@@ -59,6 +66,8 @@ class CycleDeliveryTests(unittest.TestCase):
                          production_ready=False, factual_review=False, competitor_comparison=False)
             if minimum is not None:
                 cycle['minimum_duration_seconds'] = minimum
+            if proof is not None:
+                cycle['verified_intake'] = proof
             fixtures.write(cycle_path, cycle)
             receipt = {'status': 'PASS', 'review_status': 'AWAITING_REVIEW', 'operation': request['operation'],
                        'brief_sha256': request['brief_sha256'], 'production_brief_sha256': cycle['brief_sha256'],
@@ -66,6 +75,8 @@ class CycleDeliveryTests(unittest.TestCase):
                        'artifact_directory': 'cycle', **self.flags, 'production_ready': False}
             if minimum is not None:
                 receipt['minimum_duration_seconds'] = minimum
+            if proof is not None:
+                receipt['verified_intake'] = proof
             fixtures.write(attempt / 'cycle-adapter-receipt.json', receipt)
             queue.finish(claim, receipt)
         return queue, directory, receipt
@@ -94,6 +105,20 @@ class CycleDeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'minimum picture duration'):
             export_review(queue.root, 'cycle-test', output)
         self.assertFalse(output.exists())
+
+    def test_verified_intake_is_retained_and_rechecked_before_export(self):
+        queue, directory, receipt = self.queue_review(with_intake=True)
+        report = status(queue.root, 'cycle-test')
+        self.assertTrue(report['delivery_ready'], report)
+        proof = receipt['verified_intake']
+        self.assertEqual(report['provenance']['verified_intake'], proof)
+        exported = export_review(queue.root, 'cycle-test', self.base / 'export-with-intake')
+        self.assertEqual(exported['provenance']['verified_intake'], proof)
+        intake = directory.parent / 'intake.json'
+        intake.write_bytes(intake.read_bytes().replace(b'\r\n', b'\n'))
+        report = status(queue.root, 'cycle-test')
+        self.assertFalse(report['delivery_ready'])
+        self.assertIn('Retained intake differs from queued handoff', report['delivery_error'])
 
     @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Media tools unavailable')
     def test_verified_minimum_duration_is_retained_in_export_provenance(self):

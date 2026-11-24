@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -7,7 +8,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from integrations.content_control.cycle_job import brief_digest, validate, check_completed, run_job, digest
+from integrations.content_control.cycle_job import (
+    brief_digest, validate, check_completed, run_job, digest, production_handoff,
+)
 from integrations.local_agent_queue import Queue, work
 
 
@@ -34,6 +37,25 @@ def job():
             'max_attempts': 1, 'publication_enabled': False, 'paid_generation_enabled': False}
 
 
+def intake_request(root, source):
+    from integrations.content_control.cycle_intake import prepare_brief
+
+    research, draft = root/'original-research.json', root/'original-draft.json'
+    write(research, {key: source[key] for key in ('schema_version', 'topic', 'sources', 'reference_observations')})
+    write(draft, {key: source[key] for key in ('schema_version', 'title', 'scenes')} |
+          {'research_sha256': hashlib.sha256(research.read_bytes()).hexdigest()})
+    ready = root/'intake'
+    prepare_brief(research, draft, ready)
+    brief_raw = (ready/'brief.json').read_bytes()
+    value = json.loads(brief_raw)
+    receipt_raw = (ready/'intake.json').read_bytes().replace(b'\n', b'\r\n')
+    queued = dict(request(), brief=value, brief_sha256=brief_digest(value),
+                  intake_input={'research_json': research.read_bytes().decode('utf-8'),
+                                'draft_json': draft.read_bytes().decode('utf-8'),
+                                'receipt_json': receipt_raw.decode('utf-8')})
+    return queued, brief_raw
+
+
 def write(path, value):
     path.write_text(json.dumps(value))
 
@@ -46,14 +68,15 @@ def synthetic_picture_mp4(path, seconds, *, audio_seconds=2):
                     str(path)], check=True, timeout=30)
 
 
-def packet(path, expected, media=b'candidate'):
+def packet(path, expected, media=b'candidate', source_brief=None):
     path.mkdir()
     (path/'render').mkdir(); (path/'delivery').mkdir()
     (path/'render/video.mp4').write_bytes(media)
     from integrations.content_control.cycle_editorial import compile_editorial
     from integrations.content_control.cycle_job import canonical
-    editorial = compile_editorial(brief())
-    (path/'brief.json').write_text(canonical(brief()))
+    source = brief() if source_brief is None else source_brief
+    editorial = compile_editorial(source)
+    (path/'brief.json').write_text(canonical(source))
     write(path/'editorial.json', editorial)
     (path/'delivery/video.mp4').write_bytes(media)
     (path/'delivery/index.html').write_text('<html></html>')
@@ -319,6 +342,85 @@ class CycleJobTests(unittest.TestCase):
             self.assertEqual(observed[0][0][3], str(attempt/'brief.json'))
             self.assertEqual(observed[0][0][-4:], ['60', '', '', ''])
             self.assertEqual(digest(attempt/'brief.json'), request()['brief_sha256'])
+
+    def test_inline_intake_binds_exact_bytes_and_keeps_queue_envelope_limit(self):
+        from integrations.local_agent_queue import validate as validate_queue
+
+        with tempfile.TemporaryDirectory() as td:
+            queued, original = intake_request(Path(td), brief())
+            self.assertEqual(validate_queue(dict(job(), request=queued))['request'], queued)
+            raw, lineage, files, proof = production_handoff(queued)
+            self.assertEqual(raw, original)
+            self.assertIsNone(lineage)
+            self.assertEqual(proof['intake_receipt_sha256'], hashlib.sha256(files['intake.json']).hexdigest())
+            self.assertIn(b'\r\n', files['intake.json'])
+            self.assertFalse(proof['factual_review'])
+            for field in ('research_json', 'draft_json', 'receipt_json'):
+                changed = copy.deepcopy(queued)
+                changed['intake_input'][field] += ' '
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    validate(changed)
+            with self.assertRaisesRegex(ValueError, 'exact inline'):
+                validate(dict(queued, intake_input={**queued['intake_input'], 'path': 'outside'}))
+            with self.assertRaisesRegex(ValueError, 'either the fresh intake or the revision'):
+                validate(dict(queued, revision_input={}))
+            self.assertEqual(validate(request()), request())
+
+            # Both sources are below their individual limits and the extra whitespace is JSON-valid.
+            # The unchanged durable envelope limit still rejects the combination before attempting a render.
+            research = Path(td)/'original-research.json'
+            draft = Path(td)/'original-draft.json'
+            research.write_bytes(research.read_bytes() + b' ' * 80000)
+            value = json.loads(draft.read_bytes())
+            value['research_sha256'] = hashlib.sha256(research.read_bytes()).hexdigest()
+            draft.write_bytes(json.dumps(value).encode('utf-8') + b' ' * 80000)
+            from integrations.content_control.cycle_intake import prepare_brief
+            second = Path(td)/'large-intake'
+            prepare_brief(research, draft, second)
+            value = json.loads((second/'brief.json').read_bytes())
+            large = dict(queued, brief=value, brief_sha256=brief_digest(value),
+                         intake_input={'research_json': research.read_text(), 'draft_json': draft.read_text(),
+                                       'receipt_json': (second/'intake.json').read_text()})
+            self.assertEqual(validate(large), large)
+            with self.assertRaisesRegex(ValueError, 'oversized'):
+                validate_queue(dict(job(), request=large))
+
+    def test_guardian_intake_requires_matching_receipt_and_retained_files(self):
+        import sys
+        for outcome in ('match', 'drop', 'substitute', 'change-input'):
+            with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                (root/'scripts').mkdir(); (root/'scripts/v2_free_voice.py').touch()
+                attempt = root/'attempt'; attempt.mkdir()
+                queued, original = intake_request(root, brief())
+                _, _, files, proof = production_handoff(queued)
+
+                def run(command, **kwargs):
+                    self.assertIn('intake_inputs=dict(research_path=sys.argv[9],draft_path=sys.argv[10])', command[2])
+                    self.assertEqual(command[-2:], [str(attempt/'research.json'), str(attempt/'draft.json')])
+                    self.assertEqual((attempt/'brief.json').read_bytes(), original)
+                    for name, raw in files.items():
+                        self.assertEqual((attempt/name).read_bytes(), raw)
+                    cycle = attempt/'cycle'
+                    receipt = packet(cycle, proof['brief_sha256'], source_brief=queued['brief'])
+                    (cycle/'brief.json').write_bytes(original)
+                    if outcome != 'drop':
+                        receipt['verified_intake'] = dict(proof)
+                    if outcome == 'substitute':
+                        receipt['verified_intake']['research_sha256'] = '0' * 64
+                    if outcome == 'change-input':
+                        (attempt/'intake.json').write_bytes(files['intake.json'].replace(b'\r\n', b'\n'))
+                    write(cycle/'cycle.json', receipt)
+
+                with patch('integrations.content_control.cycle_job.collect_snapshot', return_value={}), \
+                     patch('integrations.content_control.cycle_job.recommend_capacity', return_value={'admitted_workers': 1}), \
+                     patch('integrations.content_control.cycle_job.guarded_runner', return_value=run):
+                    result = run_job(queued, attempt, voice_python=sys.executable, voice_root=root)
+                self.assertEqual(result['status'], 'PASS' if outcome == 'match' else 'BLOCKED')
+                if outcome == 'match':
+                    self.assertEqual(result['verified_intake'], proof)
+                else:
+                    self.assertIn('differs from queued handoff', result['blocker'])
 
     def test_guardian_receives_minimum_and_missing_or_short_evidence_blocks_completion(self):
         import sys
