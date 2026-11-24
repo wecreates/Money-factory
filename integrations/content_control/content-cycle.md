@@ -350,6 +350,9 @@ Inspect or export a durable successful attempt from an existing queue:
 ```sh
 python -m integrations.content_control.review_delivery --queue /local/queue --id cycle-review-01 status
 python -m integrations.content_control.review_delivery --queue /local/queue --id cycle-review-01 export --output /local/new-private-review
+python -m integrations.content_control.review_delivery verify \
+  --output /local/new-private-review \
+  --expected-delivery-identity <trusted-delivery_identity_sha256>
 ```
 
 The read-only command verifies SQLite completion against the adapter receipt,
@@ -361,7 +364,14 @@ exact candidate, source package, archive, entrypoint and every copied preview
 file in one `delivery_identity_sha256`. Interrupted or changed attempts cannot
 be exported. The preview remains private and unpublished; this identity proves
 copied bytes, not browser/device playback, creative approval or durable off-host
-storage.
+storage. The queue-independent `verify` command requires the expected delivery
+identity from a separate trusted handoff, reopens the retained directory,
+rehashes its exact preview tree and original ZIP members, and recomputes the
+delivery identity, including its complete cycle provenance, without rewriting
+either source. A self-contained directory proves only internal consistency: all
+contained hashes could be coherently replaced. A PASS means the external
+identity matched the retained bytes. It does not prove phone/browser playback,
+which still requires an observed device session.
 
 For a revised brief, retain the standard request fields above, including
 `brief_sha256` computed from the canonical `brief` object, and add an optional
