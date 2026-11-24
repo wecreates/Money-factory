@@ -11,11 +11,12 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import time
 from zipfile import BadZipFile, ZipFile
 
 from integrations.content_control.review_package import (
-    LIMIT, digest, inspect_packet, no_symlinks, package_review,
+    LIMIT, check_deadline, copy_chunks, digest, inspect_packet, no_symlinks, package_review,
 )
 
 
@@ -23,6 +24,18 @@ SHA256 = re.compile(r'^[0-9a-f]{64}$')
 GIT_SHA = re.compile(r'^[0-9a-f]{40}$')
 MAX_JSON = 4 * 1024 * 1024
 MAX_MEDIA = 256 * 1024 * 1024
+LEGACY_OPERATION = 'package-openmontage-safe-reframe'
+SOURCE_BYTES_OPERATION = 'package-openmontage-safe-reframe-with-source-bytes'
+LEGACY_SOURCE_EVIDENCE = 'receipt_attested_only'
+REHASHED_SOURCE_EVIDENCE = 'queue_owned_source_bytes_rehashed'
+SOURCE_MEDIA = {
+    'source-evidence/original.mp4': 'source_candidate_sha256',
+    'source-evidence/trimmed.mp4': 'transformed_source_sha256',
+}
+SOURCE_RECEIPTS = {
+    'safe-reframe-receipt.json': 'external_receipt_sha256',
+    'diagnostics/prior-openmontage-receipt.json': 'prior_tool_receipt_sha256',
+}
 FIELDS = {
     'operation', 'source_candidate_sha256', 'transformed_source_sha256',
     'candidate_sha256', 'external_receipt_sha256', 'prior_tool_receipt_sha256',
@@ -93,7 +106,7 @@ METADATA_FIELDS = {
 def validate(request):
     if not isinstance(request, dict) or set(request) != FIELDS:
         raise ValueError('Require the exact documented external-media request')
-    if request['operation'] != 'package-openmontage-safe-reframe':
+    if request['operation'] not in (LEGACY_OPERATION, SOURCE_BYTES_OPERATION):
         raise ValueError('Only the reviewed OpenMontage safe-reframe admission is allowed')
     for name in ('publication_enabled', 'paid_generation_enabled', 'production_approved',
                  'production_ready', 'full_av_review'):
@@ -167,6 +180,59 @@ def _regular_root(root):
     if not root.is_dir() or root.is_symlink():
         raise ValueError('Operator-supplied external-media root must be a regular directory')
     return root
+
+
+def _transfer_pinned_input(path, expected, limit, deadline, target=None):
+    """Hash one bounded regular input, optionally copying those exact bytes."""
+    no_symlinks(path)
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+    with os.fdopen(os.open(path, flags), 'rb') as incoming:
+        before = os.fstat(incoming.fileno())
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= limit:
+            raise ValueError('Required source evidence is not a bounded regular file: ' + path.name)
+        observed = hashlib.sha256()
+        size = 0
+        outgoing = None
+        try:
+            if target is not None:
+                outgoing = os.fdopen(os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb')
+            while True:
+                check_deadline(deadline)
+                chunk = incoming.read(1024 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > limit:
+                    raise ValueError('Source evidence exceeds byte limit: ' + path.name)
+                observed.update(chunk)
+                if outgoing is not None:
+                    outgoing.write(chunk)
+        finally:
+            if outgoing is not None:
+                outgoing.close()
+        after = os.fstat(incoming.fileno())
+    if (size != before.st_size
+            or (before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+            != (after.st_size, after.st_mtime_ns, after.st_ctime_ns)
+            or observed.hexdigest() != expected):
+        raise ValueError('Source evidence hash mismatch: ' + path.name)
+    return size
+
+
+def _source_bytes(root, request, deadline, target=None):
+    media_root = root / 'source-evidence'
+    no_symlinks(media_root)
+    if not media_root.is_dir() or {path.name for path in media_root.iterdir()} != {'original.mp4', 'trimmed.mp4'}:
+        raise ValueError('Require exactly original.mp4 and trimmed.mp4 as source evidence')
+    if target is not None:
+        (target / 'source-evidence').mkdir(mode=0o700)
+        (target / 'diagnostics').mkdir(mode=0o700)
+        for name, key in SOURCE_RECEIPTS.items():
+            _transfer_pinned_input(root / name, request[key], MAX_JSON, deadline, target / name)
+    remaining = MAX_MEDIA
+    for name, key in SOURCE_MEDIA.items():
+        remaining -= _transfer_pinned_input(root / name, request[key], remaining, deadline,
+                                            target / name if target is not None else None)
 
 
 def inspect_source(root, request, *, deadline=None):
@@ -260,6 +326,16 @@ def inspect_source(root, request, *, deadline=None):
     video = review / 'video.mp4'
     if video.stat().st_size > MAX_MEDIA:
         raise ValueError('External media exceeds the queue admission limit')
+    if request['operation'] == SOURCE_BYTES_OPERATION:
+        consumers = prior['actual_tool_consumers']
+        trimmers = [entry for entry in consumers if isinstance(entry, dict)
+                    and entry.get('tool') == 'video_trimmer'] if isinstance(consumers, list) else []
+        if (len(trimmers) != 1 or trimmers[0].get('success') is not True
+                or type(trimmers[0].get('cost_usd')) not in (int, float)
+                or trimmers[0]['cost_usd'] != 0
+                or trimmers[0].get('output_sha256') != request['transformed_source_sha256']):
+            raise ValueError('Prior receipt does not bind a successful free trim to the pinned bytes')
+        _source_bytes(root, request, deadline)
     return {'root': root, 'review': review, 'receipt': receipt,
             'receipt_sha256': request['external_receipt_sha256'],
             'prior_sha256': request['prior_tool_receipt_sha256'], 'run': packet[0]}
@@ -277,7 +353,7 @@ def _copy_packet(source, target, deadline):
             if not path.is_file() or path.is_symlink():
                 raise ValueError('Only regular review packet files may be staged')
             with path.open('rb') as incoming, (target / path.name).open('xb') as outgoing:
-                shutil.copyfileobj(incoming, outgoing, length=1024 * 1024)
+                copy_chunks(incoming, outgoing, deadline)
     except BaseException:
         shutil.rmtree(target, ignore_errors=True)
         raise
@@ -312,11 +388,13 @@ def _verify_package(delivery, request, provenance, deadline=None):
     expected_files = set(hashes) | {'delivery-manifest.json'}
     if {path.name for path in review.iterdir()} != expected_files:
         raise ValueError('Packaged review inventory changed')
+    sizes = {'delivery-manifest.json': len(manifest_raw)}
     for name, expected in hashes.items():
         path = review / name
         if (Path(name).name != name or not SHA256.fullmatch(expected or '')
                 or path.is_symlink() or not path.is_file() or digest(path, deadline) != expected):
             raise ValueError('Packaged review artifact changed: ' + str(name))
+        sizes[name] = path.stat().st_size
     archive = delivery / 'review-package.zip'
     if (archive.is_symlink() or not archive.is_file() or archive.stat().st_size > LIMIT
             or digest(archive, deadline) != package.get('archive_sha256')):
@@ -328,17 +406,22 @@ def _verify_package(delivery, request, provenance, deadline=None):
             members = bundle.infolist()
             expected_members = {'review/' + name for name in archive_hashes}
             if (len({item.filename for item in members}) != len(members)
-                    or {item.filename for item in members} != expected_members
-                    or bundle.testzip() is not None):
+                    or {item.filename for item in members} != expected_members):
                 raise ValueError('Packaged archive inventory changed')
             for item in members:
-                if item.is_dir() or ((item.external_attr >> 16) & 0o170000) == 0o120000:
+                name = item.filename.removeprefix('review/')
+                if (item.is_dir() or ((item.external_attr >> 16) & 0o170000) == 0o120000
+                        or item.file_size != sizes[name]):
                     raise ValueError('Packaged archive contains an invalid member')
                 observed = hashlib.sha256()
                 with bundle.open(item) as stream:
-                    while chunk := stream.read(1024 * 1024):
+                    while True:
+                        check_deadline(deadline)
+                        chunk = stream.read(1024 * 1024)
+                        if not chunk:
+                            break
                         observed.update(chunk)
-                if observed.hexdigest() != archive_hashes[item.filename.removeprefix('review/')]:
+                if observed.hexdigest() != archive_hashes[name]:
                     raise ValueError('Packaged archive member changed')
     except BadZipFile as error:
         raise ValueError('Packaged review archive is invalid') from error
@@ -347,7 +430,7 @@ def _verify_package(delivery, request, provenance, deadline=None):
 
 
 def _provenance(request):
-    return {
+    provenance = {
         'adapter': 'content-control-external-media',
         'operation': request['operation'],
         'source_candidate_sha256': request['source_candidate_sha256'],
@@ -365,29 +448,46 @@ def _provenance(request):
         'full_av_review': False,
         'scope': 'Verified pre-existing free/offline derivative lineage; no provider execution, playback, creative or publishing approval.',
     }
+    if request['operation'] == SOURCE_BYTES_OPERATION:
+        provenance['source_evidence'] = REHASHED_SOURCE_EVIDENCE
+    return provenance
 
 
-def check_completed(attempt_dir, request):
+def check_completed(attempt_dir, request, *, deadline=None):
     """Rehash queue-owned staged and packaged bytes for delivery readers."""
     attempt = Path(attempt_dir).absolute()
     no_symlinks(attempt)
     if not attempt.is_dir() or attempt.is_symlink():
         raise ValueError('Queue-owned external-media attempt is missing')
-    inspect_packet(attempt / 'review', request['review_run_sha256'], request['candidate_sha256'])
-    packaged = _verify_package(attempt / 'delivery', request, _provenance(request))
-    return {'review': attempt / 'review', **packaged}
+    validate(request)
+    if request['operation'] == SOURCE_BYTES_OPERATION:
+        inspect_source(attempt, request, deadline=deadline)
+        source_evidence = REHASHED_SOURCE_EVIDENCE
+    else:
+        inspect_packet(attempt / 'review', request['review_run_sha256'],
+                       request['candidate_sha256'], deadline)
+        source_evidence = LEGACY_SOURCE_EVIDENCE
+    packaged = _verify_package(attempt / 'delivery', request, _provenance(request), deadline)
+    return {'review': attempt / 'review', 'source_evidence': source_evidence, **packaged}
 
 
-def _sync_tree(root):
+def _sync_tree(root, deadline):
+    directories = [Path(root)]
     for path in sorted(Path(root).rglob('*')):
+        check_deadline(deadline)
         if path.is_file() and not path.is_symlink():
             with path.open('rb') as stream:
                 os.fsync(stream.fileno())
-    descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
+        elif path.is_dir() and not path.is_symlink():
+            directories.append(path)
+    for path in reversed(directories):
+        check_deadline(deadline)
+        descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    check_deadline(deadline)
 
 
 def run_job(request, attempt_dir, *, external_media_root=None):
@@ -408,16 +508,19 @@ def run_job(request, attempt_dir, *, external_media_root=None):
         deadline = time.monotonic() + request['timeout_seconds']
         source = inspect_source(external_media_root, request, deadline=deadline)
         _copy_packet(source['review'], attempt / 'review', deadline)
+        if request['operation'] == SOURCE_BYTES_OPERATION:
+            _source_bytes(source['root'], request, deadline, target=attempt)
         inspect_packet(attempt / 'review', request['review_run_sha256'],
                        request['candidate_sha256'], deadline)
         package_review(attempt / 'review', attempt / 'delivery',
                        expected_run_sha256=request['review_run_sha256'],
                        expected_candidate_sha256=request['candidate_sha256'],
                        provenance=_provenance(request), deadline=deadline)
-        completed = check_completed(attempt, request)
+        completed = check_completed(attempt, request, deadline=deadline)
         # A concurrent mutation of the operator-owned source cannot be hidden by
         # a valid queue copy; require the complete lineage to still match.
         inspect_source(external_media_root, request, deadline=deadline)
+        _sync_tree(attempt, deadline)
         result.update(
             status='PASS', artifact_directory='review', package_directory='delivery',
             candidate_sha256=request['candidate_sha256'],
@@ -430,7 +533,8 @@ def run_job(request, attempt_dir, *, external_media_root=None):
             tool_commit=request['tool_commit'], package_sha256=completed['package_sha256'],
             archive_sha256=completed['archive_sha256'], source_inputs_unchanged=True,
         )
-        _sync_tree(attempt)
+        if request['operation'] == SOURCE_BYTES_OPERATION:
+            result['source_evidence'] = completed['source_evidence']
     except (ValueError, OSError, KeyError, TypeError, TimeoutError, BadZipFile) as error:
         result['blocker'] = str(error) if isinstance(error, ValueError) else type(error).__name__
     receipt = attempt / 'external-media-adapter-receipt.json'

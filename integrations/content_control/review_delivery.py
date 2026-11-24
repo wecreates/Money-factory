@@ -185,7 +185,7 @@ def verify_delivery(queue_root, job_id):
 
 def verify_external_media_delivery(attempt, request, stored, provenance):
     """Bind durable queue completion back to the exact offline source packet."""
-    from integrations.content_control.external_media_job import check_completed
+    from integrations.content_control.external_media_job import LEGACY_SOURCE_EVIDENCE, check_completed
 
     pinned = ('source_candidate_sha256', 'transformed_source_sha256', 'candidate_sha256',
               'external_receipt_sha256', 'prior_tool_receipt_sha256',
@@ -199,7 +199,8 @@ def verify_external_media_delivery(attempt, request, stored, provenance):
         raise ValueError('Completion is not a source-bound offline external-media review')
     completed = check_completed(attempt, request)
     if (completed['package_sha256'] != stored.get('package_sha256')
-            or completed['archive_sha256'] != stored.get('archive_sha256')):
+            or completed['archive_sha256'] != stored.get('archive_sha256')
+            or completed['source_evidence'] != stored.get('source_evidence', LEGACY_SOURCE_EVIDENCE)):
         raise ValueError('External-media review package changed after completion')
     provenance.update(
         adapter='content-control-external-media',
@@ -210,6 +211,7 @@ def verify_external_media_delivery(attempt, request, stored, provenance):
         tool_commit=request['tool_commit'],
         package_sha256=completed['package_sha256'],
         review_archive_sha256=completed['archive_sha256'],
+        source_evidence=completed['source_evidence'],
         provider_calls=0,
     )
     return completed['review'], provenance
