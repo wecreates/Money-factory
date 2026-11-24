@@ -3,6 +3,8 @@ import argparse
 from contextlib import nullcontext
 from datetime import datetime, timezone
 from fractions import Fraction
+import hashlib
+from html import escape
 import json
 import math
 import os
@@ -91,6 +93,46 @@ def _probe(path, deadline, *, include_picture_duration=False):
     return media
 
 
+def _preview_html(bindings, *, burned_captions):
+    if burned_captions:
+        track = ''
+        caption_note = 'Captions are already visible in the video. The WebVTT file is available for reference.'
+    else:
+        track = '<track kind="captions" src="captions.vtt" srclang="en" label="English" default>'
+        caption_note = 'Use the video player’s caption control to view the WebVTT captions.'
+    fingerprints = ''.join(f'<dt>{label}</dt><dd><code>{escape(bindings[key])}</code></dd>'
+                           for label, key in (
+                               ('Video', 'candidate_sha256'), ('Captions', 'caption_sha256'),
+                               ('Automated review', 'automated_review_sha256'),
+                               ('Parent video', 'parent_candidate_sha256'), ('Parent cycle', 'parent_cycle_sha256'),
+                               ('Parent captions', 'source_caption_sha256')))
+    return f"""<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; media-src 'self'; style-src 'unsafe-inline'">
+<title>Unpublished Short review</title>
+<style>
+body {{ font: 17px system-ui; background: #101722; color: #f0f4fa; max-width: 640px; margin: 1rem auto; padding: 0 1rem; }}
+video {{ display: block; width: 100%; max-height: 70vh; background: #080c12; }}
+a {{ color: #9fd3ff; }}
+dd {{ margin: 0 0 .6rem; overflow-wrap: anywhere; }}
+</style>
+<main>
+<h1>Unpublished Short review</h1>
+<video controls playsinline preload="metadata" src="video.mp4">
+{track}
+</video>
+<p>{caption_note}</p>
+<p><a href="video.mp4">Open video</a> · <a href="captions.vtt" download>Download captions</a> ·
+<a href="automated-review.json">Review diagnostics</a> · <a href="short.json">Short receipt</a></p>
+<p>Watch and listen to the complete excerpt before recording a review. Publishing is disabled.</p>
+<details><summary>SHA-256 identities</summary><dl>{fingerprints}</dl></details>
+</main>
+</html>
+"""
+
+
 def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counter=False, compact_captions=False):
     require(type(hide_source_counter) is bool, 'hide_source_counter must be boolean')
     require(type(compact_captions) is bool, 'compact_captions must be boolean')
@@ -137,6 +179,7 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
              'caption_scope':'Intersecting source cues clipped/rebased; whole cue text retained even at cut boundaries. Review boundary words against audio.',
              'scope':'Unreviewed portrait excerpt; no long-form, creative, listening, phone or publishing acceptance.',
              'started_at':datetime.now(timezone.utc).isoformat()}
+    preview = output/'index.html'
     try:
         working = tempfile.TemporaryDirectory(prefix='.compact-', dir=output) if compact_captions else nullcontext(output)
         with working as directory:
@@ -175,18 +218,32 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
         receipt['boundary_cue_numbers'] = boundary
         (output/'captions.vtt').write_text(clipped)
         require(inspect_cycle(root)==snapshot,'Source cycle changed while clipping')
-        candidate, caption_sha = digest(output/'video.mp4'), digest(output/'captions.vtt')
-        from integrations.content_control.cycle_av_review import write_automated_review
+        candidate = digest(output/'video.mp4', deadline)
+        caption_sha = digest(output/'captions.vtt', deadline)
+        from integrations.content_control.cycle_av_review import read_automated_review, write_automated_review
         actual.pop('picture_duration_seconds')
         write_automated_review(output, candidate, caption_sha, deadline=deadline, media=actual)
+        review = read_automated_review(output/'automated-review.json', candidate, caption_sha)
+        require(digest(output/'video.mp4', deadline) == candidate
+                and digest(output/'captions.vtt', deadline) == caption_sha, 'Short media or captions changed before preview')
+        bindings = {'candidate_sha256': candidate, 'caption_sha256': caption_sha,
+                    'automated_review_sha256': hashlib.sha256(review).hexdigest()}
+        with preview.open('x', encoding='utf-8', newline='\n') as stream:
+            stream.write(_preview_html(receipt | bindings, burned_captions=compact_captions))
+        preview_sha = digest(preview, deadline)
         receipt.update(status='AWAITING_REVIEW',technical_status='PASS',media=actual,
-                       candidate_sha256=candidate,caption_sha256=caption_sha,
-                       automated_review_sha256=digest(output/'automated-review.json', deadline))
+                       **bindings, preview_sha256=preview_sha,
+                       preview_caption_mode='burned' if compact_captions else 'sidecar')
     except (OSError,ValueError,RuntimeError,TimeoutError,subprocess.SubprocessError,KeyError,TypeError) as error:
+        preview.unlink(missing_ok=True)
         receipt['reason']=str(error)
     finally:
         receipt['finished_at']=datetime.now(timezone.utc).isoformat()
-        (output/'short.json').write_text(json.dumps(receipt,indent=2,sort_keys=True,allow_nan=False)+'\n')
+        try:
+            (output/'short.json').write_text(json.dumps(receipt,indent=2,sort_keys=True,allow_nan=False)+'\n')
+        except OSError:
+            preview.unlink(missing_ok=True)
+            raise
     return receipt
 
 
