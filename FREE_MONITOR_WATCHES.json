@@ -10,7 +10,7 @@
     "id": "money-factory-repository",
     "label": "Money Factory GitHub repository",
     "kind": "change",
-    "targetUrl": "https://github.com/wecreates/Money-factory",
+    "targetUrl": "https://api.github.com/repos/wecreates/Money-factory/commits/main",
     "status": "active"
   }
 ]
