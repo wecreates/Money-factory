@@ -91,13 +91,21 @@ def validate_visual_shape(spec):
         raise ValueError(kind + ': at most two fields; use card or receipt for more fields')
     if kind in ('balance', 'checklist') and labels and values:
         raise ValueError(kind + ': use labels or values, not both; use card, receipt or comparison for paired fields')
-    if 'reveal_after_seconds' in spec:
-        offset = spec['reveal_after_seconds']
+    reveal_keys = {'reveal_after_seconds', 'reveal_on_phrase'} & set(spec)
+    if reveal_keys:
         if (kind != 'comparison' or len(labels) != 2 or len(values) != 2
                 or any(not item.strip() for item in labels + values)):
             raise ValueError('Timed reveal requires two complete comparison cards')
+        if len(reveal_keys) != 1:
+            raise ValueError('Comparison reveal requires exactly one timing method')
+    if 'reveal_after_seconds' in spec:
+        offset = spec['reveal_after_seconds']
         if type(offset) not in (int, float) or not .25 <= offset <= 59.5:
             raise ValueError('Comparison reveal offset must be .25 to 59.5 scene-local seconds')
+    if 'reveal_on_phrase' in spec:
+        phrase = spec['reveal_on_phrase']
+        if not isinstance(phrase, str) or not phrase.strip() or len(phrase) > 300:
+            raise ValueError('Comparison reveal phrase must be 1 to 300 characters')
 
 
 def validate(editorial):
@@ -126,6 +134,11 @@ def validate(editorial):
             raise ValueError('Unsupported voice assignment')
         spec = scene.get('visual_spec', {})
         validate_visual_shape(spec)
+        if 'reveal_on_phrase' in spec:
+            narration = scene['narration'].casefold()
+            phrase = spec['reveal_on_phrase'].strip().casefold()
+            if narration.count(phrase) != 1:
+                raise ValueError('Comparison reveal phrase must occur exactly once in narration')
     return scenes
 
 
@@ -423,12 +436,28 @@ def timestamp(seconds):
     return f'{h:02d}:{m:02d}:{s:02d}.{ms:03d}'
 
 
-def picture_filters(scene, frame_count, layout=None):
+def picture_filters(scene, frame_count, layout=None, narration_duration=None):
     width, height = panel_size(layout)
     filters = f'scale={width}:{height},setsar=1,fps=24'
-    offset = scene.get('visual_spec', {}).get('reveal_after_seconds')
-    if offset is None:
+    spec = scene.get('visual_spec', {})
+    offset = spec.get('reveal_after_seconds')
+    phrase = spec.get('reveal_on_phrase')
+    if offset is None and phrase is None:
         return filters, None
+    timing = {'alignment_method': 'explicit_scene_offset'}
+    if phrase is not None:
+        if type(narration_duration) not in (int, float) or not math.isfinite(narration_duration) \
+                or narration_duration <= 0:
+            raise ValueError('Phrase reveal requires measured narration duration')
+        narration = scene['narration']
+        start = narration.casefold().find(phrase.strip().casefold())
+        if start < 0 or narration.casefold().count(phrase.strip().casefold()) != 1:
+            raise ValueError('Comparison reveal phrase must occur exactly once in narration')
+        offset = narration_duration * start / len(narration)
+        timing = {'alignment_method': 'measured_duration_character_fraction',
+                  'requested_phrase': phrase.strip(),
+                  'phrase_character_offset': start,
+                  'narration_characters': len(narration)}
     frame = math.ceil(offset * 24)
     if frame_count - frame < 12:
         raise ValueError('Comparison reveal requires half a second of rendered screen time')
@@ -441,7 +470,8 @@ def picture_filters(scene, frame_count, layout=None):
     filters += (f",drawbox=x={left}:y={top}:w={right-left+1}:h={bottom-top+1}"
                 f":color=0x{PANEL_BACKGROUND[1:]}:t=fill:enable='lt(n,{frame})'")
     return filters, {'kind': 'second_comparison_card', 'requested_offset_seconds': offset,
-                     'first_visible_scene_frame': frame, 'rendered_offset_seconds': frame / 24}
+                     'first_visible_scene_frame': frame, 'rendered_offset_seconds': frame / 24,
+                     **timing}
 
 
 def measured_clip_frames(scenes, clips, output):
@@ -530,7 +560,7 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
             if clip['audio_sha256']!=digest(wav):
                 raise ValueError('Narration binding mismatch')
             duration=frame_count/24
-            filters, reveal = picture_filters(scene, frame_count, layout)
+            filters, reveal = picture_filters(scene, frame_count, layout, clip['duration_seconds'])
             panel=output/f'panel-{index:02d}.png'; draw_panel(scene,panel,index,len(scenes),**panel_options)
             motion_dir=output/f'motion-{index:02d}'; motion_dir.mkdir()
             motion_hashes={}
