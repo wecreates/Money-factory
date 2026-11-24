@@ -25,7 +25,9 @@ class ReviewCLITests(unittest.TestCase):
         base=['--cycle-dir','/cycle','--output','/diagnostic']
         for tail in ([], ['--analyze'], ['--analyze','--rea-runtime','/python','--review','/review'],
                      ['--analyze','--rea-runtime','/python','--revision-brief','/brief'],
-                     ['--review','/review','--rea-runtime','/python']):
+                     ['--review','/review','--rea-runtime','/python'],
+                     ['--analyze','--rea-runtime','/python','--rea-analysis','/analysis.json'],
+                     ['--review','/review','--revision-brief','/brief','--rea-analysis','/analysis.json']):
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
                 self.call(base+tail)
             self.assertEqual(raised.exception.code,2)
@@ -34,6 +36,14 @@ class ReviewCLITests(unittest.TestCase):
         with patch('integrations.content_control.cycle_review.record_review',return_value={'status':'REVISION_REQUIRED'}) as review:
             self.assertEqual(self.call(['--cycle-dir','/cycle','--review','/review','--output','/record']),0)
             review.assert_called_once_with('/cycle','/review','/record')
+
+    def test_review_option_links_rea_analysis(self):
+        with patch('integrations.content_control.cycle_review.record_review',
+                   return_value={'status':'REVISION_REQUIRED'}) as review:
+            args = ['--cycle-dir','/cycle','--review','/review','--output','/record',
+                    '--rea-analysis','/analysis.json']
+            self.assertEqual(self.call(args), 0)
+            review.assert_called_once_with('/cycle','/review','/record',rea_analysis='/analysis.json')
 
     def test_package_lint_is_separate_from_attestation_and_rea(self):
         args = ['--cycle-dir', '/cycle', '--output', '/lint', '--package-lint']
