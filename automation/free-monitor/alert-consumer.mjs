@@ -4,7 +4,8 @@ import {constants as fsConstants} from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {writeJsonAtomic} from './persistence.mjs';
+import {isDeepStrictEqual} from 'node:util';
+import {writeJsonAtomic,writeSerializedExclusive} from './persistence.mjs';
 import {alertIntentKey,isPendingAlertIntent,MONITOR_EVENT_LIMIT,pendingAlertIntents} from './alert-intents.mjs';
 
 const LEDGER_SCHEMA=1;
@@ -13,6 +14,8 @@ const RECORD_TYPE='monitor_alert_delivery';
 const TERMINAL_STATUSES=new Set(['acknowledged','dead_letter']);
 export const LOCAL_ALERT_ARCHIVE_KEY='_monitor_local_alert_archive';
 export const MAX_LOCAL_ALERT_ARCHIVE_RECORDS=500;
+export const LOCAL_ALERT_ARCHIVE_ROLLOVER_RECORDS=250;
+export const MAX_LOCAL_ALERT_ARCHIVE_GENERATIONS=16;
 export const MAX_LOCAL_ALERT_LEDGER_RECORDS=MAX_LOCAL_ALERT_ARCHIVE_RECORDS+MONITOR_EVENT_LIMIT;
 export const MAX_LOCAL_ALERT_LEDGER_BYTES=8*1024*1024;
 export const MAX_LOCAL_ALERT_SOURCE_BYTES=8*1024*1024;
@@ -108,7 +111,7 @@ function validateLedger(ledger){
   return ledger;
 }
 
-async function readBoundedJson(file,{label,byteLimit,optional=false}){
+async function readBoundedBytes(file,{label,byteLimit,optional=false}){
   if(!fsConstants.O_NOFOLLOW || !fsConstants.O_NONBLOCK){
     throw new Error('bounded alert reads require no-follow and nonblocking file flags');
   }
@@ -139,10 +142,15 @@ async function readBoundedJson(file,{label,byteLimit,optional=false}){
         || final.mtimeNs!==opened.mtimeNs || final.ctimeNs!==opened.ctimeNs){
       throw new Error(`${label} changed while being read`);
     }
-    return JSON.parse(bytes.toString('utf8',0,offset));
+    return bytes.subarray(0,offset);
   }finally{
     await handle.close();
   }
+}
+
+async function readBoundedJson(file,options){
+  const bytes=await readBoundedBytes(file,options);
+  return bytes===undefined?undefined:JSON.parse(bytes.toString('utf8'));
 }
 
 async function readLedger(file,observedAt,{required=false}={}){
@@ -173,15 +181,29 @@ function archiveIntentKey(intent){
   return alertIntentKey(intent.watch_id,intent.target_url,intent.alert_kind,intent.outage_started_at);
 }
 
-function validateArchive(archive){
-  if(!exactKeys(archive,['schema_version','type','records']) || archive.schema_version!==1
-    || archive.type!=='monitor_local_alert_archive' || !Array.isArray(archive.records)
-    || archive.records.length>MAX_LOCAL_ALERT_ARCHIVE_RECORDS){
+function validateGenerationMetadata(metadata,index){
+  return exactKeys(metadata,['sequence','sha256','record_count'])
+    && metadata.sequence===index+1 && typeof metadata.sha256==='string'
+    && /^[0-9a-f]{64}$/.test(metadata.sha256)
+    && Number.isSafeInteger(metadata.record_count) && metadata.record_count>0
+    && metadata.record_count<=LOCAL_ALERT_ARCHIVE_ROLLOVER_RECORDS;
+}
+
+function validateArchiveShape(archive){
+  const legacy=exactKeys(archive,['schema_version','type','records']) && archive.schema_version===1;
+  const current=exactKeys(archive,['schema_version','type','records','generations'])
+    && archive.schema_version===2 && Array.isArray(archive.generations)
+    && archive.generations.length<=MAX_LOCAL_ALERT_ARCHIVE_GENERATIONS
+    && archive.generations.every(validateGenerationMetadata);
+  if((!legacy && !current) || archive.type!=='monitor_local_alert_archive'
+    || !Array.isArray(archive.records) || archive.records.length>MAX_LOCAL_ALERT_ARCHIVE_RECORDS){
     throw new Error('invalid local alert archive');
   }
-  const indexed=new Map();
-  const keys=new Set();
-  for(const entry of archive.records){
+  return current?archive.generations:[];
+}
+
+function indexArchiveRecords(records,indexed,keys){
+  for(const entry of records){
     if(!exactKeys(entry,['intent','local_delivery']) || !isPendingAlertIntent(entry.intent)
       || !validateRecord(entry.local_delivery,entry.intent.id)
       || !isLocalTerminalRecord(entry.local_delivery,entry.intent)
@@ -192,15 +214,112 @@ function validateArchive(archive){
     indexed.set(entry.intent.id,entry);
     keys.add(archiveIntentKey(entry.intent));
   }
-  return {indexed,keys};
+}
+
+function generationFile(ledgerPath,metadata){
+  const absolute=path.resolve(ledgerPath);
+  return path.join(path.dirname(absolute),
+    `${path.basename(absolute)}.archive-${String(metadata.sequence).padStart(4,'0')}-${metadata.sha256}.json`);
+}
+
+function serializeGeneration(sequence,previousSha256,records){
+  return JSON.stringify({schema_version:1,type:'monitor_local_alert_archive_generation',sequence,
+    previous_sha256:previousSha256,records},null,2)+'\n';
+}
+
+async function readGeneration(ledgerPath,metadata,previousSha256){
+  const file=generationFile(ledgerPath,metadata);
+  const bytes=await readBoundedBytes(file,{label:'local alert archive generation',
+    byteLimit:MAX_LOCAL_ALERT_LEDGER_BYTES});
+  if(crypto.createHash('sha256').update(bytes).digest('hex')!==metadata.sha256){
+    throw new Error('local alert archive generation digest mismatch');
+  }
+  const generation=JSON.parse(bytes.toString('utf8'));
+  if(!exactKeys(generation,['schema_version','type','sequence','previous_sha256','records'])
+    || generation.schema_version!==1 || generation.type!=='monitor_local_alert_archive_generation'
+    || generation.sequence!==metadata.sequence || generation.previous_sha256!==previousSha256
+    || !Array.isArray(generation.records) || generation.records.length!==metadata.record_count){
+    throw new Error('invalid local alert archive generation');
+  }
+  return generation.records;
+}
+
+async function loadArchive(archive,ledgerPath){
+  const generations=validateArchiveShape(archive);
+  const indexed=new Map();
+  const keys=new Set();
+  const generationRecords=new Map();
+  let previousSha256=null;
+  for(const metadata of generations){
+    if(ledgerPath===undefined) throw new Error('local alert archive generations require a ledger path');
+    const records=await readGeneration(ledgerPath,metadata,previousSha256);
+    indexArchiveRecords(records,indexed,keys);
+    for(const entry of records) generationRecords.set(entry.intent.id,entry.local_delivery);
+    previousSha256=metadata.sha256;
+  }
+  indexArchiveRecords(archive.records,indexed,keys);
+  return {indexed,keys,generations,generationRecords};
+}
+
+async function readLedgerRetiringGenerations(ledgerPath,generationRecords){
+  if(ledgerPath===undefined) return {ledger:null,retired:0};
+  if(generationRecords.size===0){
+    return {ledger:await readLedger(ledgerPath,Date.now(),{required:true}),retired:0};
+  }
+  return withLedgerLock(ledgerPath,async assertLockHeld=>{
+    assertLockHeld();
+    const ledger=await readLedger(ledgerPath,Date.now(),{required:true});
+    let retired=0;
+    for(const [id,archivedRecord] of generationRecords){
+      if(!Object.hasOwn(ledger.records,id)) continue;
+      if(!isDeepStrictEqual(ledger.records[id],archivedRecord)){
+        throw new Error('archive generation and alert delivery ledger disagree');
+      }
+      delete ledger.records[id];
+      retired++;
+    }
+    if(retired){
+      ledger.observed_at=Date.now();
+      assertLockHeld();
+      await writeLedger(ledgerPath,ledger);
+      assertLockHeld();
+    }
+    return {ledger,retired};
+  });
+}
+
+async function ensureGeneration(ledgerPath,sequence,previousSha256,records){
+  const serialized=serializeGeneration(sequence,previousSha256,records);
+  if(Buffer.byteLength(serialized)>MAX_LOCAL_ALERT_LEDGER_BYTES){
+    throw new Error('local alert archive generation exceeds byte limit');
+  }
+  const sha256=crypto.createHash('sha256').update(serialized).digest('hex');
+  const metadata={sequence,sha256,record_count:records.length};
+  const file=generationFile(ledgerPath,metadata);
+  return withLedgerLock(ledgerPath,async assertLockHeld=>{
+    assertLockHeld();
+    let recovered=false;
+    try{
+      await writeSerializedExclusive(file,serialized);
+    }catch(error){
+      if(error.code!=='EEXIST') throw error;
+      const existing=await readBoundedBytes(file,{label:'local alert archive generation',
+        byteLimit:MAX_LOCAL_ALERT_LEDGER_BYTES});
+      if(!existing.equals(Buffer.from(serialized))) throw new Error('conflicting local alert archive generation');
+      recovered=true;
+    }
+    assertLockHeld();
+    return {metadata,recovered};
+  });
 }
 
 // This computes a new pair image. Only the worker's existing serial journaled
 // writer may persist it. The ledger is read once from an atomic snapshot.
 export async function reconcileLocalAlertOutbox(events,priorArchive,ledgerPath){
   const archive=priorArchive??{schema_version:1,type:'monitor_local_alert_archive',records:[]};
-  const {indexed,keys}=validateArchive(archive);
-  const ledger=ledgerPath===undefined ? null : await readLedger(ledgerPath,Date.now(),{required:true});
+  const {indexed,keys,generations,generationRecords}=await loadArchive(archive,ledgerPath);
+  const {ledger,retired:retiredLedgerRecords}=await readLedgerRetiringGenerations(
+    ledgerPath,generationRecords);
   const sourceIds=new Set();
   const sourceKeyCounts=new Map();
   for(const event of events){
@@ -212,9 +331,27 @@ export async function reconcileLocalAlertOutbox(events,priorArchive,ledgerPath){
     sourceKeyCounts.set(key,(sourceKeyCounts.get(key)??0)+1);
   }
   const retained=[];
-  const records=[...archive.records];
+  let records=[...archive.records];
+  let nextGenerations=[...generations];
   let compacted=0;
   let deferred=0;
+  let rolledOver=0;
+  let recoveredRollover=0;
+  const terminalCandidate=events.some(event=>event.type==='alert_intent'
+    && !indexed.has(event.id) && !keys.has(archiveIntentKey(event))
+    && sourceKeyCounts.get(archiveIntentKey(event))===1
+    && ledger && TERMINAL_STATUSES.has(ledger.records[event.id]?.delivery_status));
+  if(terminalCandidate && records.length===MAX_LOCAL_ALERT_ARCHIVE_RECORDS
+    && nextGenerations.length<MAX_LOCAL_ALERT_ARCHIVE_GENERATIONS){
+    const retiring=records.slice(0,LOCAL_ALERT_ARCHIVE_ROLLOVER_RECORDS);
+    const sequence=nextGenerations.length+1;
+    const previousSha256=nextGenerations.at(-1)?.sha256??null;
+    const rollover=await ensureGeneration(ledgerPath,sequence,previousSha256,retiring);
+    nextGenerations.push(rollover.metadata);
+    records=records.slice(LOCAL_ALERT_ARCHIVE_ROLLOVER_RECORDS);
+    rolledOver=retiring.length;
+    recoveredRollover=Number(rollover.recovered);
+  }
   for(const event of events){
     if(event.type!=='alert_intent'){retained.push(event);continue;}
     const key=archiveIntentKey(event);
@@ -230,7 +367,9 @@ export async function reconcileLocalAlertOutbox(events,priorArchive,ledgerPath){
     if(record && TERMINAL_STATUSES.has(record.delivery_status)){
       if(!isLocalTerminalRecord(record,event)) throw new Error('invalid local terminal alert record');
       if(records.length<MAX_LOCAL_ALERT_ARCHIVE_RECORDS && sourceKeyCounts.get(key)===1){
-        records.push({intent:event,local_delivery:record});
+        const entry={intent:event,local_delivery:record};
+        records.push(entry);
+        indexed.set(event.id,entry);
         keys.add(key);
         compacted++;
         continue;
@@ -239,12 +378,23 @@ export async function reconcileLocalAlertOutbox(events,priorArchive,ledgerPath){
     }
     retained.push(event);
   }
-  return {events:retained,archive:{...archive,records},keys,report:{
+  const nextArchive=nextGenerations.length
+    ? {schema_version:2,type:'monitor_local_alert_archive',records,generations:nextGenerations}
+    : {...archive,records};
+  const report={
     compacted_this_run:compacted,terminal_reconciliation_deferred:deferred,
-    archived_acknowledged:records.filter(entry=>entry.local_delivery.delivery_status==='acknowledged').length,
-    archived_dead_letter:records.filter(entry=>entry.local_delivery.delivery_status==='dead_letter').length,
+    archived_acknowledged:[...indexed.values()]
+      .filter(entry=>entry.local_delivery.delivery_status==='acknowledged').length,
+    archived_dead_letter:[...indexed.values()]
+      .filter(entry=>entry.local_delivery.delivery_status==='dead_letter').length,
     archive_limit:MAX_LOCAL_ALERT_ARCHIVE_RECORDS,
-    external_delivery_performed:false,publication_enabled:false}};
+    external_delivery_performed:false,publication_enabled:false};
+  if(rolledOver || nextGenerations.length){
+    Object.assign(report,{rolled_over_this_run:rolledOver,archive_generations:nextGenerations.length,
+      recovered_rollover_generation:recoveredRollover,
+      ledger_records_retired_this_run:retiredLedgerRecords});
+  }
+  return {events:retained,archive:nextArchive,keys,report};
 }
 
 function validatePolicy({maxAttempts,attemptTimeoutMs,retryBackoffMs,batchLimit}){

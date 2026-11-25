@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash,randomUUID} from 'node:crypto';
 import fs from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
@@ -19,6 +20,26 @@ async function fixture(t) {
 }
 
 const read=async file=>JSON.parse(await fs.readFile(file,'utf8'));
+
+const orphanFor=file=>path.join(path.dirname(file),
+  `.free-monitor-${createHash('sha256').update(path.resolve(file)).digest('hex').slice(0,20)}-${randomUUID()}.tmp`);
+
+test('pair lock removes only attributable regular orphan temporaries',async t=>{
+  const {options}=await fixture(t);
+  t.mock.method(globalThis,'fetch',async()=>new Response('stable'));
+  const orphan=orphanFor(options.statePath);
+  const unrelated=path.join(path.dirname(options.statePath),`.free-monitor-${randomUUID()}.tmp`);
+  await Promise.all([fs.writeFile(orphan,'interrupted'),fs.writeFile(unrelated,'unrelated')]);
+  const report=await runWorker(options);
+  assert.equal(report.persistence_orphans_recovered,1);
+  await assert.rejects(fs.stat(orphan),{code:'ENOENT'});
+  assert.equal(await fs.readFile(unrelated,'utf8'),'unrelated');
+
+  const unsafe=orphanFor(options.eventsPath);
+  await fs.symlink(unrelated,unsafe);
+  await assert.rejects(runWorker(options),/unsafe monitor persistence orphan temporary file/);
+  assert.equal(await fs.readlink(unsafe),unrelated);
+});
 
 test('workers with a shared events file cannot poll concurrently', {timeout:10000}, async t=>{
   const {options,pending}=await fixture(t);

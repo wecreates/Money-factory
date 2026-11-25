@@ -29,6 +29,30 @@ function localConsume({options,ledgerPath},extra){
   return runAlertConsumer({eventsPath:options.eventsPath,ledgerPath,mode:'local-ack',retryBackoffMs:0,...extra});
 }
 
+function distinctIntent(template,index){
+  const outage=1_000_000+index;
+  return {...template,id:randomUUID(),watch_id:`rollover-${index}`,at:outage,
+    outage_started_at:outage,label:`Rollover ${index}`,
+    target_url:`https://fixture.invalid/rollover/${index}`};
+}
+
+function terminalEntry(templateRecord,intent){
+  return {intent,local_delivery:{...structuredClone(templateRecord),intent_id:intent.id,
+    intent_sha256:alertIntentSha256(intent),watch_id:intent.watch_id,
+    alert_kind:intent.alert_kind,outage_started_at:intent.outage_started_at,
+    local_receipt_id:`local:${intent.id}`}};
+}
+
+async function addTerminalBatch(options,ledgerPath,templateIntent,templateRecord,count,start){
+  const entries=Array.from({length:count},(_,offset)=>
+    terminalEntry(templateRecord,distinctIntent(templateIntent,start+offset)));
+  const ledger=await read(ledgerPath);
+  for(const entry of entries) ledger.records[entry.intent.id]=entry.local_delivery;
+  ledger.observed_at=Date.now();
+  await Promise.all([write(options.eventsPath,entries.map(entry=>entry.intent)),write(ledgerPath,ledger)]);
+  return entries;
+}
+
 test('terminal receipts compact locally while preserving pending recovery and dedup after restart',async t=>{
   const f=await fixture(t);
   const {options,ledgerPath}=f;
@@ -224,7 +248,7 @@ test('worker command opts in to local compaction on the normal state and events 
   assert.equal(pendingAlertIntents(await read(options.eventsPath)).length,0);
 });
 
-test('a full archive defers terminal work without evicting existing archive or pending inputs',async t=>{
+test('a full archive rolls its oldest half into a chained generation before compaction',async t=>{
   const f=await fixture(t);
   const {options,ledgerPath}=f;
   t.mock.method(globalThis,'fetch',async()=>{throw new TypeError('fixture unreachable');});
@@ -241,11 +265,134 @@ test('a full archive defers terminal work without evicting existing archive or p
   const state=await read(options.statePath);
   state[LOCAL_ALERT_ARCHIVE_KEY]={schema_version:1,type:'monitor_local_alert_archive',records};
   await write(options.statePath,state);
-  const deferred=await runWorker({...options,localAlertLedgerPath:ledgerPath});
-  assert.equal(deferred.alert_outbox_pending,1);
-  assert.equal(deferred.local_alert_archive.terminal_reconciliation_deferred,1);
-  assert.deepEqual(pendingAlertIntents(await read(options.eventsPath)),[intent]);
-  assert.deepEqual((await read(options.statePath))[LOCAL_ALERT_ARCHIVE_KEY].records,records);
+  await write(options.watchesPath,[{...watch,status:'paused'}]);
+  const entry=new URL('../worker.mjs',import.meta.url).href;
+  const command=`import fs from 'node:fs/promises';
+    import {runWorker} from ${JSON.stringify(entry)};
+    const rename=fs.rename;
+    fs.rename=async (from,to)=>{
+      if(to===${JSON.stringify(`${options.statePath}.pending`)}) {
+        process.stdout.write('BEFORE_JOURNAL\\n');
+        await new Promise(resolve=>setTimeout(resolve,60_000));
+      }
+      return rename(from,to);
+    };
+    await runWorker(${JSON.stringify({...options,localAlertLedgerPath:ledgerPath})});`;
+  const child=spawn(process.execPath,['--input-type=module','--eval',command],{stdio:['ignore','pipe','pipe']});
+  t.after(()=>{if(child.exitCode===null && child.signalCode===null) child.kill('SIGKILL');});
+  await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(new Error('worker did not reach journal write within timeout')),5000);
+    child.stdout.on('data',chunk=>{
+      if(String(chunk).includes('BEFORE_JOURNAL')){clearTimeout(timer);resolve();}
+    });
+    child.once('error',error=>{clearTimeout(timer);reject(error);});
+    child.once('exit',code=>{clearTimeout(timer);reject(new Error(`worker exited early: ${code}`));});
+  });
+  const exited=once(child,'exit');
+  child.kill('SIGKILL');
+  assert.deepEqual(await exited,[null,'SIGKILL']);
+  assert.equal((await fs.readdir(path.dirname(ledgerPath)))
+    .filter(name=>name.startsWith(`${path.basename(ledgerPath)}.archive-`)).length,1);
+  const rolled=await runWorker({...options,localAlertLedgerPath:ledgerPath});
+  assert.equal(rolled.alert_outbox_pending,0);
+  assert.equal(rolled.local_alert_archive.terminal_reconciliation_deferred,0);
+  assert.equal(rolled.local_alert_archive.rolled_over_this_run,250);
+  assert.equal(rolled.local_alert_archive.archive_generations,1);
+  assert.equal(rolled.local_alert_archive.recovered_rollover_generation,1);
+  assert.equal(rolled.local_alert_archive.archived_acknowledged,501);
+  assert.deepEqual(pendingAlertIntents(await read(options.eventsPath)),[]);
+  const archive=(await read(options.statePath))[LOCAL_ALERT_ARCHIVE_KEY];
+  assert.equal(archive.schema_version,2);
+  assert.equal(archive.records.length,251);
+  assert.deepEqual(archive.records.slice(0,250),records.slice(250));
+  assert.deepEqual(archive.records[250].intent,intent);
+  const [generation]=archive.generations;
+  const generationFile=`${ledgerPath}.archive-${String(generation.sequence).padStart(4,'0')}-${generation.sha256}.json`;
+  const external=await read(generationFile);
+  assert.equal(external.previous_sha256,null);
+  assert.deepEqual(external.records,records.slice(0,250));
+  const replay=await runWorker({...options,localAlertLedgerPath:ledgerPath});
+  assert.equal(replay.alert_outbox_pending,0);
+  assert.equal(replay.local_alert_archive.archive_generations,1);
+});
+
+test('committed generations retire terminal ledger rows and continue delivery past 1000 outcomes',async t=>{
+  const f=await fixture(t);
+  const {options,ledgerPath}=f;
+  t.mock.method(globalThis,'fetch',async()=>{throw new TypeError('fixture unreachable');});
+  await runWorker(options);
+  await localConsume(f);
+  const [firstIntent]=pendingAlertIntents(await read(options.eventsPath));
+  const firstLedger=await read(ledgerPath);
+  const templateRecord=firstLedger.records[firstIntent.id];
+  const initial=Array.from({length:MAX_LOCAL_ALERT_ARCHIVE_RECORDS},(_,index)=>
+    terminalEntry(templateRecord,distinctIntent(firstIntent,index)));
+  const state=await read(options.statePath);
+  state[LOCAL_ALERT_ARCHIVE_KEY]={schema_version:1,type:'monitor_local_alert_archive',records:initial};
+  firstLedger.records=Object.fromEntries([
+    ...initial.map(entry=>[entry.intent.id,entry.local_delivery]),
+    [firstIntent.id,templateRecord]
+  ]);
+  firstLedger.observed_at=Date.now();
+  await Promise.all([write(options.statePath,state),write(ledgerPath,firstLedger),
+    write(options.watchesPath,[{...watch,status:'paused'}])]);
+
+  const firstRollover=await runWorker({...options,localAlertLedgerPath:ledgerPath});
+  assert.equal(firstRollover.local_alert_archive.archive_generations,1);
+  assert.equal(Object.keys((await read(ledgerPath)).records).length,501);
+  const beforeRetirement=await read(ledgerPath);
+  const disagreement=structuredClone(beforeRetirement);
+  const changedId=initial[0].intent.id;
+  disagreement.records[changedId].attempts[0].completed_at++;
+  disagreement.records[changedId].acknowledged_at++;
+  await write(ledgerPath,disagreement);
+  const pairedBefore=await Promise.all([fs.readFile(options.statePath),fs.readFile(options.eventsPath)]);
+  await assert.rejects(runWorker({...options,localAlertLedgerPath:ledgerPath}),
+    /archive generation and alert delivery ledger disagree/);
+  assert.deepEqual(await Promise.all([fs.readFile(options.statePath),fs.readFile(options.eventsPath)]),pairedBefore);
+  await write(ledgerPath,beforeRetirement);
+  const firstRetirement=await runWorker({...options,localAlertLedgerPath:ledgerPath});
+  assert.equal(firstRetirement.local_alert_archive.ledger_records_retired_this_run,250);
+  assert.equal(Object.keys((await read(ledgerPath)).records).length,251);
+
+  await addTerminalBatch(options,ledgerPath,firstIntent,templateRecord,249,500);
+  await runWorker({...options,localAlertLedgerPath:ledgerPath});
+  let sequence=749;
+  let lastDelivered;
+  for(let generation=2;generation<=3;generation++){
+    const delivered=distinctIntent(firstIntent,++sequence);
+    lastDelivered=delivered;
+    await write(options.eventsPath,[delivered]);
+    const delivery=await localConsume(f,{batchLimit:1});
+    assert.equal(delivery.attempted_this_run,1);
+    assert.equal((await read(ledgerPath)).records[delivered.id].delivery_status,'acknowledged');
+    const rollover=await runWorker({...options,localAlertLedgerPath:ledgerPath});
+    assert.equal(rollover.local_alert_archive.archive_generations,generation);
+    assert.equal(rollover.local_alert_archive.archived_acknowledged,500+(generation-1)*250+1);
+    const retirement=await runWorker({...options,localAlertLedgerPath:ledgerPath});
+    assert.equal(retirement.local_alert_archive.ledger_records_retired_this_run,250);
+    assert.equal(Object.keys((await read(ledgerPath)).records).length,251);
+    if(generation<3){
+      await addTerminalBatch(options,ledgerPath,firstIntent,templateRecord,249,sequence+1);
+      await runWorker({...options,localAlertLedgerPath:ledgerPath});
+      sequence+=249;
+    }
+  }
+  const archive=(await read(options.statePath))[LOCAL_ALERT_ARCHIVE_KEY];
+  assert.equal(archive.generations.length,3);
+  assert.equal(archive.generations.reduce((sum,item)=>sum+item.record_count,0)+archive.records.length,1001);
+  assert.equal(pendingAlertIntents(await read(options.eventsPath)).length,0);
+  const retainedLedger=await read(ledgerPath);
+  assert.equal(Object.keys(retainedLedger.records).length,251);
+  assert.equal(retainedLedger.records[lastDelivered.id].delivery_status,'acknowledged');
+
+  const retiredIntent=initial[0].intent;
+  assert.equal(retainedLedger.records[retiredIntent.id],undefined);
+  await write(options.eventsPath,[retiredIntent]);
+  const replay=await runWorker({...options,localAlertLedgerPath:ledgerPath});
+  assert.equal(replay.local_alert_archive.compacted_this_run,1);
+  assert.equal(pendingAlertIntents(await read(options.eventsPath)).length,0);
+  assert.equal((await localConsume(f,{batchLimit:1})).attempted_this_run,0);
 });
 
 test('an ambiguous outage key preserves both original intent IDs',async t=>{

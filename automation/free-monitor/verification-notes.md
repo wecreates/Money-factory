@@ -255,20 +255,29 @@ or `--local-alert-ledger <path>` when called from the command line.
 It then moves exactly matched local acknowledged/dead-lettered intents from
 the pending event queue to `_monitor_local_alert_archive` within the existing
 journaled state/events pair. The archive stores the original intent and entire
-attempt record, leaving the existing ledger intact. An interruption after event
+attempt record. Current in-state archive rows remain in the ledger until a
+verified rollover generation is committed. An interruption after event
 replacement replays both images before the next worker uses them. Archived
 outage identities prevent a continuing outage or subsequent recovery from
 creating a second copy of that outage intent. A new recovery still queues
 independently. Pending attempts and ambiguous duplicate outage/recovery keys
-stay in the event queue. A full 500-record archive defers compaction and
-retains both the prior archive and the as-yet unarchived intents.
+stay in the event queue. A full 500-record archive rolls its oldest 250
+records into the bounded immutable generation chain before compacting a new
+terminal intent. If the generation chain is full, compaction is deferred and
+the as-yet unarchived intent remains pending.
 
 The local worker and consumer accept regular ledger files up to 8 MiB and
-1,000 records, enough for the archive and producer outbox ceilings together.
-The consumer rejects attempts to write beyond either ceiling and leaves the
-previous ledger intact. Compaction requires earlier attempts to all be errors
-and the terminal status, final attempt, timestamps and last error to agree.
-Malformed terminal evidence leaves the pending input in place.
+1,000 records. After a generation is present in the committed paired state, a
+later worker takes the same ledger lock as the consumer and removes only
+structurally identical terminal ledger rows already retained in that verified
+generation. Missing retired rows are idempotent. A disagreement fails closed
+before polling or pair persistence. This keeps current and active delivery rows
+within the ledger ceiling while the bounded generation chain retains older
+attempt evidence and outage identities. The consumer rejects attempts to write
+beyond either ceiling and leaves the previous ledger intact. Compaction
+requires earlier attempts to all be errors and the terminal status, final
+attempt, timestamps and last error to agree. Malformed terminal evidence leaves
+the pending input in place.
 
 The consumer also bounds its source events before taking the delivery lock or
 attempting work: at most 8 MiB of JSON and 500 events, including unrelated
@@ -279,13 +288,25 @@ in size, device, inode, nanosecond modification time or nanosecond change time.
 Same-size in-place mutation therefore fails before delivery or compaction and
 leaves the existing evidence artifacts unchanged. This bounds input loading
 that the 20-intent processing batch alone could not bound. It does not establish
-a total process memory quota, disk quota or archive rollover.
+a total process memory quota or disk quota.
+
+When the in-state archive reaches 500 records and another uniquely bound
+terminal intent is ready, the worker retires the oldest 250 records to an
+immutable hash-named generation beside the trusted ledger. The state keeps a
+bounded, hash-chained manifest of at most 16 generations. Every later
+reconciliation rereads each generation through a stable, no-follow bounded
+descriptor and validates its digest, chain, records, IDs and outage keys before
+deduplication. A crash after the generation is linked but before the paired
+journal is installed reuses only the byte-identical generation on restart.
+Generation exhaustion defers further compaction instead of evicting evidence.
+Once a generation exists, later workers must continue to receive the same
+trusted ledger path so they can locate and validate the retained chain; omitting
+it fails closed before polling or rewriting state.
 
 The archived local outcomes never stand for external delivery or operator
 acknowledgment. The current hosted workflow does not supply a ledger, so
-automatic deployed compaction is still unavailable. The local archive has no
-automatic retention rollover. Local compaction is not a cadence repair or
-24-hour soak.
+automatic deployed compaction is still unavailable. Local compaction and
+rollover are not cadence repair or a 24-hour soak.
 
 ## Runtime resource observations and request envelope
 
@@ -326,8 +347,13 @@ or temporary artifact is created. That image is parsed into ordinary JSON
 values, and the exact materialized values produce both legacy files. A nested
 `toJSON` hook therefore cannot return a small preflight image and a larger
 write image. An image above 8 MiB leaves the existing pair byte-identical.
-This bounds that paired output path only. Unrelated files, orphaned temporary
-files, and other atomic JSON outputs can still consume disk, so
+The paired writer now gives each destination a path-derived temporary-file
+prefix. After obtaining every pair-directory lock, a worker removes only
+single-link regular temporary files attributable to the state, events or
+pending destination. A matching symlink, directory or multiply linked file
+fails closed. This recovers crash leftovers without touching concurrent ledger
+or unrelated atomic output. Unrelated files, retained archive generations and
+other atomic JSON outputs can still consume disk, so
 `total_resource_ceiling_verified` remains false.
 
 Offline inspection on 2026-11-25 found the checked-in state at 905 bytes and

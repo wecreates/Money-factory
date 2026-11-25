@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import {constants as fsConstants} from 'node:fs';
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import path from 'node:path';
@@ -20,6 +20,43 @@ async function destinations({statePath,eventsPath}) {
   const pending=`${state}.pending`;
   if (state===events || pending===events) throw new Error('Monitor persistence paths must be distinct');
   return {state,events,pending,eventsKey:path.relative(path.dirname(state),events)};
+}
+
+function temporaryPrefix(file) {
+  const key=createHash('sha256').update(path.resolve(file)).digest('hex').slice(0,20);
+  return `.free-monitor-${key}-`;
+}
+
+function temporaryPath(file) {
+  return path.join(path.dirname(file),`${temporaryPrefix(file)}${randomUUID()}.tmp`);
+}
+
+async function recoverAtomicOrphans(files) {
+  const byDirectory=new Map();
+  for(const file of files){
+    const directory=path.dirname(file);
+    const prefixes=byDirectory.get(directory)??new Set();
+    prefixes.add(temporaryPrefix(file));
+    byDirectory.set(directory,prefixes);
+  }
+  let recovered=0;
+  for(const [directory,prefixes] of byDirectory){
+    const names=await fs.readdir(directory);
+    let changed=false;
+    for(const name of names){
+      if(!name.endsWith('.tmp') || ![...prefixes].some(prefix=>name.startsWith(prefix))) continue;
+      const file=path.join(directory,name);
+      const metadata=await fs.lstat(file);
+      if(!metadata.isFile() || metadata.nlink!==1){
+        throw new Error('unsafe monitor persistence orphan temporary file');
+      }
+      await fs.unlink(file);
+      recovered++;
+      changed=true;
+    }
+    if(changed) await syncDirectory(path.join(directory,'.'));
+  }
+  return recovered;
 }
 
 async function lockDirectory(handle) {
@@ -58,7 +95,9 @@ export async function withMonitorPair(options,operation) {
       // The kernel retains its lock after flock exits, until the parent closes it.
       await lockDirectory(handle);
     }
-    return await operation({read:()=>readPair(files),write:(state,events)=>writePair(files,state,events)});
+    const recoveredOrphans=await recoverAtomicOrphans([files.state,files.events,files.pending]);
+    return await operation({read:()=>readPair(files),write:(state,events)=>writePair(files,state,events),
+      recoveredOrphans});
   }finally{
     await Promise.all(handles.map(handle=>handle.close()));
   }
@@ -131,7 +170,7 @@ async function syncDirectory(file) {
 }
 
 async function writeSerializedAtomic(file,serialized) {
-  const temporary=path.join(path.dirname(file),`.free-monitor-${randomUUID()}.tmp`);
+  const temporary=temporaryPath(file);
   const handle=await fs.open(temporary,'wx',0o600);
   let moved=false;
   try {
@@ -146,6 +185,25 @@ async function writeSerializedAtomic(file,serialized) {
     await syncDirectory(file);
   } finally {
     if (!moved) await fs.unlink(temporary);
+  }
+}
+
+export async function writeSerializedExclusive(file,serialized) {
+  const temporary=temporaryPath(file);
+  await recoverAtomicOrphans([file]);
+  const handle=await fs.open(temporary,'wx',0o600);
+  try{
+    try{
+      await handle.writeFile(serialized);
+      await handle.sync();
+    }finally{
+      await handle.close();
+    }
+    await fs.link(temporary,file);
+    await syncDirectory(file);
+  }finally{
+    await fs.unlink(temporary).catch(error=>{if(error.code!=='ENOENT') throw error;});
+    await syncDirectory(file);
   }
 }
 

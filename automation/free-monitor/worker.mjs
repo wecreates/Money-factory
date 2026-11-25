@@ -316,6 +316,7 @@ async function runMonitorTransaction(pair,configuredWatches,{
   return {ran_at:new Date(now).toISOString(),
     ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>availability(w)==='healthy'),
     alert_outbox_pending:pendingAlertIntents(retainedEvents).length,
+    ...(pair.recoveredOrphans?{persistence_orphans_recovered:pair.recoveredOrphans}:{}),
     ...(reconciliation?{local_alert_archive:reconciliation.report}:{}),resources,results};
 }
 
