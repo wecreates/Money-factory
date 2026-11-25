@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "provider": "OpenMontage",
+  "upstream": "https://github.com/calesthio/OpenMontage",
+  "source_commit": "9327439db69021ab4b0e2776729bf3b58fdb5a87",
+  "license": "AGPL-3.0",
+  "canonical_content_repository": "wecreates/content-control",
+  "installation_pr": "https://github.com/wecreates/content-control/pull/20",
+  "mode": "optional_external_content_capability",
+  "status": "pending_install_validation_and_license_review",
+  "enabled": false,
+  "publication_enabled": false,
+  "paid_providers_enabled": false,
+  "requires": [
+    "successful isolated installation",
+    "AGPL commercial deployment compliance review",
+    "verified zero-cost video render",
+    "Content Control runtime adapter and QA",
+    "business content-readiness validation"
+  ],
+  "business_contract": {
+    "input": ["business_id", "max_mode", "verified_claims", "forbidden_claims", "audience", "channel", "style_profile", "publication_permission"],
+    "output": ["content_brief", "shot_list", "asset_plan", "voice_plan", "editing_plan", "qa_report", "render_package", "provenance"],
+    "gate": "Never exceed existing Money Factory content readiness ceiling or enable publication automatically."
+  },
+  "intended_use": ["financial explainers", "ecommerce product demonstrations", "digital product promotions", "original picture storytelling", "original bodycam incident explainers with rights/privacy review"],
+  "fallback": "Existing Content Control Remotion production pipeline remains authoritative.",
+  "verified_revenue_claims_only": true
+}
