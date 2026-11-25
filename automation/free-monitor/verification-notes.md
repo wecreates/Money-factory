@@ -365,7 +365,18 @@ all three current artifacts are below the 8,388,608-byte input ceiling.
 The optional local resource supervisor now runs a requested executable through
 Linux `prlimit` with per-process CPU-time, address-space and single-file
 ceilings. Descendants inherit those limits, but CPU time and address space are
-not aggregate tree-wide CPU or RAM quotas. The supervisor measures its direct
+not aggregate tree-wide CPU or RAM quotas. When
+`MONITOR_TOTAL_CPU_SECONDS` or `MONITOR_TOTAL_MEMORY_BYTES` is explicitly set,
+the supervisor also samples every live member of the detached process group
+from `/proc` and kills the group when its combined CPU ticks or resident memory
+crosses that threshold. PID start time and process-group membership are checked
+again after reading status so PID reuse cannot attach an unrelated process to a
+receipt. These are sampling watchdogs: short-lived descendants can run between
+polls, so receipts keep the kernel-backed `total_cpu_tree_quota` and
+`total_memory_tree_quota` fields false. A leader exit triggers one final group
+sample; any still-live descendant is killed and changes an otherwise successful
+receipt to `orphaned_process_group`, so a detached child cannot escape the
+remaining wall and resource checks. The supervisor measures its direct
 process from `/proc` and watches the complete declared output directory,
 killing the process group when aggregate retained bytes exceed the declared
 total. An independent wall timer kills the process group at the declared wall
@@ -380,8 +391,8 @@ total-tree CPU and memory quotas false and keeps publication, paid inference
 and external delivery false.
 
 The test suite exercises the real monitor worker inside those limits, then
-uses real CPU pressure, memory pressure and multi-file disk workloads to prove
-the three enforcement paths. This is a Linux local-execution prerequisite. It
+uses real single- and multi-process CPU pressure, memory pressure and multi-file
+disk workloads to prove the watchdog paths. This is a Linux local-execution prerequisite. It
 does not change the hosted workflows, prove their deployed limits, establish a
 host-wide or aggregate process-tree CPU/RAM quota, or close C12.04 without an
 authorized deployed workload and its retained receipt.

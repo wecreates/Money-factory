@@ -118,6 +118,53 @@ test('CPU rlimit terminates a real busy process before the wall watchdog',async 
   assert.ok(receipt.observed.peak_user_cpu_ticks>0);
 });
 
+test('aggregate memory watchdog contains a real multi-process workload',async t=>{
+  const directory=await fixture(t);
+  const script='import subprocess,sys\nchildren=[subprocess.Popen([sys.executable,"-c","import time; x=bytearray(48*1024*1024); time.sleep(10)"]) for _ in range(2)]\n[c.wait() for c in children]\n';
+  const receipt=await runBoundedProcess({command:python,args:['-c',script],cwd:directory,
+    limits:{...limits,addressSpaceBytes:256*1024*1024,totalMemoryBytes:80*1024*1024},pollMs:5});
+  assert.equal(receipt.termination,'total_memory_limit');
+  assert.equal(receipt.success,false);
+  assert.equal(receipt.signal,'SIGKILL');
+  assert.equal(receipt.enforcement.aggregate_memory_process_group_watchdog,true);
+  assert.equal(receipt.enforcement.total_memory_tree_quota,false);
+  assert.ok(receipt.observed.peak_tree_processes>=2);
+  assert.ok(receipt.observed.peak_tree_rss_bytes>80*1024*1024);
+});
+
+test('aggregate CPU watchdog contains a real multi-process workload',async t=>{
+  const directory=await fixture(t);
+  const script='import subprocess,sys\nchildren=[subprocess.Popen([sys.executable,"-c","while True: pass"]) for _ in range(2)]\n[c.wait() for c in children]\n';
+  const receipt=await runBoundedProcess({command:python,args:['-c',script],cwd:directory,
+    limits:{...limits,cpuSeconds:10,totalCpuSeconds:1,wallMs:5_000},pollMs:5});
+  assert.equal(receipt.termination,'total_cpu_limit');
+  assert.equal(receipt.success,false);
+  assert.equal(receipt.signal,'SIGKILL');
+  assert.equal(receipt.enforcement.aggregate_cpu_process_group_watchdog,true);
+  assert.equal(receipt.enforcement.total_cpu_tree_quota,false);
+  assert.ok(receipt.observed.peak_tree_processes>=2);
+  assert.ok(receipt.observed.peak_tree_cpu_ticks
+    >receipt.limits.total_cpu_seconds*receipt.limits.clock_ticks_per_second);
+});
+
+test('a leader cannot leave a detached descendant outside aggregate supervision',async t=>{
+  const directory=await fixture(t);
+  const script='import subprocess,sys\nchild=subprocess.Popen([sys.executable,"-c","import time; time.sleep(30)"])\nopen("child.pid","w").write(str(child.pid))\n';
+  const receipt=await runBoundedProcess({command:python,args:['-c',script],cwd:directory,
+    limits,pollMs:5});
+  const childPid=Number(await fs.readFile(path.join(directory,'child.pid'),'utf8'));
+  let childState=null;
+  try{
+    const stat=await fs.readFile(`/proc/${childPid}/stat`,'utf8');
+    childState=stat.slice(stat.lastIndexOf(') ')+2).trim().split(/\s+/)[0];
+  }catch(error){if(error.code!=='ENOENT') throw error;}
+  assert.equal(receipt.success,false);
+  assert.equal(receipt.termination,'orphaned_process_group');
+  assert.ok(receipt.observed.residual_live_processes_before_kill>=1);
+  assert.equal(receipt.observed.residual_live_processes_after_kill,0);
+  assert.ok(childState===null || childState==='Z',`unexpected live child state ${childState}`);
+});
+
 test('symlinks in the output root fail closed before starting work',async t=>{
   const directory=await fixture(t);
   await fs.symlink('/tmp',path.join(directory,'escape'));

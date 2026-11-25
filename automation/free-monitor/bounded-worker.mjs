@@ -10,6 +10,10 @@ function integerEnvironment(name){
   return value;
 }
 
+function optionalIntegerEnvironment(name){
+  return process.env[name]===undefined?undefined:integerEnvironment(name);
+}
+
 const outputRoot=process.env.MONITOR_OUTPUT_ROOT;
 if(!outputRoot) throw new Error('MONITOR_OUTPUT_ROOT is required for bounded monitor execution');
 const worker=fileURLToPath(new URL('./worker.mjs',import.meta.url));
@@ -19,6 +23,8 @@ const receipt=await runBoundedProcess({command:process.execPath,args:[worker,...
     addressSpaceBytes:integerEnvironment('MONITOR_ADDRESS_SPACE_BYTES'),
     fileSizeBytes:integerEnvironment('MONITOR_FILE_SIZE_BYTES'),
     totalOutputBytes:integerEnvironment('MONITOR_TOTAL_OUTPUT_BYTES'),
+    totalCpuSeconds:optionalIntegerEnvironment('MONITOR_TOTAL_CPU_SECONDS'),
+    totalMemoryBytes:optionalIntegerEnvironment('MONITOR_TOTAL_MEMORY_BYTES'),
     wallMs:integerEnvironment('MONITOR_BOUND_WALL_MS')}});
 console.log(JSON.stringify(receipt,null,2));
 if(!receipt.success) process.exitCode=2;
