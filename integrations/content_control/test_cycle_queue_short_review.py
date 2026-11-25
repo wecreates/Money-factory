@@ -2,8 +2,10 @@
 from contextlib import nullcontext
 from datetime import datetime, timezone
 import json
+import os
 import shutil
 import subprocess
+import sys
 import unittest
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -126,25 +128,33 @@ class QueueShortReviewTests(unittest.TestCase):
             }],
         }
 
-    def attestation(self, queue, short, *, failures=()):
+    def attestation(self, queue, short, *, failures=(), distinct_reviewers=False,
+                    evidence_size=0):
         submission = prepare_submission(queue.root, 'cycle-test', short)
         when = datetime.now(timezone.utc).isoformat()
         duration = submission['duration_seconds']
         for role, timestamp_key in (('watcher', 'watched_at'),
                                     ('listener', 'listened_at')):
             section = submission[role + '_review']
-            section[role] = 'Direct Short reviewer'
+            section[role] = ((role[0].upper() * 200) if distinct_reviewers
+                             else 'Direct Short reviewer')
             section[timestamp_key] = when
             section['coverage'] = [{'start_seconds': 0,
                                     'end_seconds': duration}]
             for check, item in section['checks'].items():
                 item['passed'] = True
-                item['evidence'] = 'Direct complete observation for ' + role + ' ' + check
+                item['evidence'] = (('Observed ' + role + ' ' + check + ' ') +
+                                    ('E' * evidence_size) if evidence_size else
+                                    'Direct complete observation for ' + role + ' ' + check)
         for role, check in failures:
             item = submission[role + '_review']['checks'][check]
             item['passed'] = False
-            item['evidence'] = 'A concrete defect was directly observed for ' + check
-            item['feedback'] = 'Repair the observed ' + check + ' defect and repeat the full review.'
+            item['evidence'] = (('Observed defect ' + check + ' ') + ('E' * evidence_size)
+                                if evidence_size else
+                                'A concrete defect was directly observed for ' + check)
+            item['feedback'] = (('Repair action ' + check + ' ') + ('R' * evidence_size)
+                                if evidence_size else
+                                'Repair the observed ' + check + ' defect and repeat the full review.')
         submitted = self.base / ('short-attestation-' + str(len(failures)) + '.json')
         submitted.write_text(json.dumps(submission) + '\n')
         receipt = self.base / ('short-attestation-receipt-' + str(len(failures)) + '.json')
@@ -203,6 +213,59 @@ class QueueShortReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'source attestation identity changed'):
             verify_recorded_short_review(
                 queue.root, 'cycle-test', short, recorded)
+
+    def test_all_attestation_mappings_preserve_large_evidence_and_distinct_roles(self):
+        queue, short, _ = self.prepare()
+        failures = (
+            ('watcher', 'picture_continuity'),
+            ('watcher', 'caption_readability'),
+            ('watcher', 'audio_visual_sync'),
+            ('watcher', 'pacing_and_transitions'),
+            ('watcher', 'creative_coherence'),
+            ('listener', 'naturalness'),
+            ('listener', 'pronunciation'),
+            ('listener', 'character_consistency'),
+            ('listener', 'music_and_sfx'),
+            ('listener', 'transitions'),
+            ('listener', 'mix_balance'),
+        )
+        attestation = self.attestation(
+            queue, short, failures=failures, distinct_reviewers=True,
+            evidence_size=3900)
+        source = json.loads(attestation.read_text())
+        recorded = self.base / 'all-mappings-large-review.json'
+        result = record_attestation_findings(
+            queue.root, 'cycle-test', short, attestation, recorded)
+        self.assertGreater(recorded.stat().st_size, 256 * 1024)
+        self.assertEqual(result['reviewer'], 'Separate direct watcher and listener')
+        self.assertEqual(
+            [item['check'] for item in result['findings']],
+            ['visual_storytelling', 'caption_readability', 'voice_and_sound',
+             'pacing', 'creative_coherence'] + ['voice_and_sound'] * 6)
+        for feedback, finding in zip(source['feedback'], result['findings']):
+            role, check = feedback['check'].split('.', 1)
+            self.assertEqual(
+                finding['evidence'],
+                source[role + '_review']['checks'][check]['evidence'])
+            self.assertEqual(finding['action'], feedback['action'])
+        self.assertEqual(result, verify_recorded_short_review(
+            queue.root, 'cycle-test', short, recorded))
+
+    def test_attestation_router_refuses_enabled_generation_and_cli_is_documented(self):
+        queue, short, _ = self.prepare()
+        attestation = self.attestation(
+            queue, short, failures=(('listener', 'mix_balance'),))
+        with patch.dict(os.environ, {'PAID_GENERATION_ENABLED': 'true'}), \
+                self.assertRaisesRegex(ValueError, 'must remain disabled'):
+            record_attestation_findings(
+                queue.root, 'cycle-test', short, attestation,
+                self.base / 'must-not-route-enabled.json')
+        help_result = subprocess.run(
+            [sys.executable, '-m',
+             'integrations.content_control.cycle_queue_short_review',
+             'record-attestation-findings', '--help'],
+            check=True, capture_output=True, text=True, timeout=30)
+        self.assertIn('--attestation', help_result.stdout)
 
     def review_and_revise(self, queue, short, receipt):
         recorded, review = self.record(queue, short, receipt)
