@@ -648,6 +648,42 @@ Schema-version-1 selection receipts and the immediately preceding version-1
 readiness layout remain replayable from their retained original inputs, but all
 newly recorded selection and learning-readiness receipts use schema version 2.
 
+#### Materialize a queue-Short thumbnail from the exact derivative
+
+The parent package thumbnails are not evidence that a later safe-area Short
+has the same pixels. For a queue-bound Short whose verified picture layout is
+`scaled_picture_safe_caption_area_v1`, submit the exact parent title/copy plus a
+frame timestamp and treatment variant. The recorder replays the durable queue
+and Short, extracts that frame from the derivative MP4, and renders a fresh PNG
+with the existing thumbnail renderer:
+
+```bash
+python -m integrations.content_control.cycle_queue_short_selection record \
+  --queue-root /absolute/path/to/queue \
+  --job-id retained-job-id \
+  --short /absolute/path/to/safe-area-short \
+  --selection /absolute/path/to/derivative-selection.json \
+  --output /absolute/path/to/new-derivative-selection
+
+python -m integrations.content_control.cycle_queue_short_selection verify \
+  --queue-root /absolute/path/to/queue \
+  --job-id retained-job-id \
+  --short /absolute/path/to/safe-area-short \
+  --selection /absolute/path/to/derivative-selection.json \
+  --output /absolute/path/to/new-derivative-selection
+```
+
+Schema version 1 requires the exact Short, parent candidate and parent package
+SHA-256 values, parent title and thumbnail copy, `frame_timestamp_seconds`,
+`thumbnail_variant` (0–2), reviewer, reviewed timestamp, rationale, and a list
+of next-idea hypotheses. The output retains the derivative video/caption,
+queue receipt, parent lineage, safe-area layout, extracted-frame treatment and
+PNG identities. Verification regenerates the PNG and requires byte-identical
+pixels. Performance remains `UNAVAILABLE`, with no winner inferred. The
+materialized PNG is still awaiting its own visual inspection; this command
+does not transfer a parent-thumbnail review or establish creative, phone,
+production or publishing acceptance.
+
 When counts become available only after the editorial selection was recorded,
 retain them as a separate exact-selection observation:
 
