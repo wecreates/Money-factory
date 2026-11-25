@@ -1095,6 +1095,26 @@ because they have no repair work to route. The resulting review remains a
 repair input only: direct observation, competitor comparison, re-render,
 re-review, phone playback and independent acceptance retain their own gates.
 
+The schema-v2 record exported by the self-contained private player can enter
+the same Short repair lineage without manufacturing the native granular
+attestation checks:
+
+```sh
+python -m integrations.content_control.cycle_queue_short_review record-private-review-findings \
+  --queue-root /absolute/queue --job-id JOB_ID --short-dir /absolute/short \
+  --private-review /absolute/review-SHORT_SHA.json \
+  --output /absolute/recorded-private-short-review.json
+```
+
+This adapter replays the record's canonical digest and the exact durable Short
+video/caption identities. It retains the original JSON, source and canonical
+hashes, reviewer/time, coverage, review round and optional repair lineage. Only
+open blocker findings become repair work; notes and resolved findings remain in
+the retained source. Clean records are refused by this repair command. Category
+mapping is deterministic, the written schema-3 review is replayed before
+success, and all audiovisual, creative, competitor, phone, production,
+publishing, paid-generation and independent-acceptance flags remain false.
+
 ### Bind Short repair review and caption revision
 
 A durable queue Short can retain exact repair findings without converting those
