@@ -34,7 +34,7 @@ FINDING_CHECKS = frozenset({
 })
 MAX_JSON = 64 * 1024
 ATTESTATION_JSON_LIMIT = 1024 * 1024
-RECORDED_REVIEW_LIMIT = 2 * 1024 * 1024
+RECORDED_REVIEW_LIMIT = 3 * 1024 * 1024
 REVIEW_SCOPE = ('Exact queue Short repair findings and identities only; no complete '
                 'watch/listen, competitor, phone, creative, or publishing acceptance.')
 ATTESTATION_REVIEW_SCOPE = (
@@ -45,6 +45,8 @@ REVISION_SCOPE = ('Caption-only revision handoff for the exact sidecar derivativ
                   'not a revised consumable Short and not audiovisual acceptance.')
 # The pre-safe-area recorder only recognized sidecar and the exact compact burn.
 PRE_SAFE_AREA_REVIEW_TOOL_SHA256 = '904910540c80840cddb8107ce206554c053933f56abfc3a80fd34852b348a91a'
+# Last schema-1/2 tool identity before schema-3 private-player ingestion.
+PRE_PRIVATE_REVIEW_TOOL_SHA256 = '8915ee9778472ec2be245ac11f5714b49d0d8f3d85acdb96a3003011b49d2c6a'
 COMPACT_OVERLAY = {
     'style': COMPACT_STYLE,
     'audio_mode': 'stream_copy_from_excerpt',
@@ -78,6 +80,23 @@ ATTESTATION_FINDING_MAP = {
     'listener.transitions': 'voice_and_sound',
     'listener.mix_balance': 'voice_and_sound',
 }
+PRIVATE_REVIEW_FINDING_MAP = {
+    'pronunciation': 'voice_and_sound',
+    'naturalness': 'voice_and_sound',
+    'character_voice': 'voice_and_sound',
+    'intelligibility': 'voice_and_sound',
+    'music_sfx': 'voice_and_sound',
+    'mix': 'voice_and_sound',
+    'caption_sync': 'voice_and_sound',
+    'timing': 'pacing',
+    'transition_payoff': 'pacing',
+    'movement_staging': 'visual_storytelling',
+    'typography_legibility': 'caption_readability',
+}
+PRIVATE_REVIEW_SCOPE = (
+    'Repair findings replayed from an exact private-player Short record; full watch/listen '
+    'coverage and reviewer statements are retained but not independently verified and do not '
+    'grant creative, competitor, phone, production, publishing, or paid-generation acceptance.')
 
 
 def _regular(path, limit=MAX_JSON):
@@ -161,6 +180,8 @@ def _snapshot(queue_root, job_id, short_dir):
 
 
 def _known_review_tool(value, snapshot):
+    if value == PRE_PRIVATE_REVIEW_TOOL_SHA256:
+        return True
     if value == PRE_SAFE_AREA_REVIEW_TOOL_SHA256:
         return not snapshot['uses_safe_caption_area']
     return value == digest(Path(__file__))
@@ -376,6 +397,105 @@ def record_attestation_findings(queue_root, job_id, short_dir, attestation_path,
     return result
 
 
+def _private_review_findings(record):
+    findings = []
+    for item in record['findings']:
+        if item['severity'] != 'blocker' or item['resolution_state'] != 'open':
+            continue
+        mapped = PRIVATE_REVIEW_FINDING_MAP.get(item['category'])
+        require(mapped is not None, 'Unsupported private-review finding category')
+        start = format(item['start_seconds'], '.3f').rstrip('0').rstrip('.')
+        end = format(item['end_seconds'], '.3f').rstrip('0').rstrip('.')
+        observation = _text(item['observation'],
+                            'private_review.finding.observation', 3600)
+        repair = _text(item['requested_repair'],
+                       'private_review.finding.requested_repair', 3600)
+        findings.append({
+            'check': mapped,
+            'evidence': f'Private review {start}-{end}s: {observation}',
+            'action': 'Private review requested: ' + repair,
+        })
+    require(findings, 'At least one open private-review blocker is required')
+    return _findings(findings)
+
+
+def _private_review(raw, record, snapshot):
+    from integrations.content_control.offline_review_record import validate_record
+
+    receipt = snapshot['receipt']
+    replay = validate_record(
+        record, video_sha256=receipt['candidate_sha256'],
+        caption_sha256=receipt['caption_sha256'])
+    reviewed_at = _timestamp(record.get('recorded_at'),
+                             'private_review.recorded_at')
+    require(datetime.fromisoformat(reviewed_at) >=
+            datetime.fromisoformat(receipt['finished_at']),
+            'Private Short review predates completed derivative')
+    attestation = record['reviewer_attestation']
+    return {
+        **_bound_source(snapshot),
+        'reviewer': _text(attestation['reviewer'], 'reviewer', 200),
+        'reviewed_at': reviewed_at,
+        'basis': 'exact_private_player_record_repair_findings',
+        'findings': _private_review_findings(record),
+        'source_private_review_sha256': hashlib.sha256(raw).hexdigest(),
+        'source_private_review_record_sha256': replay['record_sha256'],
+        'source_private_review_json': raw.decode('utf-8'),
+        'review_round': attestation['review_round'],
+        'review_coverage_complete': replay['review_coverage_complete'],
+        'parent_video_sha256': record['parent_video_sha256'],
+        'supersedes_record_sha256': record['supersedes_record_sha256'],
+    }
+
+
+def record_private_review_findings(queue_root, job_id, short_dir,
+                                   private_review_path, output):
+    """Route exact open private-player blockers into the Short repair path."""
+    require(all(os.environ.get(key, 'false').lower() == 'false'
+                for key in ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')),
+            'Publishing and paid generation must remain disabled')
+    queue_root = Path(os.path.abspath(queue_root))
+    short_dir = Path(os.path.abspath(short_dir))
+    private_review_path = Path(os.path.abspath(private_review_path))
+    output = Path(os.path.abspath(output))
+    for path in (queue_root, short_dir, private_review_path, output):
+        no_symlinks(path)
+    require(not output.exists() and output != private_review_path
+            and not output.is_relative_to(short_dir)
+            and not output.is_relative_to(queue_root),
+            'Fresh review output outside the Short and queue required')
+    raw, private_review = _read_json(private_review_path,
+                                     ATTESTATION_JSON_LIMIT)
+    snapshot = _snapshot(queue_root, job_id, short_dir)
+    review = _private_review(raw, private_review, snapshot)
+    result = {
+        'schema_version': 3,
+        'status': 'REVISION_REQUIRED',
+        **FLAGS,
+        **review,
+        'human_av_acceptance_recorded': False,
+        'phone_playback_verified': False,
+        'independent_verification': False,
+        'tool_sha256': digest(Path(__file__)),
+        'scope': PRIVATE_REVIEW_SCOPE,
+    }
+    require(_snapshot(queue_root, job_id, short_dir) == snapshot
+            and _regular(private_review_path, ATTESTATION_JSON_LIMIT).read_bytes() == raw,
+            'Short or private review changed while routing repair findings')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with output.open('x', encoding='utf-8') as stream:
+            json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False)
+            stream.write('\n')
+        require(verify_recorded_short_review(
+            queue_root, job_id, short_dir, output) == result,
+            'Written private-review Short repair record failed replay')
+    except BaseException:
+        output.unlink(missing_ok=True)
+        raise
+    return result
+
+
 def verify_recorded_short_review(queue_root, job_id, short_dir, recorded_review):
     """Replay a recorded repair review against the current durable derivative."""
     recorded_review = Path(os.path.abspath(recorded_review))
@@ -393,17 +513,30 @@ def verify_recorded_short_review(queue_root, job_id, short_dir, recorded_review)
                  'source_attestation_json', 'human_av_acceptance_recorded',
                  'phone_playback_verified', 'independent_verification',
                  'tool_sha256', 'scope'})
+    private_required = ({'schema_version', 'status', *FLAGS, *source_fields,
+                 'reviewer', 'reviewed_at', 'basis', 'findings',
+                 'source_private_review_sha256',
+                 'source_private_review_record_sha256',
+                 'source_private_review_json', 'review_round',
+                 'review_coverage_complete', 'parent_video_sha256',
+                 'supersedes_record_sha256', 'human_av_acceptance_recorded',
+                 'phone_playback_verified', 'independent_verification',
+                 'tool_sha256', 'scope'})
     version = value.get('schema_version')
     require(((version == 1 and set(value) == legacy_required)
-             or (version == 2 and set(value) == attestation_required))
+             or (version == 2 and set(value) == attestation_required)
+             or (version == 3 and set(value) == private_required))
             and value.get('status') == 'REVISION_REQUIRED'
             and all(value.get(key) is False for key in FLAGS)
             and value.get('human_av_acceptance_recorded') is False
             and value.get('phone_playback_verified') is False
             and value.get('independent_verification') is False
-            and _known_review_tool(value.get('tool_sha256'), snapshot)
-            and value.get('scope') == (REVIEW_SCOPE if version == 1
-                                       else ATTESTATION_REVIEW_SCOPE),
+            and (_known_review_tool(value.get('tool_sha256'), snapshot)
+                 if version in (1, 2) else
+                 value.get('tool_sha256') == digest(Path(__file__)))
+            and value.get('scope') == (REVIEW_SCOPE if version == 1 else
+                                       ATTESTATION_REVIEW_SCOPE if version == 2 else
+                                       PRIVATE_REVIEW_SCOPE),
             'Recorded Short review scope or flags are invalid')
     if version == 1:
         raw_text = value.get('submitted_review_json')
@@ -424,7 +557,7 @@ def verify_recorded_short_review(queue_root, job_id, short_dir, recorded_review)
             'basis': normalized['basis'],
             'findings': normalized['findings'],
         }
-    else:
+    elif version == 2:
         raw_text = value.get('source_attestation_json')
         require(isinstance(raw_text, str)
                 and hashlib.sha256(raw_text.encode()).hexdigest() ==
@@ -444,6 +577,22 @@ def verify_recorded_short_review(queue_root, job_id, short_dir, recorded_review)
         require(feedback_sha == value.get('source_attestation_feedback_sha256'),
                 'Recorded source attestation feedback changed')
         expected = _attestation_review(verified, snapshot)
+    else:
+        raw_text = value.get('source_private_review_json')
+        require(isinstance(raw_text, str)
+                and hashlib.sha256(raw_text.encode()).hexdigest() ==
+                    value.get('source_private_review_sha256'),
+                'Recorded source private review identity changed')
+        try:
+            private_review = json.loads(
+                raw_text, object_pairs_hook=_pairs, parse_constant=_constant)
+        except json.JSONDecodeError as error:
+            raise ValueError('Recorded source private review JSON is invalid') from error
+        expected = _private_review(
+            raw_text.encode('utf-8'), private_review, snapshot)
+        require(expected['source_private_review_record_sha256'] ==
+                value.get('source_private_review_record_sha256'),
+                'Recorded source private review canonical identity changed')
     require(all(value.get(key) == item for key, item in expected.items()),
             'Recorded Short review no longer binds the durable derivative')
     require(_snapshot(queue_root, job_id, short_dir) == snapshot,
@@ -618,14 +767,16 @@ def main():
     commands = parser.add_subparsers(dest='command', required=True)
     record = commands.add_parser('record')
     record_attestation = commands.add_parser('record-attestation-findings')
+    record_private = commands.add_parser('record-private-review-findings')
     revise = commands.add_parser('revise-captions')
-    for command in (record, record_attestation, revise):
+    for command in (record, record_attestation, record_private, revise):
         command.add_argument('--queue-root', required=True)
         command.add_argument('--job-id', required=True)
         command.add_argument('--short-dir', required=True)
         command.add_argument('--output', required=True)
     record.add_argument('--review', required=True)
     record_attestation.add_argument('--attestation', required=True)
+    record_private.add_argument('--private-review', required=True)
     revise.add_argument('--recorded-review', required=True)
     revise.add_argument('--revision', required=True)
     args = parser.parse_args()
@@ -636,6 +787,10 @@ def main():
         result = record_attestation_findings(
             args.queue_root, args.job_id, args.short_dir,
             args.attestation, args.output)
+    elif args.command == 'record-private-review-findings':
+        result = record_private_review_findings(
+            args.queue_root, args.job_id, args.short_dir,
+            args.private_review, args.output)
     else:
         result = prepare_caption_revision(
             args.queue_root, args.job_id, args.short_dir,
