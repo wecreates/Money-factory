@@ -997,14 +997,17 @@ python -m integrations.content_control.cycle_queue_short_review record \
 The recorder replays the durable queue completion and queue Short verifier. The
 result binds the exact MP4/VTT, encoded streams, decoded picture, authored scene
 selection, parent candidate/cycle, both Short receipts, and submitted review
-bytes. Its status is always `REVISION_REQUIRED`; audiovisual acceptance, phone
-playback, production readiness, publishing, and paid generation remain false.
+bytes. Sidecar captions, compact burned captions, and the current safe-area burn
+can all receive findings. Its status is always `REVISION_REQUIRED`; audiovisual
+acceptance, phone playback, production readiness, publishing, and paid
+generation remain false.
 
 For a sidecar-caption Short with a recorded caption finding, prepare a JSON
 revision with exact `candidate_sha256`, `caption_sha256`,
 `recorded_review_sha256`, `editor`, `rationale`, and `caption_edits`. Caption
 edits use the same one-based cue/line and exact before/after contract as the
-cycle caption repair command.
+cycle caption repair command. Fixing captions burned into the picture requires
+a new render; the sidecar-only handoff cannot change them.
 
 ```sh
 python -m integrations.content_control.cycle_queue_short_review revise-captions \

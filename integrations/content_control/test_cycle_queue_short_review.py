@@ -164,6 +164,21 @@ class QueueShortReviewTests(unittest.TestCase):
         self.assertEqual(revision, verify_caption_revision(
             queue.root, 'cycle-test', short, recorded, output))
 
+    def test_pre_safe_area_sidecar_repair_and_revision_receipts_replay(self):
+        queue, short, receipt = self.prepare()
+        prior = review_module.PRE_SAFE_AREA_REVIEW_TOOL_SHA256
+
+        def historical_digest(path, *args, **kwargs):
+            return prior if path.name == 'cycle_queue_short_review.py' else digest(path, *args, **kwargs)
+
+        # The historical tool emitted this exact shape for sidecar Shorts.
+        with patch.object(review_module, 'digest', side_effect=historical_digest):
+            recorded, review, output, revision = self.review_and_revise(queue, short, receipt)
+        self.assertEqual(review['tool_sha256'], prior)
+        self.assertEqual(revision['tool_sha256'], prior)
+        self.assertEqual(review, verify_recorded_short_review(queue.root, 'cycle-test', short, recorded))
+        self.assertEqual(revision, verify_caption_revision(queue.root, 'cycle-test', short, recorded, output))
+
     def test_review_or_handoff_tampering_fails_replay(self):
         queue, short, receipt = self.prepare()
         recorded, review = self.record(queue, short, receipt)
