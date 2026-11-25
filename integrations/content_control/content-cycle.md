@@ -289,6 +289,28 @@ validation proves neither that playback happened nor that a competitor is truly
 high-performing; those claims still require independently supported runtime and
 creative acceptance evidence.
 
+### Listen locally with an audio-input model
+
+The optional loopback listener can scan a verified mono candidate without a
+hosted render or inference service. Start a trusted audio-capable llama.cpp server on
+`127.0.0.1` with matching local weights and projector. With LFM3-Omni-2B, use
+`--reasoning off`. Keep the server private. Then record findings:
+
+```sh
+python -m integrations.content_control.cycle_local_audio_listener \
+  --video video.mp4 --video-sha256 "$video_sha256" \
+  --caption captions.vtt --caption-sha256 "$caption_sha256" \
+  --model LFM3-Omni-2B-Q4_K_M --port 8791 --output audio-observations.jsonl
+```
+
+The command binds the exact video and captions, measures the program duration,
+and sends contiguous 12-second audio windows with neighboring context to the
+loopback model. It retains observations plus flags for truncated or missing
+response fields. A complete receipt records local model coverage. The model
+name identifies the requested model and is supplied by the caller. Use known
+audio controls and an independent listener before treating a model finding as
+a production decision, especially for character identity and subtle masking.
+
 ### Native landscape review renders
 
 Set the brief's top-level `layout` to `"landscape"` to render a 1280×720
