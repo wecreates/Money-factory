@@ -1,6 +1,14 @@
 import fs from 'node:fs/promises';
-import {randomUUID} from 'node:crypto';
+import {constants as fsConstants} from 'node:fs';
+import {createHash,randomUUID} from 'node:crypto';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import path from 'node:path';
+
+// The pending journal contains both replacement images, so its input ceiling
+// also bounds the combined state/events snapshot a worker may resume. It is
+// intentionally aligned with the local alert source ceiling.
+export const MAX_MONITOR_PERSISTENCE_BYTES=8*1024*1024;
 
 async function resolveFile(file) {
   const absolute=path.resolve(file);
@@ -14,22 +22,142 @@ async function destinations({statePath,eventsPath}) {
   return {state,events,pending,eventsKey:path.relative(path.dirname(state),events)};
 }
 
-async function readJson(file) {
-  let bytes;
+function temporaryPrefix(file) {
+  const key=createHash('sha256').update(path.resolve(file)).digest('hex').slice(0,20);
+  return `.free-monitor-${key}-`;
+}
+
+function temporaryPath(file) {
+  return path.join(path.dirname(file),`${temporaryPrefix(file)}${randomUUID()}.tmp`);
+}
+
+async function recoverAtomicOrphans(files) {
+  const byDirectory=new Map();
+  for(const file of files){
+    const directory=path.dirname(file);
+    const prefixes=byDirectory.get(directory)??new Set();
+    prefixes.add(temporaryPrefix(file));
+    byDirectory.set(directory,prefixes);
+  }
+  let recovered=0;
+  for(const [directory,prefixes] of byDirectory){
+    const names=await fs.readdir(directory);
+    let changed=false;
+    for(const name of names){
+      if(!name.endsWith('.tmp') || ![...prefixes].some(prefix=>name.startsWith(prefix))) continue;
+      const file=path.join(directory,name);
+      const metadata=await fs.lstat(file);
+      if(!metadata.isFile() || metadata.nlink!==1){
+        throw new Error('unsafe monitor persistence orphan temporary file');
+      }
+      await fs.unlink(file);
+      recovered++;
+      changed=true;
+    }
+    if(changed) await syncDirectory(path.join(directory,'.'));
+  }
+  return recovered;
+}
+
+async function lockDirectory(handle) {
+  const helper=spawn('flock',['--nonblock','--conflict-exit-code','75','3'],{
+    stdio:['ignore','ignore','ignore',handle.fd]
+  });
+  let code,signal;
+  try{
+    [code,signal]=await once(helper,'close');
+  }catch(error){
+    throw Object.assign(new Error('Monitor persistence lock helper failed',{cause:error}),
+      {code:'MONITOR_PAIR_LOCK_ERROR'});
+  }
+  if(code===75){
+    throw Object.assign(new Error('Monitor persistence directory is locked'),{code:'MONITOR_PAIR_LOCKED'});
+  }
+  if(code!==0){
+    throw Object.assign(new Error(`Monitor persistence lock helper failed: ${signal??code}`),
+      {code:'MONITOR_PAIR_LOCK_ERROR'});
+  }
+}
+
+export async function withMonitorPair(options,operation) {
+  const files=await destinations(options);
+  const directories=[...new Set([path.dirname(files.state),path.dirname(files.events)])].sort();
+  if(!fsConstants.O_NOFOLLOW || !fsConstants.O_DIRECTORY){
+    throw Object.assign(new Error('Monitor persistence lock requires no-follow directory descriptors'),
+      {code:'MONITOR_PAIR_LOCK_ERROR'});
+  }
+  const handles=[];
+  try{
+    for(const directory of directories){
+      const handle=await fs.open(directory,fsConstants.O_RDONLY|fsConstants.O_DIRECTORY|fsConstants.O_NOFOLLOW);
+      handles.push(handle);
+      // The inherited descriptor shares the parent's open file description.
+      // The kernel retains its lock after flock exits, until the parent closes it.
+      await lockDirectory(handle);
+    }
+    const recoveredOrphans=await recoverAtomicOrphans([files.state,files.events,files.pending]);
+    return await operation({read:()=>readPair(files),write:(state,events)=>writePair(files,state,events),
+      recoveredOrphans});
+  }finally{
+    await Promise.all(handles.map(handle=>handle.close()));
+  }
+}
+
+async function readJson(file,label) {
+  if(!fsConstants.O_NOFOLLOW || !fsConstants.O_NONBLOCK){
+    throw new Error('bounded monitor persistence reads require no-follow and nonblocking file flags');
+  }
+  let handle;
   try {
-    bytes=await fs.readFile(file,'utf8');
+    handle=await fs.open(file,fsConstants.O_RDONLY|fsConstants.O_NOFOLLOW|fsConstants.O_NONBLOCK);
   } catch (error) {
     if (error.code==='ENOENT') return undefined;
+    if (error.code==='ELOOP') throw new Error(`${label} must be a regular file`);
     throw error;
   }
-  return JSON.parse(bytes);
+  try {
+    const opened=await handle.stat({bigint:true});
+    if (!opened.isFile()) throw new Error(`${label} must be a regular file`);
+    if (opened.size>BigInt(MAX_MONITOR_PERSISTENCE_BYTES)) {
+      throw new Error(`${label} exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`);
+    }
+    // One extra byte detects growth after the descriptor was opened without
+    // ever loading an unbounded file into the process.
+    const bytes=Buffer.alloc(Number(opened.size)+1);
+    let offset=0;
+    while (offset<bytes.length) {
+      const {bytesRead}=await handle.read(bytes,offset,bytes.length-offset,offset);
+      if (bytesRead===0) break;
+      offset+=bytesRead;
+    }
+    const final=await handle.stat({bigint:true});
+    if (offset>MAX_MONITOR_PERSISTENCE_BYTES || final.size!==opened.size
+        || final.dev!==opened.dev || final.ino!==opened.ino
+        || final.mtimeNs!==opened.mtimeNs || final.ctimeNs!==opened.ctimeNs) {
+      throw new Error(`${label} changed while being read`);
+    }
+    return JSON.parse(bytes.subarray(0,offset).toString('utf8'));
+  } finally {
+    await handle.close();
+  }
 }
 
 const record=value=>value!==null && typeof value==='object' && !Array.isArray(value);
+const serializeJson=value=>JSON.stringify(value,null,2)+'\n';
 
 function validatePair(state,events) {
   if (!record(state) || !Object.values(state).every(record)) throw new Error('Invalid monitor state');
   if (!Array.isArray(events) || !events.every(record)) throw new Error('Invalid monitor events');
+}
+
+function pendingJournalBytes(files,state,events){
+  return Buffer.byteLength(serializeJson({schema_version:1,events_path:files.eventsKey,state,events}));
+}
+
+function validatePendingJournalSize(files,state,events){
+  if(pendingJournalBytes(files,state,events)>MAX_MONITOR_PERSISTENCE_BYTES){
+    throw new Error(`combined monitor persistence snapshot exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`);
+  }
 }
 
 async function syncDirectory(file) {
@@ -41,13 +169,13 @@ async function syncDirectory(file) {
   }
 }
 
-export async function writeJsonAtomic(file,value) {
-  const temporary=path.join(path.dirname(file),`.free-monitor-${randomUUID()}.tmp`);
+async function writeSerializedAtomic(file,serialized) {
+  const temporary=temporaryPath(file);
   const handle=await fs.open(temporary,'wx',0o600);
   let moved=false;
   try {
     try {
-      await handle.writeFile(JSON.stringify(value,null,2)+'\n');
+      await handle.writeFile(serialized);
       await handle.sync();
     } finally {
       await handle.close();
@@ -60,37 +188,86 @@ export async function writeJsonAtomic(file,value) {
   }
 }
 
-async function finishPair(files,state,events) {
-  await writeJsonAtomic(files.events,events);
-  await writeJsonAtomic(files.state,state);
+export async function writeSerializedExclusive(file,serialized) {
+  const temporary=temporaryPath(file);
+  await recoverAtomicOrphans([file]);
+  const handle=await fs.open(temporary,'wx',0o600);
+  try{
+    try{
+      await handle.writeFile(serialized);
+      await handle.sync();
+    }finally{
+      await handle.close();
+    }
+    await fs.link(temporary,file);
+    await syncDirectory(file);
+  }finally{
+    await fs.unlink(temporary).catch(error=>{if(error.code!=='ENOENT') throw error;});
+    await syncDirectory(file);
+  }
+}
+
+export async function writeJsonAtomic(file,value) {
+  await writeSerializedAtomic(file,serializeJson(value));
+}
+
+function preparePairImages(files,state,events) {
+  // Serialize the complete recovery image exactly once. Parsing that image
+  // materializes getters and toJSON hooks into ordinary JSON values, so the
+  // preflight and all three writes cannot observe different object views.
+  const pending=serializeJson({schema_version:1,events_path:files.eventsKey,state,events});
+  if(Buffer.byteLength(pending)>MAX_MONITOR_PERSISTENCE_BYTES){
+    throw new Error(`combined monitor persistence snapshot exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`);
+  }
+  const materialized=JSON.parse(pending);
+  validatePair(materialized.state,materialized.events);
+  const stateImage=serializeJson(materialized.state);
+  const eventsImage=serializeJson(materialized.events);
+  if(Buffer.byteLength(stateImage)>MAX_MONITOR_PERSISTENCE_BYTES
+      || Buffer.byteLength(eventsImage)>MAX_MONITOR_PERSISTENCE_BYTES){
+    throw new Error(`combined monitor persistence snapshot exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`);
+  }
+  return {pending,state:stateImage,events:eventsImage,
+    pair:{state:materialized.state,events:materialized.events}};
+}
+
+async function finishPair(files,images) {
+  await writeSerializedAtomic(files.events,images.events);
+  await writeSerializedAtomic(files.state,images.state);
   await fs.unlink(files.pending);
   await syncDirectory(files.pending);
 }
 
-export async function readMonitorPair(options) {
-  const files=await destinations(options);
-  const pending=await readJson(files.pending);
+async function readPair(files) {
+  const pending=await readJson(files.pending,'pending monitor persistence journal');
   if (pending!==undefined) {
     if (!record(pending) || pending.schema_version!==1 || pending.events_path!==files.eventsKey) {
       throw new Error('Invalid pending monitor persistence journal');
     }
-    validatePair(pending.state,pending.events);
-    await finishPair(files,pending.state,pending.events);
-    return {state:pending.state,events:pending.events};
+    const images=preparePairImages(files,pending.state,pending.events);
+    await finishPair(files,images);
+    return images.pair;
   }
-  const [storedState,storedEvents]=await Promise.all([readJson(files.state),readJson(files.events)]);
+  const [storedState,storedEvents]=await Promise.all([
+    readJson(files.state,'monitor state'),readJson(files.events,'monitor events')]);
   const state=storedState===undefined?{}:storedState;
   const events=storedEvents===undefined?[]:storedEvents;
   validatePair(state,events);
+  validatePendingJournalSize(files,state,events);
   return {state,events};
 }
 
-// Workers sharing a pair must run serially. The hosted workflows use a common
-// concurrency group. Restart replay assumes the same underlying filesystem.
-export async function writeMonitorPair(options,state,events) {
-  const files=await destinations(options);
-  validatePair(state,events);
+async function writePair(files,state,events) {
+  const images=preparePairImages(files,state,events);
   // Both replacement images are durable before changing either legacy file.
-  await writeJsonAtomic(files.pending,{schema_version:1,events_path:files.eventsKey,state,events});
-  await finishPair(files,state,events);
+  await writeSerializedAtomic(files.pending,images.pending);
+  await finishPair(files,images);
+}
+
+export function readMonitorPair(options) {
+  return withMonitorPair(options,pair=>pair.read());
+}
+
+export function writeMonitorPair(options,state,events) {
+  return withMonitorPair(options,pair=>pair.write(state,events));
 }

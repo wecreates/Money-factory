@@ -1,9 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash,randomUUID} from 'node:crypto';
 import fs from 'node:fs/promises';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import os from 'node:os';
 import path from 'node:path';
 import {runWorker} from '../worker.mjs';
+import {MAX_MONITOR_PERSISTENCE_BYTES,readMonitorPair,writeMonitorPair} from '../persistence.mjs';
 
 async function fixture(t) {
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-pair-'));
@@ -16,6 +20,103 @@ async function fixture(t) {
 }
 
 const read=async file=>JSON.parse(await fs.readFile(file,'utf8'));
+
+const orphanFor=file=>path.join(path.dirname(file),
+  `.free-monitor-${createHash('sha256').update(path.resolve(file)).digest('hex').slice(0,20)}-${randomUUID()}.tmp`);
+
+test('pair lock removes only attributable regular orphan temporaries',async t=>{
+  const {options}=await fixture(t);
+  t.mock.method(globalThis,'fetch',async()=>new Response('stable'));
+  const orphan=orphanFor(options.statePath);
+  const unrelated=path.join(path.dirname(options.statePath),`.free-monitor-${randomUUID()}.tmp`);
+  await Promise.all([fs.writeFile(orphan,'interrupted'),fs.writeFile(unrelated,'unrelated')]);
+  const report=await runWorker(options);
+  assert.equal(report.persistence_orphans_recovered,1);
+  await assert.rejects(fs.stat(orphan),{code:'ENOENT'});
+  assert.equal(await fs.readFile(unrelated,'utf8'),'unrelated');
+
+  const unsafe=orphanFor(options.eventsPath);
+  await fs.symlink(unrelated,unsafe);
+  await assert.rejects(runWorker(options),/unsafe monitor persistence orphan temporary file/);
+  assert.equal(await fs.readlink(unsafe),unrelated);
+});
+
+test('workers with a shared events file cannot poll concurrently', {timeout:10000}, async t=>{
+  const {options,pending}=await fixture(t);
+  const stateDirectory=await fs.mkdtemp(path.join(path.dirname(options.statePath),'other-state-'));
+  const alias=path.join(stateDirectory,'shared-events');
+  await fs.symlink(path.dirname(options.eventsPath),alias,'dir');
+  const second={...options,statePath:path.join(stateDirectory,'second.json'),
+    eventsPath:path.join(alias,path.basename(options.eventsPath))};
+  const entered=Promise.withResolvers();
+  const release=Promise.withResolvers();
+  const fetch=t.mock.method(globalThis,'fetch',async()=>{
+    entered.resolve();
+    await release.promise;
+    return new Response('stable');
+  });
+  const owner=runWorker(options);
+  try{
+    await Promise.race([entered.promise,owner]);
+    await assert.rejects(runWorker(second),{code:'MONITOR_PAIR_LOCKED'});
+    await assert.rejects(fs.stat(second.statePath),{code:'ENOENT'});
+    await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+    assert.equal(fetch.mock.callCount(),1);
+  }finally{
+    release.resolve();
+    assert.equal((await owner).ok,true);
+  }
+  assert.equal((await runWorker(second)).ok,true);
+  assert.equal(fetch.mock.callCount(),2);
+  assert.equal((await read(second.statePath)).fixture.last_status,200);
+});
+
+test('a killed worker releases the pair lock and its pending journal is replayed', {timeout:15000}, async t=>{
+  const {options,pending}=await fixture(t);
+  const fetch=t.mock.method(globalThis,'fetch',async()=>new Response('baseline'));
+  assert.equal((await runWorker(options)).ok,true);
+  const baseline=await read(options.statePath);
+  const child=spawn(process.execPath,['--input-type=module','--eval',`
+    import fs from 'node:fs/promises';
+    import {runWorker} from ${JSON.stringify(new URL('../worker.mjs',import.meta.url).href)};
+    const options=JSON.parse(process.argv[1]);
+    globalThis.fetch=async()=>new Response('unavailable',{status:503});
+    const rename=fs.rename;
+    fs.rename=async (source,target)=>{
+      if(target===options.statePath){
+        process.on('message',()=>{});
+        process.send('journal-ready');
+        await new Promise(()=>{});
+      }
+      return rename(source,target);
+    };
+    await runWorker({...options,maxAttempts:1});
+  `,JSON.stringify(options)],{stdio:['ignore','ignore','inherit','ipc']});
+  const exited=once(child,'exit');
+  t.after(async()=>{
+    if(child.exitCode===null && child.signalCode===null) child.kill('SIGKILL');
+    await exited;
+  });
+  const ready=await Promise.race([
+    once(child,'message').then(([message])=>message),
+    exited.then(([code,signal])=>`exited: ${signal??code}`)
+  ]);
+  assert.equal(ready,'journal-ready');
+  await assert.rejects(runWorker(options),{code:'MONITOR_PAIR_LOCKED'});
+  await assert.rejects(readMonitorPair(options),{code:'MONITOR_PAIR_LOCKED'});
+  assert.deepEqual(await read(options.statePath),baseline);
+  assert.equal(fetch.mock.callCount(),1);
+  const expected=await read(pending);
+  child.kill('SIGKILL');
+  assert.deepEqual(await exited,[null,'SIGKILL']);
+
+  const retry=await runWorker({...options,intervalMs:300000});
+  assert.equal(retry.results[0].reason,'not_due');
+  assert.equal(fetch.mock.callCount(),1);
+  assert.equal((await read(options.statePath)).fixture.last_status,503);
+  assert.deepEqual(await read(options.eventsPath),expected.events);
+  await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+});
 
 test('an interrupted second replacement replays before cadence or event decisions',async t=>{
   const {options,pending}=await fixture(t);
@@ -77,7 +178,7 @@ test('unexpected evidence errors stop before requests without overwriting artifa
   const {options,pending}=await fixture(t);
   const mockedFetch=t.mock.method(globalThis,'fetch',async()=>new Response('fixture'));
   await fs.mkdir(options.eventsPath);
-  await assert.rejects(runWorker(options),{code:'EISDIR'});
+  await assert.rejects(runWorker(options),/monitor events must be a regular file/);
   await fs.rmdir(options.eventsPath);
   await fs.writeFile(options.eventsPath,'null');
   await assert.rejects(runWorker(options),/Invalid monitor events/);
@@ -99,4 +200,108 @@ test('unexpected evidence errors stop before requests without overwriting artifa
   await assert.rejects(runWorker({...options,eventsPath:path.join(alias,'state.json')}),/paths must be distinct/);
   await assert.rejects(runWorker({...options,eventsPath:path.join(alias,'state.json.pending')}),/paths must be distinct/);
   assert.equal(mockedFetch.mock.callCount(),0);
+});
+
+test('persistence inputs and a pre-existing combined pending snapshot have a hard byte ceiling',async t=>{
+  const {options,pending}=await fixture(t);
+  const mockedFetch=t.mock.method(globalThis,'fetch',async()=>new Response('fixture'));
+  await fs.writeFile(options.statePath,'{}');
+  await fs.truncate(options.statePath,MAX_MONITOR_PERSISTENCE_BYTES+1);
+  await assert.rejects(runWorker(options),new RegExp(
+    `monitor state exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`));
+  assert.equal(mockedFetch.mock.callCount(),0);
+  assert.equal((await fs.stat(options.statePath)).size,MAX_MONITOR_PERSISTENCE_BYTES+1);
+
+  const state=Buffer.from(JSON.stringify({fixture:{payload:'s'.repeat(4_300_000)}}));
+  const events=Buffer.from(JSON.stringify([{payload:'e'.repeat(4_300_000)}]));
+  assert.ok(state.length<MAX_MONITOR_PERSISTENCE_BYTES);
+  assert.ok(events.length<MAX_MONITOR_PERSISTENCE_BYTES);
+  await fs.writeFile(options.statePath,state);
+  await fs.writeFile(options.eventsPath,events);
+  await assert.rejects(runWorker(options),new RegExp(
+    `combined monitor persistence snapshot exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`));
+  assert.equal(mockedFetch.mock.callCount(),0);
+  assert.deepEqual(await fs.readFile(options.statePath),state);
+  assert.deepEqual(await fs.readFile(options.eventsPath),events);
+  await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+
+  await fs.rm(options.eventsPath);
+  await fs.rm(options.statePath);
+  await fs.writeFile(options.statePath,'{}');
+  await fs.symlink(options.statePath,pending);
+  await assert.rejects(readMonitorPair(options),/pending monitor persistence journal must be a regular file/);
+});
+
+test('new replacement output above the combined ceiling leaves every artifact unchanged',async t=>{
+  const {options,pending}=await fixture(t);
+  const stateBefore=Buffer.from('{"baseline":{}}\n');
+  const eventsBefore=Buffer.from('[{"baseline":true}]\n');
+  await fs.writeFile(options.statePath,stateBefore);
+  await fs.writeFile(options.eventsPath,eventsBefore);
+
+  const state={fixture:{payload:'s'.repeat(4_300_000)}};
+  const events=[{payload:'e'.repeat(4_300_000)}];
+  assert.ok(Buffer.byteLength(JSON.stringify(state,null,2)+'\n')<MAX_MONITOR_PERSISTENCE_BYTES);
+  assert.ok(Buffer.byteLength(JSON.stringify(events,null,2)+'\n')<MAX_MONITOR_PERSISTENCE_BYTES);
+  await assert.rejects(writeMonitorPair(options,state,events),new RegExp(
+    `combined monitor persistence snapshot exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`));
+
+  assert.deepEqual(await fs.readFile(options.statePath),stateBefore);
+  assert.deepEqual(await fs.readFile(options.eventsPath),eventsBefore);
+  await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+  const temporary=(await fs.readdir(path.dirname(options.statePath)))
+    .filter(name=>name.startsWith('.free-monitor-'));
+  assert.deepEqual(temporary,[]);
+});
+
+test('one materialized JSON image prevents nested toJSON drift from bypassing the ceiling',async t=>{
+  const {options,pending}=await fixture(t);
+  let serializations=0;
+  const drifting={
+    toJSON(){
+      serializations++;
+      return {payload:serializations===1?'bounded':'x'.repeat(MAX_MONITOR_PERSISTENCE_BYTES+1)};
+    }
+  };
+
+  await writeMonitorPair(options,{fixture:{nested:drifting}},[]);
+  assert.equal(serializations,1);
+  assert.deepEqual(await read(options.statePath),{fixture:{nested:{payload:'bounded'}}});
+  assert.deepEqual(await read(options.eventsPath),[]);
+  assert.ok((await fs.stat(options.statePath)).size<MAX_MONITOR_PERSISTENCE_BYTES);
+  await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+  const temporary=(await fs.readdir(path.dirname(options.statePath)))
+    .filter(name=>name.startsWith('.free-monitor-'));
+  assert.deepEqual(temporary,[]);
+});
+
+test('same-size in-place mutation is rejected through stable descriptor metadata',async t=>{
+  const {options}=await fixture(t);
+  await fs.writeFile(options.statePath,'{"fixture":{}}\n');
+  await fs.writeFile(options.eventsPath,'[]\n');
+  const open=fs.open;
+  let mutated=false;
+  t.mock.method(fs,'open',async (file,...args)=>{
+    const handle=await open(file,...args);
+    if(path.resolve(String(file))!==path.resolve(options.statePath) || mutated) return handle;
+    return {
+      stat:handle.stat.bind(handle),
+      close:handle.close.bind(handle),
+      read:async (...readArgs)=>{
+        const result=await handle.read(...readArgs);
+        mutated=true;
+        const editor=await open(options.statePath,'r+');
+        try{
+          await editor.write(Buffer.from('g'),0,1,2);
+          const future=new Date(Date.now()+60_000);
+          await editor.utimes(future,future);
+          await editor.sync();
+        }finally{await editor.close();}
+        return result;
+      }
+    };
+  });
+  await assert.rejects(readMonitorPair(options),/monitor state changed while being read/);
+  assert.equal(mutated,true);
+  assert.equal((await fs.stat(options.statePath)).size,Buffer.byteLength('{"fixture":{}}\n'));
 });

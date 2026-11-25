@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import {alertIntentSha256,runAlertConsumer} from '../alert-consumer.mjs';
+import {alertIntentSha256,runAlertConsumer,MAX_LOCAL_ALERT_SOURCE_BYTES} from '../alert-consumer.mjs';
 
 function intent(patch={}){
   const outage=patch.outage_started_at??10_000;
@@ -157,4 +157,75 @@ test('batch ceiling advances past terminal records without starving later intent
   const terminalReplay=await runAlertConsumer({...f,mode:'local-ack',batchLimit:1,retryBackoffMs:0});
   assert.deepEqual({selected:terminalReplay.selected_alert_intents,
     unprocessed:terminalReplay.unprocessed_source_intents},{selected:0,unprocessed:0});
+});
+
+
+test('oversized event source fails before ledger lock or delivery',async t=>{
+  const f=await fixture(t);
+  const handle=await fs.open(f.eventsPath,'w');
+  await handle.truncate(MAX_LOCAL_ALERT_SOURCE_BYTES+1);await handle.close();
+  await assert.rejects(runAlertConsumer({...f,mode:'local-ack'}),/monitor events exceeds byte limit/);
+  await assert.rejects(fs.stat(f.ledgerPath),{code:'ENOENT'});
+  await assert.rejects(fs.stat(`${f.ledgerPath}.lock`),{code:'ENOENT'});
+});
+
+test('same-size in-place source mutation fails before the delivery lock or ledger creation',async t=>{
+  const f=await fixture(t);
+  const replacement=Buffer.from(JSON.stringify([{...f.events[0],label:'Changed'}]));
+  assert.equal(replacement.length,(await fs.stat(f.eventsPath)).size);
+  const originalOpen=fs.open.bind(fs);
+  let mutated=false;
+  t.mock.method(fs,'open',async(file,...args)=>{
+    const handle=await originalOpen(file,...args);
+    if(path.resolve(String(file))!==path.resolve(f.eventsPath) || mutated) return handle;
+    return {
+      stat:handle.stat.bind(handle),close:handle.close.bind(handle),
+      read:async(...readArgs)=>{
+        const result=await handle.read(...readArgs);
+        mutated=true;
+        const editor=await originalOpen(f.eventsPath,'r+');
+        try{
+          await editor.write(replacement,0,replacement.length,0);
+          const future=new Date(Date.now()+60_000);
+          await editor.utimes(future,future);
+          await editor.sync();
+        }finally{await editor.close();}
+        return result;
+      }
+    };
+  });
+  await assert.rejects(runAlertConsumer({...f,mode:'local-ack'}),
+    /monitor events changed while being read/);
+  assert.equal(mutated,true);
+  assert.deepEqual(await fs.readFile(f.eventsPath),replacement);
+  await assert.rejects(fs.stat(f.ledgerPath),{code:'ENOENT'});
+  await assert.rejects(fs.stat(`${f.ledgerPath}.lock`),{code:'ENOENT'});
+});
+
+test('event count ceiling applies before batching, including unrelated events',async t=>{
+  const f=await fixture(t,Array.from({length:501},()=>({type:'fixture'})));
+  await assert.rejects(runAlertConsumer({...f,mode:'local-ack',batchLimit:1}),/monitor events exceeds record limit/);
+  await assert.rejects(fs.stat(`${f.ledgerPath}.lock`),{code:'ENOENT'});
+  await fs.writeFile(f.eventsPath,JSON.stringify(Array.from({length:500},()=>({type:'fixture'}))));
+  const result=await runAlertConsumer({...f,mode:'local-ack'});
+  assert.equal(result.attempted_this_run,0);
+});
+
+test('source symlinks and named pipes reject before ledger creation',async t=>{
+  const f=await fixture(t);
+  const original=`${f.eventsPath}.regular`;await fs.rename(f.eventsPath,original);
+  await fs.symlink(original,f.eventsPath);
+  await assert.rejects(runAlertConsumer({...f,mode:'local-ack'}),/monitor events must be a regular file/);
+  await fs.unlink(f.eventsPath);
+  const child=spawn('mkfifo',[f.eventsPath]);
+  const code=await new Promise((resolve,reject)=>{child.on('exit',resolve);child.on('error',reject);});
+  assert.equal(code,0);
+  await assert.rejects(runAlertConsumer({...f,mode:'local-ack'}),/monitor events must be a regular file/);
+  await assert.rejects(fs.stat(`${f.ledgerPath}.lock`),{code:'ENOENT'});
+});
+
+test('JSON null ledger still rejects rather than becoming a missing ledger',async t=>{
+  const f=await fixture(t);await fs.writeFile(f.ledgerPath,'null');
+  await assert.rejects(runAlertConsumer({...f,mode:'local-ack'}),/invalid alert delivery ledger/);
+  assert.equal(await fs.readFile(f.ledgerPath,'utf8'),'null');
 });

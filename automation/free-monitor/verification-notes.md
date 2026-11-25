@@ -14,11 +14,17 @@ check; status 1 denotes an execution failure.
 
 The worker syncs a pending file with both new JSON images before replacing the
 state and events files. Restarting on the same filesystem replays the pending
-pair before using either file as a baseline. Writers must run serially, as the
-hosted workflows do through their shared concurrency group. Never commit the
-pending file. A fresh hosted runner cannot replay an interrupted runner's local
-filesystem, and external readers that open both files outside the worker can
-observe an in-flight write. Retained Git commits contain only completed pairs.
+pair before using either file as a baseline. On the same filesystem, the
+worker holds nonblocking kernel `flock` locks on the canonical state/events
+directories across replay, polling, reconciliation and persistence. Overlapping
+workers sharing any of those directories fail before polling or changing the
+pair. The lock is held by the worker's open descriptors, is released on
+process exit, and creates no lock file. This requires util-linux `flock` and
+filesystem support for directory locks. The hosted workflows still use their
+shared concurrency group across separate runners. Never commit the pending
+file. A fresh hosted runner cannot replay an interrupted runner's local
+filesystem, and external readers that bypass the locked reader can observe an
+in-flight write. Retained Git commits contain only completed pairs.
 
 The scheduled worker restores and persists those completed pairs on the
 dedicated `cyzor-free-monitor-state` branch. It must not commit cadence state to
@@ -241,10 +247,66 @@ deletion. The lock path can persist as an ordinary unlocked file. The consumer
 rejects duplicate source IDs before acquiring that lock or invoking a sink. Its timeout
 bounds how long it waits but cannot cancel a sink operation; any future real
 adapter must be idempotent on the immutable intent ID and must reconcile an
-ambiguous crash after an external effect. This local prerequisite intentionally
-does not mutate or drain the producer event outbox, so retained `pending`
-intents still count toward the producer's 500-event ceiling. Transactional
-producer terminalization/compaction remains an open integration gap.
+ambiguous crash after an external effect. Running the consumer alone leaves
+the producer outbox unchanged.
+
+The serial worker may explicitly receive a trusted `localAlertLedgerPath`,
+or `--local-alert-ledger <path>` when called from the command line.
+It then moves exactly matched local acknowledged/dead-lettered intents from
+the pending event queue to `_monitor_local_alert_archive` within the existing
+journaled state/events pair. The archive stores the original intent and entire
+attempt record. Current in-state archive rows remain in the ledger until a
+verified rollover generation is committed. An interruption after event
+replacement replays both images before the next worker uses them. Archived
+outage identities prevent a continuing outage or subsequent recovery from
+creating a second copy of that outage intent. A new recovery still queues
+independently. Pending attempts and ambiguous duplicate outage/recovery keys
+stay in the event queue. A full 500-record archive rolls its oldest 250
+records into the bounded immutable generation chain before compacting a new
+terminal intent. If the generation chain is full, compaction is deferred and
+the as-yet unarchived intent remains pending.
+
+The local worker and consumer accept regular ledger files up to 8 MiB and
+1,000 records. After a generation is present in the committed paired state, a
+later worker takes the same ledger lock as the consumer and removes only
+structurally identical terminal ledger rows already retained in that verified
+generation. Missing retired rows are idempotent. A disagreement fails closed
+before polling or pair persistence. This keeps current and active delivery rows
+within the ledger ceiling while the bounded generation chain retains older
+attempt evidence and outage identities. The consumer rejects attempts to write
+beyond either ceiling and leaves the previous ledger intact. Compaction
+requires earlier attempts to all be errors and the terminal status, final
+attempt, timestamps and last error to agree. Malformed terminal evidence leaves
+the pending input in place.
+
+The consumer also bounds its source events before taking the delivery lock or
+attempting work: at most 8 MiB of JSON and 500 events, including unrelated
+history entries. Sources must be regular files opened without following
+symlinks and in nonblocking mode; named pipes fail rather than waiting for a
+writer. Source and ledger reads use the opened descriptor and reject changes
+in size, device, inode, nanosecond modification time or nanosecond change time.
+Same-size in-place mutation therefore fails before delivery or compaction and
+leaves the existing evidence artifacts unchanged. This bounds input loading
+that the 20-intent processing batch alone could not bound. It does not establish
+a total process memory quota or disk quota.
+
+When the in-state archive reaches 500 records and another uniquely bound
+terminal intent is ready, the worker retires the oldest 250 records to an
+immutable hash-named generation beside the trusted ledger. The state keeps a
+bounded, hash-chained manifest of at most 16 generations. Every later
+reconciliation rereads each generation through a stable, no-follow bounded
+descriptor and validates its digest, chain, records, IDs and outage keys before
+deduplication. A crash after the generation is linked but before the paired
+journal is installed reuses only the byte-identical generation on restart.
+Generation exhaustion defers further compaction instead of evicting evidence.
+Once a generation exists, later workers must continue to receive the same
+trusted ledger path so they can locate and validate the retained chain; omitting
+it fails closed before polling or rewriting state.
+
+The archived local outcomes never stand for external delivery or operator
+acknowledgment. The current hosted workflow does not supply a ledger, so
+automatic deployed compaction is still unavailable. Local compaction and
+rollover are not cadence repair or a 24-hour soak.
 
 ## Runtime resource observations and request envelope
 
@@ -267,3 +329,70 @@ gap and bounds the network portion of a run; it does not claim total CPU/RAM/dis
 enforcement, restored cadence, alert delivery, website recovery, or a 24-hour
 soak. Those remain C12 acceptance blockers. Publishing and external delivery
 remain false.
+
+The monitor persistence reader applies an 8 MiB ceiling to each state, events,
+and pending-journal input. After validating an ordinary state/events pair, it
+also measures the exact pretty-printed pending journal and rejects a combined
+snapshot over 8 MiB before any watch request. Reads reject non-regular files,
+oversize files, and descriptor metadata changes in size, device, inode,
+nanosecond mtime or nanosecond ctime. The no-follow/nonblocking descriptor flags
+are currently Linux-compatible; a platform without those flags fails closed.
+
+This bounds persisted input loading and prevents a pre-existing pair that
+cannot fit its recovery journal from reaching network work. The writer still
+uses the ordinary JSON serializer and does not claim a bounded serialization
+allocation or a total output/disk ceiling. A newly generated state/events pair
+is now serialized once as its exact recovery-journal image before any pending
+or temporary artifact is created. That image is parsed into ordinary JSON
+values, and the exact materialized values produce both legacy files. A nested
+`toJSON` hook therefore cannot return a small preflight image and a larger
+write image. An image above 8 MiB leaves the existing pair byte-identical.
+The paired writer now gives each destination a path-derived temporary-file
+prefix. After obtaining every pair-directory lock, a worker removes only
+single-link regular temporary files attributable to the state, events or
+pending destination. A matching symlink, directory or multiply linked file
+fails closed. This recovers crash leftovers without touching concurrent ledger
+or unrelated atomic output. Unrelated files, retained archive generations and
+other atomic JSON outputs can still consume disk, so
+`total_resource_ceiling_verified` remains false.
+
+Offline inspection on 2026-11-25 found the checked-in state at 905 bytes and
+events at 65,458 bytes. Their exact recovery-journal image is 70,559 bytes, so
+all three current artifacts are below the 8,388,608-byte input ceiling.
+
+## Linux bounded-process supervisor prerequisite
+
+The optional local resource supervisor now runs a requested executable through
+Linux `prlimit` with per-process CPU-time, address-space and single-file
+ceilings. Descendants inherit those limits, but CPU time and address space are
+not aggregate tree-wide CPU or RAM quotas. When
+`MONITOR_TOTAL_CPU_SECONDS` or `MONITOR_TOTAL_MEMORY_BYTES` is explicitly set,
+the supervisor also samples every live member of the detached process group
+from `/proc` and kills the group when its combined CPU ticks or resident memory
+crosses that threshold. PID start time and process-group membership are checked
+again after reading status so PID reuse cannot attach an unrelated process to a
+receipt. These are sampling watchdogs: short-lived descendants can run between
+polls, so receipts keep the kernel-backed `total_cpu_tree_quota` and
+`total_memory_tree_quota` fields false. A leader exit triggers one final group
+sample; any still-live descendant is killed and changes an otherwise successful
+receipt to `orphaned_process_group`, so a detached child cannot escape the
+remaining wall and resource checks. The supervisor measures its direct
+process from `/proc` and watches the complete declared output directory,
+killing the process group when aggregate retained bytes exceed the declared
+total. An independent wall timer kills the process group at the declared wall
+deadline. The supervisor repeats aggregate-output and wall validation after
+process exit so a fast writer cannot finish successfully between polls. The
+output walk rejects symbolic links, special files and more than 10,000 entries
+instead of following data outside the bounded root. A missing child caused by
+an atomic rename/delete between directory enumeration and metadata inspection
+retries the complete snapshot at most four times; persistent disappearance and
+all non-missing-path errors still fail closed. Every receipt explicitly leaves
+total-tree CPU and memory quotas false and keeps publication, paid inference
+and external delivery false.
+
+The test suite exercises the real monitor worker inside those limits, then
+uses real single- and multi-process CPU pressure, memory pressure and multi-file
+disk workloads to prove the watchdog paths. This is a Linux local-execution prerequisite. It
+does not change the hosted workflows, prove their deployed limits, establish a
+host-wide or aggregate process-tree CPU/RAM quota, or close C12.04 without an
+authorized deployed workload and its retained receipt.

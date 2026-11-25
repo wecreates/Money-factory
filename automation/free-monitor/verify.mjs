@@ -39,10 +39,10 @@ export async function runVerification({watchesPath='FREE_MONITOR_WATCHES.json',
   const watches=JSON.parse(await fs.readFile(watchesPath,'utf8'));
   const {state:before}=await readMonitorPair({statePath,eventsPath});
   const first=await runWorker({watchesPath,statePath,eventsPath,intervalMs:0});
-  const mid=JSON.parse(await fs.readFile(statePath,'utf8'));
+  const {state:mid}=await readMonitorPair({statePath,eventsPath});
   await new Promise(r=>setTimeout(r,25));
   const second=await runWorker({watchesPath,statePath,eventsPath,intervalMs:0});
-  const after=JSON.parse(await fs.readFile(statePath,'utf8'));
+  const {state:after}=await readMonitorPair({statePath,eventsPath});
   report={checked_at:new Date().toISOString(),state_persistence_complete:true,
     scope:'Two immediate checks of configured active targets; not continuous uptime or a 24-hour soak.',
     ...evaluateVerification(watches,before,mid,after,first,second),first_cycle:first,second_cycle:second};
