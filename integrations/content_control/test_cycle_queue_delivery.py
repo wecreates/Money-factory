@@ -3,6 +3,7 @@ import hashlib
 import json
 import shutil
 import unittest
+from unittest.mock import patch
 from zipfile import BadZipFile, ZipFile
 
 from integrations.content_control import test_cycle_review as fixtures
@@ -284,6 +285,32 @@ class CycleDeliveryTests(unittest.TestCase):
         report = status(queue.root, 'cycle-test')
         self.assertFalse(report['delivery_ready'])
         self.assertIn('Retained intake differs from queued handoff', report['delivery_error'])
+
+    def test_verified_revision_discovery_is_retained_and_rechecked_before_export(self):
+        queue, directory, receipt = self.queue_review()
+        proof = {'schema_version': 1, 'status': 'DISCOVERY_VERIFIED',
+                 'publication_enabled': False, 'paid_generation_enabled': False}
+        cycle_path = directory / 'cycle.json'
+        cycle = json.loads(cycle_path.read_text())
+        cycle['verified_revision_discovery'] = proof
+        fixtures.write(cycle_path, cycle)
+        receipt.update(verified_revision_discovery=proof,
+                       pipeline_receipt_sha256=digest(cycle_path))
+        fixtures.write(directory.parent / 'cycle-adapter-receipt.json', receipt)
+        queue.db.execute('UPDATE attempts SET receipt=?', (canonical(receipt),))
+        queue.db.commit()
+        raw = (directory / 'brief.json').read_bytes()
+        with patch('integrations.content_control.cycle_job.production_handoff',
+                   return_value=(raw, None, {}, proof)), \
+             patch('integrations.content_control.cycle_job.verify_attempt_intake'):
+            report = status(queue.root, 'cycle-test')
+            self.assertTrue(report['delivery_ready'], report)
+            self.assertEqual(report['provenance']['verified_revision_discovery'], proof)
+            exported = export_review(queue.root, 'cycle-test', self.base / 'export-with-discovery')
+            self.assertEqual(exported['provenance']['verified_revision_discovery'], proof)
+            verified = verify_exported_cycle(
+                self.base / 'export-with-discovery', exported['delivery_identity_sha256'])
+            self.assertEqual(verified['status'], 'PASS')
 
     @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe'), 'Media tools unavailable')
     def test_verified_minimum_duration_is_retained_in_export_provenance(self):

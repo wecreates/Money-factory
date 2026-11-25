@@ -89,7 +89,8 @@ def guarded_runner(lease_fd, cpus):
         argv = [sys.executable, '-c', wrapper, ','.join(map(str, cpus)), *command]
         safe_env = {key: value for key, value in env.items() if key in {
             'PATH', 'HOME', 'SYSTEMROOT', 'WINDIR', 'TMP', 'TEMP', 'TMPDIR',
-            'HF_HOME', 'HF_HUB_CACHE', 'PICTURE_PYTHON', 'PICTURE_TEMP_DIR', 'CYZOR_REVIEW_BENCHMARKS'}}
+            'HF_HOME', 'HF_HUB_CACHE', 'CYZOR_ASR_HF_HOME', 'PICTURE_PYTHON',
+            'PICTURE_TEMP_DIR', 'CYZOR_REVIEW_BENCHMARKS'}}
         safe_env.update(PUBLICATION_ENABLED='false', PAID_GENERATION_ENABLED='false',
                         PYTHONDONTWRITEBYTECODE='1', HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1',
                         OPENBLAS_NUM_THREADS='2', OMP_NUM_THREADS='2', LANG='C.UTF-8', LC_ALL='C.UTF-8')
