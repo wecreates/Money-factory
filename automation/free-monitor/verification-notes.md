@@ -312,8 +312,14 @@ are currently Linux-compatible; a platform without those flags fails closed.
 This bounds persisted input loading and prevents a pre-existing pair that
 cannot fit its recovery journal from reaching network work. The writer still
 uses the ordinary JSON serializer and does not claim a bounded serialization
-allocation or a total output/disk ceiling. Unrelated files, orphaned temporary
-files, and newly generated output can still consume disk, so
+allocation or a total output/disk ceiling. A newly generated state/events pair
+is now serialized once as its exact recovery-journal image before any pending
+or temporary artifact is created. That image is parsed into ordinary JSON
+values, and the exact materialized values produce both legacy files. A nested
+`toJSON` hook therefore cannot return a small preflight image and a larger
+write image. An image above 8 MiB leaves the existing pair byte-identical.
+This bounds that paired output path only. Unrelated files, orphaned temporary
+files, and other atomic JSON outputs can still consume disk, so
 `total_resource_ceiling_verified` remains false.
 
 Offline inspection on 2026-11-25 found the checked-in state at 905 bytes and

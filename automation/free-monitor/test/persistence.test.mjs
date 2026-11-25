@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {runWorker} from '../worker.mjs';
-import {MAX_MONITOR_PERSISTENCE_BYTES,readMonitorPair} from '../persistence.mjs';
+import {MAX_MONITOR_PERSISTENCE_BYTES,readMonitorPair,writeMonitorPair} from '../persistence.mjs';
 
 async function fixture(t) {
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-pair-'));
@@ -130,6 +130,49 @@ test('persistence inputs and a pre-existing combined pending snapshot have a har
   await fs.writeFile(options.statePath,'{}');
   await fs.symlink(options.statePath,pending);
   await assert.rejects(readMonitorPair(options),/pending monitor persistence journal must be a regular file/);
+});
+
+test('new replacement output above the combined ceiling leaves every artifact unchanged',async t=>{
+  const {options,pending}=await fixture(t);
+  const stateBefore=Buffer.from('{"baseline":{}}\n');
+  const eventsBefore=Buffer.from('[{"baseline":true}]\n');
+  await fs.writeFile(options.statePath,stateBefore);
+  await fs.writeFile(options.eventsPath,eventsBefore);
+
+  const state={fixture:{payload:'s'.repeat(4_300_000)}};
+  const events=[{payload:'e'.repeat(4_300_000)}];
+  assert.ok(Buffer.byteLength(JSON.stringify(state,null,2)+'\n')<MAX_MONITOR_PERSISTENCE_BYTES);
+  assert.ok(Buffer.byteLength(JSON.stringify(events,null,2)+'\n')<MAX_MONITOR_PERSISTENCE_BYTES);
+  await assert.rejects(writeMonitorPair(options,state,events),new RegExp(
+    `combined monitor persistence snapshot exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`));
+
+  assert.deepEqual(await fs.readFile(options.statePath),stateBefore);
+  assert.deepEqual(await fs.readFile(options.eventsPath),eventsBefore);
+  await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+  const temporary=(await fs.readdir(path.dirname(options.statePath)))
+    .filter(name=>name.startsWith('.free-monitor-'));
+  assert.deepEqual(temporary,[]);
+});
+
+test('one materialized JSON image prevents nested toJSON drift from bypassing the ceiling',async t=>{
+  const {options,pending}=await fixture(t);
+  let serializations=0;
+  const drifting={
+    toJSON(){
+      serializations++;
+      return {payload:serializations===1?'bounded':'x'.repeat(MAX_MONITOR_PERSISTENCE_BYTES+1)};
+    }
+  };
+
+  await writeMonitorPair(options,{fixture:{nested:drifting}},[]);
+  assert.equal(serializations,1);
+  assert.deepEqual(await read(options.statePath),{fixture:{nested:{payload:'bounded'}}});
+  assert.deepEqual(await read(options.eventsPath),[]);
+  assert.ok((await fs.stat(options.statePath)).size<MAX_MONITOR_PERSISTENCE_BYTES);
+  await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+  const temporary=(await fs.readdir(path.dirname(options.statePath)))
+    .filter(name=>name.startsWith('.free-monitor-'));
+  assert.deepEqual(temporary,[]);
 });
 
 test('same-size in-place mutation is rejected through stable descriptor metadata',async t=>{

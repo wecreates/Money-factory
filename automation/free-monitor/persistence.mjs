@@ -60,6 +60,7 @@ async function readJson(file,label) {
 }
 
 const record=value=>value!==null && typeof value==='object' && !Array.isArray(value);
+const serializeJson=value=>JSON.stringify(value,null,2)+'\n';
 
 function validatePair(state,events) {
   if (!record(state) || !Object.values(state).every(record)) throw new Error('Invalid monitor state');
@@ -67,7 +68,7 @@ function validatePair(state,events) {
 }
 
 function pendingJournalBytes(files,state,events){
-  return Buffer.byteLength(JSON.stringify({schema_version:1,events_path:files.eventsKey,state,events},null,2)+'\n');
+  return Buffer.byteLength(serializeJson({schema_version:1,events_path:files.eventsKey,state,events}));
 }
 
 function validatePendingJournalSize(files,state,events){
@@ -85,13 +86,13 @@ async function syncDirectory(file) {
   }
 }
 
-export async function writeJsonAtomic(file,value) {
+async function writeSerializedAtomic(file,serialized) {
   const temporary=path.join(path.dirname(file),`.free-monitor-${randomUUID()}.tmp`);
   const handle=await fs.open(temporary,'wx',0o600);
   let moved=false;
   try {
     try {
-      await handle.writeFile(JSON.stringify(value,null,2)+'\n');
+      await handle.writeFile(serialized);
       await handle.sync();
     } finally {
       await handle.close();
@@ -104,9 +105,33 @@ export async function writeJsonAtomic(file,value) {
   }
 }
 
-async function finishPair(files,state,events) {
-  await writeJsonAtomic(files.events,events);
-  await writeJsonAtomic(files.state,state);
+export async function writeJsonAtomic(file,value) {
+  await writeSerializedAtomic(file,serializeJson(value));
+}
+
+function preparePairImages(files,state,events) {
+  // Serialize the complete recovery image exactly once. Parsing that image
+  // materializes getters and toJSON hooks into ordinary JSON values, so the
+  // preflight and all three writes cannot observe different object views.
+  const pending=serializeJson({schema_version:1,events_path:files.eventsKey,state,events});
+  if(Buffer.byteLength(pending)>MAX_MONITOR_PERSISTENCE_BYTES){
+    throw new Error(`combined monitor persistence snapshot exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`);
+  }
+  const materialized=JSON.parse(pending);
+  validatePair(materialized.state,materialized.events);
+  const stateImage=serializeJson(materialized.state);
+  const eventsImage=serializeJson(materialized.events);
+  if(Buffer.byteLength(stateImage)>MAX_MONITOR_PERSISTENCE_BYTES
+      || Buffer.byteLength(eventsImage)>MAX_MONITOR_PERSISTENCE_BYTES){
+    throw new Error(`combined monitor persistence snapshot exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`);
+  }
+  return {pending,state:stateImage,events:eventsImage,
+    pair:{state:materialized.state,events:materialized.events}};
+}
+
+async function finishPair(files,images) {
+  await writeSerializedAtomic(files.events,images.events);
+  await writeSerializedAtomic(files.state,images.state);
   await fs.unlink(files.pending);
   await syncDirectory(files.pending);
 }
@@ -118,9 +143,9 @@ export async function readMonitorPair(options) {
     if (!record(pending) || pending.schema_version!==1 || pending.events_path!==files.eventsKey) {
       throw new Error('Invalid pending monitor persistence journal');
     }
-    validatePair(pending.state,pending.events);
-    await finishPair(files,pending.state,pending.events);
-    return {state:pending.state,events:pending.events};
+    const images=preparePairImages(files,pending.state,pending.events);
+    await finishPair(files,images);
+    return images.pair;
   }
   const [storedState,storedEvents]=await Promise.all([
     readJson(files.state,'monitor state'),readJson(files.events,'monitor events')]);
@@ -135,8 +160,8 @@ export async function readMonitorPair(options) {
 // concurrency group. Restart replay assumes the same underlying filesystem.
 export async function writeMonitorPair(options,state,events) {
   const files=await destinations(options);
-  validatePair(state,events);
+  const images=preparePairImages(files,state,events);
   // Both replacement images are durable before changing either legacy file.
-  await writeJsonAtomic(files.pending,{schema_version:1,events_path:files.eventsKey,state,events});
-  await finishPair(files,state,events);
+  await writeSerializedAtomic(files.pending,images.pending);
+  await finishPair(files,images);
 }
