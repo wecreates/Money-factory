@@ -17,7 +17,7 @@ from integrations.content_control.cycle_caption_revision import correct_vtt
 from integrations.content_control.cycle_editorial import _text, _timestamp
 from integrations.content_control.cycle_lineage import _constant, _pairs
 from integrations.content_control.cycle_queue_short import verify_consumed_short
-from integrations.content_control.cycle_short import COMPACT_STYLE
+from integrations.content_control.cycle_short import COMPACT_STYLE, SAFE_CAPTION_STYLE
 from integrations.content_control.review_package import digest, no_symlinks, require
 
 
@@ -34,6 +34,27 @@ REVIEW_SCOPE = ('Exact queue Short repair findings and identities only; no compl
                 'watch/listen, competitor, phone, creative, or publishing acceptance.')
 REVISION_SCOPE = ('Caption-only revision handoff for the exact sidecar derivative; '
                   'not a revised consumable Short and not audiovisual acceptance.')
+# The pre-safe-area recorder only recognized sidecar and the exact compact burn.
+PRE_SAFE_AREA_REVIEW_TOOL_SHA256 = '904910540c80840cddb8107ce206554c053933f56abfc3a80fd34852b348a91a'
+COMPACT_OVERLAY = {
+    'style': COMPACT_STYLE,
+    'audio_mode': 'stream_copy_from_excerpt',
+    'scope': 'Burned rebased sidecar into a private phone-size review derivative.',
+}
+# Match the safe-area exporter receipt exactly after durable media replay.
+SAFE_AREA_OVERLAY = {
+    **COMPACT_OVERLAY,
+    'style': SAFE_CAPTION_STYLE,
+    'picture_layout': {
+        'mode': 'scaled_picture_safe_caption_area_v1',
+        'source_scale_percent': 90,
+        'scaled_picture_size': [648, 1152],
+        'canvas_size': [720, 1280],
+        'picture_offset': [36, 0],
+        'background_rgb': '#f7f1e6',
+        'caption_bottom_clearance_target_pixels': 125,
+    },
+}
 
 
 def _regular(path, limit=MAX_JSON):
@@ -85,15 +106,15 @@ def _snapshot(queue_root, job_id, short_dir):
     require(current_artifacts == artifacts,
             'Re-read Short artifact map differs from verified receipt')
     mode = short_receipt.get('preview_caption_mode')
+    safe_area = False
     if mode == 'sidecar':
         require('caption_overlay' not in short_receipt,
                 'Sidecar Short cannot carry a burned-caption overlay')
     elif mode == 'burned':
-        require(short_receipt.get('caption_overlay') == {
-            'style': COMPACT_STYLE,
-            'audio_mode': 'stream_copy_from_excerpt',
-            'scope': 'Burned rebased sidecar into a private phone-size review derivative.',
-        }, 'Burned-caption Short overlay contract is invalid')
+        overlay = json.dumps(short_receipt.get('caption_overlay'), sort_keys=True, allow_nan=False)
+        safe_area = overlay == json.dumps(SAFE_AREA_OVERLAY, sort_keys=True)
+        require(safe_area or overlay == json.dumps(COMPACT_OVERLAY, sort_keys=True),
+                'Burned-caption Short overlay contract is invalid')
     else:
         raise ValueError('Short caption presentation mode is invalid')
     result = {
@@ -103,6 +124,7 @@ def _snapshot(queue_root, job_id, short_dir):
         'caption_bytes_sha256': hashlib.sha256(caption_bytes).hexdigest(),
         'caption_bytes': caption_bytes,
         'preview_caption_mode': mode,
+        'uses_safe_caption_area': safe_area,
         'artifacts_sha256': current_artifacts,
     }
     require(verify_consumed_short(queue_root, job_id, short_dir) == receipt
@@ -113,6 +135,12 @@ def _snapshot(queue_root, job_id, short_dir):
                     for name, expected in current_artifacts.items()),
             'Durable Short changed during snapshot')
     return result
+
+
+def _known_review_tool(value, snapshot):
+    if value == PRE_SAFE_AREA_REVIEW_TOOL_SHA256:
+        return not snapshot['uses_safe_caption_area']
+    return value == digest(Path(__file__))
 
 
 def _findings(value):
@@ -251,7 +279,7 @@ def verify_recorded_short_review(queue_root, job_id, short_dir, recorded_review)
             and value.get('human_av_acceptance_recorded') is False
             and value.get('phone_playback_verified') is False
             and value.get('independent_verification') is False
-            and value.get('tool_sha256') == digest(Path(__file__))
+            and _known_review_tool(value.get('tool_sha256'), snapshot)
             and value.get('scope') == REVIEW_SCOPE,
             'Recorded Short review scope or flags are invalid')
     raw_text = value.get('submitted_review_json')
@@ -377,6 +405,8 @@ def verify_caption_revision(queue_root, job_id, short_dir, recorded_review,
     _, value = _read_json(receipt_path)
     snapshot = _snapshot(queue_root, job_id, short_dir)
     source = _bound_source(snapshot)
+    require(snapshot['preview_caption_mode'] == 'sidecar',
+            'Caption revision replay requires a sidecar Short')
     review = verify_recorded_short_review(
         queue_root, job_id, short_dir, recorded_review)
     review_sha = digest(recorded_review)
@@ -396,7 +426,9 @@ def verify_caption_revision(queue_root, job_id, short_dir, recorded_review,
             and value.get('listening_verified') is False
             and value.get('human_av_acceptance_recorded') is False
             and value.get('phone_playback_verified') is False
-            and value.get('tool_sha256') == digest(Path(__file__))
+            and _known_review_tool(value.get('tool_sha256'), snapshot)
+            and (value.get('tool_sha256') != PRE_SAFE_AREA_REVIEW_TOOL_SHA256
+                 or review['tool_sha256'] == PRE_SAFE_AREA_REVIEW_TOOL_SHA256)
             and value.get('scope') == REVISION_SCOPE
             and value.get('recorded_review_sha256') == review_sha,
             'Caption revision handoff scope or flags are invalid')

@@ -5,11 +5,16 @@ import shutil
 import subprocess
 import unittest
 from contextlib import redirect_stdout
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from integrations.content_control.cycle_queue_short import (
     PRE_CAPTION_SAFE_AREA_TOOL_PAIR, PRE_COMPACT_QUOTE_TOOL_PAIR,
     consume_short, main, verify_consumed_short,
+)
+from integrations.content_control.cycle_queue_short_review import (
+    PRE_SAFE_AREA_REVIEW_TOOL_SHA256, record_short_review, verify_caption_revision,
+    verify_recorded_short_review,
 )
 from integrations.content_control.test_cycle_job import synthetic_picture_mp4
 from integrations.content_control.test_cycle_queue_delivery import CycleDeliveryTests
@@ -54,7 +59,7 @@ class QueueShortTests(unittest.TestCase):
                          json.loads((output / 'short.json').read_text())['parent_candidate_sha256'])
         self.assertEqual(result, verify_consumed_short(queue.root, 'cycle-test', output))
 
-    def test_caption_safe_area_is_bound_and_overlay_tampering_fails_replay(self):
+    def safe_area_short(self):
         media = self.base / 'portrait-parent-large.mp4'
         subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i',
                         'color=c=black:s=720x1280:r=24:d=2','-f','lavfi','-i',
@@ -84,8 +89,12 @@ class QueueShortTests(unittest.TestCase):
             result = consume_short(queue.root, 'cycle-test', output,
                                    start=0, end=1, timeout=30,
                                    compact_captions=True, caption_safe_area=True)
-        short = json.loads((output / 'short.json').read_text())
         self.assertEqual(result['status'], 'AWAITING_REVIEW', result)
+        return queue, output, result
+
+    def test_caption_safe_area_is_bound_and_overlay_tampering_fails_replay(self):
+        queue, output, result = self.safe_area_short()
+        short = json.loads((output / 'short.json').read_text())
         self.assertEqual(result['caption_overlay'], short['caption_overlay'])
         self.assertEqual(result['caption_overlay']['picture_layout']['mode'],
                          'scaled_picture_safe_caption_area_v1')
@@ -97,6 +106,42 @@ class QueueShortTests(unittest.TestCase):
         receipt_path.write_text(json.dumps(changed) + '\n')
         with self.assertRaisesRegex(ValueError, 'do not bind'):
             verify_consumed_short(queue.root, 'cycle-test', output)
+
+    def test_safe_area_repair_review_accepts_current_but_not_legacy_tool_identity(self):
+        queue, short, result = self.safe_area_short()
+        submission = self.base / 'safe-repair-fixture.json'
+        submission.write_text(json.dumps({
+            'candidate_sha256': result['candidate_sha256'],
+            'caption_sha256': result['caption_sha256'],
+            'queue_short_sha256': digest(short / 'queue-short.json'),
+            'short_receipt_sha256': digest(short / 'short.json'),
+            'preview_caption_mode': 'burned',
+            'reviewer': 'Synthetic test fixture',
+            'reviewed_at': datetime.now(timezone.utc).isoformat(),
+            'basis': 'supplied_repair_findings_not_acceptance',
+            'findings': [{'check': 'caption_readability',
+                          'evidence': 'Synthetic fixture observation at 00:00.250.',
+                          'action': 'Test caption readability against safe area.'}],
+        }))
+        output = self.base / 'safe-repair-result.json'
+        recorded = record_short_review(queue.root, 'cycle-test', short, submission, output)
+        self.assertEqual(recorded, verify_recorded_short_review(queue.root, 'cycle-test', short, output))
+        self.assertEqual(recorded['status'], 'REVISION_REQUIRED')
+        self.assertFalse(recorded['full_av_review'])
+        self.assertFalse(recorded['publication_enabled'])
+        self.assertFalse(recorded['paid_generation_enabled'])
+
+        revision = self.base / 'safe-caption-revision-fixture'
+        revision.mkdir()
+        (revision / 'captions.vtt').write_bytes((short / 'captions.vtt').read_bytes())
+        (revision / 'short-caption-revision.json').write_text('{}')
+        with self.assertRaisesRegex(ValueError, 'requires a sidecar Short'):
+            verify_caption_revision(queue.root, 'cycle-test', short, output, revision)
+
+        recorded['tool_sha256'] = PRE_SAFE_AREA_REVIEW_TOOL_SHA256
+        output.write_text(json.dumps(recorded))
+        with self.assertRaisesRegex(ValueError, 'scope or flags'):
+            verify_recorded_short_review(queue.root, 'cycle-test', short, output)
 
     def test_pre_safe_area_tool_pair_remains_an_exact_historical_pair(self):
         self.assertEqual(PRE_CAPTION_SAFE_AREA_TOOL_PAIR, (
