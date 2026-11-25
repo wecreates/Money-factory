@@ -359,3 +359,29 @@ other atomic JSON outputs can still consume disk, so
 Offline inspection on 2026-11-25 found the checked-in state at 905 bytes and
 events at 65,458 bytes. Their exact recovery-journal image is 70,559 bytes, so
 all three current artifacts are below the 8,388,608-byte input ceiling.
+
+## Linux bounded-process supervisor prerequisite
+
+The optional local resource supervisor now runs a requested executable through
+Linux `prlimit` with per-process CPU-time, address-space and single-file
+ceilings. Descendants inherit those limits, but CPU time and address space are
+not aggregate tree-wide CPU or RAM quotas. The supervisor measures its direct
+process from `/proc` and watches the complete declared output directory,
+killing the process group when aggregate retained bytes exceed the declared
+total. An independent wall timer kills the process group at the declared wall
+deadline. The supervisor repeats aggregate-output and wall validation after
+process exit so a fast writer cannot finish successfully between polls. The
+output walk rejects symbolic links, special files and more than 10,000 entries
+instead of following data outside the bounded root. A missing child caused by
+an atomic rename/delete between directory enumeration and metadata inspection
+retries the complete snapshot at most four times; persistent disappearance and
+all non-missing-path errors still fail closed. Every receipt explicitly leaves
+total-tree CPU and memory quotas false and keeps publication, paid inference
+and external delivery false.
+
+The test suite exercises the real monitor worker inside those limits, then
+uses real CPU pressure, memory pressure and multi-file disk workloads to prove
+the three enforcement paths. This is a Linux local-execution prerequisite. It
+does not change the hosted workflows, prove their deployed limits, establish a
+host-wide or aggregate process-tree CPU/RAM quota, or close C12.04 without an
+authorized deployed workload and its retained receipt.

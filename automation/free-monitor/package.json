@@ -2,5 +2,5 @@
   "name":"cyzor-free-monitor",
   "private":true,
   "type":"module",
-  "scripts":{"test":"node --test test/*.test.mjs","run":"node worker.mjs"}
+  "scripts":{"test":"node --test test/*.test.mjs","run":"node worker.mjs","run:bounded":"node bounded-worker.mjs","test:resources":"node --test test/resources.test.mjs test/resource-supervisor.test.mjs"}
 }
