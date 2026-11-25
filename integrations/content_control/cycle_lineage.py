@@ -21,6 +21,10 @@ RECEIPT_FIELDS = {'schema_version', 'status', 'feedback', 'scope', *FLAGS, *HASH
 DISCOVERY_RECEIPT_FIELD = 'topic_discovery_sha256'
 STRICT_COMPARISON_FIELDS = {'recorded_review_schema_version',
                             'comparison_findings_routing_verified'}
+STRICT_PRIVATE_FIELDS = {'recorded_review_schema_version',
+                         'private_review_record_sha256',
+                         'private_review_source_file_sha256',
+                         'private_review_findings_routing_verified'}
 LINEAGE_FIELDS = {'schema_version', 'revision_json', 'revision_sha256',
                   'parent_evidence_independently_verified', 'feedback_resolution_verified', 'scope'}
 
@@ -72,6 +76,16 @@ def validate_lineage(value, expected_brief_sha256):
             discovery_fields,
             RECEIPT_FIELDS | STRICT_COMPARISON_FIELDS | COMPARISON_HASHES |
             discovery_fields | REA_FIELDS)
+    elif schema == 4:
+        valid_fields = fields in tuple(
+            RECEIPT_FIELDS | STRICT_PRIVATE_FIELDS | discovery_fields | group
+            for group in optional_groups)
+    elif schema == 5:
+        valid_fields = fields in (
+            RECEIPT_FIELDS | STRICT_COMPARISON_FIELDS | STRICT_PRIVATE_FIELDS |
+            COMPARISON_HASHES | discovery_fields,
+            RECEIPT_FIELDS | STRICT_COMPARISON_FIELDS | STRICT_PRIVATE_FIELDS |
+            COMPARISON_HASHES | discovery_fields | REA_FIELDS)
     else:
         valid_fields = False
     require(isinstance(receipt, dict)
@@ -86,6 +100,20 @@ def validate_lineage(value, expected_brief_sha256):
         require(receipt.get('recorded_review_schema_version') == 2
                 and receipt.get('comparison_findings_routing_verified') is True,
                 'Strict comparison routing identity required')
+    if schema == 4:
+        require(receipt.get('recorded_review_schema_version') == 3
+                and receipt.get('private_review_findings_routing_verified') is True,
+                'Strict private-review routing identity required')
+    if schema == 5:
+        require(receipt.get('recorded_review_schema_version') == 4
+                and receipt.get('comparison_findings_routing_verified') is True
+                and receipt.get('private_review_findings_routing_verified') is True,
+                'Combined strict review routing identity required')
+    if schema in (4, 5):
+        require(all(isinstance(receipt.get(key), str) and SHA.fullmatch(receipt[key])
+                    for key in ('private_review_record_sha256',
+                                'private_review_source_file_sha256')),
+                'Invalid private-review revision identity')
     if COMPARISON_HASHES <= fields:
         require(all(isinstance(receipt.get(key), str) and SHA.fullmatch(receipt[key])
                     for key in COMPARISON_HASHES),
@@ -118,7 +146,7 @@ def validate_lineage(value, expected_brief_sha256):
             'Invalid revision identity')
     require(receipt['brief_sha256'] == expected_brief_sha256, 'Revision targets a different brief')
     feedback = receipt.get('feedback')
-    feedback_limit = 100 if schema == 3 or REA_FIELDS <= fields else 6
+    feedback_limit = 100 if schema in (3, 4, 5) or REA_FIELDS <= fields else 6
     require(isinstance(feedback, list) and len(feedback) <= feedback_limit,
             'Invalid revision feedback')
     for item in feedback:
@@ -130,7 +158,7 @@ def validate_lineage(value, expected_brief_sha256):
                 'Invalid revision feedback entry')
     require(all(item in feedback for item in diagnostics),
             'REA revision findings missing from feedback')
-    if schema == 3:
+    if schema in (3, 5):
         require(any(isinstance(item, dict)
                     and set(item) == {'check', 'action'}
                     and item.get('check') == 'reference_comparison'
