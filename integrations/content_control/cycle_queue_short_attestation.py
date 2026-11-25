@@ -156,9 +156,8 @@ def record_attestation(queue_root, job_id, short_dir, submission, output):
     return result
 
 
-def verify_attestation(queue_root, job_id, short_dir, receipt):
-    path = Path(os.path.abspath(receipt))
-    before, recorded = _read(path, 1024 * 1024)
+def verify_recorded_value(queue_root, job_id, short_dir, recorded):
+    """Replay a parsed recorded attestation against the durable Short."""
     require(all(recorded.get(key) is False for key in UNVERIFIED),
             'Recorded Short attestation cannot grant verification or approval')
     raw = recorded.get('submitted_attestation_json')
@@ -170,6 +169,14 @@ def verify_attestation(queue_root, job_id, short_dir, receipt):
     require(json.dumps(recorded, sort_keys=True, allow_nan=False)
             == json.dumps(expected, sort_keys=True, allow_nan=False),
             'Recorded Short attestation no longer matches the derivative or its supplied observations')
+    return recorded
+
+
+def verify_attestation(queue_root, job_id, short_dir, receipt):
+    path = Path(os.path.abspath(receipt))
+    before, recorded = _read(path, 1024 * 1024)
+    source = _bindings(queue_root, job_id, short_dir)
+    verify_recorded_value(queue_root, job_id, short_dir, recorded)
     require(_read(path, 1024 * 1024)[0] == before
             and _bindings(queue_root, job_id, short_dir) == source,
             'Short or recorded attestation changed while verifying')
