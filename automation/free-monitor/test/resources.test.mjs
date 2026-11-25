@@ -129,6 +129,14 @@ test('only the three five-minute monitor workflows declare the retained wall lim
 });
 
 test('worker retains current resource evidence in the atomic state pair without treating it as a watch',async t=>{
+  // This test exercises a local invocation even when the suite runs in scheduled CI.
+  const previousEventName=process.env.GITHUB_EVENT_NAME;
+  t.after(()=>{
+    if(previousEventName===undefined) delete process.env.GITHUB_EVENT_NAME;
+    else process.env.GITHUB_EVENT_NAME=previousEventName;
+  });
+  process.env.GITHUB_EVENT_NAME='local';
+
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-runtime-state-'));
   const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),
     eventsPath:path.join(dir,'events.json'),intervalMs:0,maxAttempts:1};
@@ -139,6 +147,7 @@ test('worker retains current resource evidence in the atomic state pair without 
     const retained=JSON.parse(await fs.readFile(options.statePath,'utf8'));
     assert.deepEqual(first.resources,retained[RUNTIME_STATE_KEY]);
     assert.equal(retained[RUNTIME_STATE_KEY].type,'monitor_runtime_resources');
+    assert.equal(retained[RUNTIME_STATE_KEY].cadence.invocation_source,'local');
     assert.equal(retained[RUNTIME_STATE_KEY].cadence.status,'non_scheduled_invocation_no_history');
     assert.equal(retained[RUNTIME_STATE_KEY].cadence.prerequisite_passed,false);
     assert.equal(retained.fixture.last_status,200);
