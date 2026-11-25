@@ -26,6 +26,7 @@ MAX_JSON = 4 * 1024 * 1024
 MAX_MEDIA = 256 * 1024 * 1024
 LEGACY_OPERATION = 'package-openmontage-safe-reframe'
 SOURCE_BYTES_OPERATION = 'package-openmontage-safe-reframe-with-source-bytes'
+MODEL_EDIT_OPERATION = 'package-free-local-model-edit-with-source-bytes'
 LEGACY_SOURCE_EVIDENCE = 'receipt_attested_only'
 REHASHED_SOURCE_EVIDENCE = 'queue_owned_source_bytes_rehashed'
 SOURCE_MEDIA = {
@@ -35,6 +36,10 @@ SOURCE_MEDIA = {
 SOURCE_RECEIPTS = {
     'safe-reframe-receipt.json': 'external_receipt_sha256',
     'diagnostics/prior-openmontage-receipt.json': 'prior_tool_receipt_sha256',
+}
+MODEL_SOURCE_RECEIPTS = {
+    'model-consumer-receipt.json': 'external_receipt_sha256',
+    'diagnostics/model-edit-receipt.json': 'prior_tool_receipt_sha256',
 }
 FIELDS = {
     'operation', 'source_candidate_sha256', 'transformed_source_sha256',
@@ -101,13 +106,34 @@ METADATA_FIELDS = {
     'full_av_review', 'production_ready', 'provider_calls', 'sandbox_weakened',
     'scope',
 }
+MODEL_WRAPPER_FIELDS = {
+    'schema_version', 'observed_at_utc', 'workstream', 'operation',
+    'source_candidate_sha256', 'candidate_sha256', 'model_receipt_sha256',
+    'tool_commit', 'consumer', 'safety', 'scope',
+}
+MODEL_RUN_FIELDS = {
+    'schema_version', 'status', 'technical_status', 'observed_at_utc', 'consumer',
+    'operation', 'candidate_sha256', 'caption_sha256', 'source_candidate_sha256',
+    'prior_tool_receipt_sha256', 'tool_commit', 'artifacts_sha256',
+    'publication_enabled', 'paid_generation_enabled', 'production_approved',
+    'full_av_review', 'production_ready', 'sandbox_weakened', 'provider_calls', 'scope',
+}
+MODEL_METADATA_FIELDS = {
+    'schema_version', 'status', 'tool', 'runtime', 'operation', 'observed_at_utc',
+    'source_candidate_sha256', 'candidate_sha256', 'model_sha256',
+    'model_receipt_sha256', 'tool_commit', 'source_resolution', 'output_resolution',
+    'duration_seconds', 'video_codec', 'audio_codec', 'full_decode',
+    'audio_packet_stream_preserved', 'publication_enabled',
+    'paid_generation_enabled', 'production_approved', 'full_av_review',
+    'production_ready', 'provider_calls', 'sandbox_weakened', 'scope',
+}
 
 
 def validate(request):
     if not isinstance(request, dict) or set(request) != FIELDS:
         raise ValueError('Require the exact documented external-media request')
-    if request['operation'] not in (LEGACY_OPERATION, SOURCE_BYTES_OPERATION):
-        raise ValueError('Only the reviewed OpenMontage safe-reframe admission is allowed')
+    if request['operation'] not in (LEGACY_OPERATION, SOURCE_BYTES_OPERATION, MODEL_EDIT_OPERATION):
+        raise ValueError('Only a reviewed OpenMontage or free-local model edit admission is allowed')
     for name in ('publication_enabled', 'paid_generation_enabled', 'production_approved',
                  'production_ready', 'full_av_review'):
         if request[name] is not False:
@@ -227,7 +253,9 @@ def _source_bytes(root, request, deadline, target=None):
     if target is not None:
         (target / 'source-evidence').mkdir(mode=0o700)
         (target / 'diagnostics').mkdir(mode=0o700)
-        for name, key in SOURCE_RECEIPTS.items():
+        receipts = MODEL_SOURCE_RECEIPTS if request['operation'] == MODEL_EDIT_OPERATION else SOURCE_RECEIPTS
+        for name, key in receipts.items():
+            (target / name).parent.mkdir(parents=True, exist_ok=True, mode=0o700)
             _transfer_pinned_input(root / name, request[key], MAX_JSON, deadline, target / name)
     remaining = MAX_MEDIA
     for name, key in SOURCE_MEDIA.items():
@@ -235,10 +263,104 @@ def _source_bytes(root, request, deadline, target=None):
                                             target / name if target is not None else None)
 
 
+def _inspect_model_source(root, request, review, deadline):
+    """Validate one exact YuNet-driven edit and its normal review packet."""
+    wrapper_path = root / 'model-consumer-receipt.json'
+    model_path = root / 'diagnostics' / 'model-edit-receipt.json'
+    wrapper_raw, wrapper = _unique_json(wrapper_path)
+    model_raw, model = _unique_json(model_path)
+    _false_gate_scan(wrapper)
+    _false_gate_scan(model)
+    if hashlib.sha256(wrapper_raw).hexdigest() != request['external_receipt_sha256']:
+        raise ValueError('Model consumer receipt hash mismatch')
+    if hashlib.sha256(model_raw).hexdigest() != request['prior_tool_receipt_sha256']:
+        raise ValueError('Model edit receipt hash mismatch')
+    safety = wrapper.get('safety')
+    prior_safety = model.get('safety')
+    prior_input = model.get('input')
+    prior_output = model.get('output')
+    local_model = model.get('local_model')
+    if (set(wrapper) != MODEL_WRAPPER_FIELDS
+            or wrapper.get('schema_version') != 1 or wrapper.get('workstream') != 'C09'
+            or wrapper.get('operation') != MODEL_EDIT_OPERATION
+            or wrapper.get('source_candidate_sha256') != request['source_candidate_sha256']
+            or wrapper.get('candidate_sha256') != request['candidate_sha256']
+            or wrapper.get('model_receipt_sha256') != request['prior_tool_receipt_sha256']
+            or wrapper.get('tool_commit') != request['tool_commit']
+            or wrapper.get('consumer') != 'content-control-external-media'
+            or not isinstance(safety, dict)
+            or safety != {'publication_enabled': False, 'paid_generation_enabled': False,
+                           'production_approved': False, 'production_ready': False,
+                           'full_av_review': False, 'provider_calls': 0}
+            or model.get('schema_version') != 1
+            or not isinstance(prior_input, dict)
+            or prior_input.get('sha256') != request['source_candidate_sha256']
+            or not isinstance(prior_output, dict)
+            or prior_output.get('sha256') != request['candidate_sha256']
+            or prior_output.get('full_decode') != 'PASS'
+            or prior_output.get('audio_packet_stream_preserved') is not True
+            or not isinstance(local_model, dict)
+            or local_model.get('provider_calls') != 0
+            or local_model.get('cost_usd') not in (0, 0.0)
+            or not isinstance(local_model.get('sha256'), str)
+            or not SHA256.fullmatch(local_model['sha256'])
+            or not isinstance(prior_safety, dict)
+            or prior_safety.get('publication_enabled') is not False
+            or prior_safety.get('paid_inference_enabled') is not False
+            or prior_safety.get('provider_calls') != 0
+            or prior_safety.get('external_write') is not False
+            or prior_safety.get('sandbox_weakened') is not False):
+        raise ValueError('Model edit receipts do not bind the exact free-local source and output')
+
+    run_raw, run = _unique_json(review / 'run.json')
+    metadata_raw, metadata = _unique_json(review / 'video.mp4.json')
+    _false_gate_scan(run)
+    _false_gate_scan(metadata)
+    if (set(run) != MODEL_RUN_FIELDS or set(metadata) != MODEL_METADATA_FIELDS
+            or hashlib.sha256(run_raw).hexdigest() != request['review_run_sha256']
+            or run.get('status') != 'AWAITING_REVIEW'
+            or run.get('technical_status') != 'PASS'
+            or run.get('consumer') != 'content-control-external-media'
+            or run.get('operation') != MODEL_EDIT_OPERATION
+            or run.get('source_candidate_sha256') != request['source_candidate_sha256']
+            or run.get('candidate_sha256') != request['candidate_sha256']
+            or run.get('prior_tool_receipt_sha256') != request['prior_tool_receipt_sha256']
+            or run.get('tool_commit') != request['tool_commit']
+            or metadata.get('status') != 'AWAITING_REVIEW'
+            or metadata.get('tool') != 'OpenCV YuNet face detector 2023mar'
+            or metadata.get('runtime') != 'local'
+            or metadata.get('operation') != MODEL_EDIT_OPERATION
+            or metadata.get('source_candidate_sha256') != request['source_candidate_sha256']
+            or metadata.get('candidate_sha256') != request['candidate_sha256']
+            or metadata.get('model_sha256') != local_model['sha256']
+            or metadata.get('model_receipt_sha256') != request['prior_tool_receipt_sha256']
+            or metadata.get('tool_commit') != request['tool_commit']
+            or metadata.get('full_decode') != 'PASS'
+            or metadata.get('audio_packet_stream_preserved') is not True
+            or any(item.get(name) is not False for item in (run, metadata)
+                   for name in ('publication_enabled', 'paid_generation_enabled',
+                                'production_approved', 'full_av_review', 'production_ready'))
+            or run.get('provider_calls') != 0 or metadata.get('provider_calls') != 0):
+        raise ValueError('Model review packet lineage does not match immutable queue pins')
+    packet = inspect_packet(review, request['review_run_sha256'], request['candidate_sha256'], deadline)
+    if (review / 'video.mp4').stat().st_size > MAX_MEDIA:
+        raise ValueError('External media exceeds the queue admission limit')
+    _source_bytes(root, request, deadline)
+    return {'root': root, 'review': review, 'receipt': wrapper,
+            'receipt_sha256': request['external_receipt_sha256'],
+            'prior_sha256': request['prior_tool_receipt_sha256'], 'run': packet[0]}
+
+
 def inspect_source(root, request, *, deadline=None):
     """Verify the exact pre-existing packet without interpreting it as approval."""
     validate(request)
     root = _regular_root(root)
+    if request['operation'] == MODEL_EDIT_OPERATION:
+        review = root / 'review'
+        for path in (root / 'model-consumer-receipt.json',
+                     root / 'diagnostics' / 'model-edit-receipt.json', review):
+            no_symlinks(path)
+        return _inspect_model_source(root, request, review, deadline)
     receipt_path = root / 'safe-reframe-receipt.json'
     prior_path = root / 'diagnostics' / 'prior-openmontage-receipt.json'
     review = root / 'review'
@@ -448,7 +570,7 @@ def _provenance(request):
         'full_av_review': False,
         'scope': 'Verified pre-existing free/offline derivative lineage; no provider execution, playback, creative or publishing approval.',
     }
-    if request['operation'] == SOURCE_BYTES_OPERATION:
+    if request['operation'] in (SOURCE_BYTES_OPERATION, MODEL_EDIT_OPERATION):
         provenance['source_evidence'] = REHASHED_SOURCE_EVIDENCE
     return provenance
 
@@ -460,7 +582,7 @@ def check_completed(attempt_dir, request, *, deadline=None):
     if not attempt.is_dir() or attempt.is_symlink():
         raise ValueError('Queue-owned external-media attempt is missing')
     validate(request)
-    if request['operation'] == SOURCE_BYTES_OPERATION:
+    if request['operation'] in (SOURCE_BYTES_OPERATION, MODEL_EDIT_OPERATION):
         inspect_source(attempt, request, deadline=deadline)
         source_evidence = REHASHED_SOURCE_EVIDENCE
     else:
@@ -508,7 +630,7 @@ def run_job(request, attempt_dir, *, external_media_root=None):
         deadline = time.monotonic() + request['timeout_seconds']
         source = inspect_source(external_media_root, request, deadline=deadline)
         _copy_packet(source['review'], attempt / 'review', deadline)
-        if request['operation'] == SOURCE_BYTES_OPERATION:
+        if request['operation'] in (SOURCE_BYTES_OPERATION, MODEL_EDIT_OPERATION):
             _source_bytes(source['root'], request, deadline, target=attempt)
         inspect_packet(attempt / 'review', request['review_run_sha256'],
                        request['candidate_sha256'], deadline)
@@ -533,7 +655,7 @@ def run_job(request, attempt_dir, *, external_media_root=None):
             tool_commit=request['tool_commit'], package_sha256=completed['package_sha256'],
             archive_sha256=completed['archive_sha256'], source_inputs_unchanged=True,
         )
-        if request['operation'] == SOURCE_BYTES_OPERATION:
+        if request['operation'] in (SOURCE_BYTES_OPERATION, MODEL_EDIT_OPERATION):
             result['source_evidence'] = completed['source_evidence']
     except (ValueError, OSError, KeyError, TypeError, TimeoutError, BadZipFile) as error:
         result['blocker'] = str(error) if isinstance(error, ValueError) else type(error).__name__

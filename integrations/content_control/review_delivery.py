@@ -221,6 +221,7 @@ def verify_external_media_delivery(attempt, request, stored, provenance):
         raise ValueError('External-media review package changed after completion')
     provenance.update(
         adapter='content-control-external-media',
+        operation=request['operation'],
         source_candidate_sha256=request['source_candidate_sha256'],
         transformed_source_sha256=request['transformed_source_sha256'],
         external_receipt_sha256=request['external_receipt_sha256'],
