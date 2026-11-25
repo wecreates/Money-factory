@@ -1,7 +1,9 @@
 """Durable Short repair review and caption-revision handoff tests."""
+from contextlib import nullcontext
 from datetime import datetime, timezone
 import json
 import shutil
+import subprocess
 import unittest
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -27,7 +29,7 @@ class QueueShortReviewTests(unittest.TestCase):
     tearDown = CycleDeliveryTests.tearDown
     queue_review = CycleDeliveryTests.queue_review
 
-    def prepare(self):
+    def prepare(self, *, caption_safe_area=False):
         captions = ('WEBVTT\n\n00:00:00.000 --> 00:00:01.000\n'
                     'Original caption line\n')
         for target in (self.render, self.delivery):
@@ -53,11 +55,24 @@ class QueueShortReviewTests(unittest.TestCase):
         cycle['package_sha256'] = digest(package_path)
         cycle_path.write_text(json.dumps(cycle) + '\n')
         media = self.base / 'portrait-parent.mp4'
-        synthetic_picture_mp4(media, 2, audio_seconds=2)
+        if caption_safe_area:
+            subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i',
+                            'color=c=black:s=720x1280:r=24:d=2', '-f', 'lavfi', '-i',
+                            'anullsrc=r=24000:cl=mono:d=2', '-c:v', 'libx264', '-threads', '1',
+                            '-c:a', 'aac', str(media)], check=True, timeout=30)
+        else:
+            synthetic_picture_mp4(media, 2, audio_seconds=2)
         queue, _, _ = self.queue_review(media=media)
         short = self.base / 'durable-short'
-        receipt = consume_short(queue.root, 'cycle-test', short,
-                                start=0, end=1, timeout=30)
+        # Synthetic fixture lacks the production visual specs; the actual
+        # renderer layout guard is covered in test_cycle_short.
+        layout = patch('integrations.content_control.cycle_short.diagram_thumbnail_crop',
+                       return_value=(45, 300, 675, 870)) if caption_safe_area else nullcontext()
+        with layout:
+            receipt = consume_short(queue.root, 'cycle-test', short,
+                                    start=0, end=1, timeout=30,
+                                    compact_captions=caption_safe_area,
+                                    caption_safe_area=caption_safe_area)
         self.assertEqual(receipt['status'], 'AWAITING_REVIEW')
         return queue, short, receipt
 

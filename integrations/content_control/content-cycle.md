@@ -973,6 +973,42 @@ accuracy, phone playback and long-form-to-Shorts acceptance remain open, includi
 when a source already happens to be shorter than a minute. All publishing and
 creative approval flags remain false; prior source approval never transfers.
 
+### Record a Short watch/listen review
+
+Generate a blank submission tied to the exact queued Short, sidecar captions,
+both Short receipts, presentation mode, measured playback duration and
+verified parent voice receipt:
+
+```sh
+python -m integrations.content_control.cycle_queue_short_attestation prepare \
+  --queue-root /absolute/queue --job-id JOB_ID --short-dir /absolute/short \
+  > /absolute/short-observations.json
+```
+
+Open the exact Short and watch and listen at normal speed. Fill in the watcher
+and listener identities, timezone-bearing observation times, contiguous
+`start_seconds` / `end_seconds` intervals from zero through the full measured
+duration, and every granular check. Each check needs a boolean `passed` and
+concrete evidence. Include playback timestamps in defect notes and optionally
+provide repair `feedback` for a failed check. Leave the submission unfinished
+if any picture or audio interval was inaccessible.
+
+```sh
+python -m integrations.content_control.cycle_queue_short_attestation record \
+  --queue-root /absolute/queue --job-id JOB_ID --short-dir /absolute/short \
+  --submission /absolute/short-observations.json --output /absolute/short-av-receipt.json
+python -m integrations.content_control.cycle_queue_short_attestation verify \
+  --queue-root /absolute/queue --job-id JOB_ID --short-dir /absolute/short \
+  --receipt /absolute/short-av-receipt.json
+```
+
+The receipt replays content and queue identities. A failed check preserves
+repair feedback and records `REVISION_REQUIRED`. A clean submission records
+`WATCH_LISTEN_ATTESTATION_RECORDED`. The command authenticates the media and the
+structure of supplied observations. Independent audiovisual, competitor and
+phone verification, production approval, publishing and paid generation stay
+outside this receipt.
+
 ### Bind Short repair review and caption revision
 
 A durable queue Short can retain exact repair findings without converting those
