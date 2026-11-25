@@ -114,6 +114,22 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(worker.call_args.kwargs['external_media_root'],
                          '/operator/reviewed-offline-packet')
 
+    def test_work_cli_forwards_retained_review_paths_as_trusted_host_configuration(self):
+        completed = {'processed': [], 'recovered_interrupted_ids': [],
+                     'worker': {}, 'publication_enabled': False,
+                     'paid_generation_enabled': False, 'production_ready': False}
+        with patch('integrations.local_agent_queue.work', return_value=completed) as worker, \
+             patch('sys.stdout', new_callable=io.StringIO):
+            self.assertEqual(main([
+                '--queue', str(self.root), 'work',
+                '--cycle-review-root', '/operator/cycle',
+                '--rea-analysis-root', '/operator/rea',
+                '--submitted-review-path', '/operator/review.json']), 0)
+        self.assertEqual(worker.call_args.kwargs['cycle_review_root'], '/operator/cycle')
+        self.assertEqual(worker.call_args.kwargs['rea_analysis_root'], '/operator/rea')
+        self.assertEqual(worker.call_args.kwargs['submitted_review_path'],
+                         '/operator/review.json')
+
     def test_batch_rejects_conflicts_and_rolls_back_new_inserts(self):
         self.queue.enqueue(job())
         changed = job(attempts=1)
