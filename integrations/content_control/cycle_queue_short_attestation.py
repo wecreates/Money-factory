@@ -158,6 +158,7 @@ def record_attestation(queue_root, job_id, short_dir, submission, output):
 
 def verify_recorded_value(queue_root, job_id, short_dir, recorded):
     """Replay a parsed recorded attestation against the durable Short."""
+    require(isinstance(recorded, dict), 'Recorded Short attestation object required')
     require(all(recorded.get(key) is False for key in UNVERIFIED),
             'Recorded Short attestation cannot grant verification or approval')
     raw = recorded.get('submitted_attestation_json')
