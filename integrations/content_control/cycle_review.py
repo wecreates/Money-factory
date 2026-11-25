@@ -34,8 +34,8 @@ def _regular(path, limit=1024 * 1024):
     return path
 
 
-def _load(path):
-    value = json.loads(_regular(path).read_text())
+def _load(path, limit=1024 * 1024):
+    value = json.loads(_regular(path, limit).read_text())
     require(isinstance(value, dict), 'JSON object required: ' + path.name)
     return value
 
@@ -451,8 +451,131 @@ def _comparison_feedback(comparison):
     return feedback
 
 
+def _private_review_feedback(record):
+    """Route only explicit open blockers from a replayed private review."""
+    feedback = []
+    for finding in record['findings']:
+        if finding['severity'] != 'blocker' or finding['resolution_state'] != 'open':
+            continue
+        category = finding['category']
+        observation = _text(finding['observation'],
+                            'private_review.finding.observation', 1600)
+        repair = _text(finding['requested_repair'],
+                       'private_review.finding.requested_repair', 1600)
+        start = format(finding['start_seconds'], '.3f').rstrip('0').rstrip('.')
+        end = format(finding['end_seconds'], '.3f').rstrip('0').rstrip('.')
+        feedback.append({
+            'check': 'private_review.' + category,
+            'action': f'{start}-{end}s: {repair} Observation: {observation}',
+        })
+    return feedback
+
+
+def _private_review_receipt(root, snapshot, path):
+    """Replay and retain a private-player record as repair evidence only."""
+    from integrations.content_control.offline_review_record import validate_record
+
+    path = Path(os.path.abspath(path))
+    raw = _regular(path).read_bytes()
+    try:
+        raw_json = raw.decode('utf-8')
+        record = json.loads(raw_json)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError('Valid UTF-8 JSON private review record required') from error
+    require(isinstance(record, dict), 'Private review record must be an object')
+    caption_sha256 = snapshot['files_sha256']['delivery/captions.vtt']
+    replay = validate_record(record, video_sha256=snapshot['candidate_sha256'],
+                             caption_sha256=caption_sha256)
+    recorded_at = _timestamp(record.get('recorded_at'), 'private_review.recorded_at')
+    require(datetime.fromisoformat(recorded_at) >=
+            datetime.fromisoformat(snapshot['cycle']['finished_at']),
+            'Private review predates completed cycle')
+    feedback = _private_review_feedback(record)
+    receipt = {
+        'schema_version': 1,
+        'status': ('PRIVATE_REVIEW_REPAIR_REQUIRED' if feedback
+                   else 'PRIVATE_REVIEW_RECORDED'),
+        'candidate_sha256': snapshot['candidate_sha256'],
+        'caption_sha256': caption_sha256,
+        'record_sha256': replay['record_sha256'],
+        'submitted_record_file_sha256': hashlib.sha256(raw).hexdigest(),
+        'submitted_record_json': raw_json,
+        'recorded_at': recorded_at,
+        'reviewer': record['reviewer_attestation']['reviewer'],
+        'review_round': record['reviewer_attestation']['review_round'],
+        'review_coverage_complete': replay['review_coverage_complete'],
+        'feedback': feedback,
+        'independent_acceptance': False,
+        'full_av_acceptance': False,
+        'production_approved': False,
+        'publication_enabled': False,
+        'paid_generation_enabled': False,
+        'scope': ('Replayed exact private-player watch/listen record. Only explicit open '
+                  'blockers are routed; coverage and attestations do not grant independent '
+                  'audiovisual or creative acceptance.'),
+    }
+    return receipt, feedback, path
+
+
+def _validate_recorded_private_review(root, snapshot, receipt):
+    """Replay an embedded private record and reject altered repair routing."""
+    from integrations.content_control.offline_review_record import validate_record
+
+    fields = {
+        'schema_version', 'status', 'candidate_sha256', 'caption_sha256',
+        'record_sha256', 'submitted_record_file_sha256', 'recorded_at', 'reviewer',
+        'submitted_record_json', 'review_round', 'review_coverage_complete',
+        'feedback',
+        'independent_acceptance', 'full_av_acceptance', 'production_approved',
+        'publication_enabled', 'paid_generation_enabled', 'scope',
+    }
+    require(isinstance(receipt, dict) and set(receipt) == fields,
+            'Invalid recorded private review fields')
+    raw_json = receipt.get('submitted_record_json')
+    require(isinstance(raw_json, str) and len(raw_json.encode('utf-8')) <= 1024 * 1024,
+            'Recorded private review source JSON is invalid or oversized')
+    try:
+        record = json.loads(raw_json)
+    except json.JSONDecodeError as error:
+        raise ValueError('Recorded private review source JSON is invalid') from error
+    require(isinstance(record, dict), 'Recorded private review source must be an object')
+    caption_sha256 = snapshot['files_sha256']['delivery/captions.vtt']
+    replay = validate_record(record, video_sha256=snapshot['candidate_sha256'],
+                             caption_sha256=caption_sha256)
+    feedback = _private_review_feedback(record)
+    expected_status = ('PRIVATE_REVIEW_REPAIR_REQUIRED' if feedback
+                       else 'PRIVATE_REVIEW_RECORDED')
+    require(receipt.get('schema_version') == 1
+            and receipt.get('status') == expected_status
+            and receipt.get('candidate_sha256') == snapshot['candidate_sha256']
+            and receipt.get('caption_sha256') == caption_sha256
+            and receipt.get('record_sha256') == replay['record_sha256']
+            and receipt.get('submitted_record_file_sha256') ==
+                hashlib.sha256(raw_json.encode('utf-8')).hexdigest()
+            and receipt.get('recorded_at') == _timestamp(
+                record.get('recorded_at'), 'private_review.recorded_at')
+            and receipt.get('reviewer') == record['reviewer_attestation']['reviewer']
+            and receipt.get('review_round') == record['reviewer_attestation']['review_round']
+            and receipt.get('review_coverage_complete') is replay['review_coverage_complete']
+            and receipt.get('feedback') == feedback
+            and all(receipt.get(key) is False for key in
+                    ('independent_acceptance', 'full_av_acceptance',
+                     'production_approved', 'publication_enabled',
+                     'paid_generation_enabled'))
+            and receipt.get('scope') ==
+                ('Replayed exact private-player watch/listen record. Only explicit open '
+                 'blockers are routed; coverage and attestations do not grant independent '
+                 'audiovisual or creative acceptance.'),
+            'Recorded private review identity, evidence or scope changed')
+    require(datetime.fromisoformat(receipt['recorded_at']) >=
+            datetime.fromisoformat(snapshot['cycle']['finished_at']),
+            'Recorded private review predates completed cycle')
+    return feedback
+
+
 def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
-                  live_comparison_source=None, live_comparison_receipt=None):
+                  live_comparison_source=None, live_comparison_receipt=None,
+                  private_review_record=None):
     root, review_path = Path(os.path.abspath(cycle_dir)), Path(os.path.abspath(review_path))
     snapshot = inspect_cycle(root)
     review = _load(review_path)
@@ -481,6 +604,8 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
     watcher = None
     comparison = None
     comparison_findings = []
+    private_review = None
+    private_feedback = []
     if 'full_audiovisual' in checks:
         watcher, watcher_feedback, all_watcher_checks_passed = _watcher_attestation(
             root, snapshot, review.get('watcher_review'))
@@ -510,7 +635,18 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
     else:
         require(live_comparison_source is None and live_comparison_receipt is None,
                 'Live comparison inputs require a reference comparison check')
-    result = {'schema_version': 2 if comparison_findings else 1,
+    private_path = None
+    if private_review_record is not None:
+        private_review, private_feedback, private_path = _private_review_receipt(
+            root, snapshot, private_review_record)
+        require(datetime.fromisoformat(reviewed_at) >=
+                datetime.fromisoformat(private_review['recorded_at']),
+                'Editorial review predates the private review record')
+        feedback.extend(private_feedback)
+    result_schema = (4 if comparison_findings and private_review is not None else
+                     3 if private_review is not None else
+                     2 if comparison_findings else 1)
+    result = {'schema_version': result_schema,
               'status': 'REVISION_REQUIRED' if feedback else 'EDITORIAL_REVIEW_RECORDED',
               'candidate_sha256': snapshot['candidate_sha256'], 'reviewer': reviewer,
               'reviewed_at': reviewed_at, 'recorded_at': datetime.now(timezone.utc).isoformat(),
@@ -528,6 +664,9 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
         result['live_comparison_receipt_file_sha256'] = comparison_receipt_sha
     if comparison_findings:
         result['comparison_findings'] = comparison_findings
+    if private_review is not None:
+        result['private_review_receipt'] = private_review
+        result['private_review_findings'] = private_feedback
     recheck_rea = None
     if rea_analysis is not None:
         from integrations.rea_video.analyze_cycle import review_evidence
@@ -540,12 +679,18 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
             feedback.extend(findings)
             result['diagnostic_findings'] = findings
             result['status'] = 'REVISION_REQUIRED'
-    require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash,
+    require(len(feedback) <= 100,
+            'Recorded review feedback exceeds the revision lineage limit')
+    require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash
+            and (private_path is None or digest(private_path) ==
+                 private_review['submitted_record_file_sha256']),
             'Review inputs changed while recording')
     output = _new_output(output, root, review_path)
     if recheck_rea is not None:
         recheck_rea()
-    require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash,
+    require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash
+            and (private_path is None or digest(private_path) ==
+                 private_review['submitted_record_file_sha256']),
             'Review inputs changed before final recording')
     if listener is not None:
         rechecked = _listener_attestation(root, snapshot, review.get('listener_review'))
@@ -562,6 +707,11 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
             root, live_comparison_source, live_comparison_receipt) ==
             (comparison, comparison_receipt_sha),
                 'Live comparison evidence changed before final recording')
+    if private_review is not None:
+        rechecked, rechecked_feedback, _ = _private_review_receipt(
+            root, snapshot, private_path)
+        require(rechecked == private_review and rechecked_feedback == private_feedback,
+                'Private review evidence changed before final recording')
     with output.open('x') as stream:
         json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False); stream.write('\n')
     return result
@@ -575,11 +725,13 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
     """
     root, review_path = Path(os.path.abspath(cycle_dir)), Path(os.path.abspath(recorded_review_path))
     snapshot = inspect_cycle(root)
-    review = _load(review_path)
+    review = _load(review_path, 3 * 1024 * 1024)
     _unapproved(review)
     review_schema = review.get('schema_version')
-    require(type(review_schema) is int and review_schema in (1, 2),
-            'Recorded review schema version 1 or 2 required')
+    require(type(review_schema) is int and review_schema in (1, 2, 3, 4),
+            'Recorded review schema version 1, 2, 3 or 4 required')
+    strict_comparison = review_schema in (2, 4)
+    strict_private = review_schema in (3, 4)
     require(review.get('status') in ('REVISION_REQUIRED', 'EDITORIAL_REVIEW_RECORDED'), 'Recorded review required')
     require(review.get('candidate_sha256') == snapshot['candidate_sha256'] and
             review.get('source_files_sha256') == snapshot['files_sha256'], 'Review does not bind current cycle')
@@ -622,7 +774,7 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
                                     if comparison is not None
                                     and recorded_checks['reference_comparison']['passed'] is False
                                     else [])
-    if review_schema == 2:
+    if strict_comparison:
         require(comparison is not None
                 and recorded_checks['reference_comparison']['passed'] is False
                 and bool(expected_comparison_findings),
@@ -645,6 +797,26 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
     else:
         require('comparison_findings' not in review,
                 'Legacy review cannot claim routed comparison findings')
+    private_feedback = []
+    if strict_private:
+        private_feedback = _validate_recorded_private_review(
+            root, snapshot, review.get('private_review_receipt'))
+        require(datetime.fromisoformat(_timestamp(review.get('reviewed_at'), 'reviewed_at')) >=
+                datetime.fromisoformat(review['private_review_receipt']['recorded_at']),
+                'Recorded editorial review predates the private review record')
+        require(review.get('private_review_findings') == private_feedback,
+                'Recorded private review findings are missing or changed')
+        retained_private_feedback = [
+            item for item in recorded_feedback
+            if isinstance(item, dict)
+            and isinstance(item.get('check'), str)
+            and item['check'].startswith('private_review.')]
+        require(retained_private_feedback == private_feedback,
+                'Recorded private review feedback order or identity changed')
+    else:
+        require('private_review_receipt' not in review
+                and 'private_review_findings' not in review,
+                'Legacy review cannot claim routed private-review findings')
     diagnostic_findings = (_rea_diagnostic_findings(review['rea_diagnostics'])
                            if 'rea_diagnostics' in review else [])
     require(('diagnostic_findings' in review) == bool(diagnostic_findings)
@@ -685,14 +857,26 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
         result['live_comparison_observations_sha256'] = comparison[
             'submitted_observations_sha256']
         result['live_comparison_receipt_file_sha256'] = comparison_receipt_sha
-    if review_schema == 2:
+    if strict_comparison:
         result['schema_version'] = 3
-        result['recorded_review_schema_version'] = 2
+        result['recorded_review_schema_version'] = review_schema
         result['comparison_findings_routing_verified'] = True
+    if strict_private:
+        result['schema_version'] = 5 if strict_comparison else 4
+        result['recorded_review_schema_version'] = review_schema
+        result['private_review_record_sha256'] = review[
+            'private_review_receipt']['record_sha256']
+        result['private_review_source_file_sha256'] = review[
+            'private_review_receipt']['submitted_record_file_sha256']
+        result['private_review_findings_routing_verified'] = True
     if discovery is not None:
         result['topic_discovery_sha256'] = hashlib.sha256(
             json.dumps(discovery, sort_keys=True, separators=(',', ':'),
                        allow_nan=False).encode()).hexdigest()
+    feedback_limit = (100 if result['schema_version'] in (3, 4, 5)
+                      or diagnostic_findings else 6)
+    require(len(result['feedback']) <= feedback_limit,
+            'Revision feedback exceeds the retained lineage limit')
     require(inspect_cycle(root)['files_sha256'] == snapshot['files_sha256'] and digest(review_path) == review_hash,
             'Revision inputs changed')
     if 'voice_naturalness' in recorded_checks:
@@ -708,6 +892,10 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
 
         require(validate_recorded_comparison(root, review.get('live_comparison_receipt')) == comparison,
                 'Recorded live comparison evidence changed before revision')
+    if strict_private:
+        require(_validate_recorded_private_review(
+            root, snapshot, review.get('private_review_receipt')) == private_feedback,
+            'Recorded private review evidence changed before revision')
     output.mkdir()
     try:
         with (output / 'brief.json').open('x') as stream:
@@ -715,6 +903,10 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
         result['brief_sha256'] = digest(output / 'brief.json')
         with (output / 'revision.json').open('x') as stream:
             json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False); stream.write('\n')
+        from integrations.content_control.cycle_lineage import read_revision
+        replayed = read_revision(output / 'revision.json', result['brief_sha256'])
+        require(json.loads(replayed['revision_json']) == result,
+                'Written revision handoff changed during replay')
     except BaseException:
         shutil.rmtree(output)
         raise
@@ -736,25 +928,30 @@ def main():
                         help='Retained raw live-comparison observations; required with its receipt.')
     parser.add_argument('--live-comparison-receipt',
                         help='Retained live-comparison receipt; required with its source observations.')
+    parser.add_argument('--private-review-record',
+                        help='Exported schema-2 private-player review record to replay and route.')
     parser.add_argument('--timeout', type=int, default=300)
     args = parser.parse_args()
     if args.package_lint:
         if (args.review or args.revision_brief or args.rea_runtime or args.rea_analysis
-                or args.live_comparison_source or args.live_comparison_receipt):
+                or args.live_comparison_source or args.live_comparison_receipt
+                or args.private_review_record):
             parser.error('--package-lint cannot be combined with review, revision, or REA runtime options')
         result = lint_package(args.cycle_dir, args.output)
         print(json.dumps(result, indent=2))
         return 0 if result.get('status') == 'DIAGNOSTIC_COMPLETE' else 2
     if args.analyze:
         if (not args.rea_runtime or args.review or args.revision_brief or args.rea_analysis
-                or args.live_comparison_source or args.live_comparison_receipt):
+                or args.live_comparison_source or args.live_comparison_receipt
+                or args.private_review_record):
             parser.error('--analyze requires --rea-runtime and cannot be combined with --review or --revision-brief')
         from integrations.rea_video.analyze_cycle import analyze_cycle
         result = analyze_cycle(args.cycle_dir, args.output, runtime=args.rea_runtime, timeout=args.timeout)
         print(json.dumps(result, indent=2))
         return 0 if result.get('status') == 'DIAGNOSTIC_COMPLETE' else 2
     if not args.review or args.rea_runtime or (args.revision_brief and (
-            args.rea_analysis or args.live_comparison_source or args.live_comparison_receipt)):
+            args.rea_analysis or args.live_comparison_source or args.live_comparison_receipt
+            or args.private_review_record)):
         parser.error('Review/revision requires --review; --rea-analysis is only for recording a review')
     if args.revision_brief:
         result = revision_brief(args.cycle_dir, args.review, _load(Path(args.revision_brief)), args.output)
@@ -763,6 +960,8 @@ def main():
         if args.live_comparison_source is not None or args.live_comparison_receipt is not None:
             options.update(live_comparison_source=args.live_comparison_source,
                            live_comparison_receipt=args.live_comparison_receipt)
+        if args.private_review_record is not None:
+            options['private_review_record'] = args.private_review_record
         result = record_review(args.cycle_dir, args.review, args.output, **options)
     print(json.dumps(result, indent=2))
     return 0

@@ -1,5 +1,6 @@
 """Small synthetic packets exercise identity/attestation rules, not real media QA."""
 import copy
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -11,6 +12,7 @@ import zipfile
 from integrations.content_control.cycle_editorial import LEARNING_IDENTITIES, compile_editorial
 from integrations.content_control.cycle_package import editorial_digest
 from integrations.content_control.cycle_live_comparison import record_live_comparison
+from integrations.content_control.offline_review_record import canonical_bytes
 from integrations.content_control.cycle_review import (CHECKS, LISTENER_CHECKS, WATCHER_CHECKS,
                                                        _complete_coverage, inspect_cycle, lint_package,
                                                        record_review, revision_brief)
@@ -60,6 +62,7 @@ class ReviewTests(unittest.TestCase):
         (self.delivery / 'captions.vtt').write_text('WEBVTT\n')
         self.candidate = digest(self.delivery / 'video.mp4')
         captions = digest(self.delivery / 'captions.vtt')
+        self.captions = captions
         voice = dict(status='GENERATED_PENDING_LISTENING_REVIEW',
                      clips=[{'scene_id': scene['id'],
                              'speaker': scene.get('speaker', 'narrator'),
@@ -143,6 +146,48 @@ class ReviewTests(unittest.TestCase):
             live_comparison_source=self.comparison_source,
             live_comparison_receipt=self.comparison_receipt, **kwargs)
 
+    def private_record(self, *, findings=None, disposition='no_blocker_seen'):
+        path = self.base / 'private-review.json'
+        record = {
+            'schema_version': 2, 'status': 'FULL_REVIEW_RECORDED',
+            'candidate_sha256': self.candidate, 'caption_sha256': self.captions,
+            'recorded_at': '2026-01-04T03:30:00Z',
+            'parent_video_sha256': None, 'supersedes_record_sha256': None,
+            'machine_observation': {
+                'identity_verified': True, 'browser_duration_seconds': 10.0,
+                'natural_pass_complete': True, 'caption_pass_complete': True,
+                'started_at': '2026-01-04T03:29:50Z',
+                'ended_at': '2026-01-04T03:30:00Z',
+                'playback_intervals': [[0, 10]],
+                'events': [
+                    {'type': 'natural_pass_started', 'valid': True},
+                    {'type': 'playback_ended', 'natural_pass_complete': True},
+                ],
+                'invalidations': [],
+            },
+            'reviewer_attestation': {
+                'reviewer': 'Private fixture reviewer',
+                'roles': ['watcher', 'listener'], 'review_round': 'initial',
+                'audio_output': 'headphones',
+                'device_environment': 'Local fixture browser and headphones',
+                'disposition': disposition, 'summary': 'Full fixture pass recorded.',
+                'watched_every_interval': True, 'listened_every_interval': True,
+                'checked_voice': True, 'checked_mix': True,
+                'checked_picture_and_captions': True,
+            },
+            'findings': findings or [],
+            'reviewer_attested_full_watch_listen': True,
+            'review_coverage_complete': True,
+            'independent_acceptance': False, 'full_av_acceptance': False,
+            'production_approved': False, 'publication_enabled': False,
+            'paid_generation_enabled': False,
+            'competitor_comparison_included': False,
+            'physical_phone_verified': False,
+        }
+        record['record_sha256'] = hashlib.sha256(canonical_bytes(record)).hexdigest()
+        write(path, record)
+        return path
+
     def test_all_checks_record_statement_without_promoting_approval(self):
         before = inspect_cycle(self.root)
         result = self.record()
@@ -164,6 +209,211 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(result['live_comparison_receipt'],
                          json.loads(self.comparison_receipt.read_text()))
         self.assertEqual(inspect_cycle(self.root), before)
+
+    def test_private_player_blocker_enters_replayable_revision_without_approval(self):
+        blocker = {
+            'start_seconds': 2.5, 'end_seconds': 3.75,
+            'category': 'pronunciation', 'severity': 'blocker',
+            'observation': 'The named term is pronounced incorrectly.',
+            'requested_repair': 'Regenerate only the named phrase.',
+            'resolution_state': 'open',
+        }
+        private = self.private_record(findings=[blocker], disposition='repair_required')
+        submitted = copy.deepcopy(self.review)
+        submitted['checks'].pop('reference_comparison')
+        write(self.submitted, submitted)
+
+        result = record_review(self.root, self.submitted, self.recorded,
+                               private_review_record=private)
+        expected = {
+            'check': 'private_review.pronunciation',
+            'action': ('2.5-3.75s: Regenerate only the named phrase. '
+                       'Observation: The named term is pronounced incorrectly.'),
+        }
+        self.assertEqual(result['schema_version'], 3)
+        self.assertEqual(result['private_review_findings'], [expected])
+        self.assertIn(expected, result['feedback'])
+        self.assertEqual(result['status'], 'REVISION_REQUIRED')
+        self.assertFalse(result['private_review_receipt']['independent_acceptance'])
+        self.assertFalse(result['full_av_review'])
+
+        updated = brief()
+        updated['scenes'][1]['narration'] = 'My repaired wallet requests a meeting.'
+        revision = revision_brief(self.root, self.recorded, updated,
+                                  self.base / 'private-review-revision')
+        self.assertEqual(revision['schema_version'], 4)
+        self.assertTrue(revision['private_review_findings_routing_verified'])
+        self.assertEqual(revision['private_review_record_sha256'],
+                         result['private_review_receipt']['record_sha256'])
+        from integrations.content_control.cycle_lineage import read_revision
+        lineage = read_revision(
+            self.base / 'private-review-revision/revision.json',
+            revision['brief_sha256'])
+        self.assertEqual(json.loads(lineage['revision_json']), revision)
+
+        changed = copy.deepcopy(result)
+        changed_source = json.loads(
+            changed['private_review_receipt']['submitted_record_json'])
+        changed_source['findings'][0]['requested_repair'] = 'Altered repair text.'
+        changed['private_review_receipt']['submitted_record_json'] = json.dumps(
+            changed_source)
+        write(self.recorded, changed)
+        with self.assertRaisesRegex(ValueError, 'source JSON differs|SHA-256 mismatch'):
+            revision_brief(self.root, self.recorded, updated,
+                           self.base / 'tampered-private-review-revision')
+
+    def test_private_player_notes_and_resolved_findings_are_retained_not_routed(self):
+        findings = [
+            {'start_seconds': 1, 'end_seconds': 2, 'category': 'mix',
+             'severity': 'note', 'observation': 'Music is slightly prominent.',
+             'resolution_state': 'open'},
+            {'start_seconds': 4, 'end_seconds': 5, 'category': 'caption_sync',
+             'severity': 'blocker', 'observation': 'Caption was previously late.',
+             'requested_repair': 'Retain the corrected caption timing.',
+             'resolution_state': 'resolved'},
+        ]
+        private = self.private_record(findings=findings, disposition='repair_required')
+        submitted = copy.deepcopy(self.review)
+        submitted['checks'].pop('reference_comparison')
+        write(self.submitted, submitted)
+        result = record_review(self.root, self.submitted, self.recorded,
+                               private_review_record=private)
+        self.assertEqual(result['private_review_findings'], [])
+        retained = json.loads(
+            result['private_review_receipt']['submitted_record_json'])
+        self.assertEqual(retained['findings'], findings)
+        self.assertFalse(any(item['check'].startswith('private_review.')
+                             for item in result['feedback']))
+
+    def test_private_review_duplicate_blockers_replay_and_chronology_fails_closed(self):
+        blocker = {
+            'start_seconds': 2, 'end_seconds': 3, 'category': 'timing',
+            'severity': 'blocker', 'observation': 'The beat lands late.',
+            'requested_repair': 'Tighten this exact beat.',
+            'resolution_state': 'open',
+        }
+        private = self.private_record(findings=[blocker, copy.deepcopy(blocker)],
+                                      disposition='repair_required')
+        submitted = copy.deepcopy(self.review)
+        submitted['checks'].pop('reference_comparison')
+        write(self.submitted, submitted)
+        result = record_review(self.root, self.submitted, self.recorded,
+                               private_review_record=private)
+        routed = [item for item in result['feedback']
+                  if item['check'] == 'private_review.timing']
+        self.assertEqual(len(routed), 2)
+        self.assertEqual(result['private_review_findings'], routed)
+        updated = brief()
+        updated['scenes'][1]['narration'] = 'My tighter wallet requests a meeting.'
+        revision_brief(self.root, self.recorded, updated,
+                       self.base / 'duplicate-private-review-revision')
+
+        self.recorded.unlink()
+        submitted['reviewed_at'] = '2026-01-04T03:00:00Z'
+        write(self.submitted, submitted)
+        with self.assertRaisesRegex(ValueError,
+                                    'predates the private review record'):
+            record_review(self.root, self.submitted, self.recorded,
+                          private_review_record=private)
+
+    def test_large_valid_private_source_and_feedback_limit_fail_closed(self):
+        private = self.private_record()
+        value = json.loads(private.read_text())
+        value['machine_observation']['browser'] = '\\' * 350000
+        value.pop('record_sha256')
+        value['record_sha256'] = hashlib.sha256(canonical_bytes(value)).hexdigest()
+        write(private, value)
+        self.assertLess(private.stat().st_size, 1024 * 1024)
+        submitted = copy.deepcopy(self.review)
+        submitted['checks'].pop('reference_comparison')
+        write(self.submitted, submitted)
+        result = record_review(self.root, self.submitted, self.recorded,
+                               private_review_record=private)
+        self.assertGreater(self.recorded.stat().st_size, 1024 * 1024)
+        self.assertEqual(
+            hashlib.sha256(result['private_review_receipt'][
+                'submitted_record_json'].encode()).hexdigest(),
+            result['private_review_receipt']['submitted_record_file_sha256'])
+        updated = brief()
+        updated['scenes'][1]['narration'] = 'My larger wallet requests a meeting.'
+        revision_brief(self.root, self.recorded, updated,
+                       self.base / 'large-private-review-revision')
+
+        self.recorded.unlink()
+        findings = [{
+            'start_seconds': 1, 'end_seconds': 2, 'category': 'timing',
+            'severity': 'blocker', 'observation': f'Late beat {index}.',
+            'requested_repair': f'Tighten beat {index}.',
+            'resolution_state': 'open',
+        } for index in range(101)]
+        private = self.private_record(findings=findings, disposition='repair_required')
+        with self.assertRaisesRegex(ValueError, 'feedback exceeds'):
+            record_review(self.root, self.submitted, self.recorded,
+                          private_review_record=private)
+
+        long_findings = [{
+            'start_seconds': 1, 'end_seconds': 2, 'category': 'timing',
+            'severity': 'blocker', 'observation': 'O' * 1500,
+            'requested_repair': 'R' * 1500, 'resolution_state': 'open',
+        } for _ in range(22)]
+        private = self.private_record(findings=long_findings,
+                                      disposition='repair_required')
+        record_review(self.root, self.submitted, self.recorded,
+                      private_review_record=private)
+        too_large = self.base / 'oversized-private-review-revision'
+        with self.assertRaisesRegex(ValueError, 'oversized revision handoff'):
+            revision_brief(self.root, self.recorded, updated, too_large)
+        self.assertFalse(too_large.exists())
+
+    def test_private_and_comparator_blockers_keep_both_strict_lineages(self):
+        comparison = json.loads(self.comparison_source.read_text())
+        comparison['references'][0]['actionable_findings'] = [
+            'Tighten the opening visual beat without copying the reference.',
+        ]
+        source = self.base / 'combined-comparison-source.json'
+        receipt = self.base / 'combined-comparison-receipt.json'
+        write(source, comparison)
+        record_live_comparison(self.root, source, receipt)
+        submitted = copy.deepcopy(self.review)
+        submitted['checks']['reference_comparison'] = {
+            'passed': False,
+            'evidence': 'Direct comparison found one repairable difference.',
+            'feedback': 'Tighten the opening visual beat without copying the reference.',
+        }
+        write(self.submitted, submitted)
+        private = self.private_record(findings=[{
+            'start_seconds': 6, 'end_seconds': 7, 'category': 'mix',
+            'severity': 'blocker', 'observation': 'Music masks the final word.',
+            'requested_repair': 'Lower the music under the final word.',
+            'resolution_state': 'open',
+        }], disposition='repair_required')
+        result = record_review(
+            self.root, self.submitted, self.recorded,
+            live_comparison_source=source, live_comparison_receipt=receipt,
+            private_review_record=private)
+        self.assertEqual(result['schema_version'], 4)
+
+        updated = brief()
+        updated['scenes'][1]['narration'] = 'My revised wallet requests a meeting.'
+        revision = revision_brief(self.root, self.recorded, updated,
+                                  self.base / 'combined-review-revision')
+        self.assertEqual(revision['schema_version'], 5)
+        self.assertTrue(revision['comparison_findings_routing_verified'])
+        self.assertTrue(revision['private_review_findings_routing_verified'])
+        from integrations.content_control.cycle_lineage import read_revision
+        lineage = read_revision(
+            self.base / 'combined-review-revision/revision.json',
+            revision['brief_sha256'])
+        self.assertEqual(json.loads(lineage['revision_json']), revision)
+
+        forged = copy.deepcopy(revision)
+        forged['feedback'] = [item for item in forged['feedback']
+                              if item['check'] != 'reference_comparison']
+        forged_path = self.base / 'forged-combined-revision.json'
+        write(forged_path, forged)
+        with self.assertRaisesRegex(ValueError,
+                                    'requires comparator feedback'):
+            read_revision(forged_path, revision['brief_sha256'])
 
     def test_reference_comparison_requires_replayable_exact_receipt(self):
         with self.assertRaisesRegex(ValueError, 'source and receipt required'):
