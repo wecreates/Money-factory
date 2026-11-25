@@ -10,7 +10,8 @@ from zipfile import ZipFile
 
 from integrations.local_agent_queue import Queue, work
 from integrations.content_control.external_media_job import (
-    LEGACY_SOURCE_EVIDENCE, REHASHED_SOURCE_EVIDENCE, SOURCE_BYTES_OPERATION, run_job, validate,
+    LEGACY_SOURCE_EVIDENCE, MODEL_EDIT_OPERATION, REHASHED_SOURCE_EVIDENCE,
+    SOURCE_BYTES_OPERATION, run_job, validate,
 )
 from integrations.content_control.review_package import digest
 from integrations.content_control.review_delivery import export_review, status, verify_delivery
@@ -158,6 +159,91 @@ class ExternalMediaJobTests(unittest.TestCase):
         (sources / 'trimmed.mp4').write_bytes(b'free local trimmed source')
         self.request['operation'] = SOURCE_BYTES_OPERATION
         return sources
+
+    def convert_to_model_edit_packet(self):
+        sources = self.external / 'source-evidence'
+        sources.mkdir()
+        (sources / 'original.mp4').write_bytes(b'original source candidate')
+        (sources / 'trimmed.mp4').write_bytes(b'SYNTHETIC_MEDIA_NOT_PLAYBACK_PROOF')
+        self.request.update(operation=MODEL_EDIT_OPERATION,
+                            transformed_source_sha256=self.candidate_sha)
+        model = {
+            'schema_version': 1,
+            'input': {'sha256': self.source_sha},
+            'local_model': {'sha256': 'a' * 64, 'provider_calls': 0, 'cost_usd': 0.0},
+            'output': {'sha256': self.candidate_sha, 'full_decode': 'PASS',
+                       'audio_packet_stream_preserved': True},
+            'safety': {'publication_enabled': False, 'paid_inference_enabled': False,
+                       'provider_calls': 0, 'external_write': False,
+                       'sandbox_weakened': False},
+        }
+        model_path = self.diagnostics / 'model-edit-receipt.json'
+        write_json(model_path, model)
+        self.request['prior_tool_receipt_sha256'] = digest(model_path)
+        wrapper = {
+            'schema_version': 1, 'observed_at_utc': '2026-11-25T08:05:53Z',
+            'workstream': 'C09', 'operation': MODEL_EDIT_OPERATION,
+            'source_candidate_sha256': self.source_sha,
+            'candidate_sha256': self.candidate_sha,
+            'model_receipt_sha256': self.request['prior_tool_receipt_sha256'],
+            'tool_commit': self.tool_commit,
+            'consumer': 'content-control-external-media',
+            'safety': {'publication_enabled': False, 'paid_generation_enabled': False,
+                       'production_approved': False, 'production_ready': False,
+                       'full_av_review': False, 'provider_calls': 0},
+            'scope': 'Synthetic exact-byte queue consumer test; not audiovisual proof.',
+        }
+        wrapper_path = self.external / 'model-consumer-receipt.json'
+        write_json(wrapper_path, wrapper)
+        self.request['external_receipt_sha256'] = digest(wrapper_path)
+        self.metadata = {
+            'schema_version': 1, 'status': 'AWAITING_REVIEW',
+            'tool': 'OpenCV YuNet face detector 2023mar', 'runtime': 'local',
+            'operation': MODEL_EDIT_OPERATION, 'observed_at_utc': '2026-11-25T08:05:53Z',
+            'source_candidate_sha256': self.source_sha,
+            'candidate_sha256': self.candidate_sha, 'model_sha256': 'a' * 64,
+            'model_receipt_sha256': self.request['prior_tool_receipt_sha256'],
+            'tool_commit': self.tool_commit, 'source_resolution': '1280x720',
+            'output_resolution': '1080x1920', 'duration_seconds': 1.0,
+            'video_codec': 'h264', 'audio_codec': 'aac', 'full_decode': 'PASS',
+            'audio_packet_stream_preserved': True, 'publication_enabled': False,
+            'paid_generation_enabled': False, 'production_approved': False,
+            'full_av_review': False, 'production_ready': False, 'provider_calls': 0,
+            'sandbox_weakened': False, 'scope': 'Synthetic metadata only.',
+        }
+        write_json(self.review / 'video.mp4.json', self.metadata)
+        artifacts = {path.name: digest(path) for path in self.review.iterdir()
+                     if path.name != 'run.json'}
+        self.run = {
+            'schema_version': 1, 'status': 'AWAITING_REVIEW', 'technical_status': 'PASS',
+            'observed_at_utc': '2026-11-25T08:05:53Z',
+            'consumer': 'content-control-external-media', 'operation': MODEL_EDIT_OPERATION,
+            'candidate_sha256': self.candidate_sha,
+            'caption_sha256': digest(self.review / 'captions.vtt'),
+            'source_candidate_sha256': self.source_sha,
+            'prior_tool_receipt_sha256': self.request['prior_tool_receipt_sha256'],
+            'tool_commit': self.tool_commit, 'artifacts_sha256': artifacts,
+            'publication_enabled': False, 'paid_generation_enabled': False,
+            'production_approved': False, 'full_av_review': False,
+            'production_ready': False, 'sandbox_weakened': False, 'provider_calls': 0,
+            'scope': 'Synthetic queue consumer test; not audiovisual proof.',
+        }
+        write_json(self.review / 'run.json', self.run)
+        self.request['review_run_sha256'] = digest(self.review / 'run.json')
+
+    def test_model_edit_packet_uses_normal_queue_and_durable_export_consumers(self):
+        self.convert_to_model_edit_packet()
+        queue, report = self.run_queue()
+        self.assertEqual(report['processed'][0]['state'], 'succeeded')
+        stored = queue.get(self.spec['id'])['receipts'][0]['receipt']
+        self.assertEqual(stored['source_evidence'], REHASHED_SOURCE_EVIDENCE)
+        self.assertEqual(stored['candidate_sha256'], self.candidate_sha)
+        review, proof = verify_delivery(queue.root, self.spec['id'])
+        self.assertEqual(review, queue.root / 'attempts/offline-reframe/1/review')
+        self.assertEqual(proof['operation'], MODEL_EDIT_OPERATION)
+        exported = export_review(queue.root, self.spec['id'], self.root / 'private-model-export')
+        self.assertEqual(exported['candidate_sha256'], self.candidate_sha)
+        self.assertFalse(exported['publication_enabled'])
 
     def test_queue_packages_and_delivery_reverifies_exact_offline_bytes(self):
         queue, report = self.run_queue()
