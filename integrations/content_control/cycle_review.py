@@ -440,6 +440,17 @@ def _rea_diagnostic_findings(evidence):
     return findings
 
 
+def _comparison_feedback(comparison):
+    """Route exact retained comparator actions without promoting their truth."""
+    feedback = []
+    for reference in comparison['references']:
+        for action in reference['actionable_findings']:
+            item = {'check': 'reference_comparison', 'action': action}
+            if item not in feedback:
+                feedback.append(item)
+    return feedback
+
+
 def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
                   live_comparison_source=None, live_comparison_receipt=None):
     root, review_path = Path(os.path.abspath(cycle_dir)), Path(os.path.abspath(review_path))
@@ -469,6 +480,7 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
     listener = None
     watcher = None
     comparison = None
+    comparison_findings = []
     if 'full_audiovisual' in checks:
         watcher, watcher_feedback, all_watcher_checks_passed = _watcher_attestation(
             root, snapshot, review.get('watcher_review'))
@@ -491,10 +503,15 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
         require(datetime.fromisoformat(reviewed_at) >=
                 datetime.fromisoformat(comparison['reviewed_at']),
                 'Editorial review predates the live comparison')
+        if checks['reference_comparison']['passed'] is False:
+            comparison_findings = _comparison_feedback(comparison)
+            feedback = [item for item in feedback if item not in comparison_findings]
+            feedback.extend(comparison_findings)
     else:
         require(live_comparison_source is None and live_comparison_receipt is None,
                 'Live comparison inputs require a reference comparison check')
-    result = {'schema_version': 1, 'status': 'REVISION_REQUIRED' if feedback else 'EDITORIAL_REVIEW_RECORDED',
+    result = {'schema_version': 2 if comparison_findings else 1,
+              'status': 'REVISION_REQUIRED' if feedback else 'EDITORIAL_REVIEW_RECORDED',
               'candidate_sha256': snapshot['candidate_sha256'], 'reviewer': reviewer,
               'reviewed_at': reviewed_at, 'recorded_at': datetime.now(timezone.utc).isoformat(),
               'checks': normalized, 'feedback': feedback, 'source_files_sha256': snapshot['files_sha256'],
@@ -509,6 +526,8 @@ def record_review(cycle_dir, review_path, output, *, rea_analysis=None,
     if comparison is not None:
         result['live_comparison_receipt'] = comparison
         result['live_comparison_receipt_file_sha256'] = comparison_receipt_sha
+    if comparison_findings:
+        result['comparison_findings'] = comparison_findings
     recheck_rea = None
     if rea_analysis is not None:
         from integrations.rea_video.analyze_cycle import review_evidence
@@ -558,6 +577,9 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
     snapshot = inspect_cycle(root)
     review = _load(review_path)
     _unapproved(review)
+    review_schema = review.get('schema_version')
+    require(type(review_schema) is int and review_schema in (1, 2),
+            'Recorded review schema version 1 or 2 required')
     require(review.get('status') in ('REVISION_REQUIRED', 'EDITORIAL_REVIEW_RECORDED'), 'Recorded review required')
     require(review.get('candidate_sha256') == snapshot['candidate_sha256'] and
             review.get('source_files_sha256') == snapshot['files_sha256'], 'Review does not bind current cycle')
@@ -596,6 +618,33 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
                 'Live comparison receipt requires a reference comparison check')
     recorded_feedback = review.get('feedback')
     require(isinstance(recorded_feedback, list), 'Recorded feedback must be a list')
+    expected_comparison_findings = (_comparison_feedback(comparison)
+                                    if comparison is not None
+                                    and recorded_checks['reference_comparison']['passed'] is False
+                                    else [])
+    if review_schema == 2:
+        require(comparison is not None
+                and recorded_checks['reference_comparison']['passed'] is False
+                and bool(expected_comparison_findings),
+                'Schema-2 review requires failed routed comparison findings')
+        require(review.get('comparison_findings') == expected_comparison_findings,
+                'Recorded comparison findings are missing or changed')
+        manual_comparison_feedback = []
+        if (comparison is not None
+                and recorded_checks['reference_comparison']['passed'] is False):
+            manual = {'check': 'reference_comparison',
+                      'action': recorded_checks['reference_comparison']['feedback']}
+            if manual not in expected_comparison_findings:
+                manual_comparison_feedback.append(manual)
+        retained_comparison_feedback = [
+            item for item in recorded_feedback
+            if isinstance(item, dict) and item.get('check') == 'reference_comparison']
+        require(retained_comparison_feedback ==
+                manual_comparison_feedback + expected_comparison_findings,
+                'Recorded comparison feedback order or identity changed')
+    else:
+        require('comparison_findings' not in review,
+                'Legacy review cannot claim routed comparison findings')
     diagnostic_findings = (_rea_diagnostic_findings(review['rea_diagnostics'])
                            if 'rea_diagnostics' in review else [])
     require(('diagnostic_findings' in review) == bool(diagnostic_findings)
@@ -636,6 +685,10 @@ def revision_brief(cycle_dir, recorded_review_path, new_brief, output):
         result['live_comparison_observations_sha256'] = comparison[
             'submitted_observations_sha256']
         result['live_comparison_receipt_file_sha256'] = comparison_receipt_sha
+    if review_schema == 2:
+        result['schema_version'] = 3
+        result['recorded_review_schema_version'] = 2
+        result['comparison_findings_routing_verified'] = True
     if discovery is not None:
         result['topic_discovery_sha256'] = hashlib.sha256(
             json.dumps(discovery, sort_keys=True, separators=(',', ':'),

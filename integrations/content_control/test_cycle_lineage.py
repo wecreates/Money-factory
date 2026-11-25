@@ -34,6 +34,28 @@ class LineageTests(unittest.TestCase):
         self.assertFalse(value['parent_evidence_independently_verified'])
         self.assertFalse(value['feedback_resolution_verified'])
 
+    def test_strict_comparison_routing_handoff_is_distinct_and_replayable(self):
+        receipt = dict(self.receipt,
+                       schema_version=3,
+                       recorded_review_schema_version=2,
+                       comparison_findings_routing_verified=True,
+                       live_comparison_receipt_sha256='5' * 64,
+                       live_comparison_observations_sha256='6' * 64,
+                       live_comparison_receipt_file_sha256='7' * 64)
+        receipt['feedback'] = [{
+            'check': 'reference_comparison',
+            'action': 'Synthetic comparator repair retained for lineage validation.',
+        }]
+        value = self.load(receipt)
+        self.assertEqual(m.validate_lineage(value, self.brief_sha), receipt)
+        for patch in (
+                {'recorded_review_schema_version': 1},
+                {'comparison_findings_routing_verified': False},
+                {'live_comparison_receipt_sha256': 'broken'},
+                {'feedback': [dict(item) for item in self.receipt['feedback']]}):
+            with self.subTest(patch=patch), self.assertRaises(ValueError):
+                self.load(dict(receipt, **patch))
+
     def test_wrong_brief_and_invalid_receipt_rejected(self):
         for key, invalid in [('brief_sha256', '9' * 64), ('prior_cycle_sha256', 'broken'),
                              ('publication_enabled', True), ('feedback_resolution_verified', True),

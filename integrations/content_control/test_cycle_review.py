@@ -197,6 +197,144 @@ class ReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'predates the live comparison'):
             self.record()
 
+    def test_failed_reference_comparison_routes_exact_findings_once_in_receipt_order(self):
+        comparison = json.loads(self.comparison_source.read_text())
+        comparison['references'][0]['actionable_findings'] = [
+            'Move the consequence card ahead of the first explanation.',
+            'Retain one clear beat before the payoff lands.',
+        ]
+        comparison['references'][1]['actionable_findings'] = [
+            'Retain one clear beat before the payoff lands.',
+            'Strengthen the final visual payoff without copying reference assets.',
+        ]
+        source = self.base / 'routed-comparison-source.json'
+        receipt = self.base / 'routed-comparison-receipt.json'
+        write(source, comparison)
+        record_live_comparison(self.root, source, receipt)
+        review = copy.deepcopy(self.review)
+        review['checks']['reference_comparison'] = {
+            'passed': False,
+            'evidence': 'Direct fixture comparison found specific repair actions.',
+            'feedback': 'Retain one clear beat before the payoff lands.',
+        }
+        write(self.submitted, review)
+
+        result = record_review(
+            self.root, self.submitted, self.recorded,
+            live_comparison_source=source, live_comparison_receipt=receipt)
+
+        routed = [item['action'] for item in result['feedback']
+                  if item.get('check') == 'reference_comparison']
+        self.assertEqual(routed, [
+            'Move the consequence card ahead of the first explanation.',
+            'Retain one clear beat before the payoff lands.',
+            'Strengthen the final visual payoff without copying reference assets.',
+        ])
+        self.assertEqual(result['status'], 'REVISION_REQUIRED')
+
+        updated = brief()
+        updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
+        strict_revision = revision_brief(
+            self.root, self.recorded, updated,
+            self.base / 'strict-comparison-feedback')
+        self.assertEqual(strict_revision['recorded_review_schema_version'], 2)
+        self.assertTrue(strict_revision['comparison_findings_routing_verified'])
+        from integrations.content_control.cycle_lineage import read_revision
+        lineage = read_revision(
+            self.base / 'strict-comparison-feedback/revision.json',
+            strict_revision['brief_sha256'])
+        self.assertEqual(json.loads(lineage['revision_json']), strict_revision)
+
+        from integrations.content_control.cycle_review import _rea_diagnostic_findings
+        rea = {
+            'receipt_sha256': '8' * 64,
+            'authored_cut_coverage': {
+                'status': 'MISSING_AUTHORED_CUTS',
+                'missing_cuts': [{'scene_id': 'comparison-reveal',
+                                  'authored_seconds': 4.0}],
+                'tolerance_seconds': 0.25,
+            },
+            'authored_scene_samples': {'status': 'SCENE_SAMPLES_READY'},
+        }
+        routed_with_rea = copy.deepcopy(result)
+        routed_with_rea['rea_diagnostics'] = rea
+        routed_with_rea['diagnostic_findings'] = _rea_diagnostic_findings(rea)
+        routed_with_rea['feedback'].extend(routed_with_rea['diagnostic_findings'])
+        write(self.recorded, routed_with_rea)
+        rea_revision = revision_brief(
+            self.root, self.recorded, updated,
+            self.base / 'strict-comparison-rea-feedback')
+        rea_lineage = read_revision(
+            self.base / 'strict-comparison-rea-feedback/revision.json',
+            rea_revision['brief_sha256'])
+        self.assertEqual(json.loads(rea_lineage['revision_json']), rea_revision)
+
+        changed = copy.deepcopy(result)
+        changed['feedback'].remove({
+            'check': 'reference_comparison',
+            'action': 'Retain one clear beat before the payoff lands.',
+        })
+        write(self.recorded, changed)
+        with self.assertRaisesRegex(ValueError,
+                                    'comparison feedback order or identity changed'):
+            revision_brief(self.root, self.recorded, updated,
+                           self.base / 'missing-comparison-feedback')
+
+        for name, mutate in (
+                ('extra', lambda value: value['feedback'].append({
+                    'check': 'reference_comparison',
+                    'action': 'Forged comparator repair must not enter the handoff.',
+                })),
+                ('duplicate', lambda value: value['feedback'].append(
+                    copy.deepcopy(value['comparison_findings'][0]))),
+                ('reordered', lambda value: value['feedback'].__setitem__(
+                    slice(-3, None), list(reversed(value['feedback'][-3:]))))):
+            changed = copy.deepcopy(result)
+            mutate(changed)
+            write(self.recorded, changed)
+            with self.subTest(name=name), \
+                 self.assertRaisesRegex(ValueError,
+                                             'comparison feedback order or identity changed'):
+                revision_brief(self.root, self.recorded, updated,
+                               self.base / f'{name}-comparison-feedback')
+
+        legacy = copy.deepcopy(result)
+        legacy['schema_version'] = 1
+        legacy.pop('comparison_findings')
+        legacy['feedback'] = [{
+            'check': 'reference_comparison',
+            'action': 'Retain one clear beat before the payoff lands.',
+        }]
+        write(self.recorded, legacy)
+        revision = revision_brief(self.root, self.recorded, updated,
+                                  self.base / 'legacy-comparison-feedback')
+        self.assertEqual(revision['status'], 'REVISION_BRIEF_READY')
+        self.assertEqual(revision['schema_version'], 1)
+        self.assertNotIn('recorded_review_schema_version', revision)
+        self.assertNotIn('comparison_findings_routing_verified', revision)
+
+    def test_passed_reference_comparison_does_not_turn_notes_into_repairs(self):
+        result = self.record()
+        self.assertEqual(result['schema_version'], 1)
+        self.assertNotIn('comparison_findings', result)
+        actions = {item['action'] for item in result['feedback']}
+        comparison = json.loads(self.comparison_receipt.read_text())
+        retained = {action for reference in comparison['references']
+                    for action in reference['actionable_findings']}
+        self.assertTrue(actions.isdisjoint(retained))
+        self.assertEqual(result['status'], 'EDITORIAL_REVIEW_RECORDED')
+
+        forged = copy.deepcopy(result)
+        forged['schema_version'] = 2
+        forged['comparison_findings'] = []
+        write(self.recorded, forged)
+        updated = brief()
+        updated['scenes'][1]['narration'] = 'My wallet requests an urgent meeting.'
+        with self.assertRaisesRegex(ValueError,
+                                    'requires failed routed comparison findings'):
+            revision_brief(self.root, self.recorded, updated,
+                           self.base / 'forged-empty-comparison-routing')
+
     def test_revision_replays_comparison_and_retains_its_identities(self):
         recorded = self.record()
         updated = brief()
