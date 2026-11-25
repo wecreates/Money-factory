@@ -15,7 +15,7 @@ import re
 import time
 
 from integrations.content_control.cycle_short import make_short, media_identities, _probe
-from integrations.content_control.review_delivery import read_json, verify_delivery
+from integrations.content_control.review_delivery import CYCLE_QUEUE_ADAPTERS, read_json, verify_delivery
 from integrations.content_control.review_package import digest, no_symlinks
 
 FLAGS = {key: False for key in ('publication_enabled', 'paid_generation_enabled',
@@ -31,6 +31,11 @@ PRE_COMPACT_QUOTE_TOOL_PAIR = (
     '7d1273737a50aff80b49494df857e3866a2c40bc4fa7e5f1a6c6c4691374f592',
     'd2c21d9f9e1cefc2b9f153697372e9e30c6fea086e445e32274b172e2a0bc436',
 )
+# Preserve receipts produced before restored checkpoints became queue sources.
+PRE_RETAINED_CYCLE_TOOL_PAIR = (
+    'e9b8316ad3e45af690bc1169e79c5ce91eb7ab4103a417ab14e584db8a9a3b73',
+    'b180215c13c38d2a73f7adc856e45a1ad3efee516ec02dba173949cb75890918',
+)
 
 
 def _write(path, value):
@@ -41,12 +46,12 @@ def _write(path, value):
 def _verified_tool_pair(receipt):
     retained = (receipt.get('consumer_tool_sha256'), receipt.get('exporter_tool_sha256'))
     current = (digest(Path(__file__)), digest(Path(make_short.__code__.co_filename)))
-    return retained in (current, PRE_COMPACT_QUOTE_TOOL_PAIR)
+    return retained in (current, PRE_COMPACT_QUOTE_TOOL_PAIR, PRE_RETAINED_CYCLE_TOOL_PAIR)
 
 
 def _source(queue_root, job_id):
     review, provenance = verify_delivery(queue_root, job_id)
-    if provenance.get('adapter') != 'content-control-cycle':
+    if provenance.get('adapter') not in CYCLE_QUEUE_ADAPTERS:
         raise ValueError('Only a durably completed content cycle can feed a Short')
     cycle = review.parent
     if cycle.is_symlink() or not cycle.is_dir():

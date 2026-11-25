@@ -14,6 +14,7 @@ import tempfile
 from zipfile import BadZipFile, ZipFile
 
 from integrations.local_agent_queue import canonical, validate
+from integrations.content_control import retained_cycle_job
 from integrations.content_control.runtime_doctor import SOURCES
 from integrations.content_control.video_job import check_completed, digest
 
@@ -35,6 +36,8 @@ CYCLE_PROVENANCE_REQUIRED = frozenset({
 CYCLE_PROVENANCE_OPTIONAL = frozenset({
     'minimum_duration_seconds', 'verified_intake', 'verified_revision_discovery',
 })
+RETAINED_CYCLE_PROVENANCE = frozenset({'checkpoint_sha256', 'caption_sha256'})
+CYCLE_QUEUE_ADAPTERS = frozenset({'content-control-cycle', retained_cycle_job.ADAPTER})
 PACKAGE_GATE_FIELDS = frozenset({
     'publication_enabled', 'paid_generation_enabled', 'production_approved', 'full_av_review',
     'production_ready', 'thumbnail_performance_verified', 'independent_transcription_verified',
@@ -95,8 +98,8 @@ def read_job(queue_root, job_id):
         job = dict(job)
         spec = parse_json(job['spec'])
         validate(spec)
-        if (spec['id'] != job_id or spec['adapter'] not in (
-                'content-control-video', 'content-control-cycle', 'content-control-external-media')
+        if (spec['id'] != job_id or spec['adapter'] not in CYCLE_QUEUE_ADAPTERS | {
+                'content-control-video', 'content-control-external-media'}
                 or hashlib.sha256(canonical(spec).encode()).hexdigest() != job['digest']
                 or spec['max_attempts'] != job['max_attempts']):
             raise ValueError('Immutable video request identity mismatch')
@@ -119,11 +122,11 @@ def verify_delivery(queue_root, job_id):
         raise ValueError('Completion receipt is missing')
     stored = parse_json(latest['receipt'])
     attempt = regular(root / 'attempts' / job_id / str(latest['number']), directory=True)
-    fresh = spec['adapter'] == 'content-control-cycle'
     adapter_names = {
         'content-control-cycle': 'cycle-adapter-receipt.json',
         'content-control-video': 'video-adapter-receipt.json',
         'content-control-external-media': 'external-media-adapter-receipt.json',
+        retained_cycle_job.ADAPTER: retained_cycle_job.RECEIPT,
     }
     adapter_path = attempt / adapter_names[spec['adapter']]
     with regular(adapter_path, limit=MAX_JSON).open('rb') as stream:
@@ -140,8 +143,20 @@ def verify_delivery(queue_root, job_id):
                   'pipeline_receipt_sha256': stored.get('pipeline_receipt_sha256'),
                   'adapter_receipt_sha256': hashlib.sha256(adapter_raw).hexdigest(), **FLAGS,
                   'scope': 'Verified durable queue completion; delivery is not creative or publishing approval'}
-    if fresh:
+    if spec['adapter'] == 'content-control-cycle':
         return verify_cycle_delivery(attempt, spec['request'], stored, provenance)
+    if spec['adapter'] == retained_cycle_job.ADAPTER:
+        completed = retained_cycle_job.check_completed(attempt, spec['request'])
+        if canonical(completed) != canonical(stored):
+            raise ValueError('Retained cycle does not match durable completion')
+        provenance.update(
+            adapter=retained_cycle_job.ADAPTER, brief_sha256=completed['brief_sha256'],
+            production_brief_sha256=completed['brief_sha256'],
+            package_sha256=completed['package_sha256'],
+            review_archive_sha256=completed['archive_sha256'],
+            checkpoint_sha256=completed['checkpoint_sha256'], caption_sha256=completed['caption_sha256'],
+        )
+        return attempt / 'cycle/delivery', provenance
     if spec['adapter'] == 'content-control-external-media':
         return verify_external_media_delivery(attempt, spec['request'], stored, provenance)
     if (stored.get('artifact_directory') != 'review' or stored.get('source_inputs_unchanged') is not True
@@ -295,7 +310,7 @@ def status(queue_root, job_id):
 
 def export_review(queue_root, job_id, output_dir):
     review, provenance = verify_delivery(queue_root, job_id)
-    if provenance.get('adapter') == 'content-control-cycle':
+    if provenance.get('adapter') in CYCLE_QUEUE_ADAPTERS:
         return export_cycle(review, provenance, queue_root, output_dir)
     from integrations.content_control.review_package import package_review
     expected = provenance.get('automated_review_sha256')
@@ -460,9 +475,11 @@ def verify_exported_cycle(output_dir, expected_delivery_identity_sha256):
                 raise ValueError('Private delivery archive member changed: ' + info.filename)
 
     provenance = report.get('provenance')
+    retained = isinstance(provenance, dict) and provenance.get('adapter') == retained_cycle_job.ADAPTER
+    required = CYCLE_PROVENANCE_REQUIRED | (RETAINED_CYCLE_PROVENANCE if retained else frozenset())
+    optional = frozenset() if retained else CYCLE_PROVENANCE_OPTIONAL
     if (not isinstance(provenance, dict)
-            or not CYCLE_PROVENANCE_REQUIRED <= set(provenance)
-            or set(provenance) - CYCLE_PROVENANCE_REQUIRED - CYCLE_PROVENANCE_OPTIONAL
+            or not required <= set(provenance) <= required | optional
             or not isinstance(provenance.get('job_id'), str)
             or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', provenance['job_id'])
             or not isinstance(provenance.get('job_digest'), str)
@@ -470,7 +487,8 @@ def verify_exported_cycle(output_dir, expected_delivery_identity_sha256):
             or type(provenance.get('attempt')) is not int or provenance['attempt'] < 1
             or type(provenance.get('completed_at_unix')) not in (int, float)
             or not 0 < provenance['completed_at_unix'] < float('inf')
-            or provenance.get('adapter') != 'content-control-cycle'
+            or not isinstance(provenance.get('adapter'), str)
+            or provenance['adapter'] not in CYCLE_QUEUE_ADAPTERS
             or provenance.get('candidate_sha256') != candidate
             or provenance.get('package_sha256') != package_sha
             or provenance.get('review_archive_sha256') != archive_sha
@@ -481,6 +499,11 @@ def verify_exported_cycle(output_dir, expected_delivery_identity_sha256):
             or provenance.get('scope') != 'Verified durable queue completion; delivery is not creative or publishing approval'
             or any(provenance.get(flag) is not False for flag in FLAGS)):
         raise ValueError('Private delivery provenance is invalid')
+    if retained and (not all(isinstance(provenance[key], str) and re.fullmatch('[0-9a-f]{64}', provenance[key])
+                             for key in RETAINED_CYCLE_PROVENANCE)
+                     or provenance['caption_sha256'] != hashes.get('review/captions.vtt')
+                     or provenance['brief_sha256'] != provenance['production_brief_sha256']):
+        raise ValueError('Retained checkpoint provenance is invalid')
     minimum = provenance.get('minimum_duration_seconds')
     if ('minimum_duration_seconds' in provenance
             and (type(minimum) not in (int, float) or not 0 < minimum < float('inf'))):
