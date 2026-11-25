@@ -16,6 +16,9 @@ import shutil
 from integrations.content_control.cycle_caption_revision import correct_vtt
 from integrations.content_control.cycle_editorial import _text, _timestamp
 from integrations.content_control.cycle_lineage import _constant, _pairs
+from integrations.content_control.cycle_queue_short_attestation import (
+    verify_recorded_value,
+)
 from integrations.content_control.cycle_queue_short import verify_consumed_short
 from integrations.content_control.cycle_short import COMPACT_STYLE, SAFE_CAPTION_STYLE
 from integrations.content_control.review_package import digest, no_symlinks, require
@@ -29,7 +32,7 @@ FINDING_CHECKS = frozenset({
     'visual_storytelling', 'pacing', 'creative_coherence',
     'reference_comparison', 'phone_playback',
 })
-MAX_JSON = 64 * 1024
+MAX_JSON = 256 * 1024
 REVIEW_SCOPE = ('Exact queue Short repair findings and identities only; no complete '
                 'watch/listen, competitor, phone, creative, or publishing acceptance.')
 REVISION_SCOPE = ('Caption-only revision handoff for the exact sidecar derivative; '
@@ -54,6 +57,20 @@ SAFE_AREA_OVERLAY = {
         'background_rgb': '#f7f1e6',
         'caption_bottom_clearance_target_pixels': 125,
     },
+}
+
+ATTESTATION_FINDING_MAP = {
+    'watcher.picture_continuity': 'visual_storytelling',
+    'watcher.caption_readability': 'caption_readability',
+    'watcher.audio_visual_sync': 'voice_and_sound',
+    'watcher.pacing_and_transitions': 'pacing',
+    'watcher.creative_coherence': 'creative_coherence',
+    'listener.naturalness': 'voice_and_sound',
+    'listener.pronunciation': 'voice_and_sound',
+    'listener.character_consistency': 'voice_and_sound',
+    'listener.music_and_sfx': 'voice_and_sound',
+    'listener.transitions': 'voice_and_sound',
+    'listener.mix_balance': 'voice_and_sound',
 }
 
 
@@ -261,19 +278,118 @@ def record_short_review(queue_root, job_id, short_dir, review_path, output):
     return result
 
 
+def _attestation_findings(attestation):
+    feedback = attestation.get('feedback')
+    require(isinstance(feedback, list) and feedback,
+            'A failed Short watch/listen check is required before repair routing')
+    findings = []
+    for item in feedback:
+        require(isinstance(item, dict) and set(item) == {'check', 'action'},
+                'Exact attestation feedback fields required')
+        source_check = item['check']
+        mapped = ATTESTATION_FINDING_MAP.get(source_check)
+        require(mapped is not None, 'Unsupported Short attestation check')
+        role, check = source_check.split('.', 1)
+        section = attestation.get(role + '_review')
+        require(isinstance(section, dict), 'Recorded Short ' + role + ' review required')
+        checks = section.get('checks')
+        require(isinstance(checks, dict) and isinstance(checks.get(check), dict),
+                'Recorded Short check evidence required')
+        evidence = checks[check].get('evidence')
+        findings.append({
+            'check': mapped,
+            'evidence': _text(evidence, source_check + '.evidence', 4000, minimum=12),
+            'action': _text(item['action'], source_check + '.action', 4000, minimum=12),
+        })
+    return _findings(findings)
+
+
+def _attestation_review(attestation, snapshot):
+    watcher = attestation['watcher_review']
+    listener = attestation['listener_review']
+    names = [watcher['watcher'], listener['listener']]
+    reviewer = names[0] if names[0] == names[1] else 'Watcher: ' + names[0] + '; listener: ' + names[1]
+    reviewed_times = [_timestamp(watcher['watched_at'], 'watched_at'),
+                      _timestamp(listener['listened_at'], 'listened_at')]
+    reviewed_at = max(reviewed_times, key=datetime.fromisoformat)
+    result = {
+        **_bound_source(snapshot),
+        'reviewer': _text(reviewer, 'reviewer', 200, minimum=1),
+        'reviewed_at': _timestamp(reviewed_at, 'reviewed_at'),
+        'basis': 'direct_watch_listen_attestation_repair_findings',
+        'findings': _attestation_findings(attestation),
+    }
+    return result
+
+
+def record_attestation_findings(queue_root, job_id, short_dir, attestation_path, output):
+    """Route failed exact watch/listen checks into the Short repair path."""
+    require(all(os.environ.get(key, 'false').lower() == 'false'
+                for key in ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')),
+            'Publishing and paid generation must remain disabled')
+    queue_root = Path(os.path.abspath(queue_root))
+    short_dir = Path(os.path.abspath(short_dir))
+    attestation_path = Path(os.path.abspath(attestation_path))
+    output = Path(os.path.abspath(output))
+    for path in (queue_root, short_dir, attestation_path, output):
+        no_symlinks(path)
+    require(not output.exists() and output != attestation_path
+            and not output.is_relative_to(short_dir)
+            and not output.is_relative_to(queue_root),
+            'Fresh review output outside the Short and queue required')
+    raw, attestation = _read_json(attestation_path)
+    snapshot = _snapshot(queue_root, job_id, short_dir)
+    verified = verify_recorded_value(queue_root, job_id, short_dir, attestation)
+    require(verified.get('status') == 'REVISION_REQUIRED',
+            'Only a failed Short watch/listen attestation requires repair routing')
+    review = _attestation_review(verified, snapshot)
+    feedback_sha = hashlib.sha256(json.dumps(
+        verified['feedback'], sort_keys=True, separators=(',', ':'),
+        allow_nan=False).encode()).hexdigest()
+    result = {
+        'schema_version': 2,
+        'status': 'REVISION_REQUIRED',
+        **FLAGS,
+        **review,
+        'source_attestation_sha256': hashlib.sha256(raw).hexdigest(),
+        'source_attestation_feedback_sha256': feedback_sha,
+        'source_attestation_json': raw.decode('utf-8'),
+        'human_av_acceptance_recorded': False,
+        'phone_playback_verified': False,
+        'independent_verification': False,
+        'tool_sha256': digest(Path(__file__)),
+        'scope': REVIEW_SCOPE,
+    }
+    require(_snapshot(queue_root, job_id, short_dir) == snapshot
+            and _regular(attestation_path, 1024 * 1024).read_bytes() == raw,
+            'Short or attestation changed while routing repair findings')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open('x', encoding='utf-8') as stream:
+        json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False)
+        stream.write('\n')
+    return result
+
+
 def verify_recorded_short_review(queue_root, job_id, short_dir, recorded_review):
     """Replay a recorded repair review against the current durable derivative."""
     recorded_review = Path(os.path.abspath(recorded_review))
     _, value = _read_json(recorded_review)
     snapshot = _snapshot(queue_root, job_id, short_dir)
     source_fields = set(_bound_source(snapshot))
-    required = ({'schema_version', 'status', *FLAGS, *source_fields,
+    legacy_required = ({'schema_version', 'status', *FLAGS, *source_fields,
                  'reviewer', 'reviewed_at', 'basis', 'findings',
                  'submitted_review_sha256', 'submitted_review_json',
                  'human_av_acceptance_recorded', 'phone_playback_verified',
                  'independent_verification', 'tool_sha256', 'scope'})
-    require(set(value) == required
-            and value.get('schema_version') == 1
+    attestation_required = ({'schema_version', 'status', *FLAGS, *source_fields,
+                 'reviewer', 'reviewed_at', 'basis', 'findings',
+                 'source_attestation_sha256', 'source_attestation_feedback_sha256',
+                 'source_attestation_json', 'human_av_acceptance_recorded',
+                 'phone_playback_verified', 'independent_verification',
+                 'tool_sha256', 'scope'})
+    version = value.get('schema_version')
+    require(((version == 1 and set(value) == legacy_required)
+             or (version == 2 and set(value) == attestation_required))
             and value.get('status') == 'REVISION_REQUIRED'
             and all(value.get(key) is False for key in FLAGS)
             and value.get('human_av_acceptance_recorded') is False
@@ -282,24 +398,45 @@ def verify_recorded_short_review(queue_root, job_id, short_dir, recorded_review)
             and _known_review_tool(value.get('tool_sha256'), snapshot)
             and value.get('scope') == REVIEW_SCOPE,
             'Recorded Short review scope or flags are invalid')
-    raw_text = value.get('submitted_review_json')
-    require(isinstance(raw_text, str)
-            and hashlib.sha256(raw_text.encode()).hexdigest() ==
-                value.get('submitted_review_sha256'),
-            'Recorded submitted review identity changed')
-    try:
-        submitted = json.loads(raw_text, object_pairs_hook=_pairs,
-                               parse_constant=_constant)
-    except json.JSONDecodeError as error:
-        raise ValueError('Recorded submitted review JSON is invalid') from error
-    normalized = _review_submission(submitted, snapshot)
-    expected = {
-        **_bound_source(snapshot),
-        'reviewer': normalized['reviewer'],
-        'reviewed_at': normalized['reviewed_at'],
-        'basis': normalized['basis'],
-        'findings': normalized['findings'],
-    }
+    if version == 1:
+        raw_text = value.get('submitted_review_json')
+        require(isinstance(raw_text, str)
+                and hashlib.sha256(raw_text.encode()).hexdigest() ==
+                    value.get('submitted_review_sha256'),
+                'Recorded submitted review identity changed')
+        try:
+            submitted = json.loads(raw_text, object_pairs_hook=_pairs,
+                                   parse_constant=_constant)
+        except json.JSONDecodeError as error:
+            raise ValueError('Recorded submitted review JSON is invalid') from error
+        normalized = _review_submission(submitted, snapshot)
+        expected = {
+            **_bound_source(snapshot),
+            'reviewer': normalized['reviewer'],
+            'reviewed_at': normalized['reviewed_at'],
+            'basis': normalized['basis'],
+            'findings': normalized['findings'],
+        }
+    else:
+        raw_text = value.get('source_attestation_json')
+        require(isinstance(raw_text, str)
+                and hashlib.sha256(raw_text.encode()).hexdigest() ==
+                    value.get('source_attestation_sha256'),
+                'Recorded source attestation identity changed')
+        try:
+            attestation = json.loads(raw_text, object_pairs_hook=_pairs,
+                                     parse_constant=_constant)
+        except json.JSONDecodeError as error:
+            raise ValueError('Recorded source attestation JSON is invalid') from error
+        verified = verify_recorded_value(queue_root, job_id, short_dir, attestation)
+        require(verified.get('status') == 'REVISION_REQUIRED',
+                'Recorded source attestation does not require repair')
+        feedback_sha = hashlib.sha256(json.dumps(
+            verified['feedback'], sort_keys=True, separators=(',', ':'),
+            allow_nan=False).encode()).hexdigest()
+        require(feedback_sha == value.get('source_attestation_feedback_sha256'),
+                'Recorded source attestation feedback changed')
+        expected = _attestation_review(verified, snapshot)
     require(all(value.get(key) == item for key, item in expected.items()),
             'Recorded Short review no longer binds the durable derivative')
     require(_snapshot(queue_root, job_id, short_dir) == snapshot,
@@ -473,19 +610,25 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
     record = commands.add_parser('record')
+    record_attestation = commands.add_parser('record-attestation-findings')
     revise = commands.add_parser('revise-captions')
-    for command in (record, revise):
+    for command in (record, record_attestation, revise):
         command.add_argument('--queue-root', required=True)
         command.add_argument('--job-id', required=True)
         command.add_argument('--short-dir', required=True)
         command.add_argument('--output', required=True)
     record.add_argument('--review', required=True)
+    record_attestation.add_argument('--attestation', required=True)
     revise.add_argument('--recorded-review', required=True)
     revise.add_argument('--revision', required=True)
     args = parser.parse_args()
     if args.command == 'record':
         result = record_short_review(args.queue_root, args.job_id,
                                      args.short_dir, args.review, args.output)
+    elif args.command == 'record-attestation-findings':
+        result = record_attestation_findings(
+            args.queue_root, args.job_id, args.short_dir,
+            args.attestation, args.output)
     else:
         result = prepare_caption_revision(
             args.queue_root, args.job_id, args.short_dir,
