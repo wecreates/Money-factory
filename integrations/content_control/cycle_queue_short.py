@@ -44,6 +44,16 @@ PRE_CAPTION_SAFE_AREA_TOOL_PAIR = (
     'b180215c13c38d2a73f7adc856e45a1ad3efee516ec02dba173949cb75890918',
 )
 
+# Older schema-1 consumers did not copy the exporter's caption overlay receipt
+# into queue-short.json.  Preserve replay only for the three exact, already
+# reviewed tool pairs that emitted that shape; new/current receipts must bind
+# the overlay in both files.
+LEGACY_TOOL_PAIRS_WITHOUT_QUEUE_CAPTION_OVERLAY = (
+    PRE_COMPACT_QUOTE_TOOL_PAIR,
+    PRE_RETAINED_CYCLE_TOOL_PAIR,
+    PRE_CAPTION_SAFE_AREA_TOOL_PAIR,
+)
+
 
 def _write(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True,
@@ -202,7 +212,8 @@ def _verify_payload(cycle, source, output, receipt, deadline):
             or (short.get('caption_overlay') != receipt.get('caption_overlay')
                 and not ('caption_overlay' not in receipt
                          and (receipt.get('consumer_tool_sha256'),
-                              receipt.get('exporter_tool_sha256')) == PRE_CAPTION_SAFE_AREA_TOOL_PAIR))
+                              receipt.get('exporter_tool_sha256'))
+                         in LEGACY_TOOL_PAIRS_WITHOUT_QUEUE_CAPTION_OVERLAY))
             or type(receipt.get('start_seconds')) not in (int, float)
             or type(receipt.get('end_seconds')) not in (int, float)
             or not all(math.isfinite(receipt[key]) for key in ('start_seconds', 'end_seconds'))

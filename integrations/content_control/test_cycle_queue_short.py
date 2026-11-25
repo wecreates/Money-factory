@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from integrations.content_control.cycle_queue_short import (
     PRE_CAPTION_SAFE_AREA_TOOL_PAIR, PRE_COMPACT_QUOTE_TOOL_PAIR,
+    PRE_RETAINED_CYCLE_TOOL_PAIR,
     consume_short, main, verify_consumed_short,
 )
 from integrations.content_control.cycle_queue_short_review import (
@@ -148,6 +149,76 @@ class QueueShortTests(unittest.TestCase):
             'e60e6a677f9a4fdb6e9d23af8a680388bb23b54e282ef4ea682b6c288bab10d3',
             'b180215c13c38d2a73f7adc856e45a1ad3efee516ec02dba173949cb75890918',
         ))
+
+    def test_pre_compact_quote_receipt_without_queue_overlay_replays(self):
+        prior_consumer, prior_exporter = PRE_COMPACT_QUOTE_TOOL_PAIR
+
+        def historical_digest(module_name, identity):
+            def calculate(path, *args, **kwargs):
+                if path.name == module_name:
+                    return identity
+                return digest(path, *args, **kwargs)
+            return calculate
+
+        with patch('integrations.content_control.cycle_queue_short.digest',
+                   side_effect=historical_digest('cycle_queue_short.py', prior_consumer)), \
+             patch('integrations.content_control.cycle_short.digest',
+                   side_effect=historical_digest('cycle_short.py', prior_exporter)):
+            queue = self.prepare_with_scene_timeline()
+            output = self.base / 'pre-compact-short'
+            result = consume_short(queue.root, 'cycle-test', output,
+                                   scene_ids=['hook', 'example'], timeout=30)
+
+        receipt_path = output / 'queue-short.json'
+        receipt = json.loads(receipt_path.read_text())
+        self.assertNotIn('caption_overlay', receipt)
+        short_path = output / 'short.json'
+        short = json.loads(short_path.read_text())
+        short['caption_overlay'] = {
+            'audio_mode': 'stream_copy_from_excerpt',
+            'scope': 'Burned rebased sidecar into a private phone-size review derivative.',
+            'style': 'FontName=DejaVu Sans,FontSize=10,MarginV=4,Outline=1.1,Shadow=0,Alignment=2',
+        }
+        short_path.write_text(json.dumps(short) + '\n')
+        receipt['artifacts_sha256']['short.json'] = digest(short_path)
+        receipt_path.write_text(json.dumps(receipt) + '\n')
+        self.assertEqual(receipt, verify_consumed_short(
+            queue.root, 'cycle-test', output))
+
+    def test_pre_retained_cycle_receipt_without_queue_overlay_replays(self):
+        prior_consumer, prior_exporter = PRE_RETAINED_CYCLE_TOOL_PAIR
+
+        def historical_digest(module_name, identity):
+            def calculate(path, *args, **kwargs):
+                if path.name == module_name:
+                    return identity
+                return digest(path, *args, **kwargs)
+            return calculate
+
+        with patch('integrations.content_control.cycle_queue_short.digest',
+                   side_effect=historical_digest('cycle_queue_short.py', prior_consumer)), \
+             patch('integrations.content_control.cycle_short.digest',
+                   side_effect=historical_digest('cycle_short.py', prior_exporter)):
+            queue = self.prepare_with_scene_timeline()
+            output = self.base / 'pre-retained-cycle-short'
+            consume_short(queue.root, 'cycle-test', output,
+                          scene_ids=['hook', 'example'], timeout=30)
+
+        receipt_path = output / 'queue-short.json'
+        receipt = json.loads(receipt_path.read_text())
+        self.assertNotIn('caption_overlay', receipt)
+        short_path = output / 'short.json'
+        short = json.loads(short_path.read_text())
+        short['caption_overlay'] = {
+            'audio_mode': 'stream_copy_from_excerpt',
+            'scope': 'Burned rebased sidecar into a private phone-size review derivative.',
+            'style': 'FontName=DejaVu Sans,FontSize=10,MarginV=4,Outline=1.1,Shadow=0,Alignment=2',
+        }
+        short_path.write_text(json.dumps(short) + '\n')
+        receipt['artifacts_sha256']['short.json'] = digest(short_path)
+        receipt_path.write_text(json.dumps(receipt) + '\n')
+        self.assertEqual(receipt, verify_consumed_short(
+            queue.root, 'cycle-test', output))
 
     def test_authored_scene_span_resolves_bound_parent_timeline(self):
         queue = self.prepare_with_scene_timeline()
