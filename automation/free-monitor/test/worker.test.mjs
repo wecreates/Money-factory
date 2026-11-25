@@ -54,6 +54,73 @@ import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {runWorker} from '../worker.mjs';
 
+test('adjacent scheduled slots probe active watches after slow serial checks',async(t)=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-scheduled-targets-'));
+  t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),
+    eventsPath:path.join(dir,'events.json'),maxAttempts:2,retryBackoffMs:0};
+  const watch=(id,status='active')=>({id,targetUrl:`https://${id}.invalid/`,status});
+  await fs.writeFile(options.watchesPath,JSON.stringify([watch('slow'),watch('later'),watch('paused','paused')]));
+
+  const envKeys=['GITHUB_EVENT_NAME','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT'];
+  const original=envKeys.map(key=>process.env[key]);
+  t.after(()=>{
+    for(const [index,key] of envKeys.entries()){
+      if(original[index]===undefined) delete process.env[key];
+      else process.env[key]=original[index];
+    }
+  });
+  const setInvocation=(source,id,attempt='1')=>{
+    process.env.GITHUB_EVENT_NAME=source;
+    process.env.GITHUB_RUN_ID=id;
+    process.env.GITHUB_RUN_ATTEMPT=attempt;
+  };
+
+  const firstSlot=Date.parse('2026-11-24T19:00:00.000Z');
+  let now=firstSlot+30_000;
+  t.mock.method(Date,'now',()=>now);
+  const requests=[];
+  let slowStatus=503;
+  t.mock.method(globalThis,'fetch',async url=>{
+    const host=new URL(url).hostname;
+    requests.push(host);
+    now+=host==='slow.invalid'?20_000:100;
+    return new Response('fixture',{status:host==='slow.invalid'?slowStatus:200});
+  });
+
+  setInvocation('schedule','1001');
+  const first=await runWorker(options);
+  assert.deepEqual(requests,['slow.invalid','slow.invalid','later.invalid']);
+  assert.equal(first.ok,false);
+  assert.equal(first.results[0].last_checked_at,firstSlot+70_000);
+  assert.equal(first.results[1].last_checked_at,firstSlot+70_100);
+
+  const secondSlot=firstSlot+300_000;
+  now=secondSlot+5_000;
+  setInvocation('workflow_dispatch','1002');
+  const manual=await runWorker(options);
+  assert.deepEqual(manual.results.map(result=>result.checked),[false,false,false]);
+
+  now=secondSlot+6_000;
+  slowStatus=200;
+  setInvocation('schedule','1003');
+  const second=await runWorker(options);
+  assert.deepEqual(second.results.map(result=>result.checked),[true,true,false]);
+  assert.deepEqual(requests,['slow.invalid','slow.invalid','later.invalid','slow.invalid','later.invalid']);
+  assert.equal(second.ok,true);
+  assert.equal(second.resources.cadence.consecutive_scheduled_intervals,1);
+  const retained=JSON.parse(await fs.readFile(options.statePath,'utf8'));
+  assert.equal(retained.slow.last_checked_at,secondSlot+26_000);
+  assert.equal(retained.slow.last_scheduled_check_slot_at,secondSlot);
+  assert.equal(retained.later.last_scheduled_check_slot_at,secondSlot);
+  assert.equal(retained.paused.last_scheduled_check_slot_at,null);
+
+  setInvocation('schedule','1003','2');
+  const rerun=await runWorker(options);
+  assert.deepEqual(rerun.results.map(result=>result.checked),[false,false,false]);
+  assert.equal(requests.length,5);
+});
+
 test('duplicate normalized IDs reject before requests or state/event writes',async(t)=>{
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-duplicate-'));
   const options={watchesPath:path.join(dir,'watches.json'),statePath:path.join(dir,'state.json'),eventsPath:path.join(dir,'events.json'),intervalMs:0};

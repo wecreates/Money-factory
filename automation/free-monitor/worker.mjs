@@ -25,6 +25,8 @@ export function normalizeWatch(raw){
     status:raw.status||'active',
     last_value:raw.last_value??null,
     last_checked_at:raw.last_checked_at??null,
+    last_scheduled_check_slot_at:Number.isSafeInteger(raw.last_scheduled_check_slot_at)
+      && raw.last_scheduled_check_slot_at>0?raw.last_scheduled_check_slot_at:null,
     last_change_at:raw.last_change_at??null,
     last_status:raw.last_status??null,
     last_error:raw.last_error??null,
@@ -36,7 +38,7 @@ export function normalizeWatch(raw){
   };
 }
 
-const OBSERVATION_FIELDS=['last_value','last_checked_at','last_change_at','last_status','last_error',
+const OBSERVATION_FIELDS=['last_value','last_checked_at','last_scheduled_check_slot_at','last_change_at','last_status','last_error',
   'unavailable_since','last_attempt_count','last_attempts','last_check_recovered_by_retry'];
 
 export function reconcileWatch(raw,prior){
@@ -52,8 +54,11 @@ export function reconcileWatch(raw,prior){
   return current;
 }
 
-export function dueForCheck(watch,now=Date.now(),intervalMs=300000){
+export function dueForCheck(watch,now=Date.now(),intervalMs=300000,scheduledSlot=null){
   if(watch.status!=='active') return false;
+  // A slow prior request must not block the next scheduled slot. Keep the
+  // actual completion time for manual throttling and observation evidence.
+  if(scheduledSlot!==null) return scheduledSlot>watch.last_scheduled_check_slot_at;
   if(!watch.last_checked_at) return true;
   return now-Number(watch.last_checked_at)>=intervalMs;
 }
@@ -270,22 +275,33 @@ export async function runWorker({
   const storage={statePath,eventsPath};
   const {state:priorState,events:priorEvents}=await readMonitorPair(storage);
   const now=Date.now();
+  const startedAt=new Date(now).toISOString();
+  const cadence=buildCadenceEvidence({startedAt,priorRuntime:priorState[RUNTIME_STATE_KEY],
+    targetIntervalMs:cadenceIntervalMs,
+    invocationSource:process.env.GITHUB_EVENT_NAME||'local',
+    invocationId:process.env.GITHUB_RUN_ID||null,
+    invocationAttempt:process.env.GITHUB_RUN_ATTEMPT||null});
+  const scheduledSlot=intervalMs===cadenceIntervalMs && cadence.scheduled_invocation_qualified
+    && cadence.scheduled_chain_status!=='invalid_scheduled_observation'
+    ? Date.parse(cadence.last_scheduled_slot_at):null;
   const nextState={};
   const events=[...priorEvents];
   const results=[];
 
   for(const configured of configuredWatches){
     const base=reconcileWatch(configured,priorState[configured.id]);
-    if(!dueForCheck(base,now,intervalMs)){
+    if(!dueForCheck(base,now,intervalMs,scheduledSlot)){
       nextState[base.id]=base;
       results.push({id:base.id,checked:false,reason:'not_due'});
       continue;
     }
+    const lastScheduledCheckSlot=scheduledSlot??base.last_scheduled_check_slot_at;
     try{
       const check=await fetchHashWithRetry(base.targetUrl,{maxAttempts,requestTimeoutMs,retryBackoffMs});
       const {changed,next}=evaluateCheck(base,check);
       nextState[base.id]={...next,last_error:null,last_attempt_count:check.attempt_count,
         unavailable_since:null,last_attempts:check.attempts,
+        last_scheduled_check_slot_at:lastScheduledCheckSlot,
         last_check_recovered_by_retry:check.recovered_by_retry};
       if(changed){
         events.push({id:crypto.randomUUID(),watch_id:base.id,at:check.checkedAt,type:'change',label:base.label,target_url:base.targetUrl});
@@ -305,6 +321,7 @@ export async function runWorker({
         ?? (availability(base)==='unavailable'?base.last_checked_at:null) ?? checkedAt;
       nextState[base.id]={...base,last_checked_at:checkedAt,last_status:error.status??null,last_error:String(error),
         unavailable_since:unavailableSince,last_attempt_count:attempts.length,
+        last_scheduled_check_slot_at:lastScheduledCheckSlot,
         last_attempts:attempts,last_check_recovered_by_retry:false};
       results.push({id:base.id,checked:true,error:String(error),last_checked_at:checkedAt,
         attempt_count:attempts.length,attempts,recovered_by_retry:false});
@@ -313,14 +330,9 @@ export async function runWorker({
     recordAlertIntents(events,base,nextState[base.id]);
   }
 
-  const startedAt=new Date(now).toISOString();
   const resources=await collectResourceObservation({startedAt,activeWatches,
     policy:{maxAttempts,requestTimeoutMs,retryBackoffMs},workflowWallLimitMs});
-  resources.cadence=buildCadenceEvidence({startedAt,priorRuntime:priorState[RUNTIME_STATE_KEY],
-    targetIntervalMs:cadenceIntervalMs,
-    invocationSource:process.env.GITHUB_EVENT_NAME||'local',
-    invocationId:process.env.GITHUB_RUN_ID||null,
-    invocationAttempt:process.env.GITHUB_RUN_ATTEMPT||null});
+  resources.cadence=cadence;
   nextState[RUNTIME_STATE_KEY]=resources;
 
   const retainedEvents=retainEvents(events);
