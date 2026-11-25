@@ -223,6 +223,29 @@ retry a delivery consumer, prove the hosted workflow is on cadence, prove
 website recovery, or establish 24-hour acceptance. Those remain open C12
 integration and runtime-evidence gaps. Publishing remains disabled.
 
+The local alert consumer is a separate, explicitly non-external prerequisite.
+It reads the exact pending intents, binds each record to a SHA-256 of the full
+intent, and retains every bounded attempt in an atomic delivery ledger. A
+strict local acknowledgement terminates one record; exhausting three attempts
+retains a dead letter. Terminal records are idempotent, a reused event ID with
+different content fails closed, and at most 20 intents run in one invocation.
+The only built-in sink modes are `local-ack`, `local-fail-once`, and
+`local-fail`; all retain
+`external_delivery_performed:false` and `publication_enabled:false`. They are
+for internal recovery/ledger verification and cannot satisfy external alert
+delivery, acknowledgment by an operator, deployed operation, or a 24-hour
+soak. The consumer serializes access with a nonblocking kernel `flock` held by
+a pipe-bound helper; a live competing process fails closed, while a killed
+parent closes the pipe and releases the kernel lock without stale-owner
+deletion. The lock path can persist as an ordinary unlocked file. The consumer
+rejects duplicate source IDs before acquiring that lock or invoking a sink. Its timeout
+bounds how long it waits but cannot cancel a sink operation; any future real
+adapter must be idempotent on the immutable intent ID and must reconcile an
+ambiguous crash after an external effect. This local prerequisite intentionally
+does not mutate or drain the producer event outbox, so retained `pending`
+intents still count toward the producer's 500-event ceiling. Transactional
+producer terminalization/compaction remains an open integration gap.
+
 ## Runtime resource observations and request envelope
 
 Every completed worker pair now retains a fresh `_monitor_runtime` record beside
