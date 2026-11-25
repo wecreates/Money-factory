@@ -947,6 +947,17 @@ unchanged. The second pass copies the excerpt's AAC stream and retains a VTT
 sidecar for accessibility or editing. Leave the sidecar off during visual
 review of the burned copy to avoid displaying the captions twice.
 
+For an opt-in revision that reserves more room beneath those burned captions,
+combine `--compact-captions --caption-safe-area`. The known 720×1280 picture is
+scaled to 648×1152, centered horizontally at the top of the same-color canvas,
+and burned with the proven `MarginV=29` libass style. The receipt records the
+exact transform and a 125-pixel bottom-clearance target. The exporter keeps the
+rebased VTT bytes and encoded AAC stream unchanged from the corresponding
+compact-caption excerpt. The default and ordinary compact-caption paths remain
+unchanged. This deterministic layout target is not a measurement of every font
+environment or audiovisual approval; inspect the exact decoded candidate on a
+phone before acceptance.
+
 The optional burn requires FFmpeg with libass, DejaVu Sans, and at least one
 plain, unmarked cue in the excerpt. Check small-screen readability on the new
 file. Visual overlap and timing near cue edges depend on the exact source and

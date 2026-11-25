@@ -2,12 +2,14 @@
 import io
 import json
 import shutil
+import subprocess
 import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
 from integrations.content_control.cycle_queue_short import (
-    PRE_COMPACT_QUOTE_TOOL_PAIR, consume_short, main, verify_consumed_short,
+    PRE_CAPTION_SAFE_AREA_TOOL_PAIR, PRE_COMPACT_QUOTE_TOOL_PAIR,
+    consume_short, main, verify_consumed_short,
 )
 from integrations.content_control.test_cycle_job import synthetic_picture_mp4
 from integrations.content_control.test_cycle_queue_delivery import CycleDeliveryTests
@@ -51,6 +53,56 @@ class QueueShortTests(unittest.TestCase):
         self.assertEqual(result['source_provenance']['candidate_sha256'],
                          json.loads((output / 'short.json').read_text())['parent_candidate_sha256'])
         self.assertEqual(result, verify_consumed_short(queue.root, 'cycle-test', output))
+
+    def test_caption_safe_area_is_bound_and_overlay_tampering_fails_replay(self):
+        media = self.base / 'portrait-parent-large.mp4'
+        subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i',
+                        'color=c=black:s=720x1280:r=24:d=2','-f','lavfi','-i',
+                        'anullsrc=r=24000:cl=mono:d=2','-c:v','libx264','-threads','1',
+                        '-c:a','aac',str(media)],check=True,timeout=30)
+        captions = ('WEBVTT\n\n1\n00:00:00.000 --> 00:00:01.000\n'
+                    'Queue-bound words.\n')
+        for directory in (self.delivery, self.render):
+            (directory / 'captions.vtt').write_text(captions)
+            render_path = directory / 'render.json'
+            render = json.loads(render_path.read_text())
+            render['caption_sha256'] = digest(directory / 'captions.vtt')
+            render_path.write_text(json.dumps(render) + '\n')
+        package_path = self.delivery / 'package.json'
+        package = json.loads(package_path.read_text())
+        package['caption_sha256'] = digest(self.delivery / 'captions.vtt')
+        package['render_receipt_sha256'] = digest(self.delivery / 'render.json')
+        package['files_sha256']['captions.vtt'] = package['caption_sha256']
+        package['files_sha256']['render.json'] = package['render_receipt_sha256']
+        package_path.write_text(json.dumps(package) + '\n')
+        queue, _, _ = self.queue_review(media=media)
+        output = self.base / 'safe-caption-short'
+        # The shared queue fixture predates visual_spec/render-layout evidence;
+        # the exporter's real-layout guard is covered by test_cycle_short.
+        with patch('integrations.content_control.cycle_short.diagram_thumbnail_crop',
+                   return_value=(45, 300, 675, 870)):
+            result = consume_short(queue.root, 'cycle-test', output,
+                                   start=0, end=1, timeout=30,
+                                   compact_captions=True, caption_safe_area=True)
+        short = json.loads((output / 'short.json').read_text())
+        self.assertEqual(result['status'], 'AWAITING_REVIEW', result)
+        self.assertEqual(result['caption_overlay'], short['caption_overlay'])
+        self.assertEqual(result['caption_overlay']['picture_layout']['mode'],
+                         'scaled_picture_safe_caption_area_v1')
+        self.assertEqual(result, verify_consumed_short(queue.root, 'cycle-test', output))
+
+        receipt_path = output / 'queue-short.json'
+        changed = dict(result)
+        changed['caption_overlay'] = dict(result['caption_overlay'], style='changed')
+        receipt_path.write_text(json.dumps(changed) + '\n')
+        with self.assertRaisesRegex(ValueError, 'do not bind'):
+            verify_consumed_short(queue.root, 'cycle-test', output)
+
+    def test_pre_safe_area_tool_pair_remains_an_exact_historical_pair(self):
+        self.assertEqual(PRE_CAPTION_SAFE_AREA_TOOL_PAIR, (
+            'e60e6a677f9a4fdb6e9d23af8a680388bb23b54e282ef4ea682b6c288bab10d3',
+            'b180215c13c38d2a73f7adc856e45a1ad3efee516ec02dba173949cb75890918',
+        ))
 
     def test_authored_scene_span_resolves_bound_parent_timeline(self):
         queue = self.prepare_with_scene_timeline()

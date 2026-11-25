@@ -36,6 +36,13 @@ PRE_RETAINED_CYCLE_TOOL_PAIR = (
     'e9b8316ad3e45af690bc1169e79c5ce91eb7ab4103a417ab14e584db8a9a3b73',
     'b180215c13c38d2a73f7adc856e45a1ad3efee516ec02dba173949cb75890918',
 )
+# Exact schema-1 pair from main after retained checkpoints and before the
+# opt-in caption-safe-area layout. Existing unpublished receipts remain
+# replayable without weakening the binding for newly produced receipts.
+PRE_CAPTION_SAFE_AREA_TOOL_PAIR = (
+    'e60e6a677f9a4fdb6e9d23af8a680388bb23b54e282ef4ea682b6c288bab10d3',
+    'b180215c13c38d2a73f7adc856e45a1ad3efee516ec02dba173949cb75890918',
+)
 
 
 def _write(path, value):
@@ -46,7 +53,8 @@ def _write(path, value):
 def _verified_tool_pair(receipt):
     retained = (receipt.get('consumer_tool_sha256'), receipt.get('exporter_tool_sha256'))
     current = (digest(Path(__file__)), digest(Path(make_short.__code__.co_filename)))
-    return retained in (current, PRE_COMPACT_QUOTE_TOOL_PAIR, PRE_RETAINED_CYCLE_TOOL_PAIR)
+    return retained in (current, PRE_COMPACT_QUOTE_TOOL_PAIR, PRE_RETAINED_CYCLE_TOOL_PAIR,
+                         PRE_CAPTION_SAFE_AREA_TOOL_PAIR)
 
 
 def _source(queue_root, job_id):
@@ -191,6 +199,10 @@ def _verify_payload(cycle, source, output, receipt, deadline):
                    for key, value in actual.items())
             or any(short.get(key) != receipt.get(key)
                    for key in ('start_seconds', 'end_seconds'))
+            or (short.get('caption_overlay') != receipt.get('caption_overlay')
+                and not ('caption_overlay' not in receipt
+                         and (receipt.get('consumer_tool_sha256'),
+                              receipt.get('exporter_tool_sha256')) == PRE_CAPTION_SAFE_AREA_TOOL_PAIR))
             or type(receipt.get('start_seconds')) not in (int, float)
             or type(receipt.get('end_seconds')) not in (int, float)
             or not all(math.isfinite(receipt[key]) for key in ('start_seconds', 'end_seconds'))
@@ -201,7 +213,8 @@ def _verify_payload(cycle, source, output, receipt, deadline):
 
 
 def consume_short(queue_root, job_id, output, *, start=None, end=None, scene_ids=None,
-                  timeout=180, hide_source_counter=False, compact_captions=False):
+                  timeout=180, hide_source_counter=False, compact_captions=False,
+                  caption_safe_area=False):
     """Run the existing exporter against one exact durable queue completion."""
     if any(os.environ.get(key, 'false').lower() != 'false'
            for key in ('PUBLICATION_ENABLED', 'PAID_GENERATION_ENABLED')):
@@ -215,7 +228,8 @@ def consume_short(queue_root, job_id, output, *, start=None, end=None, scene_ids
     start, end = selection['start_seconds'], selection['end_seconds']
     result = make_short(cycle, output, start=start, end=end, timeout=timeout,
                         hide_source_counter=hide_source_counter,
-                        compact_captions=compact_captions)
+                        compact_captions=compact_captions,
+                        caption_safe_area=caption_safe_area)
     consumer_path = output / 'queue-short.json'
     receipt = {'schema_version': 1, 'status': 'BLOCKED', **FLAGS,
                'job_id': job_id, 'source_provenance': before,
@@ -266,6 +280,8 @@ def consume_short(queue_root, job_id, output, *, start=None, end=None, scene_ids
                        artifacts_sha256=artifacts,
                        consumer_tool_sha256=digest(Path(__file__)),
                        exporter_tool_sha256=result['tool_sha256'])
+        if 'caption_overlay' in result:
+            receipt['caption_overlay'] = result['caption_overlay']
         _verify_payload(cycle, before, output, receipt, time.monotonic() + 60)
         # The queue is read again after every output identity is known.  The
         # receipt is written last so a crash cannot leave a false PASS.
@@ -323,12 +339,14 @@ def main():
     parser.add_argument('--timeout', type=int, default=180)
     parser.add_argument('--hide-source-counter', action='store_true')
     parser.add_argument('--compact-captions', action='store_true')
+    parser.add_argument('--caption-safe-area', action='store_true')
     args = parser.parse_args()
     result = consume_short(args.queue_root, args.job_id, args.output,
                            start=args.start, end=args.end, scene_ids=args.scene_ids,
                            timeout=args.timeout,
                            hide_source_counter=args.hide_source_counter,
-                           compact_captions=args.compact_captions)
+                           compact_captions=args.compact_captions,
+                           caption_safe_area=args.caption_safe_area)
     print(json.dumps(result, indent=2))
     return 0 if result['status'] == 'AWAITING_REVIEW' else 2
 
