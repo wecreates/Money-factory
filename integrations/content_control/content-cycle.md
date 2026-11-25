@@ -958,8 +958,30 @@ python -m integrations.content_control.offline_review_player \
   --output private-review.html
 ```
 
-The browser records playback intervals and submitted notes. Physical-device
-playback, listening and creative acceptance require direct observation.
+Before loading the media, the browser recomputes both embedded SHA-256 values.
+It records natural 1x playback only while the page is visible and audio remains
+audible; seeking, muting, changing speed, hiding the active tab or a media error
+invalidates that pass. A reviewer may reset at time zero and try again. Sidecar
+caption coverage is tracked separately.
+
+The exported schema-v2 record retains the machine-observed events, played
+intervals, caption state, required reviewer attestations, structured findings,
+disposition and optional revision lineage. Its canonical SHA-256 can be replayed
+without trusting the browser export:
+
+```bash
+python -m integrations.content_control.offline_review_record \
+  --record review.json \
+  --video-sha256 "$video_sha256" --caption-sha256 "$caption_sha256"
+```
+
+Partial or blocked reviews remain exportable as observations. Only a natural
+pass plus every explicit reviewer attestation earns the record status
+`FULL_REVIEW_RECORDED`. Even then the record keeps independent acceptance,
+full audiovisual acceptance, production approval, competitor comparison,
+physical-phone verification, publishing and paid generation false. Those gates
+require their own evidence. Physical-device playback, listening quality and
+creative acceptance still require direct observation.
 The exporter validates the source cycle before and after encoding. Fresh output
 directories, owned processes, a bounded deadline, two encoder threads and
 diagnostic size limits remain mandatory. A failed attempt retains a BLOCKED
