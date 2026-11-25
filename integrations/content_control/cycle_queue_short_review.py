@@ -32,9 +32,15 @@ FINDING_CHECKS = frozenset({
     'visual_storytelling', 'pacing', 'creative_coherence',
     'reference_comparison', 'phone_playback',
 })
-MAX_JSON = 256 * 1024
+MAX_JSON = 64 * 1024
+ATTESTATION_JSON_LIMIT = 1024 * 1024
+RECORDED_REVIEW_LIMIT = 2 * 1024 * 1024
 REVIEW_SCOPE = ('Exact queue Short repair findings and identities only; no complete '
                 'watch/listen, competitor, phone, creative, or publishing acceptance.')
+ATTESTATION_REVIEW_SCOPE = (
+    'Repair findings derived from a supplied complete-duration direct Short watch/listen '
+    'attestation; the observations are not independently verified and do not grant creative, '
+    'competitor, phone, production, publishing, or paid-generation acceptance.')
 REVISION_SCOPE = ('Caption-only revision handoff for the exact sidecar derivative; '
                   'not a revised consumable Short and not audiovisual acceptance.')
 # The pre-safe-area recorder only recognized sidecar and the exact compact burn.
@@ -81,8 +87,8 @@ def _regular(path, limit=MAX_JSON):
     return path
 
 
-def _read_json(path):
-    raw = _regular(path).read_bytes()
+def _read_json(path, limit=MAX_JSON):
+    raw = _regular(path, limit).read_bytes()
     try:
         value = json.loads(raw, object_pairs_hook=_pairs, parse_constant=_constant)
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
@@ -308,7 +314,7 @@ def _attestation_review(attestation, snapshot):
     watcher = attestation['watcher_review']
     listener = attestation['listener_review']
     names = [watcher['watcher'], listener['listener']]
-    reviewer = names[0] if names[0] == names[1] else 'Watcher: ' + names[0] + '; listener: ' + names[1]
+    reviewer = names[0] if names[0] == names[1] else 'Separate direct watcher and listener'
     reviewed_times = [_timestamp(watcher['watched_at'], 'watched_at'),
                       _timestamp(listener['listened_at'], 'listened_at')]
     reviewed_at = max(reviewed_times, key=datetime.fromisoformat)
@@ -337,7 +343,7 @@ def record_attestation_findings(queue_root, job_id, short_dir, attestation_path,
             and not output.is_relative_to(short_dir)
             and not output.is_relative_to(queue_root),
             'Fresh review output outside the Short and queue required')
-    raw, attestation = _read_json(attestation_path)
+    raw, attestation = _read_json(attestation_path, ATTESTATION_JSON_LIMIT)
     snapshot = _snapshot(queue_root, job_id, short_dir)
     verified = verify_recorded_value(queue_root, job_id, short_dir, attestation)
     require(verified.get('status') == 'REVISION_REQUIRED',
@@ -358,10 +364,10 @@ def record_attestation_findings(queue_root, job_id, short_dir, attestation_path,
         'phone_playback_verified': False,
         'independent_verification': False,
         'tool_sha256': digest(Path(__file__)),
-        'scope': REVIEW_SCOPE,
+        'scope': ATTESTATION_REVIEW_SCOPE,
     }
     require(_snapshot(queue_root, job_id, short_dir) == snapshot
-            and _regular(attestation_path, 1024 * 1024).read_bytes() == raw,
+            and _regular(attestation_path, ATTESTATION_JSON_LIMIT).read_bytes() == raw,
             'Short or attestation changed while routing repair findings')
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open('x', encoding='utf-8') as stream:
@@ -373,7 +379,7 @@ def record_attestation_findings(queue_root, job_id, short_dir, attestation_path,
 def verify_recorded_short_review(queue_root, job_id, short_dir, recorded_review):
     """Replay a recorded repair review against the current durable derivative."""
     recorded_review = Path(os.path.abspath(recorded_review))
-    _, value = _read_json(recorded_review)
+    _, value = _read_json(recorded_review, RECORDED_REVIEW_LIMIT)
     snapshot = _snapshot(queue_root, job_id, short_dir)
     source_fields = set(_bound_source(snapshot))
     legacy_required = ({'schema_version', 'status', *FLAGS, *source_fields,
@@ -396,7 +402,8 @@ def verify_recorded_short_review(queue_root, job_id, short_dir, recorded_review)
             and value.get('phone_playback_verified') is False
             and value.get('independent_verification') is False
             and _known_review_tool(value.get('tool_sha256'), snapshot)
-            and value.get('scope') == REVIEW_SCOPE,
+            and value.get('scope') == (REVIEW_SCOPE if version == 1
+                                       else ATTESTATION_REVIEW_SCOPE),
             'Recorded Short review scope or flags are invalid')
     if version == 1:
         raw_text = value.get('submitted_review_json')
