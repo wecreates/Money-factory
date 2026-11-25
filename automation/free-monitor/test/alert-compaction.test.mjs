@@ -136,22 +136,44 @@ test('a changing or symlinked ledger cannot authorize compaction',async t=>{
   const link=`${ledgerPath}.link`;
   await fs.symlink(ledgerPath,link);
   await assert.rejects(runWorker({...options,localAlertLedgerPath:link}),/regular file/);
+  const [state,events]=await Promise.all([
+    fs.readFile(options.statePath),fs.readFile(options.eventsPath)]);
+  const ledger=await read(ledgerPath);
+  const [record]=Object.values(ledger.records);
+  record.watch_id='changed';
+  const replacement=Buffer.from(JSON.stringify(ledger,null,2)+'\n');
+  assert.equal(replacement.length,(await fs.stat(ledgerPath)).size);
   const originalOpen=fs.open.bind(fs);
+  let mutated=false;
   const mock=t.mock.method(fs,'open',async(file,...args)=>{
     const handle=await originalOpen(file,...args);
-    if(file===ledgerPath){
-      const originalStat=handle.stat.bind(handle);
-      handle.stat=async()=>{
-        const stat=await originalStat();
-        await fs.appendFile(ledgerPath,' ');
-        return stat;
+    if(path.resolve(String(file))===path.resolve(ledgerPath) && !mutated){
+      return {
+        stat:handle.stat.bind(handle),close:handle.close.bind(handle),
+        read:async(...readArgs)=>{
+          const result=await handle.read(...readArgs);
+          mutated=true;
+          const editor=await originalOpen(ledgerPath,'r+');
+          try{
+            await editor.write(replacement,0,replacement.length,0);
+            const future=new Date(Date.now()+60_000);
+            await editor.utimes(future,future);
+            await editor.sync();
+          }finally{await editor.close();}
+          return result;
+        }
       };
     }
     return handle;
   });
-  await assert.rejects(runWorker({...options,localAlertLedgerPath:ledgerPath}),/changed while being read/);
+  await assert.rejects(runWorker({...options,localAlertLedgerPath:ledgerPath}),
+    /alert delivery ledger changed while being read/);
   mock.mock.restore();
+  assert.equal(mutated,true);
   assert.equal(requests,1);
+  assert.deepEqual(await fs.readFile(ledgerPath),replacement);
+  assert.deepEqual(await fs.readFile(options.statePath),state);
+  assert.deepEqual(await fs.readFile(options.eventsPath),events);
   assert.equal(pendingAlertIntents(await read(options.eventsPath)).length,1);
 });
 

@@ -121,19 +121,24 @@ async function readBoundedJson(file,{label,byteLimit,optional=false}){
     throw error;
   }
   try{
-    const stat=await handle.stat();
-    if(!stat.isFile()) throw new Error(`${label} must be a regular file`);
-    if(stat.size>byteLimit) throw new Error(`${label} exceeds byte limit`);
+    const opened=await handle.stat({bigint:true});
+    if(!opened.isFile()) throw new Error(`${label} must be a regular file`);
+    if(opened.size>BigInt(byteLimit)) throw new Error(`${label} exceeds byte limit`);
     // Read at most the observed size plus one byte from the opened inode. The
     // extra byte detects file growth without an unbounded path-based read.
-    const bytes=Buffer.allocUnsafe(stat.size+1);
+    const bytes=Buffer.alloc(Number(opened.size)+1);
     let offset=0;
     while(offset<bytes.length){
       const {bytesRead}=await handle.read(bytes,offset,bytes.length-offset,offset);
       if(!bytesRead) break;
       offset+=bytesRead;
     }
-    if(offset!==stat.size) throw new Error(`${label} changed while being read`);
+    const final=await handle.stat({bigint:true});
+    if(offset!==Number(opened.size) || final.size!==opened.size
+        || final.dev!==opened.dev || final.ino!==opened.ino
+        || final.mtimeNs!==opened.mtimeNs || final.ctimeNs!==opened.ctimeNs){
+      throw new Error(`${label} changed while being read`);
+    }
     return JSON.parse(bytes.toString('utf8',0,offset));
   }finally{
     await handle.close();

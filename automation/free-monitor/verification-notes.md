@@ -268,9 +268,12 @@ The consumer also bounds its source events before taking the delivery lock or
 attempting work: at most 8 MiB of JSON and 500 events, including unrelated
 history entries. Sources must be regular files opened without following
 symlinks and in nonblocking mode; named pipes fail rather than waiting for a
-writer. Reads use the opened descriptor and reject a size change. This bounds
-input loading that the 20-intent processing batch alone could not bound. It
-does not establish a total process memory quota, disk quota or archive rollover.
+writer. Source and ledger reads use the opened descriptor and reject changes
+in size, device, inode, nanosecond modification time or nanosecond change time.
+Same-size in-place mutation therefore fails before delivery or compaction and
+leaves the existing evidence artifacts unchanged. This bounds input loading
+that the 20-intent processing batch alone could not bound. It does not establish
+a total process memory quota, disk quota or archive rollover.
 
 The archived local outcomes never stand for external delivery or operator
 acknowledgment. The current hosted workflow does not supply a ledger, so

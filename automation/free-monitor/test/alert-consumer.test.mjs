@@ -169,6 +169,39 @@ test('oversized event source fails before ledger lock or delivery',async t=>{
   await assert.rejects(fs.stat(`${f.ledgerPath}.lock`),{code:'ENOENT'});
 });
 
+test('same-size in-place source mutation fails before the delivery lock or ledger creation',async t=>{
+  const f=await fixture(t);
+  const replacement=Buffer.from(JSON.stringify([{...f.events[0],label:'Changed'}]));
+  assert.equal(replacement.length,(await fs.stat(f.eventsPath)).size);
+  const originalOpen=fs.open.bind(fs);
+  let mutated=false;
+  t.mock.method(fs,'open',async(file,...args)=>{
+    const handle=await originalOpen(file,...args);
+    if(path.resolve(String(file))!==path.resolve(f.eventsPath) || mutated) return handle;
+    return {
+      stat:handle.stat.bind(handle),close:handle.close.bind(handle),
+      read:async(...readArgs)=>{
+        const result=await handle.read(...readArgs);
+        mutated=true;
+        const editor=await originalOpen(f.eventsPath,'r+');
+        try{
+          await editor.write(replacement,0,replacement.length,0);
+          const future=new Date(Date.now()+60_000);
+          await editor.utimes(future,future);
+          await editor.sync();
+        }finally{await editor.close();}
+        return result;
+      }
+    };
+  });
+  await assert.rejects(runAlertConsumer({...f,mode:'local-ack'}),
+    /monitor events changed while being read/);
+  assert.equal(mutated,true);
+  assert.deepEqual(await fs.readFile(f.eventsPath),replacement);
+  await assert.rejects(fs.stat(f.ledgerPath),{code:'ENOENT'});
+  await assert.rejects(fs.stat(`${f.ledgerPath}.lock`),{code:'ENOENT'});
+});
+
 test('event count ceiling applies before batching, including unrelated events',async t=>{
   const f=await fixture(t,Array.from({length:501},()=>({type:'fixture'})));
   await assert.rejects(runAlertConsumer({...f,mode:'local-ack',batchLimit:1}),/monitor events exceeds record limit/);
