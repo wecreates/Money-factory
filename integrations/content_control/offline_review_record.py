@@ -47,13 +47,13 @@ def _read_record(path):
     return value
 
 
-def verify_record(path, *, video_sha256, caption_sha256):
-    """Validate record integrity, exact identities, and honest acceptance scope."""
+def validate_record(record, *, video_sha256, caption_sha256):
+    """Validate an in-memory record without granting creative approval."""
     require(isinstance(video_sha256, str) and SHA.fullmatch(video_sha256),
             'Expected video SHA-256 required')
     require(isinstance(caption_sha256, str) and SHA.fullmatch(caption_sha256),
             'Expected caption SHA-256 required')
-    record = _read_record(path)
+    require(isinstance(record, dict), 'Review record must be an object')
     require(record.get('schema_version') == 2, 'Review record schema version 2 required')
     require(record.get('candidate_sha256') == video_sha256,
             'Review record candidate identity mismatch')
@@ -211,6 +211,12 @@ def verify_record(path, *, video_sha256, caption_sha256):
         'review_coverage_complete': complete,
         'independent_acceptance': False,
     }
+
+
+def verify_record(path, *, video_sha256, caption_sha256):
+    """Read and validate a record's integrity, identities, and acceptance scope."""
+    return validate_record(_read_record(path), video_sha256=video_sha256,
+                           caption_sha256=caption_sha256)
 
 
 if __name__ == '__main__':
