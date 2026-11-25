@@ -646,7 +646,7 @@ class RenderValidationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             paths = [Path(td)/f'point-{index}.png' for index in range(3)]
             scene = brief()['scenes'][0]
-            for layout, x, top, bottom in ((None, 360, 850, 1030), ('landscape', 265, 230, 410)):
+            for layout, x, top, bottom in ((None, 360, 850, 1030), ('landscape', 250, 200, 380)):
                 for direction in ('point_left', 'point_right'):
                     scene['visual_spec'] = {'kind': 'comparison', 'gesture': direction}
                     for phase, path in zip((0, .25, 1), paths):
@@ -657,10 +657,10 @@ class RenderValidationTests(unittest.TestCase):
                         self.assertGreaterEqual(upper, top)
                         self.assertLessEqual(lower, bottom + 90)
                         # Information and speaker-label layers do not move.
-                        fixed_bottom = 220 if layout == 'landscape' else 850
+                        fixed_bottom = 126 if layout == 'landscape' else 850
                         self.assertIsNone(ImageChops.difference(start, peak).crop(
                             (0, 0, start.width, fixed_bottom)).getbbox())
-                        label_top = 540 if layout == 'landscape' else 1120
+                        label_top = 526 if layout == 'landscape' else 1120
                         self.assertIsNone(ImageChops.difference(start, peak).crop(
                             (0, label_top, start.width, start.height)).getbbox())
                         # The authored pointing hand remains on the requested side
@@ -761,17 +761,23 @@ class RenderValidationTests(unittest.TestCase):
             path, baseline = (Path(td) / name for name in ('wrapped.png', 'baseline.png'))
             scene = dict(brief()['scenes'][0], visual_spec={'kind': 'checklist', 'labels': labels})
             prior = dict(scene, visual_spec={'kind': 'checklist', 'labels': labels[:3] + ['']})
-            for layout, dx, dy in ((None, 0, 0), ('landscape', 515, -181)):
+            for layout in (None, 'landscape'):
                 with self.subTest(layout=layout):
                     render.draw_panel(prior, baseline, 0, 1, layout=layout)
                     render.draw_panel(scene, path, 0, 1, layout=layout)
                     with Image.open(baseline) as before, Image.open(path) as after:
                         delta = ImageChops.difference(before, after)
                         left, top, right, bottom = delta.getbbox()
-                        self.assertGreaterEqual(left, 175 + dx)
-                        self.assertLessEqual(right, 605 + dx)
-                        self.assertGreaterEqual(top, 642 + dy)
-                        self.assertLessEqual(bottom, 706 + dy)
+                        if layout == 'landscape':
+                            self.assertGreaterEqual(left, 615)
+                            self.assertLessEqual(right, 1196)
+                            self.assertGreaterEqual(top, 404)
+                            self.assertLessEqual(bottom, 501)
+                        else:
+                            self.assertGreaterEqual(left, 175)
+                            self.assertLessEqual(right, 605)
+                            self.assertGreaterEqual(top, 642)
+                            self.assertLessEqual(bottom, 706)
                         rows = delta.crop((left, top, right, bottom)).convert('L')
                         ink = [rows.crop((0, y, rows.width, y+1)).getbbox() is not None
                                for y in range(rows.height)]
@@ -937,7 +943,20 @@ class RenderValidationTests(unittest.TestCase):
             self.assertEqual(result['measured_narration_frame_budget'],103)
             self.assertGreaterEqual(result['encoded_picture_duration_seconds'],4)
             self.assertEqual(result['layout'],'landscape')
+            self.assertEqual(result['authored_content_bounds'], {
+                'caption_safe_top':526,
+                'content_bottom':505,
+                'speaker_label_font_size':34,
+                'secondary_field_minimum_font_size':28,
+                'scope':('Renderer-authored headline, diagrams, values, character and speaker label; '
+                         'burned or sidecar caption glyphs are not included.'),
+            })
             self.assertEqual(result['scenes'][0]['visual_reveal']['first_visible_scene_frame'],13)
+            from PIL import Image
+            panel=Image.open(wide/'panel-00.png').convert('RGB')
+            expected=Image.new('RGB',(1280,720),render.PANEL_BACKGROUND).getpixel((0,0))
+            self.assertTrue(all(pixel == expected
+                                for pixel in panel.crop((0,526,1280,720)).getdata()))
             probe=json.loads((wide/'probe.json').read_text())
             picture=next(s for s in probe['streams'] if s['codec_type']=='video')
             self.assertEqual((picture['width'],picture['height'],picture['sample_aspect_ratio']),(1280,720,'1:1'))
