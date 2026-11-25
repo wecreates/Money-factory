@@ -1,15 +1,20 @@
 import crypto from 'node:crypto';
 import {spawn} from 'node:child_process';
+import {constants as fsConstants} from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {writeJsonAtomic} from './persistence.mjs';
-import {isPendingAlertIntent,pendingAlertIntents} from './worker.mjs';
+import {alertIntentKey,isPendingAlertIntent,MONITOR_EVENT_LIMIT,pendingAlertIntents} from './alert-intents.mjs';
 
 const LEDGER_SCHEMA=1;
 const LEDGER_TYPE='monitor_alert_delivery_ledger';
 const RECORD_TYPE='monitor_alert_delivery';
 const TERMINAL_STATUSES=new Set(['acknowledged','dead_letter']);
+export const LOCAL_ALERT_ARCHIVE_KEY='_monitor_local_alert_archive';
+export const MAX_LOCAL_ALERT_ARCHIVE_RECORDS=500;
+export const MAX_LOCAL_ALERT_LEDGER_RECORDS=MAX_LOCAL_ALERT_ARCHIVE_RECORDS+MONITOR_EVENT_LIMIT;
+export const MAX_LOCAL_ALERT_LEDGER_BYTES=8*1024*1024;
 
 function exactKeys(value,keys){
   return value!==null && typeof value==='object' && !Array.isArray(value)
@@ -56,29 +61,30 @@ function validateRecord(record,id){
       || !['outage','recovery'].includes(record.alert_kind)
       || !positiveInteger(record.outage_started_at)
       || !['pending','acknowledged','dead_letter'].includes(record.delivery_status)
-      || !nonnegativeInteger(record.delivery_attempts)
+      || !nonnegativeInteger(record.delivery_attempts) || record.delivery_attempts>3
       || !Array.isArray(record.attempts) || record.attempts.length!==record.delivery_attempts
       || !record.attempts.every(validateAttempt)
+      || record.attempts.slice(0,-1).some(attempt=>attempt.outcome!=='error')
       || record.external_delivery_performed!==false || record.publication_enabled!==false){
     return false;
   }
+  const finalAttempt=record.attempts.at(-1);
   if(record.delivery_status==='pending'){
     return record.acknowledged_at===null && record.dead_lettered_at===null
       && record.local_receipt_id===null
       && (record.delivery_attempts===0
         ? record.last_error_code===null
-        : record.attempts.at(-1)?.outcome==='error'
-          && record.last_error_code===record.attempts.at(-1)?.error_code);
+        : finalAttempt?.outcome==='error' && record.last_error_code===finalAttempt.error_code);
   }
   if(record.delivery_status==='acknowledged'){
     return positiveInteger(record.acknowledged_at) && record.dead_lettered_at===null
       && record.last_error_code===null && typeof record.local_receipt_id==='string'
       && /^[A-Za-z0-9._:-]{1,128}$/.test(record.local_receipt_id)
-      && record.attempts.at(-1)?.outcome==='acknowledged';
+      && finalAttempt?.outcome==='acknowledged' && record.acknowledged_at===finalAttempt.completed_at;
   }
   return record.acknowledged_at===null && positiveInteger(record.dead_lettered_at)
-    && typeof record.last_error_code==='string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(record.last_error_code)
-    && record.local_receipt_id===null && record.attempts.at(-1)?.outcome==='error';
+    && record.local_receipt_id===null && finalAttempt?.outcome==='error'
+    && record.dead_lettered_at>=finalAttempt.completed_at && record.last_error_code===finalAttempt.error_code;
 }
 
 function emptyLedger(observedAt){
@@ -92,22 +98,141 @@ function validateLedger(ledger){
   if(!exactKeys(ledger,keys) || ledger.schema_version!==LEDGER_SCHEMA || ledger.type!==LEDGER_TYPE
       || !positiveInteger(ledger.observed_at) || ledger.external_delivery_performed!==false
       || ledger.publication_enabled!==false || ledger.records===null
-      || typeof ledger.records!=='object' || Array.isArray(ledger.records)
-      || !Object.entries(ledger.records).every(([id,record])=>validateRecord(record,id))){
+      || typeof ledger.records!=='object' || Array.isArray(ledger.records)){
     throw new Error('invalid alert delivery ledger');
   }
+  const ids=Object.keys(ledger.records);
+  if(ids.length>MAX_LOCAL_ALERT_LEDGER_RECORDS) throw new Error('alert delivery ledger exceeds record limit');
+  if(!ids.every(id=>validateRecord(ledger.records[id],id))) throw new Error('invalid alert delivery ledger');
   return ledger;
 }
 
-async function readLedger(file,observedAt){
+async function readLedger(file,observedAt,{required=false}={}){
+  if(!fsConstants.O_NOFOLLOW || !fsConstants.O_NONBLOCK){
+    throw new Error('bounded alert ledger reads require no-follow and nonblocking file flags');
+  }
+  let handle;
   try{
-    const stat=await fs.lstat(file);
-    if(stat.isSymbolicLink() || !stat.isFile()) throw new Error('alert delivery ledger must be a regular file');
-    return validateLedger(JSON.parse(await fs.readFile(file,'utf8')));
+    handle=await fs.open(file,fsConstants.O_RDONLY|fsConstants.O_NOFOLLOW|fsConstants.O_NONBLOCK);
   }catch(error){
-    if(error.code==='ENOENT') return emptyLedger(observedAt);
+    if(error.code==='ENOENT' && !required) return emptyLedger(observedAt);
+    if(error.code==='ELOOP') throw new Error('alert delivery ledger must be a regular file');
     throw error;
   }
+  try{
+    const stat=await handle.stat();
+    if(!stat.isFile()) throw new Error('alert delivery ledger must be a regular file');
+    if(stat.size>MAX_LOCAL_ALERT_LEDGER_BYTES) throw new Error('alert delivery ledger exceeds byte limit');
+    // Read at most the observed size plus one byte from the opened inode. The
+    // extra byte detects file growth without an unbounded path-based read.
+    const bytes=Buffer.allocUnsafe(stat.size+1);
+    let offset=0;
+    while(offset<bytes.length){
+      const {bytesRead}=await handle.read(bytes,offset,bytes.length-offset,offset);
+      if(!bytesRead) break;
+      offset+=bytesRead;
+    }
+    if(offset!==stat.size) throw new Error('alert delivery ledger changed while being read');
+    return validateLedger(JSON.parse(bytes.toString('utf8',0,offset)));
+  }finally{
+    await handle.close();
+  }
+}
+
+async function writeLedger(file,ledger){
+  validateLedger(ledger);
+  if(Buffer.byteLength(JSON.stringify(ledger,null,2))+1>MAX_LOCAL_ALERT_LEDGER_BYTES){
+    throw new Error('alert delivery ledger exceeds byte limit');
+  }
+  await writeJsonAtomic(file,ledger);
+}
+
+function recordMatchesIntent(record,intent){
+  return record.intent_sha256===alertIntentSha256(intent) && record.watch_id===intent.watch_id
+    && record.alert_kind===intent.alert_kind && record.outage_started_at===intent.outage_started_at;
+}
+
+function isLocalTerminalRecord(record,intent){
+  return TERMINAL_STATUSES.has(record.delivery_status)
+    && (record.delivery_status!=='acknowledged' || record.local_receipt_id===`local:${intent.id}`);
+}
+
+function archiveIntentKey(intent){
+  return alertIntentKey(intent.watch_id,intent.target_url,intent.alert_kind,intent.outage_started_at);
+}
+
+function validateArchive(archive){
+  if(!exactKeys(archive,['schema_version','type','records']) || archive.schema_version!==1
+    || archive.type!=='monitor_local_alert_archive' || !Array.isArray(archive.records)
+    || archive.records.length>MAX_LOCAL_ALERT_ARCHIVE_RECORDS){
+    throw new Error('invalid local alert archive');
+  }
+  const indexed=new Map();
+  const keys=new Set();
+  for(const entry of archive.records){
+    if(!exactKeys(entry,['intent','local_delivery']) || !isPendingAlertIntent(entry.intent)
+      || !validateRecord(entry.local_delivery,entry.intent.id)
+      || !isLocalTerminalRecord(entry.local_delivery,entry.intent)
+      || !recordMatchesIntent(entry.local_delivery,entry.intent)
+      || indexed.has(entry.intent.id) || keys.has(archiveIntentKey(entry.intent))){
+      throw new Error('invalid or duplicate local alert archive record');
+    }
+    indexed.set(entry.intent.id,entry);
+    keys.add(archiveIntentKey(entry.intent));
+  }
+  return {indexed,keys};
+}
+
+// This computes a new pair image. Only the worker's existing serial journaled
+// writer may persist it. The ledger is read once from an atomic snapshot.
+export async function reconcileLocalAlertOutbox(events,priorArchive,ledgerPath){
+  const archive=priorArchive??{schema_version:1,type:'monitor_local_alert_archive',records:[]};
+  const {indexed,keys}=validateArchive(archive);
+  const ledger=ledgerPath===undefined ? null : await readLedger(ledgerPath,Date.now(),{required:true});
+  const sourceIds=new Set();
+  const sourceKeyCounts=new Map();
+  for(const event of events){
+    if(event.type!=='alert_intent') continue;
+    if(!isPendingAlertIntent(event)) throw new Error('invalid alert intent in monitor events');
+    if(sourceIds.has(event.id)) throw new Error('duplicate alert intent id in monitor events');
+    sourceIds.add(event.id);
+    const key=archiveIntentKey(event);
+    sourceKeyCounts.set(key,(sourceKeyCounts.get(key)??0)+1);
+  }
+  const retained=[];
+  const records=[...archive.records];
+  let compacted=0;
+  let deferred=0;
+  for(const event of events){
+    if(event.type!=='alert_intent'){retained.push(event);continue;}
+    const key=archiveIntentKey(event);
+    const archived=indexed.get(event.id);
+    const record=ledger && Object.hasOwn(ledger.records,event.id)?ledger.records[event.id]:null;
+    if(record && !recordMatchesIntent(record,event)) throw new Error('alert intent identity mismatch');
+    if(archived){
+      if(!recordMatchesIntent(archived.local_delivery,event)) throw new Error('archived alert intent identity mismatch');
+      compacted++;
+      continue;
+    }
+    if(keys.has(key)) throw new Error('conflicting alert intent for archived outage or recovery');
+    if(record && TERMINAL_STATUSES.has(record.delivery_status)){
+      if(!isLocalTerminalRecord(record,event)) throw new Error('invalid local terminal alert record');
+      if(records.length<MAX_LOCAL_ALERT_ARCHIVE_RECORDS && sourceKeyCounts.get(key)===1){
+        records.push({intent:event,local_delivery:record});
+        keys.add(key);
+        compacted++;
+        continue;
+      }
+      deferred++;
+    }
+    retained.push(event);
+  }
+  return {events:retained,archive:{...archive,records},keys,report:{
+    compacted_this_run:compacted,terminal_reconciliation_deferred:deferred,
+    archived_acknowledged:records.filter(entry=>entry.local_delivery.delivery_status==='acknowledged').length,
+    archived_dead_letter:records.filter(entry=>entry.local_delivery.delivery_status==='dead_letter').length,
+    archive_limit:MAX_LOCAL_ALERT_ARCHIVE_RECORDS,
+    external_delivery_performed:false,publication_enabled:false}};
 }
 
 function validatePolicy({maxAttempts,attemptTimeoutMs,retryBackoffMs,batchLimit}){
@@ -241,6 +366,10 @@ export async function runAlertConsumer({eventsPath='FREE_MONITOR_EVENTS.json',
     actionableTotal++;
     if(actionable.length<batchLimit) actionable.push({intent,digest,record});
   }
+  const newRecords=actionable.filter(item=>!item.record).length;
+  if(Object.keys(ledger.records).length+newRecords>MAX_LOCAL_ALERT_LEDGER_RECORDS){
+    throw new Error('alert delivery ledger exceeds record limit');
+  }
   let attemptedThisRun=0;
   for(const item of actionable){
     const {intent,digest}=item;
@@ -248,9 +377,12 @@ export async function runAlertConsumer({eventsPath='FREE_MONITOR_EVENTS.json',
     record??=newRecord(intent,digest);
     ledger.records[intent.id]=record;
     if(record.delivery_attempts>=maxAttempts){
-      record.delivery_status='dead_letter';record.dead_lettered_at=safeNow(clock);
+      record.delivery_status='dead_letter';
+      record.dead_lettered_at=Math.max(safeNow(clock),record.attempts.at(-1).completed_at);
       ledger.observed_at=safeNow(clock);
-      await writeJsonAtomic(ledgerPath,ledger);
+      assertLockHeld();
+      await writeLedger(ledgerPath,ledger);
+      assertLockHeld();
       continue;
     }
     while(record.delivery_attempts<maxAttempts && record.delivery_status==='pending'){
@@ -282,7 +414,7 @@ export async function runAlertConsumer({eventsPath='FREE_MONITOR_EVENTS.json',
       attemptedThisRun++;
       ledger.observed_at=safeNow(clock);
       assertLockHeld();
-      await writeJsonAtomic(ledgerPath,ledger);
+      await writeLedger(ledgerPath,ledger);
       assertLockHeld();
     }
   }

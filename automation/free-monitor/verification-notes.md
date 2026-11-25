@@ -241,10 +241,35 @@ deletion. The lock path can persist as an ordinary unlocked file. The consumer
 rejects duplicate source IDs before acquiring that lock or invoking a sink. Its timeout
 bounds how long it waits but cannot cancel a sink operation; any future real
 adapter must be idempotent on the immutable intent ID and must reconcile an
-ambiguous crash after an external effect. This local prerequisite intentionally
-does not mutate or drain the producer event outbox, so retained `pending`
-intents still count toward the producer's 500-event ceiling. Transactional
-producer terminalization/compaction remains an open integration gap.
+ambiguous crash after an external effect. Running the consumer alone leaves
+the producer outbox unchanged.
+
+The serial worker may explicitly receive a trusted `localAlertLedgerPath`,
+or `--local-alert-ledger <path>` when called from the command line.
+It then moves exactly matched local acknowledged/dead-lettered intents from
+the pending event queue to `_monitor_local_alert_archive` within the existing
+journaled state/events pair. The archive stores the original intent and entire
+attempt record, leaving the existing ledger intact. An interruption after event
+replacement replays both images before the next worker uses them. Archived
+outage identities prevent a continuing outage or subsequent recovery from
+creating a second copy of that outage intent. A new recovery still queues
+independently. Pending attempts and ambiguous duplicate outage/recovery keys
+stay in the event queue. A full 500-record archive defers compaction and
+retains both the prior archive and the as-yet unarchived intents.
+
+The local worker and consumer accept regular ledger files up to 8 MiB and
+1,000 records, enough for the archive and producer outbox ceilings together.
+The consumer rejects attempts to write beyond either ceiling and leaves the
+previous ledger intact. Compaction requires earlier attempts to all be errors
+and the terminal status, final attempt, timestamps and last error to agree.
+Malformed terminal evidence leaves the pending input in place.
+
+The archived local outcomes never stand for external delivery or operator
+acknowledgment. The current hosted workflow does not supply a ledger, so
+automatic deployed compaction is still unavailable. The worker still requires
+serial ownership of the state/events pair, and the local archive has no
+automatic retention rollover. Local compaction is not a cadence repair or
+24-hour soak.
 
 ## Runtime resource observations and request envelope
 

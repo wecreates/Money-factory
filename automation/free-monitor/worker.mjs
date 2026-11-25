@@ -6,6 +6,10 @@ import {readMonitorPair,writeMonitorPair} from './persistence.mjs';
 import {collectResourceObservation,declaredWorkflowWallLimit,requestEnvelopeMs,
   validateWallEnvelope,RUNTIME_STATE_KEY} from './resources.mjs';
 import {buildCadenceEvidence} from './cadence.mjs';
+import {alertIntentKey,isPendingAlertIntent,MONITOR_EVENT_LIMIT,pendingAlertIntents} from './alert-intents.mjs';
+import {LOCAL_ALERT_ARCHIVE_KEY,reconcileLocalAlertOutbox} from './alert-consumer.mjs';
+
+export {isPendingAlertIntent,pendingAlertIntents} from './alert-intents.mjs';
 
 export function isMainEntry(importMetaUrl,argv1){
   if(!argv1) return false;
@@ -90,40 +94,10 @@ function recordAvailability(events,previous,current){
     previous_availability:before,availability:after,http_status:current.last_status});
 }
 
-const ALERT_KINDS=new Set(['outage','recovery']);
-const MAX_EVENTS=500;
-
-export function isPendingAlertIntent(event){
-  if(event===null || typeof event!=='object' || Array.isArray(event)) return false;
-  const exact=new Set(['id','watch_id','at','type','alert_kind','outage_started_at','label',
-    'target_url','delivery_status','delivery_attempts','external_delivery_performed',
-    'publication_enabled']);
-  return Object.keys(event).length===exact.size
-    && Object.keys(event).every(key=>exact.has(key))
-    && typeof event.id==='string'
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(event.id)
-    && typeof event.watch_id==='string' && event.watch_id.length>0
-    && Number.isSafeInteger(event.at) && event.at>0
-    && event.type==='alert_intent' && ALERT_KINDS.has(event.alert_kind)
-    && Number.isSafeInteger(event.outage_started_at) && event.outage_started_at>0
-    && event.at>=event.outage_started_at
-    && typeof event.label==='string' && event.label.length>0
-    && typeof event.target_url==='string'
-    && ['http:','https:'].includes(new URL(event.target_url).protocol)
-    && event.delivery_status==='pending' && event.delivery_attempts===0
-    && event.external_delivery_performed===false && event.publication_enabled===false;
-}
-
-export function pendingAlertIntents(events){
-  if(!Array.isArray(events)) throw new Error('events must be an array');
-  return events.filter(event=>{
-    try{return isPendingAlertIntent(event);}catch{return false;}
-  }).map(event=>({...event}));
-}
-
-function ensureAlertIntent(events,current,kind,outageStartedAt,at){
+function ensureAlertIntent(events,archivedKeys,current,kind,outageStartedAt,at){
   if(!Number.isSafeInteger(outageStartedAt) || outageStartedAt<=0
       || !Number.isSafeInteger(at) || at<outageStartedAt) return;
+  if(archivedKeys?.has(alertIntentKey(current.id,current.targetUrl,kind,outageStartedAt))) return;
   const duplicate=pendingAlertIntents(events).some(event=>event.watch_id===current.id
     && event.target_url===current.targetUrl && event.alert_kind===kind
     && event.outage_started_at===outageStartedAt);
@@ -134,18 +108,18 @@ function ensureAlertIntent(events,current,kind,outageStartedAt,at){
     publication_enabled:false});
 }
 
-function recordAlertIntents(events,previous,current){
+function recordAlertIntents(events,archivedKeys,previous,current){
   const before=availability(previous);
   const after=availability(current);
   if(after==='unavailable'){
-    ensureAlertIntent(events,current,'outage',current.unavailable_since,current.unavailable_since);
+    ensureAlertIntent(events,archivedKeys,current,'outage',current.unavailable_since,current.unavailable_since);
   }else if(before==='unavailable' && after==='healthy'){
     const outageStartedAt=previous.unavailable_since??previous.last_checked_at;
     // A legacy outage may predate alert-intent support. Retain its pending
     // outage before recording recovery so the delivery stage cannot silently
     // skip the original failure.
-    ensureAlertIntent(events,current,'outage',outageStartedAt,outageStartedAt);
-    ensureAlertIntent(events,current,'recovery',outageStartedAt,current.last_checked_at);
+    ensureAlertIntent(events,archivedKeys,current,'outage',outageStartedAt,outageStartedAt);
+    ensureAlertIntent(events,archivedKeys,current,'recovery',outageStartedAt,current.last_checked_at);
   }
 }
 
@@ -153,11 +127,11 @@ function retainEvents(events){
   const pending=new Set(events.filter(event=>{
     try{return isPendingAlertIntent(event);}catch{return false;}
   }));
-  if(pending.size>MAX_EVENTS){
-    throw new Error(`Pending alert outbox exceeds ${MAX_EVENTS} event limit`);
+  if(pending.size>MONITOR_EVENT_LIMIT){
+    throw new Error(`Pending alert outbox exceeds ${MONITOR_EVENT_LIMIT} event limit`);
   }
   const ordinary=events.filter(event=>!pending.has(event));
-  const ordinaryCapacity=MAX_EVENTS-pending.size;
+  const ordinaryCapacity=MONITOR_EVENT_LIMIT-pending.size;
   const retainedOrdinary=new Set(ordinaryCapacity===0?[]:ordinary.slice(-ordinaryCapacity));
   // Pending delivery work is never silently evicted by change-event volume.
   // Preserve source ordering so the event log remains deterministic.
@@ -246,6 +220,7 @@ export async function runWorker({
   watchesPath='FREE_MONITOR_WATCHES.json',
   statePath='FREE_MONITOR_STATE.json',
   eventsPath='FREE_MONITOR_EVENTS.json',
+  localAlertLedgerPath,
   intervalMs=DEFAULT_INTERVAL_MS,
   cadenceIntervalMs=DEFAULT_INTERVAL_MS,
   maxAttempts=DEFAULT_MAX_ATTEMPTS,
@@ -261,7 +236,7 @@ export async function runWorker({
   if(new Set(configuredWatches.map(w=>w.id)).size!==configuredWatches.length){
     throw new Error('duplicate watch id');
   }
-  if(configuredWatches.some(w=>w.id===RUNTIME_STATE_KEY)){
+  if(configuredWatches.some(w=>w.id===RUNTIME_STATE_KEY || w.id===LOCAL_ALERT_ARCHIVE_KEY)){
     throw new Error('reserved monitor runtime state id');
   }
   const activeWatches=configuredWatches.filter(w=>w.status==='active').length;
@@ -271,7 +246,11 @@ export async function runWorker({
   const {state:priorState,events:priorEvents}=await readMonitorPair(storage);
   const now=Date.now();
   const nextState={};
-  const events=[...priorEvents];
+  const priorArchive=priorState[LOCAL_ALERT_ARCHIVE_KEY];
+  const reconciliation=localAlertLedgerPath!==undefined || priorArchive!==undefined
+    ? await reconcileLocalAlertOutbox(priorEvents,priorArchive,localAlertLedgerPath) : null;
+  const events=reconciliation?.events??[...priorEvents];
+  if(reconciliation) nextState[LOCAL_ALERT_ARCHIVE_KEY]=reconciliation.archive;
   const results=[];
 
   for(const configured of configuredWatches){
@@ -310,7 +289,7 @@ export async function runWorker({
         attempt_count:attempts.length,attempts,recovered_by_retry:false});
     }
     recordAvailability(events,base,nextState[base.id]);
-    recordAlertIntents(events,base,nextState[base.id]);
+    recordAlertIntents(events,reconciliation?.keys,base,nextState[base.id]);
   }
 
   const startedAt=new Date(now).toISOString();
@@ -327,11 +306,16 @@ export async function runWorker({
   await writeMonitorPair(storage,nextState,retainedEvents);
   return {ran_at:new Date(now).toISOString(),
     ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>availability(w)==='healthy'),
-    alert_outbox_pending:pendingAlertIntents(retainedEvents).length,resources,results};
+    alert_outbox_pending:pendingAlertIntents(retainedEvents).length,
+    ...(reconciliation?{local_alert_archive:reconciliation.report}:{}),resources,results};
 }
 
 if(isMainEntry(import.meta.url,process.argv[1])){
-  const report=await runWorker();
+  const args=process.argv.slice(2);
+  if(args.length && (args.length!==2 || args[0]!=='--local-alert-ledger' || !args[1])){
+    throw new Error('Usage: worker.mjs [--local-alert-ledger <path>]');
+  }
+  const report=await runWorker({localAlertLedgerPath:args[1]});
   console.log(JSON.stringify(report,null,2));
   if(!report.ok) process.exitCode=2;
 }
