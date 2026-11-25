@@ -1075,3 +1075,21 @@ balance labels and values and is now rejected for new production. Create an
 explicit revised brief choosing a supported presentation before rerendering;
 do not edit an existing bound cycle. The current statement-balance and
 minimum-payment examples remain valid, with identical compiled identities.
+
+Queue-bound Short derivatives use a separate immutable private-delivery contract:
+
+```bash
+python -m integrations.content_control.cycle_queue_short_delivery export \
+  --queue-root /path/to/queue --job-id reviewed-job \
+  --short /path/to/verified-short --output /fresh/private-delivery
+python -m integrations.content_control.cycle_queue_short_delivery verify \
+  --output /fresh/private-delivery \
+  --expected-delivery-identity <sha256-from-a-trusted-export-receipt>
+```
+
+This archive binds the derivative video, captions, encoded audio/video stream
+identities, decoded-picture identity, preview, automated diagnostics, queue
+receipt, authored-scene selection, and parent queue provenance. It does not
+reuse the parent-cycle archive and cannot set playback, creative, production,
+or publishing approval. Off-host retention and physical-phone review remain
+separate acceptance work.
