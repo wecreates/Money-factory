@@ -65,9 +65,9 @@
   "_monitor_runtime": {
     "schema_version": 1,
     "type": "monitor_runtime_resources",
-    "observed_at": "2026-11-25T01:55:28.562Z",
-    "started_at": "2026-11-25T01:54:48.052Z",
-    "elapsed_ms": 40510,
+    "observed_at": "2026-11-25T01:55:44.087Z",
+    "started_at": "2026-11-25T01:55:44.087Z",
+    "elapsed_ms": 0,
     "scope": "current_monitor_process_and_execution_host_only",
     "cpu": {
       "available_cores": 4,
@@ -75,25 +75,25 @@
       "effective_ceiling_cores": 4
     },
     "memory": {
-      "host_total_bytes": 16758394880,
-      "host_available_bytes": 15766716416,
+      "host_total_bytes": 16759431168,
+      "host_available_bytes": 15628468224,
       "cgroup_limit_bytes": null,
       "cgroup_current_bytes": null,
-      "effective_ceiling_bytes": 16758394880,
+      "effective_ceiling_bytes": 16759431168,
       "cgroup_available_bytes": null,
-      "effective_available_bytes": 15766716416
+      "effective_available_bytes": 15628468224
     },
     "disk": {
       "filesystem_total_bytes": 154993672192,
-      "filesystem_available_bytes": 93487464448,
+      "filesystem_available_bytes": 93487333376,
       "per_process_quota_bytes": null
     },
     "process": {
-      "rss_bytes": 71176192,
-      "heap_used_bytes": 8218064,
-      "max_rss_kib": 71508,
-      "user_cpu_microseconds": 144947,
-      "system_cpu_microseconds": 32210
+      "rss_bytes": 49586176,
+      "heap_used_bytes": 5166512,
+      "max_rss_kib": 48424,
+      "user_cpu_microseconds": 23803,
+      "system_cpu_microseconds": 6209
     },
     "request_budget": {
       "active_watches": 2,
@@ -122,19 +122,19 @@
     "cadence": {
       "schema_version": 2,
       "type": "monitor_cadence_evidence",
-      "observed_at": "2026-11-25T01:54:48.052Z",
+      "observed_at": "2026-11-25T01:55:44.087Z",
       "invocation_source": "push",
-      "invocation_id": "45529152532",
+      "invocation_id": "45529152608",
       "invocation_attempt": 1,
       "scheduled_invocation_qualified": false,
       "target_interval_ms": 300000,
       "allowed_start_drift_ms": 60000,
       "required_continuity_window_ms": 86400000,
-      "previous_durable_observed_at": "2026-11-24T20:14:25.330Z",
-      "durable_observed_gap_ms": 20422722,
-      "durable_overdue_by_ms": 20122722,
-      "durable_missed_intervals": 67,
-      "durable_status": "missed_intervals",
+      "previous_durable_observed_at": "2026-11-25T01:54:48.052Z",
+      "durable_observed_gap_ms": 56035,
+      "durable_overdue_by_ms": 0,
+      "durable_missed_intervals": 0,
+      "durable_status": "within_allowed_gap",
       "last_scheduled_observed_at": null,
       "last_scheduled_slot_at": null,
       "last_scheduled_invocation_id": null,
