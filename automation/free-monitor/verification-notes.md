@@ -300,3 +300,22 @@ gap and bounds the network portion of a run; it does not claim total CPU/RAM/dis
 enforcement, restored cadence, alert delivery, website recovery, or a 24-hour
 soak. Those remain C12 acceptance blockers. Publishing and external delivery
 remain false.
+
+The monitor persistence reader applies an 8 MiB ceiling to each state, events,
+and pending-journal input. After validating an ordinary state/events pair, it
+also measures the exact pretty-printed pending journal and rejects a combined
+snapshot over 8 MiB before any watch request. Reads reject non-regular files,
+oversize files, and descriptor metadata changes in size, device, inode,
+nanosecond mtime or nanosecond ctime. The no-follow/nonblocking descriptor flags
+are currently Linux-compatible; a platform without those flags fails closed.
+
+This bounds persisted input loading and prevents a pre-existing pair that
+cannot fit its recovery journal from reaching network work. The writer still
+uses the ordinary JSON serializer and does not claim a bounded serialization
+allocation or a total output/disk ceiling. Unrelated files, orphaned temporary
+files, and newly generated output can still consume disk, so
+`total_resource_ceiling_verified` remains false.
+
+Offline inspection on 2026-11-25 found the checked-in state at 905 bytes and
+events at 65,458 bytes. Their exact recovery-journal image is 70,559 bytes, so
+all three current artifacts are below the 8,388,608-byte input ceiling.

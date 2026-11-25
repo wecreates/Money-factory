@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {runWorker} from '../worker.mjs';
+import {MAX_MONITOR_PERSISTENCE_BYTES,readMonitorPair} from '../persistence.mjs';
 
 async function fixture(t) {
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'monitor-pair-'));
@@ -77,7 +78,7 @@ test('unexpected evidence errors stop before requests without overwriting artifa
   const {options,pending}=await fixture(t);
   const mockedFetch=t.mock.method(globalThis,'fetch',async()=>new Response('fixture'));
   await fs.mkdir(options.eventsPath);
-  await assert.rejects(runWorker(options),{code:'EISDIR'});
+  await assert.rejects(runWorker(options),/monitor events must be a regular file/);
   await fs.rmdir(options.eventsPath);
   await fs.writeFile(options.eventsPath,'null');
   await assert.rejects(runWorker(options),/Invalid monitor events/);
@@ -99,4 +100,65 @@ test('unexpected evidence errors stop before requests without overwriting artifa
   await assert.rejects(runWorker({...options,eventsPath:path.join(alias,'state.json')}),/paths must be distinct/);
   await assert.rejects(runWorker({...options,eventsPath:path.join(alias,'state.json.pending')}),/paths must be distinct/);
   assert.equal(mockedFetch.mock.callCount(),0);
+});
+
+test('persistence inputs and a pre-existing combined pending snapshot have a hard byte ceiling',async t=>{
+  const {options,pending}=await fixture(t);
+  const mockedFetch=t.mock.method(globalThis,'fetch',async()=>new Response('fixture'));
+  await fs.writeFile(options.statePath,'{}');
+  await fs.truncate(options.statePath,MAX_MONITOR_PERSISTENCE_BYTES+1);
+  await assert.rejects(runWorker(options),new RegExp(
+    `monitor state exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`));
+  assert.equal(mockedFetch.mock.callCount(),0);
+  assert.equal((await fs.stat(options.statePath)).size,MAX_MONITOR_PERSISTENCE_BYTES+1);
+
+  const state=Buffer.from(JSON.stringify({fixture:{payload:'s'.repeat(4_300_000)}}));
+  const events=Buffer.from(JSON.stringify([{payload:'e'.repeat(4_300_000)}]));
+  assert.ok(state.length<MAX_MONITOR_PERSISTENCE_BYTES);
+  assert.ok(events.length<MAX_MONITOR_PERSISTENCE_BYTES);
+  await fs.writeFile(options.statePath,state);
+  await fs.writeFile(options.eventsPath,events);
+  await assert.rejects(runWorker(options),new RegExp(
+    `combined monitor persistence snapshot exceeds ${MAX_MONITOR_PERSISTENCE_BYTES} byte limit`));
+  assert.equal(mockedFetch.mock.callCount(),0);
+  assert.deepEqual(await fs.readFile(options.statePath),state);
+  assert.deepEqual(await fs.readFile(options.eventsPath),events);
+  await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+
+  await fs.rm(options.eventsPath);
+  await fs.rm(options.statePath);
+  await fs.writeFile(options.statePath,'{}');
+  await fs.symlink(options.statePath,pending);
+  await assert.rejects(readMonitorPair(options),/pending monitor persistence journal must be a regular file/);
+});
+
+test('same-size in-place mutation is rejected through stable descriptor metadata',async t=>{
+  const {options}=await fixture(t);
+  await fs.writeFile(options.statePath,'{"fixture":{}}\n');
+  await fs.writeFile(options.eventsPath,'[]\n');
+  const open=fs.open;
+  let mutated=false;
+  t.mock.method(fs,'open',async (file,...args)=>{
+    const handle=await open(file,...args);
+    if(path.resolve(String(file))!==path.resolve(options.statePath) || mutated) return handle;
+    return {
+      stat:handle.stat.bind(handle),
+      close:handle.close.bind(handle),
+      read:async (...readArgs)=>{
+        const result=await handle.read(...readArgs);
+        mutated=true;
+        const editor=await open(options.statePath,'r+');
+        try{
+          await editor.write(Buffer.from('g'),0,1,2);
+          const future=new Date(Date.now()+60_000);
+          await editor.utimes(future,future);
+          await editor.sync();
+        }finally{await editor.close();}
+        return result;
+      }
+    };
+  });
+  await assert.rejects(readMonitorPair(options),/monitor state changed while being read/);
+  assert.equal(mutated,true);
+  assert.equal((await fs.stat(options.statePath)).size,Buffer.byteLength('{"fixture":{}}\n'));
 });
