@@ -1,6 +1,7 @@
 """Durable Short repair review and caption-revision handoff tests."""
 from contextlib import nullcontext
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 import shutil
@@ -20,10 +21,12 @@ from integrations.content_control.cycle_queue_short_attestation import (
 from integrations.content_control.cycle_queue_short_review import (
     prepare_caption_revision,
     record_attestation_findings,
+    record_private_review_findings,
     record_short_review,
     verify_caption_revision,
     verify_recorded_short_review,
 )
+from integrations.content_control.offline_review_record import canonical_bytes
 from integrations.content_control.review_package import digest
 from integrations.content_control.test_cycle_job import synthetic_picture_mp4
 from integrations.content_control.test_cycle_queue_delivery import CycleDeliveryTests
@@ -161,6 +164,62 @@ class QueueShortReviewTests(unittest.TestCase):
         record_attestation(queue.root, 'cycle-test', short, submitted, receipt)
         return receipt
 
+    def private_review(self, queue, short, receipt, *, findings,
+                       review_round='initial'):
+        submission = prepare_submission(queue.root, 'cycle-test', short)
+        duration = submission['duration_seconds']
+        now = datetime.now(timezone.utc).isoformat()
+        value = {
+            'schema_version': 2, 'status': 'FULL_REVIEW_RECORDED',
+            'candidate_sha256': receipt['candidate_sha256'],
+            'caption_sha256': receipt['caption_sha256'],
+            'recorded_at': now,
+            'parent_video_sha256': ('1' * 64 if review_round == 'post_repair'
+                                    else None),
+            'supersedes_record_sha256': ('2' * 64 if review_round == 'post_repair'
+                                         else None),
+            'machine_observation': {
+                'identity_verified': True,
+                'browser_duration_seconds': duration,
+                'natural_pass_complete': True,
+                'caption_pass_complete': True,
+                'started_at': now, 'ended_at': now,
+                'playback_intervals': [[0, duration]],
+                'events': [
+                    {'type': 'natural_pass_started', 'valid': True},
+                    {'type': 'playback_ended', 'natural_pass_complete': True},
+                ],
+                'invalidations': [],
+            },
+            'reviewer_attestation': {
+                'reviewer': 'Private Short reviewer',
+                'roles': ['watcher', 'listener'],
+                'review_round': review_round,
+                'audio_output': 'headphones',
+                'device_environment': 'Local private player and headphones',
+                'disposition': ('repair_required' if any(
+                    item['severity'] == 'blocker' for item in findings)
+                    else 'no_blocker_seen'),
+                'summary': 'Complete private Short fixture review.',
+                'watched_every_interval': True,
+                'listened_every_interval': True,
+                'checked_voice': True, 'checked_mix': True,
+                'checked_picture_and_captions': True,
+            },
+            'findings': findings,
+            'reviewer_attested_full_watch_listen': True,
+            'review_coverage_complete': True,
+            'independent_acceptance': False, 'full_av_acceptance': False,
+            'production_approved': False, 'publication_enabled': False,
+            'paid_generation_enabled': False,
+            'competitor_comparison_included': False,
+            'physical_phone_verified': False,
+        }
+        value['record_sha256'] = hashlib.sha256(canonical_bytes(value)).hexdigest()
+        path = self.base / 'private-short-review.json'
+        path.write_text(json.dumps(value, indent=2) + '\n')
+        return path
+
     def test_review_and_caption_revision_bind_exact_durable_derivative(self):
         queue, short, receipt = self.prepare()
         recorded, review, output, revision = self.review_and_revise(queue, short, receipt)
@@ -193,6 +252,120 @@ class QueueShortReviewTests(unittest.TestCase):
             queue.root, 'cycle-test', short, recorded,
             submitted_revision, self.base / 'attestation-caption-output')
         self.assertEqual(revision['status'], 'CAPTION_REVISION_HANDOFF_READY')
+
+    def test_private_player_blockers_enter_exact_short_repair_lineage(self):
+        queue, short, receipt = self.prepare()
+        findings = [
+            {'start_seconds': 0.1, 'end_seconds': 0.3,
+             'category': 'typography_legibility', 'severity': 'blocker',
+             'observation': 'The first caption is too small on the Short.',
+             'requested_repair': 'Increase the first caption size and replay it.',
+             'resolution_state': 'open'},
+            {'start_seconds': 0.4, 'end_seconds': 0.6,
+             'category': 'pronunciation', 'severity': 'blocker',
+             'observation': 'The card name is pronounced incorrectly.',
+             'requested_repair': 'Regenerate only the card-name phrase.',
+             'resolution_state': 'open'},
+            {'start_seconds': 0.7, 'end_seconds': 0.8,
+             'category': 'mix', 'severity': 'note',
+             'observation': 'The music is slightly prominent.',
+             'resolution_state': 'open'},
+            {'start_seconds': 0.8, 'end_seconds': 0.9,
+             'category': 'timing', 'severity': 'blocker',
+             'observation': 'A previously late beat is now corrected.',
+             'requested_repair': 'Retain the corrected beat.',
+             'resolution_state': 'resolved'},
+        ]
+        private = self.private_review(queue, short, receipt, findings=findings,
+                                      review_round='post_repair')
+        recorded = self.base / 'private-derived-short-review.json'
+        result = record_private_review_findings(
+            queue.root, 'cycle-test', short, private, recorded)
+        self.assertEqual(result['schema_version'], 3)
+        self.assertEqual([item['check'] for item in result['findings']],
+                         ['caption_readability', 'voice_and_sound'])
+        self.assertEqual(result['review_round'], 'post_repair')
+        self.assertEqual(result['parent_video_sha256'], '1' * 64)
+        self.assertEqual(result['supersedes_record_sha256'], '2' * 64)
+        self.assertTrue(result['review_coverage_complete'])
+        self.assertFalse(result['human_av_acceptance_recorded'])
+        self.assertFalse(result['independent_verification'])
+        self.assertEqual(result, verify_recorded_short_review(
+            queue.root, 'cycle-test', short, recorded))
+
+        submitted_revision = self.base / 'private-caption-revision.json'
+        submitted_revision.write_text(json.dumps(
+            self.revision_input(short, receipt, recorded)) + '\n')
+        revision = prepare_caption_revision(
+            queue.root, 'cycle-test', short, recorded,
+            submitted_revision, self.base / 'private-caption-output')
+        self.assertEqual(revision['status'], 'CAPTION_REVISION_HANDOFF_READY')
+
+    def test_private_player_mapping_tampering_and_clean_record_fail_closed(self):
+        queue, short, receipt = self.prepare()
+        categories = list(review_module.PRIVATE_REVIEW_FINDING_MAP)
+        findings = [{
+            'start_seconds': index / 20,
+            'end_seconds': index / 20 + 0.02,
+            'category': category, 'severity': 'blocker',
+            'observation': 'Observed exact private-player defect for ' + category,
+            'requested_repair': 'Repair and replay exact defect for ' + category,
+            'resolution_state': 'open',
+        } for index, category in enumerate(categories)]
+        private = self.private_review(queue, short, receipt, findings=findings)
+        recorded = self.base / 'all-private-mappings-review.json'
+        result = record_private_review_findings(
+            queue.root, 'cycle-test', short, private, recorded)
+        self.assertEqual([item['check'] for item in result['findings']],
+                         [review_module.PRIVATE_REVIEW_FINDING_MAP[category]
+                          for category in categories])
+
+        changed = dict(result)
+        source = json.loads(changed['source_private_review_json'])
+        source['findings'][0]['requested_repair'] = 'Changed after recording.'
+        changed['source_private_review_json'] = json.dumps(source)
+        recorded.write_text(json.dumps(changed) + '\n')
+        with self.assertRaisesRegex(ValueError,
+                                    'private review identity changed'):
+            verify_recorded_short_review(
+                queue.root, 'cycle-test', short, recorded)
+
+        clean = self.private_review(queue, short, receipt, findings=[])
+        with self.assertRaisesRegex(ValueError, 'open private-review blocker'):
+            record_private_review_findings(
+                queue.root, 'cycle-test', short, clean,
+                self.base / 'must-not-route-clean-private.json')
+
+        bad = json.loads(private.read_text())
+        bad['caption_sha256'] = '0' * 64
+        bad.pop('record_sha256')
+        bad['record_sha256'] = hashlib.sha256(canonical_bytes(bad)).hexdigest()
+        private.write_text(json.dumps(bad) + '\n')
+        with self.assertRaisesRegex(ValueError, 'caption identity mismatch'):
+            record_private_review_findings(
+                queue.root, 'cycle-test', short, private,
+                self.base / 'must-not-route-wrong-caption.json')
+
+    def test_private_player_router_refuses_enabled_generation_and_cli_is_documented(self):
+        queue, short, receipt = self.prepare()
+        private = self.private_review(queue, short, receipt, findings=[{
+            'start_seconds': 0, 'end_seconds': 0.2,
+            'category': 'mix', 'severity': 'blocker',
+            'observation': 'The music masks the opening word.',
+            'requested_repair': 'Lower the music under the opening word.',
+            'resolution_state': 'open',
+        }])
+        with patch.dict(os.environ, {'PUBLICATION_ENABLED': 'true'}), \
+                self.assertRaisesRegex(ValueError, 'must remain disabled'):
+            record_private_review_findings(
+                queue.root, 'cycle-test', short, private,
+                self.base / 'must-not-route-enabled-private.json')
+        help_result = subprocess.run(
+            [sys.executable, '-m',
+             'integrations.content_control.cycle_queue_short_review',
+             'record-private-review-findings', '--help'],
+            check=True, capture_output=True, text=True, timeout=30)
+        self.assertIn('--private-review', help_result.stdout)
 
     def test_clean_or_tampered_attestation_cannot_route_repairs(self):
         queue, short, _ = self.prepare()
