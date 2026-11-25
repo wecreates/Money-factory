@@ -42,12 +42,17 @@ class LineageTests(unittest.TestCase):
                        live_comparison_receipt_sha256='5' * 64,
                        live_comparison_observations_sha256='6' * 64,
                        live_comparison_receipt_file_sha256='7' * 64)
+        receipt['feedback'] = [{
+            'check': 'reference_comparison',
+            'action': 'Synthetic comparator repair retained for lineage validation.',
+        }]
         value = self.load(receipt)
         self.assertEqual(m.validate_lineage(value, self.brief_sha), receipt)
         for patch in (
                 {'recorded_review_schema_version': 1},
                 {'comparison_findings_routing_verified': False},
-                {'live_comparison_receipt_sha256': 'broken'}):
+                {'live_comparison_receipt_sha256': 'broken'},
+                {'feedback': [dict(item) for item in self.receipt['feedback']]}):
             with self.subTest(patch=patch), self.assertRaises(ValueError):
                 self.load(dict(receipt, **patch))
 
