@@ -49,10 +49,10 @@ def packet():
         'reviewer': 'Playback review operator', 'reviewed_at': '2026-11-24T10:30:00Z',
         'candidate_observation': {'duration_seconds': 10, 'intervals': intervals(10)},
         'references': [
-            {**common, 'url': 'https://www.instagram.com/reel/DgAHyVPhMi0/',
+            {**copy.deepcopy(common), 'url': 'https://www.instagram.com/reel/DgAHyVPhMi0/',
              'selection_evidence_url': 'https://rank.example.com/finance/first',
              'duration_seconds': 12, 'intervals': intervals(12)},
-            {**common, 'url': 'https://www.youtube.com/watch?v=DHjqpvDnNGE',
+            {**copy.deepcopy(common), 'url': 'https://www.youtube.com/watch?v=DHjqpvDnNGE',
              'selection_evidence_url': 'https://rank.example.com/finance/second',
              'duration_seconds': 15, 'intervals': intervals(15)},
         ],
@@ -127,6 +127,13 @@ class LiveComparisonTests(unittest.TestCase):
         cases = []
         one = packet(); one['references'].pop(); cases.append(one)
         duplicate = packet(); duplicate['references'][1]['url'] = duplicate['references'][0]['url']; cases.append(duplicate)
+        youtube_playback_alias = packet()
+        youtube_playback_alias['references'][0]['url'] = 'https://youtu.be/DHjqpvDnNGE'
+        cases.append(youtube_playback_alias)
+        instagram_playback_alias = packet()
+        instagram_playback_alias['references'][1]['url'] = (
+            'https://m.instagram.com/reels/DgAHyVPhMi0/')
+        cases.append(instagram_playback_alias)
         query_alias = packet()
         query_alias['references'][0]['url'] = 'https://www.player.example.com/video/?id=1&x=2'
         query_alias['references'][1]['url'] = 'https://player.example.com/video?x=2&id=1'
@@ -172,6 +179,26 @@ class LiveComparisonTests(unittest.TestCase):
         for value in cases:
             with self.assertRaises(ValueError):
                 validate_observations(value, SHA)
+
+    def test_recording_fails_closed_when_publication_or_paid_generation_is_enabled(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); cycle = root / 'cycle'; cycle.mkdir()
+            (cycle / 'delivery').mkdir()
+            (cycle / 'delivery/render.json').write_text(json.dumps({'duration_seconds': 10}))
+            source = root / 'observations.json'; source.write_text(json.dumps(packet()))
+            snapshot = {'candidate_sha256': SHA,
+                        'cycle': {'finished_at': '2026-11-24T09:00:00+00:00'},
+                        'editorial': {'topic': 'Minimum payment credit-card explainer'},
+                        'files_sha256': {'cycle.json': 'b' * 64}}
+            for index, name in enumerate(('PUBLICATION_ENABLED',
+                                          'PAID_GENERATION_ENABLED')):
+                with self.subTest(name=name), \
+                     patch.dict('os.environ', {name: 'true'}, clear=False), \
+                     patch('integrations.content_control.cycle_live_comparison.inspect_cycle',
+                           return_value=copy.deepcopy(snapshot)), \
+                     self.assertRaisesRegex(ValueError, 'must remain disabled'):
+                    record_live_comparison(
+                        cycle, source, root / f'outside-{index}' / 'comparison.json')
 
     def test_rejects_observations_without_explicit_differences_or_actions(self):
         cases = []
