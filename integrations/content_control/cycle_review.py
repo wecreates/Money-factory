@@ -138,7 +138,10 @@ def _verified_program_duration(root):
 
 
 def _complete_coverage(root, value, label):
-    duration = _verified_program_duration(root)
+    return _coverage_for_duration(value, label, _verified_program_duration(root))
+
+
+def _coverage_for_duration(value, label, duration):
     coverage = value.get('coverage')
     require(isinstance(coverage, list) and 1 <= len(coverage) <= 100,
             label.capitalize() + ' coverage intervals required')
@@ -154,6 +157,28 @@ def _complete_coverage(root, value, label):
         prior = end
     require(abs(prior - duration) <= .001, label.capitalize() + ' coverage must include the complete program')
     return normalized
+
+
+def _granular_review_checks(value, expected, label):
+    checks = value.get('checks')
+    require(isinstance(checks, dict) and set(checks) == set(expected),
+            'All granular ' + label + ' checks are required')
+    normalized, feedback = {}, []
+    for name in expected:
+        item = checks[name]
+        require(isinstance(item, dict) and set(item) in ({'passed', 'evidence'},
+                {'passed', 'evidence', 'feedback'}) and type(item.get('passed')) is bool,
+                'Exact granular ' + label + ' check fields required')
+        field = label + '_review.' + name
+        evidence = _text(item.get('evidence'), field + '.evidence', 4000, minimum=12)
+        normalized[name] = {'passed': item['passed'], 'evidence': evidence}
+        if item['passed']:
+            require('feedback' not in item, 'Passing ' + label + ' checks cannot carry repair feedback')
+        else:
+            action = _text(item.get('feedback', evidence), field + '.feedback', 4000, minimum=12)
+            normalized[name]['feedback'] = action
+            feedback.append({'check': label + '.' + name, 'action': action})
+    return normalized, feedback
 
 
 def _watcher_attestation(root, snapshot, value):
@@ -175,24 +200,7 @@ def _watcher_attestation(root, snapshot, value):
     require(value.get('basis') == 'direct_full_audiovisual_watch_and_listen',
             'Frames, transcripts and technical diagnostics cannot substitute for direct audiovisual review')
     coverage = _complete_coverage(root, value, 'watcher')
-    checks = value.get('checks')
-    require(isinstance(checks, dict) and set(checks) == set(WATCHER_CHECKS),
-            'All granular watcher checks are required')
-    normalized_checks, feedback = {}, []
-    for name in WATCHER_CHECKS:
-        item = checks[name]
-        require(isinstance(item, dict) and set(item) in ({'passed', 'evidence'},
-                {'passed', 'evidence', 'feedback'}) and type(item.get('passed')) is bool,
-                'Exact granular watcher check fields required')
-        evidence = _text(item.get('evidence'), 'watcher_review.' + name + '.evidence', 4000, minimum=12)
-        normalized_checks[name] = {'passed': item['passed'], 'evidence': evidence}
-        if item['passed']:
-            require('feedback' not in item, 'Passing watcher checks cannot carry repair feedback')
-        else:
-            action = _text(item.get('feedback', evidence), 'watcher_review.' + name + '.feedback',
-                           4000, minimum=12)
-            normalized_checks[name]['feedback'] = action
-            feedback.append({'check': 'watcher.' + name, 'action': action})
+    normalized_checks, feedback = _granular_review_checks(value, WATCHER_CHECKS, 'watcher')
     return ({'schema_version': 1, 'candidate_sha256': snapshot['candidate_sha256'],
              'caption_sha256': caption_sha256, 'watcher': watcher, 'watched_at': watched_at,
              'basis': 'direct_full_audiovisual_watch_and_listen', 'coverage': coverage,
@@ -238,24 +246,7 @@ def _listener_attestation(root, snapshot, value):
     render = _load(root / 'delivery/render.json')
     normalized_coverage = _complete_coverage(root, value, 'listener')
 
-    checks = value.get('checks')
-    require(isinstance(checks, dict) and set(checks) == set(LISTENER_CHECKS),
-            'All granular listener checks are required')
-    normalized_checks, feedback = {}, []
-    for name in LISTENER_CHECKS:
-        item = checks[name]
-        require(isinstance(item, dict) and set(item) in ({'passed', 'evidence'},
-                {'passed', 'evidence', 'feedback'}) and type(item.get('passed')) is bool,
-                'Exact granular listener check fields required')
-        evidence = _text(item.get('evidence'), 'listener_review.' + name + '.evidence', 4000, minimum=12)
-        normalized_checks[name] = {'passed': item['passed'], 'evidence': evidence}
-        if item['passed']:
-            require('feedback' not in item, 'Passing listener checks cannot carry repair feedback')
-        else:
-            action = _text(item.get('feedback', evidence), 'listener_review.' + name + '.feedback',
-                           4000, minimum=12)
-            normalized_checks[name]['feedback'] = action
-            feedback.append({'check': 'listener.' + name, 'action': action})
+    normalized_checks, feedback = _granular_review_checks(value, LISTENER_CHECKS, 'listener')
 
     voice_identity = _verified_voice(root, snapshot['editorial'], render)
     require(voice_identity is not None, 'Authenticated voice receipt required for listening review')
