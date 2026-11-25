@@ -217,6 +217,7 @@ class QueueShortReviewTests(unittest.TestCase):
         short_path.write_text(json.dumps(rewritten) + '\n')
         queue_path = short / 'queue-short.json'
         queue_receipt = json.loads(queue_path.read_text())
+        queue_receipt['caption_overlay'] = rewritten['caption_overlay']
         queue_receipt['artifacts_sha256']['short.json'] = digest(short_path)
         queue_path.write_text(json.dumps(queue_receipt) + '\n')
         # The pre-existing consumer accepts this coherent self-contained rewrite;

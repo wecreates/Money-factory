@@ -24,6 +24,8 @@ FLAGS = {k: False for k in ('publication_enabled', 'paid_generation_enabled',
                            'production_approved', 'full_av_review', 'production_ready')}
 STAMP = r'(\d{2,}):([0-5]\d):([0-5]\d)\.(\d{3})'
 COMPACT_STYLE = 'FontName=DejaVu Sans,FontSize=10,MarginV=4,Outline=1.1,Shadow=0,Alignment=2'
+SAFE_CAPTION_STYLE = 'FontName=DejaVu Sans,FontSize=10,MarginV=29,Outline=1.1,Shadow=0,Alignment=2'
+SAFE_CAPTION_FILTER = 'scale=648:1152:flags=lanczos,pad=720:1280:36:0:color=0xf7f1e6'
 
 
 def _seconds(value):
@@ -168,9 +170,13 @@ dd {{ margin: 0 0 .6rem; overflow-wrap: anywhere; }}
 """
 
 
-def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counter=False, compact_captions=False):
+def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counter=False,
+               compact_captions=False, caption_safe_area=False):
     require(type(hide_source_counter) is bool, 'hide_source_counter must be boolean')
     require(type(compact_captions) is bool, 'compact_captions must be boolean')
+    require(type(caption_safe_area) is bool, 'caption_safe_area must be boolean')
+    require(not caption_safe_area or compact_captions,
+            'caption_safe_area requires compact_captions')
     require(type(timeout) is int and 10 <= timeout <= 600, 'Timeout must be 10..600 seconds')
     require(all(type(v) in (int,float) and math.isfinite(v) for v in (start,end)) and
             0 <= start < end and end-start <= 60, 'Explicit finite interval of at most 60 seconds required')
@@ -238,15 +244,30 @@ def make_short(cycle_dir, output, *, start, end, timeout=180, hide_source_counte
             if compact_captions:
                 require(clipped != 'WEBVTT\n\n', 'No captions remain within the encoded excerpt')
                 (stage/'captions.vtt').write_text(_compact_caption_input(clipped))
+                caption_style = SAFE_CAPTION_STYLE if caption_safe_area else COMPACT_STYLE
+                picture_filter = f'{SAFE_CAPTION_FILTER},' if caption_safe_area else ''
                 _run(['ffmpeg','-v','error','-xerror','-nostdin','-n','-protocol_whitelist','file,pipe','-threads','2',
                       '-f','mov','-i','clean.mp4','-map','0:v:0','-map','0:a:0','-map_metadata','-1',
-                      '-vf',f"subtitles=filename=captions.vtt:force_style='{COMPACT_STYLE}'",'-filter_threads','1',
+                      '-vf',f"{picture_filter}subtitles=filename=captions.vtt:force_style='{caption_style}'",'-filter_threads','1',
                       '-c:v','libx264','-threads','2','-pix_fmt','yuv420p','-c:a','copy','-movflags','+faststart',
                       '-fs',str(256*1024*1024),str(output/'video.mp4')],deadline,cwd=stage)
                 require(_probe(output/'video.mp4', deadline, include_picture_duration=True) == actual,
                         'Caption burn changed media framing or duration')
-                receipt['caption_overlay'] = {'style': COMPACT_STYLE, 'audio_mode': 'stream_copy_from_excerpt',
-                                              'scope': 'Burned rebased sidecar into a private phone-size review derivative.'}
+                receipt['caption_overlay'] = {
+                    'style': caption_style,
+                    'audio_mode': 'stream_copy_from_excerpt',
+                    'scope': 'Burned rebased sidecar into a private phone-size review derivative.',
+                }
+                if caption_safe_area:
+                    receipt['caption_overlay']['picture_layout'] = {
+                        'mode': 'scaled_picture_safe_caption_area_v1',
+                        'source_scale_percent': 90,
+                        'scaled_picture_size': [648, 1152],
+                        'canvas_size': [720, 1280],
+                        'picture_offset': [36, 0],
+                        'background_rgb': '#f7f1e6',
+                        'caption_bottom_clearance_target_pixels': 125,
+                    }
         _run(['ffmpeg','-v','error','-xerror','-nostdin','-threads','2','-i',str(output/'video.mp4'),'-f','null','-'],deadline)
         receipt['boundary_cue_numbers'] = boundary
         (output/'captions.vtt').write_text(clipped)
@@ -292,8 +313,11 @@ def main():
                         help='Hide only the known picture renderer scene-counter region; unknown layouts are rejected.')
     parser.add_argument('--compact-captions',action='store_true',
                         help='Burn compact captions into a separate excerpt of the known picture renderer.')
+    parser.add_argument('--caption-safe-area',action='store_true',
+                        help='Scale the known picture renderer to 90%% and target at least 125px bottom caption clearance.')
     a=parser.parse_args();result=make_short(a.cycle_dir,a.output,start=a.start,end=a.end,timeout=a.timeout,
-                                        hide_source_counter=a.hide_source_counter,compact_captions=a.compact_captions)
+                                        hide_source_counter=a.hide_source_counter,compact_captions=a.compact_captions,
+                                        caption_safe_area=a.caption_safe_area)
     print(json.dumps(result,indent=2));return 0 if result['status']=='AWAITING_REVIEW' else 2
 
 

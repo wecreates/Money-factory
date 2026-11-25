@@ -151,6 +151,60 @@ class ShortTests(unittest.TestCase):
                 self.assertLess(red.crop((0,0,720,1150)).getextrema()[1],50)
                 self.assertEqual(red.crop((0,1150,720,1280)).getextrema()[1]>140,visible)
 
+    def test_caption_safe_area_preserves_audio_and_sidecar_with_bound_layout(self):
+        from PIL import Image, ImageChops
+        self.media('720x1280'); self.known_layout()
+        compact, safe = self.base/'compact', self.base/'safe'
+        with patch.object(m,'inspect_cycle',return_value=self.snapshot):
+            baseline=m.make_short(self.root,compact,start=0,end=1.5,timeout=30,
+                                  compact_captions=True)
+            result=m.make_short(self.root,safe,start=0,end=1.5,timeout=30,
+                                compact_captions=True,caption_safe_area=True)
+        self.assertEqual(baseline['status'],'AWAITING_REVIEW',baseline)
+        self.assertEqual(result['status'],'AWAITING_REVIEW',result)
+        self.assertNotEqual(result['candidate_sha256'],baseline['candidate_sha256'])
+        self.assertEqual(result['caption_sha256'],baseline['caption_sha256'])
+        self.assertEqual(result['encoded_streams_sha256']['audio'],
+                         baseline['encoded_streams_sha256']['audio'])
+        self.assertEqual(result['caption_overlay']['style'],m.SAFE_CAPTION_STYLE)
+        self.assertEqual(result['caption_overlay']['picture_layout'],{
+            'mode':'scaled_picture_safe_caption_area_v1',
+            'source_scale_percent':90,
+            'scaled_picture_size':[648,1152],
+            'canvas_size':[720,1280],
+            'picture_offset':[36,0],
+            'background_rgb':'#f7f1e6',
+            'caption_bottom_clearance_target_pixels':125,
+        })
+
+        visible=self.base/'safe-visible.png'
+        gap=self.base/'safe-gap.png'
+        for offset,target in (('0.25',visible),('1.10',gap)):
+            subprocess.run(['ffmpeg','-v','error','-i',str(safe/'video.mp4'),'-ss',offset,
+                            '-frames:v','1','-threads','1',str(target)],check=True)
+        with Image.open(gap) as image:
+            for point in ((360,1200),(360,1270),(10,600),(710,600)):
+                self.assertTrue(all(abs(a-b)<15 for a,b in zip(image.getpixel(point),(247,241,230))),
+                                image.getpixel(point))
+        with Image.open(visible) as visible_image, Image.open(gap) as gap_image:
+            difference=ImageChops.difference(visible_image.convert('RGB'),gap_image.convert('RGB'))
+            changed=difference.convert('L').point(lambda value: 255 if value > 30 else 0)
+            caption_bounds=changed.getbbox()
+            self.assertIsNotNone(caption_bounds)
+            self.assertGreaterEqual(caption_bounds[1],1000)
+            self.assertLessEqual(caption_bounds[3],1155)
+
+    def test_caption_safe_area_fails_closed_without_compact_caption_mode(self):
+        for value in ('true',1,None):
+            with self.subTest(value=value),self.assertRaisesRegex(ValueError,'boolean'):
+                m.make_short(self.root,self.base/'unused',start=0,end=1,
+                             caption_safe_area=value)
+            self.assertFalse((self.base/'unused').exists())
+        with self.assertRaisesRegex(ValueError,'requires compact_captions'):
+            m.make_short(self.root,self.base/'unused',start=0,end=1,
+                         caption_safe_area=True)
+        self.assertFalse((self.base/'unused').exists())
+
     def test_compact_burn_rejects_empty_or_marked_up_cues(self):
         self.media('720x1280'); self.known_layout()
         with patch.object(m,'inspect_cycle',return_value=self.snapshot):
