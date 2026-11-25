@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import {constants as fsConstants} from 'node:fs';
 import {randomUUID} from 'node:crypto';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import path from 'node:path';
 
 // The pending journal contains both replacement images, so its input ceiling
@@ -18,6 +20,48 @@ async function destinations({statePath,eventsPath}) {
   const pending=`${state}.pending`;
   if (state===events || pending===events) throw new Error('Monitor persistence paths must be distinct');
   return {state,events,pending,eventsKey:path.relative(path.dirname(state),events)};
+}
+
+async function lockDirectory(handle) {
+  const helper=spawn('flock',['--nonblock','--conflict-exit-code','75','3'],{
+    stdio:['ignore','ignore','ignore',handle.fd]
+  });
+  let code,signal;
+  try{
+    [code,signal]=await once(helper,'close');
+  }catch(error){
+    throw Object.assign(new Error('Monitor persistence lock helper failed',{cause:error}),
+      {code:'MONITOR_PAIR_LOCK_ERROR'});
+  }
+  if(code===75){
+    throw Object.assign(new Error('Monitor persistence directory is locked'),{code:'MONITOR_PAIR_LOCKED'});
+  }
+  if(code!==0){
+    throw Object.assign(new Error(`Monitor persistence lock helper failed: ${signal??code}`),
+      {code:'MONITOR_PAIR_LOCK_ERROR'});
+  }
+}
+
+export async function withMonitorPair(options,operation) {
+  const files=await destinations(options);
+  const directories=[...new Set([path.dirname(files.state),path.dirname(files.events)])].sort();
+  if(!fsConstants.O_NOFOLLOW || !fsConstants.O_DIRECTORY){
+    throw Object.assign(new Error('Monitor persistence lock requires no-follow directory descriptors'),
+      {code:'MONITOR_PAIR_LOCK_ERROR'});
+  }
+  const handles=[];
+  try{
+    for(const directory of directories){
+      const handle=await fs.open(directory,fsConstants.O_RDONLY|fsConstants.O_DIRECTORY|fsConstants.O_NOFOLLOW);
+      handles.push(handle);
+      // The inherited descriptor shares the parent's open file description.
+      // The kernel retains its lock after flock exits, until the parent closes it.
+      await lockDirectory(handle);
+    }
+    return await operation({read:()=>readPair(files),write:(state,events)=>writePair(files,state,events)});
+  }finally{
+    await Promise.all(handles.map(handle=>handle.close()));
+  }
 }
 
 async function readJson(file,label) {
@@ -136,8 +180,7 @@ async function finishPair(files,images) {
   await syncDirectory(files.pending);
 }
 
-export async function readMonitorPair(options) {
-  const files=await destinations(options);
+async function readPair(files) {
   const pending=await readJson(files.pending,'pending monitor persistence journal');
   if (pending!==undefined) {
     if (!record(pending) || pending.schema_version!==1 || pending.events_path!==files.eventsKey) {
@@ -156,12 +199,17 @@ export async function readMonitorPair(options) {
   return {state,events};
 }
 
-// Workers sharing a pair must run serially. The hosted workflows use a common
-// concurrency group. Restart replay assumes the same underlying filesystem.
-export async function writeMonitorPair(options,state,events) {
-  const files=await destinations(options);
+async function writePair(files,state,events) {
   const images=preparePairImages(files,state,events);
   // Both replacement images are durable before changing either legacy file.
   await writeSerializedAtomic(files.pending,images.pending);
   await finishPair(files,images);
+}
+
+export function readMonitorPair(options) {
+  return withMonitorPair(options,pair=>pair.read());
+}
+
+export function writeMonitorPair(options,state,events) {
+  return withMonitorPair(options,pair=>pair.write(state,events));
 }

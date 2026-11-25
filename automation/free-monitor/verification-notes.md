@@ -14,11 +14,17 @@ check; status 1 denotes an execution failure.
 
 The worker syncs a pending file with both new JSON images before replacing the
 state and events files. Restarting on the same filesystem replays the pending
-pair before using either file as a baseline. Writers must run serially, as the
-hosted workflows do through their shared concurrency group. Never commit the
-pending file. A fresh hosted runner cannot replay an interrupted runner's local
-filesystem, and external readers that open both files outside the worker can
-observe an in-flight write. Retained Git commits contain only completed pairs.
+pair before using either file as a baseline. On the same filesystem, the
+worker holds nonblocking kernel `flock` locks on the canonical state/events
+directories across replay, polling, reconciliation and persistence. Overlapping
+workers sharing any of those directories fail before polling or changing the
+pair. The lock is held by the worker's open descriptors, is released on
+process exit, and creates no lock file. This requires util-linux `flock` and
+filesystem support for directory locks. The hosted workflows still use their
+shared concurrency group across separate runners. Never commit the pending
+file. A fresh hosted runner cannot replay an interrupted runner's local
+filesystem, and external readers that bypass the locked reader can observe an
+in-flight write. Retained Git commits contain only completed pairs.
 
 The scheduled worker restores and persists those completed pairs on the
 dedicated `cyzor-free-monitor-state` branch. It must not commit cadence state to
@@ -277,8 +283,7 @@ a total process memory quota, disk quota or archive rollover.
 
 The archived local outcomes never stand for external delivery or operator
 acknowledgment. The current hosted workflow does not supply a ledger, so
-automatic deployed compaction is still unavailable. The worker still requires
-serial ownership of the state/events pair, and the local archive has no
+automatic deployed compaction is still unavailable. The local archive has no
 automatic retention rollover. Local compaction is not a cadence repair or
 24-hour soak.
 

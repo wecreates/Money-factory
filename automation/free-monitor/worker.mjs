@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {readMonitorPair,writeMonitorPair} from './persistence.mjs';
+import {withMonitorPair} from './persistence.mjs';
 import {collectResourceObservation,declaredWorkflowWallLimit,requestEnvelopeMs,
   validateWallEnvelope,RUNTIME_STATE_KEY} from './resources.mjs';
 import {buildCadenceEvidence} from './cadence.mjs';
@@ -242,8 +242,17 @@ export async function runWorker({
   const activeWatches=configuredWatches.filter(w=>w.status==='active').length;
   const requestEnvelope=requestEnvelopeMs(activeWatches,{maxAttempts,requestTimeoutMs,retryBackoffMs});
   validateWallEnvelope(workflowWallLimitMs,requestEnvelope);
-  const storage={statePath,eventsPath};
-  const {state:priorState,events:priorEvents}=await readMonitorPair(storage);
+  return withMonitorPair({statePath,eventsPath},pair=>runMonitorTransaction(pair,configuredWatches,{
+    localAlertLedgerPath,intervalMs,cadenceIntervalMs,maxAttempts,requestTimeoutMs,retryBackoffMs,
+    workflowWallLimitMs,activeWatches
+  }));
+}
+
+async function runMonitorTransaction(pair,configuredWatches,{
+  localAlertLedgerPath,intervalMs,cadenceIntervalMs,maxAttempts,requestTimeoutMs,retryBackoffMs,
+  workflowWallLimitMs,activeWatches
+}){
+  const {state:priorState,events:priorEvents}=await pair.read();
   const now=Date.now();
   const nextState={};
   const priorArchive=priorState[LOCAL_ALERT_ARCHIVE_KEY];
@@ -303,7 +312,7 @@ export async function runWorker({
   nextState[RUNTIME_STATE_KEY]=resources;
 
   const retainedEvents=retainEvents(events);
-  await writeMonitorPair(storage,nextState,retainedEvents);
+  await pair.write(nextState,retainedEvents);
   return {ran_at:new Date(now).toISOString(),
     ok:Object.values(nextState).filter(w=>w.status==='active').every(w=>availability(w)==='healthy'),
     alert_outbox_pending:pendingAlertIntents(retainedEvents).length,

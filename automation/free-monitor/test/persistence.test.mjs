@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import os from 'node:os';
 import path from 'node:path';
 import {runWorker} from '../worker.mjs';
@@ -17,6 +19,83 @@ async function fixture(t) {
 }
 
 const read=async file=>JSON.parse(await fs.readFile(file,'utf8'));
+
+test('workers with a shared events file cannot poll concurrently', {timeout:10000}, async t=>{
+  const {options,pending}=await fixture(t);
+  const stateDirectory=await fs.mkdtemp(path.join(path.dirname(options.statePath),'other-state-'));
+  const alias=path.join(stateDirectory,'shared-events');
+  await fs.symlink(path.dirname(options.eventsPath),alias,'dir');
+  const second={...options,statePath:path.join(stateDirectory,'second.json'),
+    eventsPath:path.join(alias,path.basename(options.eventsPath))};
+  const entered=Promise.withResolvers();
+  const release=Promise.withResolvers();
+  const fetch=t.mock.method(globalThis,'fetch',async()=>{
+    entered.resolve();
+    await release.promise;
+    return new Response('stable');
+  });
+  const owner=runWorker(options);
+  try{
+    await Promise.race([entered.promise,owner]);
+    await assert.rejects(runWorker(second),{code:'MONITOR_PAIR_LOCKED'});
+    await assert.rejects(fs.stat(second.statePath),{code:'ENOENT'});
+    await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+    assert.equal(fetch.mock.callCount(),1);
+  }finally{
+    release.resolve();
+    assert.equal((await owner).ok,true);
+  }
+  assert.equal((await runWorker(second)).ok,true);
+  assert.equal(fetch.mock.callCount(),2);
+  assert.equal((await read(second.statePath)).fixture.last_status,200);
+});
+
+test('a killed worker releases the pair lock and its pending journal is replayed', {timeout:15000}, async t=>{
+  const {options,pending}=await fixture(t);
+  const fetch=t.mock.method(globalThis,'fetch',async()=>new Response('baseline'));
+  assert.equal((await runWorker(options)).ok,true);
+  const baseline=await read(options.statePath);
+  const child=spawn(process.execPath,['--input-type=module','--eval',`
+    import fs from 'node:fs/promises';
+    import {runWorker} from ${JSON.stringify(new URL('../worker.mjs',import.meta.url).href)};
+    const options=JSON.parse(process.argv[1]);
+    globalThis.fetch=async()=>new Response('unavailable',{status:503});
+    const rename=fs.rename;
+    fs.rename=async (source,target)=>{
+      if(target===options.statePath){
+        process.on('message',()=>{});
+        process.send('journal-ready');
+        await new Promise(()=>{});
+      }
+      return rename(source,target);
+    };
+    await runWorker({...options,maxAttempts:1});
+  `,JSON.stringify(options)],{stdio:['ignore','ignore','inherit','ipc']});
+  const exited=once(child,'exit');
+  t.after(async()=>{
+    if(child.exitCode===null && child.signalCode===null) child.kill('SIGKILL');
+    await exited;
+  });
+  const ready=await Promise.race([
+    once(child,'message').then(([message])=>message),
+    exited.then(([code,signal])=>`exited: ${signal??code}`)
+  ]);
+  assert.equal(ready,'journal-ready');
+  await assert.rejects(runWorker(options),{code:'MONITOR_PAIR_LOCKED'});
+  await assert.rejects(readMonitorPair(options),{code:'MONITOR_PAIR_LOCKED'});
+  assert.deepEqual(await read(options.statePath),baseline);
+  assert.equal(fetch.mock.callCount(),1);
+  const expected=await read(pending);
+  child.kill('SIGKILL');
+  assert.deepEqual(await exited,[null,'SIGKILL']);
+
+  const retry=await runWorker({...options,intervalMs:300000});
+  assert.equal(retry.results[0].reason,'not_due');
+  assert.equal(fetch.mock.callCount(),1);
+  assert.equal((await read(options.statePath)).fixture.last_status,503);
+  assert.deepEqual(await read(options.eventsPath),expected.events);
+  await assert.rejects(fs.stat(pending),{code:'ENOENT'});
+});
 
 test('an interrupted second replacement replays before cadence or event decisions',async t=>{
   const {options,pending}=await fixture(t);
