@@ -62,6 +62,9 @@ def validate(spec):
     elif spec['adapter'] == 'content-control-retained-review':
         from integrations.content_control.cycle_review_job import validate as validate_adapter
         validate_adapter(request)
+    elif spec['adapter'] == 'content-control-retained-cycle':
+        from integrations.content_control.retained_cycle_job import validate as validate_adapter
+        validate_adapter(request)
     else:
         raise ValueError('Only documented bounded local adapters are supported')
     return spec
@@ -393,7 +396,7 @@ def execute_adapter(queue, attempt, *, ruflo_runtime=None, openclaw_runtime=None
                     cycle_capacity_cpu_cores=None,
                     cycle_capacity_memory_mb=None, external_media_root=None,
                     cycle_review_root=None, rea_analysis_root=None,
-                    submitted_review_path=None):
+                    submitted_review_path=None, cycle_checkpoint_path=None):
     spec = attempt['spec']
     validate(spec)  # Revalidate persisted input immediately before execution.
     directory = queue.root / 'attempts' / attempt['id'] / str(attempt['number'])
@@ -425,6 +428,9 @@ def execute_adapter(queue, attempt, *, ruflo_runtime=None, openclaw_runtime=None
                        cycle_review_root=cycle_review_root,
                        rea_analysis_root=rea_analysis_root,
                        submitted_review_path=submitted_review_path)
+    if spec['adapter'] == 'content-control-retained-cycle':
+        from integrations.content_control.retained_cycle_job import run_job
+        return run_job(request, directory, cycle_checkpoint_path=cycle_checkpoint_path)
     if spec['adapter'] == 'ruflo':
         if ruflo_runtime is None:
             return {'status': 'BLOCKED', 'reason': 'Explicit pinned Ruflo runtime path required', 'publication_enabled': False, 'paid_generation_enabled': False}
@@ -527,6 +533,8 @@ def main(argv=None):
                      help='Trusted retained REA analysis root for a retained-review job')
     run.add_argument('--submitted-review-path',
                      help='Trusted submitted review JSON for a retained-review job')
+    run.add_argument('--cycle-checkpoint-path',
+                     help='Trusted unpublished checkpoint archive for a retained-cycle job')
     args = parser.parse_args(argv)
     if args.command == 'work' and ((args.cycle_capacity_cpu_cores is None)
                                    != (args.cycle_capacity_memory_mb is None)):
@@ -562,7 +570,8 @@ def main(argv=None):
                           external_media_root=args.external_media_root,
                           cycle_review_root=args.cycle_review_root,
                           rea_analysis_root=args.rea_analysis_root,
-                          submitted_review_path=args.submitted_review_path)
+                          submitted_review_path=args.submitted_review_path,
+                          cycle_checkpoint_path=args.cycle_checkpoint_path)
         print(json.dumps(report, indent=2))
         if args.command == 'work':
             return 2 if report['recovered_interrupted_ids'] or any(job['state'] != 'succeeded' for job in report['processed']) else 0

@@ -443,6 +443,44 @@ contained hashes could be coherently replaced. A PASS means the external
 identity matched the retained bytes. It does not prove phone/browser playback,
 which still requires an observed device session.
 
+### Deliver an exact retained checkpoint through the queue
+
+To deliver previously completed bytes without running synthesis again, enqueue
+a `content-control-retained-cycle` job. Its request contains exactly
+`operation: restore-unpublished-cycle`, `publication_enabled: false`,
+`paid_generation_enabled: false`, an integer `timeout_seconds` of 5–300, and
+these SHA-256 pins from a trusted prior handoff:
+
+| Request field | Exact bytes |
+| --- | --- |
+| `checkpoint_sha256` | Checkpoint ZIP |
+| `candidate_sha256` | `delivery/video.mp4` |
+| `caption_sha256` | `delivery/captions.vtt` |
+| `brief_sha256` | `brief.json` |
+| `pipeline_receipt_sha256` | `cycle.json` |
+| `package_sha256` | `delivery/package.json` |
+| `archive_sha256` | `delivery/review-package.zip` |
+
+Supply the archive path to the worker on Linux or WSL2, outside the job request.
+Run one job at a time with its corresponding checkpoint.
+
+```sh
+python -m integrations.local_agent_queue --queue /local/queue enqueue /local/retained-job.json
+python -m integrations.local_agent_queue --queue /local/queue work \
+  --cycle-checkpoint-path /local/checkpoint.zip
+```
+
+The guarded worker retains its own checkpoint copy, verifies and restores the
+cycle, and flushes the attempt files before recording success in SQLite. Its
+deadline covers the restore child, including file copies and flushes. Delivery
+rechecks the checkpoint, restored files and durable receipt. Use the same
+`review_delivery` commands above for an unpublished export, or use the queue
+Short consumer below with a retained portrait cycle as its input. The queue
+directory and output remain local, with device playback and creative review
+still pending.
+
+### Queue a fresh render from a revised brief
+
 For a revised brief, retain the standard request fields above, including
 `brief_sha256` computed from the canonical `brief` object, and add an optional
 `revision_input` object with exactly two fields:
@@ -861,10 +899,11 @@ selection during verification. This proves the cut matches the exportable form
 of those authored scene boundaries; it does not prove they are the best
 editorial selection or confer creative approval.
 
-This read-only queue consumer requires a durably succeeded parent
-`content-control-cycle` attempt and replays the SQLite job/attempt receipt,
-adapter receipt, cycle/package/archive identities and retained intake evidence
-before and after the existing Short exporter runs. `queue-short.json` binds the
+This read-only queue consumer requires a durably succeeded `content-control-cycle`
+or `content-control-retained-cycle` attempt. It replays the SQLite job and
+attempt, adapter receipt, cycle/package/archive identities and, when applicable,
+the retained intake or checkpoint evidence before and after the existing Short
+exporter runs. `queue-short.json` binds the
 job digest and attempt to the parent candidate/cycle, exact Short MP4 and VTT,
 encoded H.264/AAC packet hashes and an ordered decoded RGB-frame hash. The
 consumer has a separate read-only verifier and never changes queue state.
