@@ -32,7 +32,9 @@ CYCLE_PROVENANCE_REQUIRED = frozenset({
     'pipeline_receipt_sha256', 'adapter_receipt_sha256', *FLAGS, 'scope', 'adapter',
     'brief_sha256', 'production_brief_sha256', 'package_sha256', 'review_archive_sha256',
 })
-CYCLE_PROVENANCE_OPTIONAL = frozenset({'minimum_duration_seconds', 'verified_intake'})
+CYCLE_PROVENANCE_OPTIONAL = frozenset({
+    'minimum_duration_seconds', 'verified_intake', 'verified_revision_discovery',
+})
 PACKAGE_GATE_FIELDS = frozenset({
     'publication_enabled', 'paid_generation_enabled', 'production_approved', 'full_av_review',
     'production_ready', 'thumbnail_performance_verified', 'independent_transcription_verified',
@@ -232,8 +234,14 @@ def verify_cycle_delivery(attempt, request, stored, provenance):
     stored_minimum = stored.get('minimum_duration_seconds')
     if stored_minimum != minimum or type(stored_minimum) is not type(minimum):
         raise ValueError('Cycle completion does not bind the queued minimum duration')
-    if stored.get('verified_intake') != intake:
-        raise ValueError('Cycle completion does not bind the queued verified intake')
+    proof_field = None
+    if intake is not None:
+        proof_field = ('verified_intake' if intake.get('status') == 'INTAKE_VERIFIED'
+                       else 'verified_revision_discovery')
+    for field in ('verified_intake', 'verified_revision_discovery'):
+        expected = intake if field == proof_field else None
+        if stored.get(field) != expected:
+            raise ValueError('Cycle completion does not bind the queued verified intake')
     cycle_dir = regular(attempt / 'cycle', directory=True)
     snapshot = inspect_cycle(cycle_dir)
     if (snapshot['candidate_sha256'] != stored['candidate_sha256']
@@ -250,8 +258,8 @@ def verify_cycle_delivery(attempt, request, stored, provenance):
                       review_archive_sha256=archive_sha)
     if minimum is not None:
         provenance['minimum_duration_seconds'] = minimum
-    if intake is not None:
-        provenance['verified_intake'] = intake
+    if proof_field is not None:
+        provenance[proof_field] = intake
     return cycle_dir / 'delivery', provenance
 
 
@@ -477,10 +485,13 @@ def verify_exported_cycle(output_dir, expected_delivery_identity_sha256):
     if ('minimum_duration_seconds' in provenance
             and (type(minimum) not in (int, float) or not 0 < minimum < float('inf'))):
         raise ValueError('Private delivery provenance is invalid')
-    intake = provenance.get('verified_intake')
-    if ('verified_intake' in provenance
-            and (not isinstance(intake, dict) or len(canonical(intake).encode()) > MAX_JSON)):
+    if {'verified_intake', 'verified_revision_discovery'} <= set(provenance):
         raise ValueError('Private delivery provenance is invalid')
+    for field in ('verified_intake', 'verified_revision_discovery'):
+        proof = provenance.get(field)
+        if (field in provenance
+                and (not isinstance(proof, dict) or len(canonical(proof).encode()) > MAX_JSON)):
+            raise ValueError('Private delivery provenance is invalid')
 
     source_package = read_json(output / 'review/package.json')
     source_hashes = source_package.get('files_sha256')

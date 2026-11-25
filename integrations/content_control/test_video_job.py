@@ -120,8 +120,9 @@ class VideoJobTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform.startswith('linux'), 'Linux/WSL stage execution')
     def test_stage_drops_credentials_and_runtime_hooks(self):
         log = self.root / 'environment.log'
-        code = 'import os,json;print(json.dumps({k:os.getenv(k) for k in ["OPENAI_API_KEY","PYTHONPATH","NODE_OPTIONS","PUBLICATION_ENABLED","HF_HUB_OFFLINE"]}))'
-        env = dict(os.environ, OPENAI_API_KEY='fixture-secret', PYTHONPATH='/fixture', NODE_OPTIONS='--fixture')
+        code = 'import os,json;print(json.dumps({k:os.getenv(k) for k in ["OPENAI_API_KEY","PYTHONPATH","NODE_OPTIONS","PUBLICATION_ENABLED","HF_HUB_OFFLINE","CYZOR_ASR_HF_HOME"]}))'
+        env = dict(os.environ, OPENAI_API_KEY='fixture-secret', PYTHONPATH='/fixture',
+                   NODE_OPTIONS='--fixture', CYZOR_ASR_HF_HOME='/trusted/asr-cache')
         with _admission_lock_at(self.root / 'lease') as lease:
             guarded_runner(lease, sorted(os.sched_getaffinity(0))[:2])(
                 [sys.executable, '-c', code], cwd=self.root, log=log, deadline=time.monotonic()+5, env=env)
@@ -129,6 +130,7 @@ class VideoJobTests(unittest.TestCase):
         for field in ('OPENAI_API_KEY', 'PYTHONPATH', 'NODE_OPTIONS'): self.assertIsNone(result[field])
         self.assertEqual(result['PUBLICATION_ENABLED'], 'false')
         self.assertEqual(result['HF_HUB_OFFLINE'], '1')
+        self.assertEqual(result['CYZOR_ASR_HF_HOME'], '/trusted/asr-cache')
 
     @unittest.skipUnless(sys.platform.startswith('linux'), 'Linux/WSL ownership regression')
     def test_stage_guardian_keeps_lease_after_consumer_death_until_nested_children_exit(self):
