@@ -923,8 +923,21 @@ links stay within the excerpt directory, and the receipt records the preview
 SHA-256 alongside the exact video, captions, diagnostics and parent identities.
 Use the WebVTT track on the sidecar preview and the visible captions on the
 burned preview. Both link to the WebVTT text. Keep the files together.
-For browsers that restrict a local file's text track, use an existing private
-same-origin preview. Physical-device playback still requires verification.
+To review a retained candidate offline, generate a single HTML file from its
+verified video and caption hashes. The player embeds the original MP4 (up to
+32 MiB) and WebVTT with no network access. Open the downloaded HTML in a browser
+with local HTML and MP4 playback support. Use the sidecar toggle to check the
+separate track and export timestamped playback observations as JSON.
+
+```bash
+python -m integrations.content_control.offline_review_player \
+  --video video.mp4 --captions captions.vtt \
+  --video-sha256 "$video_sha256" --caption-sha256 "$caption_sha256" \
+  --output private-review.html
+```
+
+The browser records playback intervals and submitted notes. Physical-device
+playback, listening and creative acceptance require direct observation.
 The exporter validates the source cycle before and after encoding. Fresh output
 directories, owned processes, a bounded deadline, two encoder threads and
 diagnostic size limits remain mandatory. A failed attempt retains a BLOCKED
