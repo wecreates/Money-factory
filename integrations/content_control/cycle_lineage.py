@@ -130,6 +130,13 @@ def validate_lineage(value, expected_brief_sha256):
                 'Invalid revision feedback entry')
     require(all(item in feedback for item in diagnostics),
             'REA revision findings missing from feedback')
+    if schema == 3:
+        require(any(isinstance(item, dict)
+                    and set(item) == {'check', 'action'}
+                    and item.get('check') == 'reference_comparison'
+                    and isinstance(item.get('action'), str) and item['action']
+                    for item in feedback),
+                'Strict comparison routing requires comparator feedback')
     require(receipt.get('scope') == 'Revised supplied brief; previous approval statements cannot certify a new render.',
             'Revision receipt scope mismatch')
     return receipt
