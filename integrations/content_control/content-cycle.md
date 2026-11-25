@@ -1044,6 +1044,24 @@ structure of supplied observations. Independent audiovisual, competitor and
 phone verification, production approval, publishing and paid generation stay
 outside this receipt.
 
+When that exact receipt has status `REVISION_REQUIRED`, route its failed
+watcher/listener checks into the normal Short repair path without retyping or
+reclassifying the observations:
+
+```sh
+python -m integrations.content_control.cycle_queue_short_review record-attestation-findings \
+  --queue-root /absolute/queue --job-id JOB_ID --short-dir /absolute/short \
+  --attestation /absolute/short-av-receipt.json \
+  --output /absolute/recorded-short-review.json
+```
+
+The adapter replays the exact attestation and derivative identities, carries
+the original evidence and repair action byte for byte, and maps the granular
+check into the existing repair categories. Clean attestations are refused
+because they have no repair work to route. The resulting review remains a
+repair input only: direct observation, competitor comparison, re-render,
+re-review, phone playback and independent acceptance retain their own gates.
+
 ### Bind Short repair review and caption revision
 
 A durable queue Short can retain exact repair findings without converting those
