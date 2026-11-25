@@ -15,6 +15,7 @@ export const LOCAL_ALERT_ARCHIVE_KEY='_monitor_local_alert_archive';
 export const MAX_LOCAL_ALERT_ARCHIVE_RECORDS=500;
 export const MAX_LOCAL_ALERT_LEDGER_RECORDS=MAX_LOCAL_ALERT_ARCHIVE_RECORDS+MONITOR_EVENT_LIMIT;
 export const MAX_LOCAL_ALERT_LEDGER_BYTES=8*1024*1024;
+export const MAX_LOCAL_ALERT_SOURCE_BYTES=8*1024*1024;
 
 function exactKeys(value,keys){
   return value!==null && typeof value==='object' && !Array.isArray(value)
@@ -107,22 +108,22 @@ function validateLedger(ledger){
   return ledger;
 }
 
-async function readLedger(file,observedAt,{required=false}={}){
+async function readBoundedJson(file,{label,byteLimit,optional=false}){
   if(!fsConstants.O_NOFOLLOW || !fsConstants.O_NONBLOCK){
-    throw new Error('bounded alert ledger reads require no-follow and nonblocking file flags');
+    throw new Error('bounded alert reads require no-follow and nonblocking file flags');
   }
   let handle;
   try{
     handle=await fs.open(file,fsConstants.O_RDONLY|fsConstants.O_NOFOLLOW|fsConstants.O_NONBLOCK);
   }catch(error){
-    if(error.code==='ENOENT' && !required) return emptyLedger(observedAt);
-    if(error.code==='ELOOP') throw new Error('alert delivery ledger must be a regular file');
+    if(error.code==='ENOENT' && optional) return undefined;
+    if(error.code==='ELOOP') throw new Error(`${label} must be a regular file`);
     throw error;
   }
   try{
     const stat=await handle.stat();
-    if(!stat.isFile()) throw new Error('alert delivery ledger must be a regular file');
-    if(stat.size>MAX_LOCAL_ALERT_LEDGER_BYTES) throw new Error('alert delivery ledger exceeds byte limit');
+    if(!stat.isFile()) throw new Error(`${label} must be a regular file`);
+    if(stat.size>byteLimit) throw new Error(`${label} exceeds byte limit`);
     // Read at most the observed size plus one byte from the opened inode. The
     // extra byte detects file growth without an unbounded path-based read.
     const bytes=Buffer.allocUnsafe(stat.size+1);
@@ -132,11 +133,17 @@ async function readLedger(file,observedAt,{required=false}={}){
       if(!bytesRead) break;
       offset+=bytesRead;
     }
-    if(offset!==stat.size) throw new Error('alert delivery ledger changed while being read');
-    return validateLedger(JSON.parse(bytes.toString('utf8',0,offset)));
+    if(offset!==stat.size) throw new Error(`${label} changed while being read`);
+    return JSON.parse(bytes.toString('utf8',0,offset));
   }finally{
     await handle.close();
   }
+}
+
+async function readLedger(file,observedAt,{required=false}={}){
+  const ledger=await readBoundedJson(file,{label:'alert delivery ledger',
+    byteLimit:MAX_LOCAL_ALERT_LEDGER_BYTES,optional:!required});
+  return ledger===undefined && !required?emptyLedger(observedAt):validateLedger(ledger);
 }
 
 async function writeLedger(file,ledger){
@@ -340,8 +347,9 @@ export async function runAlertConsumer({eventsPath='FREE_MONITOR_EVENTS.json',
   retryBackoffMs=250,batchLimit=20,clock=Date.now,sleepImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}){
   validatePolicy({maxAttempts,attemptTimeoutMs,retryBackoffMs,batchLimit});
   const sink=localSinkForMode(mode);
-  const source=JSON.parse(await fs.readFile(eventsPath,'utf8'));
+  const source=await readBoundedJson(eventsPath,{label:'monitor events',byteLimit:MAX_LOCAL_ALERT_SOURCE_BYTES});
   if(!Array.isArray(source)) throw new Error('monitor events must be an array');
+  if(source.length>MONITOR_EVENT_LIMIT) throw new Error('monitor events exceeds record limit');
   for(const event of source){
     if(event?.type==='alert_intent' && !isPendingAlertIntent(event))
       throw new Error('invalid alert intent in monitor events');
