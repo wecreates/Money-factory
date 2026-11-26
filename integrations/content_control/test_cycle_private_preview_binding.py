@@ -32,7 +32,7 @@ class PrivatePreviewBindingTests(unittest.TestCase):
         report = export_review(queue.root, 'cycle-test', delivery)
         return delivery, report
 
-    def observation(self, delivery, *, omitted=()):
+    def observation(self, delivery, *, omitted=(), observed_at=None):
         source_files = {
             'src/App.tsx': 'a' * 64,
             'src/helpers/reviewEvidence.ts': 'b' * 64,
@@ -57,7 +57,7 @@ class PrivatePreviewBindingTests(unittest.TestCase):
             'source_files_sha256': source_files,
             'source_manifest_sha256': hashlib.sha256(
                 canonical(source_files).encode()).hexdigest(),
-            'observed_at': datetime.now(timezone.utc).isoformat(),
+            'observed_at': observed_at or datetime.now(timezone.utc).isoformat(),
             'visibility': 'private',
             'objects': objects,
             'scope': OBSERVATION_SCOPE,
@@ -66,6 +66,45 @@ class PrivatePreviewBindingTests(unittest.TestCase):
         path = self.base / ('observation-' + str(len(omitted)) + '.json')
         path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
         return path, value, digest(path)
+
+    def test_observation_cannot_predate_durable_delivery(self):
+        delivery, report = self.export()
+        completed_at = json.loads((delivery / 'package.json').read_text())[
+            'provenance']['completed_at_unix']
+        for offset, accepted in ((-0.000001, False), (0, True), (0.000001, True)):
+            with self.subTest(offset=offset):
+                observed_at = datetime.fromtimestamp(
+                    completed_at + offset, timezone.utc).isoformat()
+                observation, _, observed_sha = self.observation(
+                    delivery, observed_at=observed_at)
+                if accepted:
+                    result = verify_private_preview_binding(
+                        delivery, report['delivery_identity_sha256'],
+                        observation, observed_sha)
+                    self.assertEqual(result['status'], 'PASS')
+                else:
+                    with self.assertRaisesRegex(ValueError, 'predates'):
+                        verify_private_preview_binding(
+                            delivery, report['delivery_identity_sha256'],
+                            observation, observed_sha)
+
+    def test_completion_time_uses_hash_bound_receipt_and_microsecond_precision(self):
+        delivery, _ = self.export()
+        expected = binding_module._expected_objects(delivery)
+        receipt = json.loads((delivery / 'package.json').read_text())
+        receipt['provenance']['completed_at_unix'] = 1795656478.1234567
+        forged = (json.dumps(receipt, sort_keys=True) + '\n').encode()
+        with patch.object(Path, 'read_bytes', return_value=forged), \
+                self.assertRaisesRegex(ValueError, 'changed during chronology'):
+            binding_module._delivery_completion(delivery, expected)
+
+        matching = json.loads(json.dumps(expected))
+        matching['delivery_receipt']['sha256'] = hashlib.sha256(forged).hexdigest()
+        with patch.object(Path, 'read_bytes', return_value=forged):
+            completed = binding_module._delivery_completion(delivery, matching)
+        self.assertEqual(
+            completed,
+            datetime.fromtimestamp(1795656478.1234567, timezone.utc))
 
     def write(self, path, value):
         path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
