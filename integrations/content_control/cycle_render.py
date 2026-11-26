@@ -59,6 +59,8 @@ LANDSCAPE_SIZE = (1280, 720)
 DIAGRAM_LAYER_TOP = 310
 DIAGRAM_LAYER_BOTTOM = 811
 LANDSCAPE_DIAGRAM_POSITION = (515, 129)
+LANDSCAPE_CAPTION_SAFE_TOP = 526
+LANDSCAPE_CONTENT_BOTTOM = 505
 
 
 def panel_size(layout):
@@ -540,15 +542,81 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
             if i+1 < count_fields:
                 draw.line((110, y+row_height, 610, y+row_height), fill=ink, width=1)
     if layout == 'landscape':
+        # Landscape used to paste the lower 501 pixels of the portrait diagram at
+        # y=129.  That put authored labels and the speaker name into y>=526, the
+        # conservative sidecar-caption region used by the review pipeline.  Draw
+        # a purpose-built landscape information panel instead: the type remains
+        # at its native font size and all authored content ends above y=526.
         stage = Image.new('RGB', size, PANEL_BACKGROUND)
-        stage.paste(image.crop((0, DIAGRAM_LAYER_TOP, PORTRAIT_SIZE[0], DIAGRAM_LAYER_BOTTOM)),
-                    LANDSCAPE_DIAGRAM_POSITION)
         image = stage
         draw = ImageDraw.Draw(image)
-        wrapped(headline, 42, size=42, width=1070, max_lines=2, center=640)
+        wrapped(headline, 32, size=42, width=970, max_lines=2, center=640)
+        left, top, right, bottom = 510, 126, 1220, LANDSCAPE_CONTENT_BOTTOM
+        if kind == 'comparison':
+            if max(len(labels), len(values)) > 2:
+                raise ValueError('Comparison supports at most two labeled fields')
+            cards = ((left, top, 850, bottom), (880, top, right, bottom))
+            for i, bounds in enumerate(cards):
+                color = accent if i else ink
+                draw.rounded_rectangle(bounds, radius=24, outline=color, width=6)
+                if i < len(labels):
+                    label_bottom = 285 if i < len(values) else bottom - 20
+                    bounded_text(labels[i], (bounds[0]+18, top+24, bounds[2]-18, label_bottom),
+                                 sizes=(36, 32, 30, 28), color=color)
+                if i < len(values):
+                    bounded_text(values[i], (bounds[0]+18, 300, bounds[2]-18, bottom-18),
+                                 sizes=(38, 34, 32, 30), color=color)
+        elif kind == 'checklist':
+            draw.rounded_rectangle((left, top, right, bottom), radius=20, outline=ink, width=5)
+            items = (labels or values)[:4]
+            row_height = (bottom-top-24)/max(len(items), 1)
+            for i, label in enumerate(items):
+                y = top+12+i*row_height
+                draw.line((left+30, y+row_height*.52, left+47, y+row_height*.68,
+                           left+78, y+row_height*.24), fill=accent, width=7)
+                bounded_text(label, (left+105, y+4, right-24, y+row_height-4),
+                             sizes=(34, 32, 30, 28), left_aligned=True)
+        elif kind == 'balance':
+            draw.line((865, 180, 865, 425), fill=ink, width=10)
+            draw.line((610, 225, 1120, 225), fill=ink, width=10)
+            draw.line((780, 425, 950, 425), fill=ink, width=12)
+            for x in (660, 1070):
+                draw.line((x, 225, x-75, 350), fill=ink, width=5)
+                draw.line((x, 225, x+75, 350), fill=ink, width=5)
+                draw.arc((x-85, 315, x+85, 430), 0, 180, fill=accent, width=9)
+            bounded_text('  |  '.join(values[:2] or labels[:2]),
+                         (left+20, 435, right-20, bottom), sizes=(34, 32, 30))
+        else:
+            draw.rounded_rectangle((left, top, right, bottom),
+                                   radius=18 if kind == 'receipt' else 38,
+                                   outline=ink, width=7)
+            count_fields = max(len(labels), len(values), 1)
+            if count_fields > 4:
+                raise ValueError('Card and receipt support at most four labeled fields')
+            inner_top = top+18
+            if kind == 'card':
+                draw.rounded_rectangle((left+28, top+24, left+105, top+80),
+                                       radius=8, outline=accent, width=5)
+                inner_top = top+92
+            row_height = (bottom-inner_top-12)/count_fields
+            for i in range(count_fields):
+                y = inner_top+i*row_height
+                has_label, has_value = i < len(labels), i < len(values)
+                if has_label and has_value:
+                    split = y+row_height*.5
+                    bounded_text(labels[i], (left+24, y+2, right-24, split-1),
+                                 sizes=(32, 30, 28))
+                    bounded_text(values[i], (left+24, split+1, right-24, y+row_height-2),
+                                 sizes=(36, 34, 32, 30), color=accent)
+                else:
+                    field = labels[i] if has_label else values[i] if has_value else 'THE REAL COST'
+                    bounded_text(field, (left+24, y+2, right-24, y+row_height-2),
+                                 sizes=(36, 34, 32, 30))
+                if i+1 < count_fields:
+                    draw.line((left+24, y+row_height, right-24, y+row_height), fill=ink, width=1)
     # Recurring character silhouette. Direction is visible above, not misreported
     # as an AI-generated image. Three poses vary between scenes.
-    base_x,base_y=(265,350) if layout == 'landscape' else (360,970)
+    base_x,base_y=(250,320) if layout == 'landscape' else (360,970)
     # Moving the complete silhouette, rather than only a few arm pixels, keeps
     # the picture visibly alive at phone size while leaving the information
     # layer and speaker identity anchored.  The loop starts and ends on the
@@ -578,7 +646,8 @@ def draw_panel(scene, path, index, count, phase=0.0, *, layout=None, speaker_lab
     draw.line((x,y+80,x+45,y+140),fill=ink,width=7)
     speaker=scene.get('speaker','narrator').replace('_',' ').upper()
     label_y = PORTRAIT_ABOVE_LABEL_Y if speaker_label_position == 'above' else base_y+160
-    draw.text((base_x,label_y),speaker,font=font(23),fill=accent,anchor='mt')
+    label_size = 34 if layout == 'landscape' else 23
+    draw.text((base_x,label_y),speaker,font=font(label_size),fill=accent,anchor='mt')
     draw.text((size[0]-60, 22 if layout == 'landscape' else 50),
               f'{index+1}/{count}',font=font(22),fill=ink,anchor='rt')
     image.save(path)
@@ -617,9 +686,7 @@ def picture_filters(scene, frame_count, layout=None, narration_duration=None):
         raise ValueError('Comparison reveal requires half a second of rendered screen time')
     left, top, right, bottom = COMPARISON_BOUNDS[1]
     if layout == 'landscape':
-        dx, y = LANDSCAPE_DIAGRAM_POSITION
-        dy = y - DIAGRAM_LAYER_TOP
-        left, top, right, bottom = left+dx, top+dy, right+dx, bottom+dy
+        left, top, right, bottom = 880, 126, 1220, LANDSCAPE_CONTENT_BOTTOM
     # The filter runs on the complete 24 fps scene, outside the repeating arm loop.
     filters += (f",drawbox=x={left}:y={top}:w={right-left+1}:h={bottom-top+1}"
                 f":color=0x{PANEL_BACKGROUND[1:]}:t=fill:enable='lt(n,{frame})'")
@@ -695,6 +762,15 @@ def render_cycle(editorial, output, *, voice_python, voice_root, timeout=900, tr
                        'output_fps':24,'scope':MOTION_SCOPE}}
     if layout:
         receipt['layout'] = layout
+    if layout == 'landscape':
+        receipt['authored_content_bounds'] = {
+            'caption_safe_top': LANDSCAPE_CAPTION_SAFE_TOP,
+            'content_bottom': LANDSCAPE_CONTENT_BOTTOM,
+            'speaker_label_font_size': 34,
+            'secondary_field_minimum_font_size': 28,
+            'scope': ('Renderer-authored headline, diagrams, values, character and speaker label; '
+                      'burned or sidecar caption glyphs are not included.'),
+        }
     panel_options = {'layout': layout}
     if 'speaker_label_position' in editorial:
         panel_options['speaker_label_position'] = editorial['speaker_label_position']
