@@ -24,6 +24,7 @@ from integrations.content_control.private_preview_binding import (
     OBSERVATION_SCOPE,
     ROLE_PATHS,
     SHA256,
+    short_completion,
     verify_private_preview_binding,
 )
 from integrations.content_control.review_delivery import (
@@ -124,6 +125,15 @@ def _delivery_completion(delivery_dir, expected_sha256):
         return datetime.fromtimestamp(completed_at, timezone.utc)
     except (OverflowError, OSError, ValueError) as error:
         raise ValueError('Invalid durable delivery completion time') from error
+
+
+def _payload_completion(delivery_dir, manifest):
+    roles = {item['role']: item for item in manifest['objects']}
+    if roles['source_package']['logical_key'] != ROLE_PATHS['source_package']:
+        delivery = verify_exported_preview(
+            delivery_dir, manifest['delivery_identity_sha256'])
+        return short_completion(delivery_dir, delivery)
+    return _delivery_completion(delivery_dir, roles['delivery_receipt']['sha256'])
 
 
 def _expected_objects(delivery_dir, delivery):
@@ -519,9 +529,7 @@ def verify_readback_observation_bundle(
     snapshot_raw, snapshot = _read_source_snapshot(
         snapshot_path, expected_source_snapshot_sha256, manifest, manifest_sha)
     if (_utc_timestamp(snapshot['observed_at'], 'source observation timestamp')
-            < _delivery_completion(
-                delivery_root, next(item['sha256'] for item in manifest['objects']
-                                    if item['role'] == 'delivery_receipt'))):
+            < _payload_completion(delivery_root, manifest)):
         raise ValueError('Floot source observation predates durable delivery completion')
     receipt_path = bundle_root / 'floot-readback-receipt.json'
     receipt_raw, receipt = _read_readback_receipt(
@@ -613,16 +621,10 @@ def build_readback_observation(delivery_dir, expected_delivery_identity_sha256,
             delivery_root, expected_delivery_identity_sha256, payload_root) != manifest
             or manifest_path.read_bytes() != manifest_raw):
         raise ValueError('Private upload manifest changed before readback binding')
-    if any(item['role'] == 'source_package'
-           and item['logical_key'] != ROLE_PATHS['source_package']
-           for item in manifest['objects']):
-        raise ValueError('Short provider readback requires a Short-specific chronology and binding verifier')
     snapshot_raw, snapshot = _read_source_snapshot(
         snapshot_path, expected_source_snapshot_sha256, manifest, manifest_sha)
     if (_utc_timestamp(snapshot['observed_at'], 'source observation timestamp')
-            < _delivery_completion(
-                delivery_root, next(item['sha256'] for item in manifest['objects']
-                                    if item['role'] == 'delivery_receipt'))):
+            < _payload_completion(delivery_root, manifest)):
         raise ValueError('Floot source observation predates durable delivery completion')
     receipt_raw, receipt = _read_readback_receipt(
         receipt_path, expected_readback_receipt_sha256, manifest, snapshot,
