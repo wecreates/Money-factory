@@ -465,6 +465,28 @@ contained hashes could be coherently replaced. A PASS means the external
 identity matched the retained bytes. It does not prove phone/browser playback,
 which still requires an observed device session.
 
+To join those durable bytes to a deployed private preview without trusting a
+signed URL or HTTP status, retain a read-only deployment observation and pin
+the SHA-256 of its exact JSON through a separate trusted handoff. Then run:
+
+```sh
+python -m integrations.content_control.private_preview_binding \
+  --delivery /local/new-private-review \
+  --expected-delivery-identity <trusted-delivery_identity_sha256> \
+  --observation /local/deployment-observation.json \
+  --expected-observation-identity <trusted-observation-file-sha256>
+```
+
+The observation identifies the provider, project, immutable source version,
+checkpoint, canonical source-file manifest and stable deployed object keys. A
+PASS requires exact key, size and SHA-256 agreement for the video, captions,
+source package, review archive and root delivery receipt. A structurally valid
+observation with missing roles remains `BLOCKED`; any present-object mismatch,
+duplicate role, public/published state, enabled paid inference or changed
+externally pinned observation fails closed. The verifier replays the durable
+export before and after the join. Its receipt always leaves playback, physical
+phone, listening, creative and full audiovisual acceptance false.
+
 ### Deliver an exact retained checkpoint through the queue
 
 To deliver previously completed bytes without running synthesis again, enqueue
