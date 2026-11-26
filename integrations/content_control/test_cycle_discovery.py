@@ -113,6 +113,130 @@ class DiscoveryTests(unittest.TestCase):
         }
         return request
 
+    @staticmethod
+    def strict_revision(request, schema):
+        """Promote the synthetic discovery revision to a strict routed schema."""
+        from integrations.content_control.cycle_lineage import COMPARISON_HASHES
+
+        lineage = request['revision_input']['revision_lineage']
+        receipt = json.loads(lineage['revision_json'])
+        receipt['schema_version'] = schema
+        receipt['recorded_review_schema_version'] = {3: 2, 4: 3, 5: 4}[schema]
+        if schema in (3, 5):
+            receipt['comparison_findings_routing_verified'] = True
+            receipt.update({key: str(index) * 64
+                            for index, key in enumerate(sorted(COMPARISON_HASHES), 5)})
+            receipt['feedback'] = [{
+                'check': 'reference_comparison',
+                'action': 'Synthetic comparator repair retained for queue admission.',
+            }]
+        if schema in (4, 5):
+            receipt['private_review_record_sha256'] = '8' * 64
+            receipt['private_review_source_file_sha256'] = '9' * 64
+            receipt['private_review_findings_routing_verified'] = True
+        raw = json.dumps(receipt, indent=2) + '\n'
+        lineage['revision_json'] = raw
+        lineage['revision_sha256'] = hashlib.sha256(raw.encode()).hexdigest()
+        return request
+
+    def test_discovered_strict_revisions_reach_production_handoff(self):
+        base = self.discovered_revision_request()
+        for schema in (3, 4, 5):
+            with self.subTest(schema=schema):
+                request = self.strict_revision(
+                    copy.deepcopy(base), schema)
+                encoded, lineage, files, proof = production_handoff(request)
+                self.assertEqual(encoded.decode(), request['revision_input']['brief_json'])
+                self.assertEqual(lineage, request['revision_input']['revision_lineage'])
+                self.assertEqual(set(files), {
+                    'discovery-pool.json', 'discovery-research.json', 'discovery.json'})
+                self.assertEqual(proof, request['brief']['topic_discovery'])
+
+    def test_discovered_strict_revisions_reach_cycle_renderer(self):
+        base = self.discovered_revision_request()
+
+        def render(editorial, output, **options):
+            output.mkdir()
+            (output / 'video.mp4').write_bytes(b'strict revision candidate')
+            return {
+                'technical_status': 'PASS',
+                'publication_enabled': False,
+                'paid_generation_enabled': False,
+                'production_approved': False,
+                'full_av_review': False,
+                'candidate_sha256': hashlib.sha256(
+                    (output / 'video.mp4').read_bytes()).hexdigest(),
+            }
+
+        def package(editorial, render_dir, output, **options):
+            output.mkdir()
+            (output / 'package.json').write_text('{}')
+            return {
+                'status': 'AWAITING_REVIEW',
+                'technical_status': 'PASS',
+                'publication_enabled': False,
+                'paid_generation_enabled': False,
+                'production_approved': False,
+                'full_av_review': False,
+                'candidate_sha256': hashlib.sha256(
+                    (render_dir / 'video.mp4').read_bytes()).hexdigest(),
+                'archive_sha256': 'a' * 64,
+            }
+
+        for schema in (3, 4, 5):
+            with self.subTest(schema=schema):
+                request = self.strict_revision(copy.deepcopy(base), schema)
+                root = self.root / f'strict-{schema}'
+                root.mkdir()
+                brief_path = root / 'brief.json'
+                brief_path.write_text(request['revision_input']['brief_json'])
+                revision_path = root / 'revision.json'
+                revision_path.write_text(
+                    request['revision_input']['revision_lineage']['revision_json'])
+                evidence = {}
+                for field, name in (
+                        ('discovery_pool_json', 'pool.json'),
+                        ('discovery_research_json', 'research.json'),
+                        ('discovery_receipt_json', 'discovery.json')):
+                    path = root / name
+                    path.write_text(request['revision_input'][field])
+                    evidence[{'pool.json': 'pool_path',
+                              'research.json': 'research_path',
+                              'discovery.json': 'receipt_path'}[name]] = path
+                with patch('integrations.content_control.complete_cycle.render_cycle',
+                           side_effect=render), patch(
+                               'integrations.content_control.complete_cycle.package_cycle',
+                               side_effect=package):
+                    result = run_cycle(
+                        brief_path, root / 'cycle', voice_python='unused',
+                        voice_root='unused', timeout=30,
+                        revision_path=revision_path,
+                        revision_discovery_inputs=evidence)
+                self.assertEqual(result['status'], 'AWAITING_REVIEW')
+                self.assertEqual(result['verified_revision_discovery'],
+                                 request['brief']['topic_discovery'])
+                self.assertFalse(result['publication_enabled'])
+                self.assertFalse(result['paid_generation_enabled'])
+
+    def test_discovered_revision_requires_exact_lineage_identity(self):
+        base = self.discovered_revision_request()
+        for mutation in ('missing', 'changed'):
+            with self.subTest(mutation=mutation):
+                request = self.strict_revision(
+                    copy.deepcopy(base), 4)
+                lineage = request['revision_input']['revision_lineage']
+                receipt = json.loads(lineage['revision_json'])
+                if mutation == 'missing':
+                    del receipt['topic_discovery_sha256']
+                else:
+                    receipt['topic_discovery_sha256'] = '0' * 64
+                raw = json.dumps(receipt, indent=2) + '\n'
+                lineage['revision_json'] = raw
+                lineage['revision_sha256'] = hashlib.sha256(raw.encode()).hexdigest()
+                with self.assertRaisesRegex(
+                        ValueError, 'discovery provenance|retain topic discovery'):
+                    production_handoff(request)
+
     def test_selects_transparently_and_replays_exact_bytes(self):
         self.write()
         receipt = select_topic(self.pool, self.output)

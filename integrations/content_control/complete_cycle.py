@@ -106,13 +106,13 @@ def run_cycle(brief_path, output, *, voice_python, voice_root, timeout=900, tran
     discovery_identity = (hashlib.sha256(json.dumps(
         brief['topic_discovery'], sort_keys=True, separators=(',', ':'),
         allow_nan=False).encode()).hexdigest() if claimed_discovery else None)
-    if claimed_discovery and intake is None and lineage_receipt is not None and (
-            lineage_receipt.get('schema_version') != 2
-            or lineage_receipt.get('topic_discovery_sha256') != discovery_identity):
-        raise ValueError('Revision lineage does not retain topic discovery provenance')
-    if not claimed_discovery and lineage_receipt is not None \
-            and lineage_receipt.get('schema_version') == 2:
-        raise ValueError('Revision brief dropped retained topic discovery provenance')
+    if lineage_receipt is not None:
+        retains_discovery = 'topic_discovery_sha256' in lineage_receipt
+        if claimed_discovery != retains_discovery:
+            raise ValueError('Revision lineage discovery provenance mismatch')
+        if (claimed_discovery
+                and lineage_receipt.get('topic_discovery_sha256') != discovery_identity):
+            raise ValueError('Revision lineage does not retain topic discovery provenance')
     if claimed_discovery != (('topic_discovery' in intake) if intake is not None
                              else revision_discovery is not None):
         raise ValueError('Topic discovery requires replayable verified discovery evidence')
