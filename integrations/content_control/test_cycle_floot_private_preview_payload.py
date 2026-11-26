@@ -1,4 +1,5 @@
 """Offline Floot payload staging tests; no provider write or playback claim."""
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -10,10 +11,16 @@ from unittest.mock import patch
 
 from integrations.content_control import floot_private_preview_payload as payload_module
 from integrations.content_control.floot_private_preview_payload import (
+    READBACK_RECEIPT_SCOPE,
+    SOURCE_SNAPSHOT_SCOPE,
+    build_readback_observation,
     prepare_upload_payload,
+    verify_readback_observation_bundle,
     verify_upload_payload,
 )
-from integrations.content_control.private_preview_binding import FLAGS, ROLE_PATHS
+from integrations.content_control.private_preview_binding import (
+    FLAGS, ROLE_PATHS, verify_private_preview_binding,
+)
 from integrations.content_control.review_delivery import export_review
 from integrations.content_control.review_package import digest
 from integrations.content_control.test_cycle_queue_delivery import CycleDeliveryTests
@@ -36,6 +43,67 @@ class FlootPrivatePreviewPayloadTests(unittest.TestCase):
         manifest = prepare_upload_payload(
             delivery, report['delivery_identity_sha256'], output)
         return delivery, report, output, manifest
+
+    def readback_inputs(self):
+        delivery, report, payload, manifest = self.prepare()
+        readback = self.base / 'provider-readback'; readback.mkdir()
+        for item in manifest['objects']:
+            (readback / item['role']).write_bytes(
+                (payload / item['staged_path']).read_bytes())
+        source_files = {
+            'src/App.tsx': 'a' * 64,
+            ('cyzor-deliveries/' + report['delivery_identity_sha256'] +
+             '/floot-upload-manifest.json'):
+                digest(payload / 'floot-upload-manifest.json'),
+        }
+        snapshot = {
+            'schema_version': 1,
+            'status': 'PRIVATE_FLOOT_SOURCE_OBSERVED',
+            'provider': 'floot',
+            'project_id': 'private-preview-project',
+            'source_version': '1795636751508',
+            'source_checkpoint': 'a6edb9f9-8266-483f-b4e4-84b8e27fd49e',
+            'source_files_sha256': source_files,
+            'observed_at': datetime.now(timezone.utc).isoformat(),
+            'visibility': 'private',
+            'published': False,
+            'publication_enabled': False,
+            'paid_inference_enabled': False,
+            'scope': SOURCE_SNAPSHOT_SCOPE,
+        }
+        source = self.base / 'provider-source-snapshot.json'
+        source.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + '\n')
+        source_sha = digest(source)
+        receipt_value = {
+            'schema_version': 1,
+            'status': 'PRIVATE_FLOOT_READBACK_COMPLETE',
+            'provider': 'floot',
+            'project_id': snapshot['project_id'],
+            'source_version': snapshot['source_version'],
+            'source_checkpoint': snapshot['source_checkpoint'],
+            'source_snapshot_sha256': source_sha,
+            'upload_manifest_sha256': digest(
+                payload / 'floot-upload-manifest.json'),
+            'readback_completed_at': datetime.now(timezone.utc).isoformat(),
+            'visibility': 'private',
+            'published': False,
+            'publication_enabled': False,
+            'paid_inference_enabled': False,
+            'objects': [{
+                'role': item['role'],
+                'logical_key': item['logical_key'],
+                'storage_key': item['storage_key'],
+                'size_bytes': item['size_bytes'],
+                'sha256': item['sha256'],
+                'retrieval_method': 'provider_object_readback',
+            } for item in manifest['objects']],
+            'scope': READBACK_RECEIPT_SCOPE,
+        }
+        receipt = self.base / 'provider-readback-receipt.json'
+        receipt.write_text(json.dumps(
+            receipt_value, indent=2, sort_keys=True) + '\n')
+        return (delivery, report, payload, readback, source, source_sha,
+                snapshot, receipt, digest(receipt), receipt_value)
 
     def test_exact_five_roles_are_staged_for_private_add_only_upload(self):
         delivery, report, output, manifest = self.prepare()
@@ -174,6 +242,189 @@ class FlootPrivatePreviewPayloadTests(unittest.TestCase):
                                  capture_output=True, timeout=30)
         self.assertEqual(blocked.returncode, 2)
         self.assertEqual(json.loads(blocked.stdout)['status'], 'BLOCKED')
+
+    def test_complete_readback_builds_strict_observation_without_acceptance(self):
+        (delivery, report, payload, readback, source, source_sha, _, receipt,
+         receipt_sha, _) = self.readback_inputs()
+        output = self.base / 'private-preview-observation'
+        receipt = build_readback_observation(
+            delivery, report['delivery_identity_sha256'], payload, readback,
+            source, source_sha, receipt, receipt_sha, output)
+        self.assertEqual(receipt['status'], 'PRIVATE_READBACK_OBSERVATION_READY')
+        self.assertTrue(receipt['external_observation_pin_required'])
+        self.assertTrue(receipt['external_bundle_pin_required'])
+        self.assertFalse(receipt['provider_write_independently_verified'])
+        self.assertTrue(all(receipt[key] is False for key in FLAGS))
+        self.assertEqual({path.name for path in output.iterdir()}, {
+            'private-preview-observation.json', 'floot-readback-receipt.json',
+            'floot-source-snapshot.json', 'readback-observation-bundle.json'})
+        binding = verify_private_preview_binding(
+            delivery, report['delivery_identity_sha256'],
+            output / 'private-preview-observation.json',
+            digest(output / 'private-preview-observation.json'))
+        self.assertEqual(binding['status'], 'PASS')
+        self.assertFalse(binding['playback_verified'])
+        self.assertFalse(binding['physical_phone_verified'])
+        replay = verify_readback_observation_bundle(
+            delivery, report['delivery_identity_sha256'], payload, readback,
+            output, receipt['source_snapshot_sha256'],
+            receipt['readback_receipt_sha256'], receipt['observation_sha256'],
+            receipt['bundle_receipt_sha256'])
+        self.assertEqual(replay['status'], 'PASS')
+
+    def test_partial_or_changed_readback_emits_no_observation(self):
+        (delivery, report, payload, readback, source, source_sha, _, receipt,
+         receipt_sha, _) = self.readback_inputs()
+        for mode in ('missing', 'changed'):
+            with self.subTest(mode=mode):
+                target = readback / 'captions'
+                original = target.read_bytes()
+                if mode == 'missing':
+                    target.unlink()
+                else:
+                    target.write_bytes(original + b'changed')
+                output = self.base / ('blocked-observation-' + mode + '.json')
+                with self.assertRaises(ValueError):
+                    build_readback_observation(
+                        delivery, report['delivery_identity_sha256'], payload,
+                        readback, source, source_sha, receipt, receipt_sha, output)
+                self.assertFalse(output.exists())
+                target.write_bytes(original)
+
+    def test_source_snapshot_pin_physical_keys_and_safety_are_required(self):
+        (delivery, report, payload, readback, source, source_sha, snapshot,
+         receipt, receipt_sha, receipt_value) = self.readback_inputs()
+        cases = []
+        changed = json.loads(json.dumps(snapshot)); changed['published'] = True
+        cases.append(changed)
+        for index, changed in enumerate(cases):
+            with self.subTest(index=index):
+                source.write_text(json.dumps(changed))
+                changed_sha = digest(source)
+                with self.assertRaises(ValueError):
+                    build_readback_observation(
+                        delivery, report['delivery_identity_sha256'], payload,
+                        readback, source, changed_sha, receipt, receipt_sha,
+                        self.base / f'unsafe-observation-{index}.json')
+        source.write_text(json.dumps(snapshot))
+        with self.assertRaisesRegex(ValueError, 'trusted expected identity'):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                readback, source, source_sha, receipt, receipt_sha,
+                self.base / 'wrong-pin-observation.json')
+
+        source.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + '\n')
+        receipt_value['source_snapshot_sha256'] = digest(source)
+        receipt_value['objects'][0]['storage_key'] = 'deliveries/wrong/key'
+        receipt.write_text(json.dumps(receipt_value))
+        with self.assertRaisesRegex(ValueError, 'physical-key binding'):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                readback, source, digest(source), receipt, digest(receipt),
+                self.base / 'wrong-physical-key')
+
+    def test_staged_bytes_and_hardlinks_cannot_masquerade_as_provider_readback(self):
+        (delivery, report, payload, readback, source, source_sha, _, receipt,
+         receipt_sha, _) = self.readback_inputs()
+        with self.assertRaisesRegex(ValueError, 'separate from payload'):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                payload / 'objects', source, source_sha, receipt, receipt_sha,
+                self.base / 'contained-readback')
+        target = readback / 'captions'
+        target.unlink()
+        os.link(payload / 'objects/captions', target)
+        with self.assertRaisesRegex(ValueError, 'must not hardlink'):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                readback, source, source_sha, receipt, receipt_sha,
+                self.base / 'hardlinked-readback')
+
+        target.unlink()
+        target.write_bytes((payload / 'objects/captions').read_bytes())
+        real_open = os.open
+
+        def swap_open(path, flags, *args, **kwargs):
+            if Path(path) == target:
+                return real_open(payload / 'objects/captions', flags, *args, **kwargs)
+            return real_open(path, flags, *args, **kwargs)
+
+        with patch.object(payload_module.os, 'open', side_effect=swap_open), \
+                self.assertRaisesRegex(ValueError, 'must not hardlink'):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                readback, source, source_sha, receipt, receipt_sha,
+                self.base / 'aba-readback')
+
+    def test_readback_receipt_chronology_and_source_identity_are_required(self):
+        (delivery, report, payload, readback, source, source_sha, snapshot, receipt,
+         _, receipt_value) = self.readback_inputs()
+        changed = json.loads(json.dumps(receipt_value))
+        changed['source_checkpoint'] = 'different-checkpoint'
+        receipt.write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, 'physical-key binding'):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                readback, source, source_sha, receipt, digest(receipt),
+                self.base / 'wrong-checkpoint')
+
+        changed = json.loads(json.dumps(receipt_value))
+        changed['readback_completed_at'] = '2999-01-01T00:00:00+00:00'
+        receipt.write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, 'readback completion timestamp'):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                readback, source, source_sha, receipt, digest(receipt),
+                self.base / 'future-readback')
+
+        stale_source = json.loads(json.dumps(snapshot))
+        stale_source['observed_at'] = '2000-01-01T00:00:00+00:00'
+        source.write_text(json.dumps(stale_source))
+        stale_source_sha = digest(source)
+        changed = json.loads(json.dumps(receipt_value))
+        changed['source_snapshot_sha256'] = stale_source_sha
+        receipt.write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, 'predates durable delivery'):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                readback, source, stale_source_sha, receipt, digest(receipt),
+                self.base / 'stale-source')
+
+    def test_readback_bundle_publish_is_no_replace_and_owned_cleanup_only(self):
+        (delivery, report, payload, readback, source, source_sha, _, receipt,
+         receipt_sha, _) = self.readback_inputs()
+        output = self.base / 'concurrent-readback-bundle'
+
+        def collide(stage, destination):
+            destination.mkdir()
+            (destination / 'sentinel').write_text('concurrent owner')
+            raise FileExistsError('destination appeared')
+
+        with patch.object(payload_module, '_publish_restore', side_effect=collide), \
+                self.assertRaises(FileExistsError):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                readback, source, source_sha, receipt, receipt_sha, output)
+        self.assertEqual((output / 'sentinel').read_text(), 'concurrent owner')
+
+        owned_output = self.base / 'owned-failed-final-replay'
+        original = payload_module.verify_private_preview_binding
+        calls = 0
+
+        def verify(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise ValueError('forced final binding replay failure')
+            return original(*args, **kwargs)
+
+        with patch.object(payload_module, 'verify_private_preview_binding',
+                          side_effect=verify), self.assertRaisesRegex(
+                              ValueError, 'forced final binding replay'):
+            build_readback_observation(
+                delivery, report['delivery_identity_sha256'], payload,
+                readback, source, source_sha, receipt, receipt_sha, owned_output)
+        self.assertFalse(owned_output.exists())
 
 
 if __name__ == '__main__':
