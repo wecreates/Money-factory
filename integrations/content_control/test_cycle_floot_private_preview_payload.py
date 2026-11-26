@@ -254,6 +254,12 @@ class FlootPrivatePreviewPayloadTests(unittest.TestCase):
                  'index.html', 'queue-short.json', 'short.json', 'video.mp4')
         for name in names:
             (preview / name).write_text(name)
+        (preview / 'queue-short.json').write_text(json.dumps({
+            'status': 'AWAITING_REVIEW', 'technical_status': 'PASS',
+            'candidate_sha256': digest(preview / 'video.mp4'),
+            'caption_sha256': digest(preview / 'captions.vtt'),
+            'finished_at': '2020-01-02T00:00:00Z',
+        }))
         hashes = {'review/' + name: digest(preview / name) for name in names}
         archive = root / 'review-package.zip'
         report = {
@@ -290,6 +296,29 @@ class FlootPrivatePreviewPayloadTests(unittest.TestCase):
         source = next(item for item in manifest['objects'] if item['role'] == 'source_package')
         self.assertEqual(source['logical_key'], 'review/delivery-manifest.json')
         self.assertEqual(manifest, verify_upload_payload(root, identity, output))
+        source_files = {
+            f'cyzor-deliveries/{identity}/floot-upload-manifest.json':
+                digest(output / 'floot-upload-manifest.json'),
+        }
+        observation = {
+            'schema_version': 1, 'status': 'UNPUBLISHED_PRIVATE_PREVIEW_OBSERVED',
+            'provider': 'floot', 'project_id': 'private', 'source_version': '1',
+            'source_checkpoint': 'checkpoint', 'source_files_sha256': source_files,
+            'source_manifest_sha256': hashlib.sha256(canonical(source_files).encode()).hexdigest(),
+            'observed_at': '2020-01-01T00:00:00Z', 'visibility': 'private',
+            'scope': payload_module.OBSERVATION_SCOPE, **FLAGS,
+            'objects': [{'role': item['role'], 'key': item['logical_key'],
+                         'size_bytes': item['size_bytes'], 'sha256': item['sha256']}
+                        for item in manifest['objects']],
+        }
+        observation_path = self.base / 'short-observation.json'
+        observation_path.write_text(json.dumps(observation))
+        with self.assertRaisesRegex(ValueError, 'predates durable delivery'):
+            verify_private_preview_binding(root, identity, observation_path, digest(observation_path))
+        observation['observed_at'] = '2020-01-02T00:00:00Z'
+        observation_path.write_text(json.dumps(observation))
+        self.assertEqual(verify_private_preview_binding(
+            root, identity, observation_path, digest(observation_path))['status'], 'PASS')
         with self.assertRaisesRegex(ValueError, 'trusted delivery identity'):
             verify_upload_payload(root, '0' * 64, output)
         (preview / 'captions.vtt').write_text('changed')
