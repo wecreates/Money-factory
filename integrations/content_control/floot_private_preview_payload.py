@@ -15,6 +15,7 @@ from pathlib import Path
 import shutil
 import stat
 import tempfile
+from zipfile import BadZipFile
 
 from integrations.local_agent_queue import canonical
 from integrations.content_control.cycle_checkpoint import _publish_restore
@@ -29,7 +30,7 @@ from integrations.content_control.review_delivery import (
     digest,
     parse_json,
     regular,
-    verify_exported_cycle,
+    verify_exported_preview,
 )
 
 
@@ -130,7 +131,8 @@ def _expected_objects(delivery_dir, delivery):
     identity = delivery['delivery_identity_sha256']
     result = []
     for role in sorted(ROLE_PATHS):
-        logical = ROLE_PATHS[role]
+        logical = (delivery.get('source_package_path', ROLE_PATHS[role])
+                   if role == 'source_package' else ROLE_PATHS[role])
         source = regular(root / logical, limit=MAX_FLOOT_OBJECT)
         result.append({
             'role': role,
@@ -191,7 +193,7 @@ def _copy_exact(source, target, expected):
 
 def verify_upload_payload(delivery_dir, expected_delivery_identity_sha256, payload_dir):
     """Replay a prepared payload against the exact durable delivery."""
-    delivery = verify_exported_cycle(
+    delivery = verify_exported_preview(
         delivery_dir, expected_delivery_identity_sha256)
     payload = regular(payload_dir, directory=True)
     if {path.name for path in payload.iterdir()} != {'floot-upload-manifest.json', 'objects'}:
@@ -235,7 +237,7 @@ def verify_upload_payload(delivery_dir, expected_delivery_identity_sha256, paylo
     if hashlib.sha256(canonical(identity).encode()).hexdigest() != retained_identity:
         raise ValueError('Private upload payload identity changed')
     if (manifest_path.read_bytes() != manifest_raw
-            or verify_exported_cycle(
+            or verify_exported_preview(
                 delivery_dir, expected_delivery_identity_sha256) != delivery
             or _expected_objects(delivery_dir, delivery) != expected
             or any(
@@ -260,7 +262,7 @@ def prepare_upload_payload(delivery_dir, expected_delivery_identity_sha256, outp
             or output.is_relative_to(delivery_root)
             or delivery_root.is_relative_to(output)):
         raise ValueError('Fresh payload output separate from delivery required')
-    delivery = verify_exported_cycle(
+    delivery = verify_exported_preview(
         delivery_root, expected_delivery_identity_sha256)
     objects = _expected_objects(delivery_root, delivery)
     stage = Path(tempfile.mkdtemp(prefix='.floot-private-payload-', dir=parent))
@@ -277,7 +279,7 @@ def prepare_upload_payload(delivery_dir, expected_delivery_identity_sha256, outp
         manifest_path.write_text(
             json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False) + '\n')
         os.chmod(manifest_path, 0o600)
-        if (verify_exported_cycle(
+        if (verify_exported_preview(
                 delivery_root, expected_delivery_identity_sha256) != delivery
                 or _expected_objects(delivery_root, delivery) != objects
                 or verify_upload_payload(
@@ -611,6 +613,10 @@ def build_readback_observation(delivery_dir, expected_delivery_identity_sha256,
             delivery_root, expected_delivery_identity_sha256, payload_root) != manifest
             or manifest_path.read_bytes() != manifest_raw):
         raise ValueError('Private upload manifest changed before readback binding')
+    if any(item['role'] == 'source_package'
+           and item['logical_key'] != ROLE_PATHS['source_package']
+           for item in manifest['objects']):
+        raise ValueError('Short provider readback requires a Short-specific chronology and binding verifier')
     snapshot_raw, snapshot = _read_source_snapshot(
         snapshot_path, expected_source_snapshot_sha256, manifest, manifest_sha)
     if (_utc_timestamp(snapshot['observed_at'], 'source observation timestamp')
@@ -769,7 +775,7 @@ def main(argv=None):
                 args.expected_readback_receipt_identity,
                 args.expected_observation_identity,
                 args.expected_bundle_receipt_identity)
-    except (ValueError, OSError, KeyError, TypeError) as error:
+    except (ValueError, OSError, KeyError, TypeError, BadZipFile) as error:
         print(json.dumps({'schema_version': 1, 'status': 'BLOCKED',
                           **FLAGS, 'reason': str(error), 'scope': SCOPE}, indent=2))
         return 2
