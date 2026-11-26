@@ -4,6 +4,8 @@ import base64
 import hashlib
 from pathlib import Path
 import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -58,3 +60,83 @@ class OfflineReviewPlayerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'WebVTT captions required'):
             self.build()
         self.assertFalse(self.output.exists())
+
+    @unittest.skipUnless(shutil.which('node'), 'Node needed to execute the player script')
+    def test_sidecar_pass_requires_loaded_visible_cues_throughout_playback(self):
+        self.build()
+        subprocess.run(
+            ['node', '-e', r"""
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const script = fs.readFileSync(process.argv[1], 'utf8').match(/<script>([\s\S]+)<\/script>/)[1];
+function setup() {
+  const fields = new Map();
+  class Element extends EventTarget {
+    textContent = 'AA==';
+    setAttribute() {}
+  }
+  const track = Object.assign(new Element(), {
+    readyState: 2, track: {mode: 'hidden', cues: [{}]},
+  });
+  const player = Object.assign(new Element(), {
+    currentTime: 0, duration: 10, volume: 1, playbackRate: 1, muted: false,
+    textTracks: new EventTarget(), append() {},
+  });
+  const document = Object.assign(new EventTarget(), {
+    hidden: false,
+    createElement: () => track,
+    getElementById(id) {
+      if (id === 'player') return player;
+      if (!fields.has(id)) fields.set(id, new Element());
+      return fields.get(id);
+    },
+  });
+  const context = vm.createContext({
+    document, atob, HTMLTrackElement: {LOADED: 2},
+    crypto: {subtle: {digest: () => new Promise(() => {})}},
+  });
+  vm.runInContext(script, context);
+  track.track.mode = 'showing';
+  return {document, player, track, state: vm.runInContext('state', context)};
+}
+function run(before, during, expected) {
+  const review = setup();
+  before(review);
+  review.player.dispatchEvent(new Event('playing'));
+  during(review);
+  review.player.currentTime = 10;
+  review.player.dispatchEvent(new Event('ended'));
+  assert.equal(review.state.naturalPassComplete, true);
+  assert.equal(review.state.captionPassComplete, expected);
+  return review;
+}
+const noop = () => {};
+const complete = run(noop, noop, true);
+complete.track.track.mode = 'disabled';
+complete.player.textTracks.dispatchEvent(new Event('change'));
+assert.equal(complete.state.captionPassComplete, true);
+run(({track}) => { track.readyState = 3; }, noop, false);
+run(({track}) => { track.track.cues = []; }, noop, false);
+run(({track}) => { track.readyState = 1; }, ({track}) => { track.readyState = 2; }, false);
+run(noop, ({track}) => { track.dispatchEvent(new Event('error')); }, false);
+run(noop, ({player, track}) => {
+  track.track.mode = 'disabled';
+  player.textTracks.dispatchEvent(new Event('change'));
+  track.track.mode = 'showing';
+  player.textTracks.dispatchEvent(new Event('change'));
+}, false);
+run(noop, ({document}) => {
+  document.getElementById('captions').onclick();
+  document.getElementById('captions').onclick();
+}, false);
+run(noop, ({player, track}) => {
+  track.track.cues = [];
+  player.dispatchEvent(new Event('timeupdate'));
+  track.track.cues = [{}];
+}, false);
+run(noop, ({track}) => { track.readyState = 3; }, false);
+""", str(self.output)],
+            check=True,
+            timeout=10,
+        )

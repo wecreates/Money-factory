@@ -111,7 +111,29 @@ const track = Object.assign(document.createElement('track'), {
 });
 player.append(track);
 track.track.mode = 'hidden';
-track.addEventListener('error', () => {element('caption-status').textContent = 'The browser could not load the separate caption track.';});
+function sidecarShowing() {
+  return track.readyState === HTMLTrackElement.LOADED &&
+    track.track.mode === 'showing' && (track.track.cues?.length ?? 0) > 0;
+}
+function invalidateCaptionPass(reason) {
+  if (!state.active || state.endedAt !== null || !state.captionValid) return;
+  state.captionValid = false;
+  logEvent('caption_pass_invalidated', {reason});
+}
+track.addEventListener('error', () => {
+  element('caption-status').textContent = 'The browser could not load the separate caption track.';
+  invalidateCaptionPass('sidecar load error');
+});
+function updateCaptionControl() {
+  const showing = track.track.mode === 'showing';
+  if (!showing) invalidateCaptionPass('sidecar hidden during playback');
+  element('captions').textContent = showing ? 'Hide sidecar captions' : 'Show sidecar captions';
+  element('captions').setAttribute('aria-pressed', String(showing));
+}
+player.textTracks.addEventListener('change', updateCaptionControl);
+player.addEventListener('timeupdate', () => {
+  if (!sidecarShowing()) invalidateCaptionPass('sidecar unavailable during playback');
+});
 Promise.all([digest(pictureBytes), digest(captionBytes)]).then(([videoHash, captionHash]) => {
   if (videoHash !== EXPECTED_VIDEO || captionHash !== EXPECTED_CAPTIONS) throw new Error('embedded media identity mismatch');
   state.identityVerified = true;
@@ -128,10 +150,11 @@ player.addEventListener('error', () => {invalidate('media error'); element('stat
 player.addEventListener('playing', () => {
   if (!state.active) {
     state.active = true; state.valid = player.currentTime <= .25 && player.playbackRate === 1 && !player.muted && player.volume > 0 && !document.hidden;
-    state.captionValid = track.track.mode === 'showing';
+    state.captionValid = sidecarShowing();
     state.startedAt = new Date().toISOString();
     if (!state.valid) state.invalidations.push('pass did not start audibly, visibly, at 1x near time zero');
-    logEvent('natural_pass_started', {valid: state.valid, caption_showing: state.captionValid});
+    logEvent('natural_pass_started', {valid: state.valid, caption_showing: track.track.mode === 'showing',
+      caption_ready: state.captionValid});
   } else logEvent('playback_resumed');
 });
 player.addEventListener('pause', () => {if (!player.ended) logEvent('playback_paused');});
@@ -142,7 +165,7 @@ document.addEventListener('visibilitychange', () => {if (document.hidden && !pla
 player.addEventListener('ended', () => {
   state.endedAt = new Date().toISOString();
   state.naturalPassComplete = state.active && state.valid && Number.isFinite(player.duration) && player.currentTime >= player.duration - .25;
-  state.captionPassComplete = state.naturalPassComplete && state.captionValid;
+  state.captionPassComplete = state.naturalPassComplete && state.captionValid && sidecarShowing();
   logEvent('playback_ended', {natural_pass_complete: state.naturalPassComplete, caption_pass_complete: state.captionPassComplete});
   element('status').textContent = state.naturalPassComplete ? 'Natural playback pass completed.' : 'Playback ended without a valid natural pass.';
 });
@@ -161,10 +184,8 @@ element('reset').onclick = () => {
 element('captions').onclick = () => {
   const shown = track.track.mode !== 'showing';
   track.track.mode = shown ? 'showing' : 'hidden';
-  if (state.active && !shown) state.captionValid = false;
   logEvent('caption_mode_changed', {mode: track.track.mode});
-  element('captions').textContent = shown ? 'Hide sidecar captions' : 'Show sidecar captions';
-  element('captions').setAttribute('aria-pressed', String(shown));
+  updateCaptionControl();
 };
 function checked(id) {return element(id).checked;}
 function validateFindings(value) {
