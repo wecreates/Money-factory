@@ -394,6 +394,88 @@ def export_cycle(review, provenance, queue_root, output_dir):
     return report
 
 
+def verify_exported_preview(output_dir, expected_delivery_identity_sha256):
+    """Replay either a cycle export or a retained caption-safe Short export."""
+    root = regular(output_dir, directory=True)
+    report = read_json(root / 'package.json')
+    if 'manifest_sha256' not in report:
+        return verify_exported_cycle(root, expected_delivery_identity_sha256)
+    manifest_keys = {
+        'schema_version', 'status', 'technical_status', 'candidate_sha256',
+        'caption_sha256', 'decoded_picture_sha256', 'encoded_streams_sha256',
+        'entrypoint', 'entrypoint_sha256', 'files_sha256', 'parent_provenance',
+        'queue_receipt_sha256', 'scope', 'selection', *FLAGS,
+    }
+    if (set(report) != manifest_keys | {
+            'archive', 'archive_sha256', 'manifest_sha256', 'delivery_identity_sha256'}
+            or report['schema_version'] != 1
+            or report['status'] != 'AWAITING_REVIEW'
+            or report['technical_status'] != 'PASS'
+            or any(report.get(flag) is not False for flag in FLAGS)
+            or report['archive'] != 'review-package.zip'
+            or report['entrypoint'] != 'review/index.html'
+            or {path.name for path in root.iterdir()} != {
+                'package.json', 'review-package.zip', 'review'}):
+        raise ValueError('Short private delivery receipt schema is invalid')
+    identity = {key: value for key, value in report.items()
+                if key != 'delivery_identity_sha256'}
+    if (report['delivery_identity_sha256'] != expected_delivery_identity_sha256
+            or hashlib.sha256(canonical(identity).encode()).hexdigest()
+            != expected_delivery_identity_sha256):
+        raise ValueError('Short export does not match trusted delivery identity')
+    preview = regular(root / 'review', directory=True)
+    keys = {'automated-review.json', 'captions.vtt', 'delivery-manifest.json',
+            'index.html', 'queue-short.json', 'short.json', 'video.mp4'}
+    hashes = report['files_sha256']
+    if (not isinstance(hashes, dict)
+            or set(hashes) != {'review/' + key for key in keys}
+            or {path.name for path in preview.iterdir()} != keys
+            or any(not isinstance(value, str) or not re.fullmatch('[0-9a-f]{64}', value)
+                   for value in hashes.values())
+            or any(hashes['review/' + key] != report[field] for key, field in (
+                ('video.mp4', 'candidate_sha256'), ('captions.vtt', 'caption_sha256'),
+                ('index.html', 'entrypoint_sha256'), ('queue-short.json', 'queue_receipt_sha256'),
+                ('delivery-manifest.json', 'manifest_sha256')))):
+        raise ValueError('Short private delivery inventory is invalid')
+    def replay_files():
+        return {key: digest(regular(root / key, limit=MAX_FILE)) for key in hashes}
+    if replay_files() != hashes:
+        raise ValueError('Short preview files changed')
+    expected_manifest = {key: report[key] for key in manifest_keys}
+    expected_manifest['files_sha256'] = {
+        key.removeprefix('review/'): value for key, value in hashes.items()
+        if key != 'review/delivery-manifest.json'
+    }
+    if read_json(preview / 'delivery-manifest.json') != expected_manifest:
+        raise ValueError('Short source manifest disagrees with delivery receipt')
+    archive_path = regular(root / 'review-package.zip', limit=MAX_PACKET)
+    if digest(archive_path) != report['archive_sha256']:
+        raise ValueError('Short preview archive changed')
+    with ZipFile(archive_path) as archive:
+        members = archive.infolist()
+        if (len(members) != len(keys) or {item.filename for item in members} != set(hashes)
+                or sum(item.file_size for item in members) > MAX_PACKET
+                or any(item.is_dir() or item.file_size > MAX_FILE
+                       or ((item.external_attr >> 16) & 0o170000) == 0o120000
+                       for item in members)):
+            raise ValueError('Short preview archive inventory is invalid')
+        for item in members:
+            observed = hashlib.sha256()
+            with archive.open(item) as stream:
+                while chunk := stream.read(1024 * 1024):
+                    observed.update(chunk)
+            if observed.hexdigest() != hashes[item.filename]:
+                raise ValueError('Short preview archive member changed')
+    if (read_json(root / 'package.json') != report or replay_files() != hashes
+            or digest(archive_path) != report['archive_sha256']):
+        raise ValueError('Short delivery changed during replay')
+    return {'delivery_identity_sha256': expected_delivery_identity_sha256,
+            'candidate_sha256': report['candidate_sha256'],
+            'package_sha256': report['manifest_sha256'],
+            'archive_sha256': report['archive_sha256'],
+            'source_package_path': 'review/delivery-manifest.json'}
+
+
 def verify_exported_cycle(output_dir, expected_delivery_identity_sha256):
     """Reopen a retained private cycle export without trusting its receipt.
 
