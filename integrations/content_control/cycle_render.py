@@ -999,6 +999,31 @@ def caption_display_words(words, recognized_text, *, scene_boundaries=()):
     return display, joins
 
 
+class ObservedWordTimingError(ValueError):
+    """Rejected raw observation location; never a license to retime it."""
+    def __init__(self, index, reason, previous_end, duration):
+        super().__init__(f'Invalid observed word timing at index {index}: {reason}')
+        self.diagnostic = {'word_index': index, 'reason': reason,
+                           'previous_end': previous_end, 'encoded_media_duration_seconds': duration}
+
+
+def write_transcription_report(path, report):
+    """Persist rejected nonfinite numbers explicitly without invalid JSON.
+
+    Finite observations remain unchanged. Tags retain otherwise unserializable
+    values for diagnosis and are never passed to the caption validator as time.
+    """
+    def diagnostic_value(value):
+        if type(value) is float and not math.isfinite(value):
+            return {'nonfinite_float': 'nan' if math.isnan(value) else ('inf' if value > 0 else '-inf')}
+        if isinstance(value, dict):
+            return {key: diagnostic_value(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [diagnostic_value(item) for item in value]
+        return value
+    write(path, diagnostic_value(report))
+
+
 def observed_captions(words, duration, *, scene_boundaries=()):
     """Group observed words at punctuation/0.5s pauses, with a seven-word cap.
 
@@ -1010,13 +1035,21 @@ def observed_captions(words, duration, *, scene_boundaries=()):
     if not isinstance(words,list) or not words:
         raise ValueError('Observed ASR word timestamps required')
     previous=0.0
-    for word in words:
+    for index, word in enumerate(words):
         start,end=word['start'],word['end']
-        if (type(start) not in (int,float) or type(end) not in (int,float)
-                or not math.isfinite(start) or not math.isfinite(end)
-                or not 0 <= start <= end <= duration or start < previous-.02
-                or not isinstance(word['word'],str) or not word['word'].strip()):
-            raise ValueError('Invalid observed word timing')
+        reason = None
+        if type(start) not in (int,float) or type(end) not in (int,float):
+            reason = 'non_numeric_time'
+        elif not math.isfinite(start) or not math.isfinite(end):
+            reason = 'nonfinite_time'
+        elif not 0 <= start <= end <= duration:
+            reason = 'outside_encoded_bounds_or_reversed_interval'
+        elif start < previous-.02:
+            reason = 'overlaps_previous_end_by_more_than_20ms'
+        elif not isinstance(word['word'],str) or not word['word'].strip():
+            reason = 'empty_or_nontext_word'
+        if reason is not None:
+            raise ObservedWordTimingError(index, reason, previous, duration)
         previous=end
     groups=[]; group=[]
     for word in words:
@@ -1135,7 +1168,13 @@ def transcribe_encoded(editorial, output, voice_root, *, timeline=None):
             'duration_seconds':duration,'encoded_media_duration_seconds':media_duration,'helper_sha256':digest(helper),'publication_enabled':False,
             'production_approved':False,'full_av_review':False,
             'scope':'Encoded speech recognition and observed word timing; not semantic equivalence, factual, creative or listening approval.'}
-    if comparison['passed']:
+    # Preserve the original observations even if strict timing validation fails.
+    # This FAIL report does not approve or replace the preliminary caption file.
+    report_path = output/'transcription.json'
+    write_transcription_report(report_path, report)
+    if not comparison['passed']:
+        raise ValueError('Independent encoded speech comparison failed')
+    try:
         # Validate every original observation before a display-only join can
         # replace two constituent timings with one outer interval.
         observed_captions(words,media_duration,scene_boundaries=boundaries)
@@ -1145,12 +1184,22 @@ def transcribe_encoded(editorial, output, voice_root, *, timeline=None):
         if digest(video)!=candidate_hash:raise ValueError('Candidate changed during ASR')
         if timeline is not None and digest(timeline) != timeline_sha:
             raise ValueError('Scene timeline changed during ASR')
-        (output/'captions.vtt').write_text(captions)
-        report.update(status='PASS',caption_sha256=digest(output/'captions.vtt'),timeline_sha256=timeline_sha,
-                      caption_typography={'mode':'recognized_contiguous_hyphen_compounds_v1',
-                                          'joins':display_joins})
-    write(output/'transcription.json',report)
-    if report['status']!='PASS':raise ValueError('Independent encoded speech comparison failed')
+        success = dict(report, status='PASS', timeline_sha256=timeline_sha,
+                       caption_typography={'mode':'recognized_contiguous_hyphen_compounds_v1',
+                                           'joins':display_joins})
+        # A successful receipt must keep the strict JSON contract before the
+        # preliminary sidecar can be replaced. Diagnostic tags are FAIL-only.
+        json.dumps(success, allow_nan=False)
+    except ValueError as error:
+        report['caption_validation_error'] = {
+            'message': str(error),
+            **getattr(error, 'diagnostic', {}),
+        }
+        write_transcription_report(report_path, report)
+        raise
+    (output/'captions.vtt').write_text(captions)
+    success['caption_sha256'] = digest(output/'captions.vtt')
+    write(report_path, success)
 
 
 if __name__=='__main__':
