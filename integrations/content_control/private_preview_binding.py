@@ -17,6 +17,7 @@ import re
 from integrations.local_agent_queue import canonical
 from integrations.content_control.review_delivery import (
     digest,
+    parse_json,
     regular,
     verify_exported_cycle,
 )
@@ -103,7 +104,27 @@ def _timestamp(value):
             or not math.isfinite(parsed.timestamp())
             or parsed > datetime.now(timezone.utc) + timedelta(minutes=5)):
         raise ValueError('Invalid deployment observation timestamp')
-    return value
+    return value, parsed
+
+
+def _delivery_completion(delivery_dir, expected_objects):
+    """Read the exact hash-bound root receipt and normalize its completion time."""
+    receipt_path = regular(Path(delivery_dir) / 'package.json')
+    receipt_raw = receipt_path.read_bytes()
+    if hashlib.sha256(receipt_raw).hexdigest() != expected_objects[
+            'delivery_receipt']['sha256']:
+        raise ValueError('Durable delivery receipt changed during chronology check')
+    try:
+        receipt = parse_json(receipt_raw.decode('utf-8'))
+    except UnicodeDecodeError as error:
+        raise ValueError('Durable delivery receipt is invalid') from error
+    completed_at = receipt.get('provenance', {}).get('completed_at_unix')
+    if type(completed_at) not in (int, float) or not math.isfinite(completed_at):
+        raise ValueError('Durable delivery completion time is invalid')
+    try:
+        return datetime.fromtimestamp(completed_at, timezone.utc)
+    except (OverflowError, OSError, ValueError) as error:
+        raise ValueError('Durable delivery completion time is invalid') from error
 
 
 def _expected_objects(delivery_dir):
@@ -155,12 +176,15 @@ def verify_private_preview_binding(delivery_dir, expected_delivery_identity_sha2
     if (not isinstance(source_manifest, str) or not SHA256.fullmatch(source_manifest)
             or hashlib.sha256(canonical(source_files).encode()).hexdigest() != source_manifest):
         raise ValueError('Invalid deployment source manifest identity')
-    observed_at = _timestamp(observation.get('observed_at'))
+    expected_objects = _expected_objects(delivery_dir)
+    completed_time = _delivery_completion(delivery_dir, expected_objects)
+    observed_at, observed_time = _timestamp(observation.get('observed_at'))
+    if observed_time < completed_time:
+        raise ValueError('Deployment observation predates durable delivery completion')
     objects = observation.get('objects')
     if not isinstance(objects, list) or len(objects) > len(ROLE_PATHS):
         raise ValueError('Invalid deployment object inventory')
 
-    expected_objects = _expected_objects(delivery_dir)
     observed = {}
     for item in objects:
         if not isinstance(item, dict) or set(item) != OBJECT_FIELDS:
