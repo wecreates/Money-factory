@@ -473,6 +473,8 @@ def verify_exported_preview(output_dir, expected_delivery_identity_sha256):
             'candidate_sha256': report['candidate_sha256'],
             'package_sha256': report['manifest_sha256'],
             'archive_sha256': report['archive_sha256'],
+            'short_queue_receipt_sha256': report['queue_receipt_sha256'],
+            'caption_sha256': report['caption_sha256'],
             'source_package_path': 'review/delivery-manifest.json'}
 
 
