@@ -19,7 +19,7 @@ from integrations.content_control.review_delivery import (
     digest,
     parse_json,
     regular,
-    verify_exported_cycle,
+    verify_exported_preview,
 )
 
 
@@ -127,8 +127,26 @@ def _delivery_completion(delivery_dir, expected_objects):
         raise ValueError('Durable delivery completion time is invalid') from error
 
 
-def _expected_objects(delivery_dir):
+def short_completion(delivery_dir, delivery):
+    """Use the verified derivative completion as a lower bound, never its parent."""
+    path = regular(Path(delivery_dir) / 'review/queue-short.json', limit=MAX_OBSERVATION)
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != delivery['short_queue_receipt_sha256']:
+        raise ValueError('Short queue receipt changed during chronology check')
+    receipt = parse_json(raw.decode('utf-8'))
+    if (receipt.get('status') != 'AWAITING_REVIEW'
+            or receipt.get('technical_status') != 'PASS'
+            or receipt.get('candidate_sha256') != delivery['candidate_sha256']
+            or receipt.get('caption_sha256') != delivery['caption_sha256']):
+        raise ValueError('Short queue receipt does not identify the delivered derivative')
+    return _timestamp(receipt.get('finished_at'))[1]
+
+
+def _expected_objects(delivery_dir, delivery=None):
     root = regular(delivery_dir, directory=True)
+    paths = dict(ROLE_PATHS)
+    if delivery and 'source_package_path' in delivery:
+        paths['source_package'] = delivery['source_package_path']
     return {
         role: {
             'role': role,
@@ -136,7 +154,7 @@ def _expected_objects(delivery_dir):
             'size_bytes': regular(root / key, limit=1024 * 1024 * 1024).stat().st_size,
             'sha256': digest(root / key),
         }
-        for role, key in ROLE_PATHS.items()
+        for role, key in paths.items()
     }
 
 
@@ -146,7 +164,7 @@ def verify_private_preview_binding(delivery_dir, expected_delivery_identity_sha2
     if (not isinstance(expected_observation_sha256, str)
             or not SHA256.fullmatch(expected_observation_sha256)):
         raise ValueError('Trusted expected deployment observation identity is required')
-    delivery = verify_exported_cycle(delivery_dir, expected_delivery_identity_sha256)
+    delivery = verify_exported_preview(delivery_dir, expected_delivery_identity_sha256)
     raw, observation = _read_observation(observation_path)
     observation_sha = hashlib.sha256(raw).hexdigest()
     if observation_sha != expected_observation_sha256:
@@ -176,8 +194,11 @@ def verify_private_preview_binding(delivery_dir, expected_delivery_identity_sha2
     if (not isinstance(source_manifest, str) or not SHA256.fullmatch(source_manifest)
             or hashlib.sha256(canonical(source_files).encode()).hexdigest() != source_manifest):
         raise ValueError('Invalid deployment source manifest identity')
-    expected_objects = _expected_objects(delivery_dir)
-    completed_time = _delivery_completion(delivery_dir, expected_objects)
+    short = 'short_queue_receipt_sha256' in delivery
+    expected_objects = (_expected_objects(delivery_dir, delivery) if short
+                        else _expected_objects(delivery_dir))
+    completed_time = (short_completion(delivery_dir, delivery) if short
+                      else _delivery_completion(delivery_dir, expected_objects))
     observed_at, observed_time = _timestamp(observation.get('observed_at'))
     if observed_time < completed_time:
         raise ValueError('Deployment observation predates durable delivery completion')
@@ -192,7 +213,7 @@ def verify_private_preview_binding(delivery_dir, expected_delivery_identity_sha2
         role = item.get('role')
         if role not in ROLE_PATHS or role in observed:
             raise ValueError('Invalid or duplicate deployment object role')
-        if (item.get('key') != ROLE_PATHS[role]
+        if (item.get('key') != expected_objects[role]['key']
                 or type(item.get('size_bytes')) is not int
                 or item['size_bytes'] < 0
                 or not isinstance(item.get('sha256'), str)
@@ -225,8 +246,9 @@ def verify_private_preview_binding(delivery_dir, expected_delivery_identity_sha2
         **FLAGS,
     }
     if (regular(observation_path, limit=MAX_OBSERVATION).read_bytes() != raw
-            or verify_exported_cycle(delivery_dir, expected_delivery_identity_sha256) != delivery
-            or _expected_objects(delivery_dir) != expected_objects):
+            or verify_exported_preview(delivery_dir, expected_delivery_identity_sha256) != delivery
+            or (_expected_objects(delivery_dir, delivery) if short
+                else _expected_objects(delivery_dir)) != expected_objects):
         raise ValueError('Delivery or deployment observation changed during binding')
     binding_sha = hashlib.sha256(canonical(identity).encode()).hexdigest()
     return {
