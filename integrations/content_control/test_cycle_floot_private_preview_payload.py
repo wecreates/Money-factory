@@ -8,6 +8,9 @@ import subprocess
 import sys
 import unittest
 from unittest.mock import patch
+from zipfile import ZipFile
+
+from integrations.local_agent_queue import canonical
 
 from integrations.content_control import floot_private_preview_payload as payload_module
 from integrations.content_control.floot_private_preview_payload import (
@@ -182,7 +185,7 @@ class FlootPrivatePreviewPayloadTests(unittest.TestCase):
     def test_source_change_during_staging_leaves_no_complete_payload(self):
         delivery, report = self.export()
         output = self.base / 'toctou-payload'
-        verified = payload_module.verify_exported_cycle(
+        verified = payload_module.verify_exported_preview(
             delivery, report['delivery_identity_sha256'])
         expected = payload_module._expected_objects(delivery, verified)
         changed = json.loads(json.dumps(expected))
@@ -242,6 +245,56 @@ class FlootPrivatePreviewPayloadTests(unittest.TestCase):
                                  capture_output=True, timeout=30)
         self.assertEqual(blocked.returncode, 2)
         self.assertEqual(json.loads(blocked.stdout)['status'], 'BLOCKED')
+
+    def test_short_export_uses_exact_manifest_and_replays_bytes(self):
+        root = self.base / 'short-export'
+        preview = root / 'review'
+        preview.mkdir(parents=True)
+        names = ('automated-review.json', 'captions.vtt', 'delivery-manifest.json',
+                 'index.html', 'queue-short.json', 'short.json', 'video.mp4')
+        for name in names:
+            (preview / name).write_text(name)
+        hashes = {'review/' + name: digest(preview / name) for name in names}
+        archive = root / 'review-package.zip'
+        report = {
+            key: False for key in ('publication_enabled', 'paid_generation_enabled',
+                                   'production_ready', 'production_approved', 'full_av_review')
+        }
+        report.update(
+            schema_version=1, status='AWAITING_REVIEW', technical_status='PASS',
+            candidate_sha256=hashes['review/video.mp4'],
+            caption_sha256=hashes['review/captions.vtt'],
+            manifest_sha256=hashes['review/delivery-manifest.json'],
+            queue_receipt_sha256=hashes['review/queue-short.json'],
+            entrypoint='review/index.html', entrypoint_sha256=hashes['review/index.html'],
+            archive=archive.name,
+            files_sha256=hashes, decoded_picture_sha256='1' * 64,
+            encoded_streams_sha256={}, parent_provenance={}, selection={}, scope='fixture',
+        )
+        source_manifest = {key: value for key, value in report.items()
+                           if key not in {'archive', 'archive_sha256', 'manifest_sha256'}}
+        source_manifest['files_sha256'] = {
+            name: hashes['review/' + name] for name in names if name != 'delivery-manifest.json'}
+        (preview / 'delivery-manifest.json').write_text(json.dumps(source_manifest))
+        hashes['review/delivery-manifest.json'] = digest(preview / 'delivery-manifest.json')
+        with ZipFile(archive, 'w') as bundle:
+            for name in names:
+                bundle.write(preview / name, 'review/' + name)
+        report.update(manifest_sha256=hashes['review/delivery-manifest.json'],
+                      archive_sha256=digest(archive))
+        identity = hashlib.sha256(canonical(report).encode()).hexdigest()
+        report['delivery_identity_sha256'] = identity
+        (root / 'package.json').write_text(json.dumps(report))
+        output = self.base / 'short-payload'
+        manifest = prepare_upload_payload(root, identity, output)
+        source = next(item for item in manifest['objects'] if item['role'] == 'source_package')
+        self.assertEqual(source['logical_key'], 'review/delivery-manifest.json')
+        self.assertEqual(manifest, verify_upload_payload(root, identity, output))
+        with self.assertRaisesRegex(ValueError, 'trusted delivery identity'):
+            verify_upload_payload(root, '0' * 64, output)
+        (preview / 'captions.vtt').write_text('changed')
+        with self.assertRaisesRegex(ValueError, 'preview files changed'):
+            verify_upload_payload(root, identity, output)
 
     def test_complete_readback_builds_strict_observation_without_acceptance(self):
         (delivery, report, payload, readback, source, source_sha, _, receipt,
