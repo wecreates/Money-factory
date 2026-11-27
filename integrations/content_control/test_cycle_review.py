@@ -262,7 +262,7 @@ class ReviewTests(unittest.TestCase):
             revision_brief(self.root, self.recorded, updated,
                            self.base / 'tampered-private-review-revision')
 
-    def test_private_player_notes_and_resolved_findings_are_retained_not_routed(self):
+    def test_private_player_resolved_findings_retain_negative_disposition(self):
         findings = [
             {'start_seconds': 1, 'end_seconds': 2, 'category': 'mix',
              'severity': 'note', 'observation': 'Music is slightly prominent.',
@@ -278,12 +278,15 @@ class ReviewTests(unittest.TestCase):
         write(self.submitted, submitted)
         result = record_review(self.root, self.submitted, self.recorded,
                                private_review_record=private)
-        self.assertEqual(result['private_review_findings'], [])
+        self.assertEqual([item['check'] for item in result['private_review_findings']],
+                         ['private_review.disposition'])
+        self.assertEqual(result['private_review_receipt']['status'],
+                         'PRIVATE_REVIEW_REPAIR_REQUIRED')
         retained = json.loads(
             result['private_review_receipt']['submitted_record_json'])
         self.assertEqual(retained['findings'], findings)
-        self.assertFalse(any(item['check'].startswith('private_review.')
-                             for item in result['feedback']))
+        self.assertTrue(any(item['check'] == 'private_review.disposition'
+                            for item in result['feedback']))
 
     def test_private_review_duplicate_blockers_replay_and_chronology_fails_closed(self):
         blocker = {

@@ -452,7 +452,12 @@ def _comparison_feedback(comparison):
 
 
 def _private_review_feedback(record):
-    """Route only explicit open blockers from a replayed private review."""
+    """Route open findings or an unresolved negative reviewer disposition.
+
+    A partial review can reject release without claiming a complete watch/listen.
+    Do not discard that rejection just because no granular finding was entered,
+    or because earlier granular findings were marked resolved.
+    """
     feedback = []
     for finding in record['findings']:
         if finding['severity'] != 'blocker' or finding['resolution_state'] != 'open':
@@ -467,6 +472,21 @@ def _private_review_feedback(record):
         feedback.append({
             'check': 'private_review.' + category,
             'action': f'{start}-{end}s: {repair} Observation: {observation}',
+        })
+    reviewer = record['reviewer_attestation']
+    if not feedback and reviewer['disposition'] in {'repair_required', 'blocked'}:
+        # validate_record already requires nonempty text. Preserve its accepted
+        # summary contract; bound only this routing excerpt, not the source.
+        summary = reviewer['summary'].strip()
+        if len(summary) > 1600:
+            summary = summary[:1600] + ' [Excerpt truncated; full summary retained in submitted_record_json.]'
+        feedback.append({
+            'check': 'private_review.disposition',
+            'action': ('Reviewer disposition is ' + reviewer['disposition']
+                       + '; keep this candidate held and resolve the rejection before release. '
+                       + 'Review summary: ' + summary
+                       + ' Coverage remains limited to the retained review record; '
+                       + 'this does not assert full audiovisual review.'),
         })
     return feedback
 
